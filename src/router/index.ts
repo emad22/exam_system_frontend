@@ -1,29 +1,31 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import DashboardView from '@/views/DashboardView.vue'
+import DashboardView from '@/views/student/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
-import AdminDashboard from '@/views/AdminDashboard.vue'
-import Students from '@/views/Students.vue'
+import AdminDashboard from '@/views/admin/AdminDashboard.vue'
+import Students from '@/views/student/Students.vue'
 
-import ExamView from '@/views/ExamView.vue'
-import ResultView from '@/views/ResultView.vue'
-import ParentPortal from '@/views/ParentPortal.vue'
-import AdminStudents from '@/views/AdminStudents.vue'
-import AdminStudentCreate from '@/views/AdminStudentCreate.vue'
-import AdminStudentsBatch from '@/views/AdminStudentsBatch.vue'
-import AdminExams from '@/views/AdminExams.vue'
-import AdminExamCreate from '@/views/AdminExamCreate.vue'
-import AdminExamImport from '@/views/AdminExamImport.vue'
-import AdminQuestions from '@/views/AdminQuestions.vue'
-import AdminQuestionCreate from '@/views/AdminQuestionCreate.vue'
-import AdminQuestionEdit from '@/views/AdminQuestionEdit.vue'
-import AdminSkills from '@/views/AdminSkills.vue'
-import AdminSkillCreate from '@/views/AdminSkillCreate.vue'
-import AdminReports from '@/views/AdminReports.vue'
-import AdminPayments from '@/views/AdminPayments.vue'
-import AdminStaff from '@/views/AdminStaff.vue'
-import AdminLevels from '@/views/AdminLevels.vue'
-import PublicRegisterWizard from '@/views/PublicRegisterWizard.vue'
+import ExamView from '@/views/student/ExamView.vue'
+import ResultView from '@/views/student/ResultView.vue'
+import ParentPortal from '@/views/student/ParentPortal.vue'
+import AdminStudents from '@/views/admin/AdminStudents.vue'
+import AdminStudentCreate from '@/views/admin/AdminStudentCreate.vue'
+import AdminStudentsBatch from '@/views/admin/AdminStudentsBatch.vue'
+import AdminExams from '@/views/admin/AdminExams.vue'
+import AdminExamCreate from '@/views/admin/AdminExamCreate.vue'
+import AdminExamImport from '@/views/admin/AdminExamImport.vue'
+import AdminQuestions from '@/views/admin/AdminQuestions.vue'
+import AdminQuestionCreate from '@/views/admin/AdminQuestionCreate.vue'
+import AdminQuestionEdit from '@/views/admin/AdminQuestionEdit.vue'
+import AdminSkills from '@/views/admin/AdminSkills.vue'
+import AdminSkillCreate from '@/views/admin/AdminSkillCreate.vue'
+import AdminReports from '@/views/admin/AdminReports.vue'
+import AdminPayments from '@/views/admin/AdminPayments.vue'
+import AdminStaff from '@/views/admin/AdminStaff.vue'
+import AdminLevels from '@/views/admin/AdminLevels.vue'
+import AdminPartners from '@/views/admin/AdminPartners.vue'
+import AdminPartnerCreate from '@/views/admin/AdminPartnerCreate.vue'
+import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
 
 
 const routes = [
@@ -46,6 +48,7 @@ const routes = [
     name: 'parent',
     component: ParentPortal
   },
+  
   {
     path: '/dashboard',
     name: 'dashboard',
@@ -75,6 +78,16 @@ const routes = [
     path: '/admin/exams',
     name: 'admin.exams',
     component: AdminExams
+  },
+  {
+    path: '/admin/partners',
+    name: 'admin.partners',
+    component: AdminPartners
+  },
+  {
+    path: '/admin/partners/create',
+    name: 'admin.partners.create',
+    component: AdminPartnerCreate
   },
   {
     path: '/admin/exams/import',
@@ -148,9 +161,9 @@ const routes = [
     name: 'result',
     component: ResultView
   },
-  { 
-    path: '/students', 
-    component: Students 
+  {
+    path: '/students',
+    component: Students
   },
 ]
 

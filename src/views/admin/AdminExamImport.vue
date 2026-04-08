@@ -102,13 +102,13 @@ const uploadFiles = async () => {
 
         uploadProgress.value = 100;
 
-        successMessage.value = response.data.message || 'Import successful!';
+        successMessage.value = response.data.message;
         selectedFiles.value = [];
         
         // Return to exams after short delay
         setTimeout(() => {
             router.push('/admin/exams');
-        }, 3000);
+        }, 4000);
     } catch (err) {
          console.error('Upload failed:', err);
          errorMessage.value = err.response?.data?.message || 'Error occurred while importing the files.';

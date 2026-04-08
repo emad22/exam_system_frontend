@@ -8,20 +8,74 @@ const loading = ref(true);
 const filterSkill = ref('');
 const filterType = ref('');
 const skills = ref([]);
+const showInstructionsModal = ref(false);
+const selectedSkillForInst = ref(null);
+const selectedLevelForInst = ref(null);
+const instructionsText = ref('');
+const instructionsAudioFile = ref(null);
+const isSavingInst = ref(false);
+const skillsWithLevels = ref([]);
 
 const fetchData = async () => {
     loading.value = true;
     try {
-        const [qRes, sRes] = await Promise.all([
+        const [qRes, sRes, slRes] = await Promise.all([
             api.get('/admin/questions'),
-            api.get('/admin/skills')
+            api.get('/admin/skills'),
+            api.get('/admin/skills-with-levels')
         ]);
         questions.value = qRes.data.data || qRes.data;
         skills.value = sRes.data;
+        skillsWithLevels.value = slRes.data;
     } catch (err) {
         console.error('Failed to load', err);
     } finally {
         loading.value = false;
+    }
+};
+
+const openInstructions = () => {
+    showInstructionsModal.value = true;
+    if (skillsWithLevels.value.length > 0) {
+        selectedSkillForInst.value = skillsWithLevels.value[0];
+        if (selectedSkillForInst.value.levels.length > 0) {
+            selectLevel(selectedSkillForInst.value.levels[0]);
+        }
+    }
+};
+
+const selectLevel = (level) => {
+    selectedLevelForInst.value = level;
+    instructionsText.value = level.instructions || '';
+    instructionsAudioFile.value = null;
+};
+
+const handleAudioUpload = (e) => {
+    instructionsAudioFile.value = e.target.files[0];
+};
+
+const saveInstructions = async () => {
+    if (!selectedLevelForInst.value) return;
+    
+    isSavingInst.value = true;
+    const formData = new FormData();
+    formData.append('_method', 'PATCH');
+    formData.append('instructions', instructionsText.value);
+    if (instructionsAudioFile.value) {
+        formData.append('instructions_audio', instructionsAudioFile.value);
+    }
+
+    try {
+        await api.post(`/admin/levels/${selectedLevelForInst.value.id}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        alert('Instructions saved successfully!');
+        fetchData(); // Refresh to get updated instructions
+    } catch (err) {
+        console.error('Failed to save instructions', err);
+        alert('Error saving instructions.');
+    } finally {
+        isSavingInst.value = false;
     }
 };
 
@@ -56,6 +110,9 @@ onMounted(fetchData);
                      <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Manage all exam questions</p>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <button @click="openInstructions" class="bg-white border border-slate-200 text-slate-500 font-black text-[10px] tracking-widest uppercase px-6 py-3.5 rounded-xl hover:border-indigo-100 hover:text-indigo-600 transition shadow-sm">
+                        Manage Instructions
+                    </button>
                     <button class="bg-white border border-slate-200 text-slate-500 font-black text-[10px] tracking-widest uppercase px-6 py-3.5 rounded-xl hover:border-indigo-100 hover:text-indigo-600 transition shadow-sm">
                         Import Batch (CSV)
                     </button>
@@ -171,9 +228,111 @@ onMounted(fetchData);
                 </router-link>
             </div>
         </div>
+
+        <!-- Level Instructions Modal -->
+        <div v-if="showInstructionsModal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12 overflow-hidden">
+             <!-- Backdrop -->
+             <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xl animate-in fade-in duration-300" @click="showInstructionsModal = false"></div>
+             
+             <!-- Modal Content -->
+             <div class="relative bg-white w-full max-w-5xl h-[85vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+                  <!-- Sidebar: Skills & Levels -->
+                  <div class="w-full md:w-80 bg-slate-50 border-r border-slate-100 flex flex-col p-8 space-y-6">
+                       <div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tight">Level Settings</h3>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Configure audio & text instructions</p>
+                       </div>
+
+                       <div class="space-y-4 overflow-y-auto no-scrollbar pb-10">
+                            <div v-for="skill in skillsWithLevels" :key="skill.id" class="space-y-2">
+                                 <div class="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2">{{ skill.name }}</div>
+                                 <div class="grid grid-cols-4 gap-2">
+                                      <button v-for="level in skill.levels" :key="level.id"
+                                              @click="selectedSkillForInst = skill; selectLevel(level)"
+                                              :class="selectedLevelForInst?.id === level.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 hover:bg-slate-100'"
+                                              class="h-10 rounded-xl font-black text-xs transition-all active:scale-95 border border-transparent shadow-sm flex items-center justify-center">
+                                          L{{ level.level_number }}
+                                      </button>
+                                 </div>
+                            </div>
+                       </div>
+                  </div>
+
+                  <!-- Editor Panel -->
+                  <div class="flex-1 flex flex-col min-h-0 bg-white p-10 space-y-8 overflow-y-auto no-scrollbar">
+                       <div v-if="selectedLevelForInst" class="animate-in fade-in slide-in-from-right-4 duration-500">
+                            <div class="flex items-center space-x-6 mb-10">
+                                 <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-2xl shadow-sm">
+                                      {{ selectedSkillForInst?.name.charAt(0) }}
+                                 </div>
+                                 <div>
+                                      <h2 class="text-2xl font-black text-slate-800 tracking-tight uppercase">{{ selectedSkillForInst?.name }} — LEVEL {{ selectedLevelForInst.level_number }}</h2>
+                                      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editing instructions for this specific difficulty</p>
+                                 </div>
+                                 <button @click="showInstructionsModal = false" class="ml-auto w-10 h-10 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors">
+                                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                 </button>
+                            </div>
+
+                            <div class="space-y-8">
+                                 <!-- Text Instructions -->
+                                 <div class="space-y-3">
+                                      <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                                           <svg class="w-3.5 h-3.5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                           Text Instructions
+                                      </label>
+                                      <textarea v-model="instructionsText" rows="6" placeholder="Enter level instructions here..."
+                                                class="w-full bg-slate-50 border border-slate-100 rounded-3xl p-6 text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all resize-none"></textarea>
+                                 </div>
+
+                                 <!-- Audio Instructions -->
+                                 <div class="space-y-3">
+                                      <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                                           <svg class="w-3.5 h-3.5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                                           Audio Guidance
+                                      </label>
+                                      <div class="flex flex-col space-y-4">
+                                           <div v-if="selectedLevelForInst.instructions_audio_url" class="p-4 bg-emerald-50 rounded-2xl flex items-center justify-between border border-emerald-100">
+                                                <div class="flex items-center space-x-3">
+                                                     <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-200">
+                                                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 5l7 7-7 7V5z" /></svg>
+                                                     </div>
+                                                     <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Active Audio Attached</span>
+                                                </div>
+                                                <audio :src="selectedLevelForInst.instructions_audio_url" controls class="h-8 w-48 no-scrollbar"></audio>
+                                           </div>
+                                           <input type="file" @change="handleAudioUpload" accept="audio/*" 
+                                                  class="block w-full text-xs text-slate-400 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-slate-100 file:text-slate-500 hover:file:bg-slate-200 transition-all" />
+                                      </div>
+                                 </div>
+
+                                 <!-- Save Button -->
+                                 <div class="pt-6 border-t border-slate-50 flex justify-end items-center space-x-6">
+                                      <span v-if="isSavingInst" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest animate-pulse">Synchronizing...</span>
+                                      <button @click="saveInstructions" :disabled="isSavingInst"
+                                              :class="isSavingInst ? 'opacity-50 grayscale' : 'hover:bg-indigo-700 active:scale-95 shadow-xl shadow-indigo-100'"
+                                              class="bg-indigo-600 text-white font-black py-4 px-12 rounded-2xl transition-all uppercase tracking-[0.2em] text-[10px]">
+                                          Save Changes
+                                      </button>
+                                 </div>
+                            </div>
+                       </div>
+                       <div v-else class="flex flex-col items-center justify-center h-full space-y-6 text-center">
+                            <div class="text-6xl animate-bounce">👈</div>
+                            <h3 class="text-xl font-black text-slate-300 uppercase tracking-widest">Select a Level to Edit</h3>
+                       </div>
+                  </div>
+             </div>
+        </div>
     </div>
   </AdminLayout>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+</style>
 
 <style scoped>
 .no-scrollbar::-webkit-scrollbar {
