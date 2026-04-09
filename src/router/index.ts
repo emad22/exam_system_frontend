@@ -8,23 +8,28 @@ import Students from '@/views/student/Students.vue'
 import ExamView from '@/views/student/ExamView.vue'
 import ResultView from '@/views/student/ResultView.vue'
 import ParentPortal from '@/views/student/ParentPortal.vue'
-import AdminStudents from '@/views/admin/AdminStudents.vue'
-import AdminStudentCreate from '@/views/admin/AdminStudentCreate.vue'
-import AdminStudentsBatch from '@/views/admin/AdminStudentsBatch.vue'
-import AdminExams from '@/views/admin/AdminExams.vue'
-import AdminExamCreate from '@/views/admin/AdminExamCreate.vue'
-import AdminExamImport from '@/views/admin/AdminExamImport.vue'
-import AdminQuestions from '@/views/admin/AdminQuestions.vue'
-import AdminQuestionCreate from '@/views/admin/AdminQuestionCreate.vue'
-import AdminQuestionEdit from '@/views/admin/AdminQuestionEdit.vue'
-import AdminSkills from '@/views/admin/AdminSkills.vue'
-import AdminSkillCreate from '@/views/admin/AdminSkillCreate.vue'
+
+import AdminStudents from '@/views/admin/Students/index.vue'
+import AdminStudentCreate from '@/views/admin/Students/create.vue'
+import AdminStudentsBatch from '@/views/admin/Students/batch.vue'
+import AdminStudentEdit from '@/views/admin/Students/edit.vue'
+import AdminStudentShow from '@/views/admin/Students/show.vue'
+
+import AdminExams from '@/views/admin/Exams/index.vue'
+import AdminExamCreate from '@/views/admin/Exams/create.vue'
+import AdminExamImport from '@/views/admin/Exams/import.vue'
+
+import AdminQuestions from '@/views/admin/Questions/index.vue'
+import AdminQuestionCreate from '@/views/admin/Questions/create.vue'
+import AdminQuestionEdit from '@/views/admin/Questions/edit.vue'
+import AdminSkills from '@/views/admin/Skills/index.vue'
+import AdminSkillCreate from '@/views/admin/Skills/create.vue'
 import AdminReports from '@/views/admin/AdminReports.vue'
 import AdminPayments from '@/views/admin/AdminPayments.vue'
 import AdminStaff from '@/views/admin/AdminStaff.vue'
 import AdminLevels from '@/views/admin/AdminLevels.vue'
-import AdminPartners from '@/views/admin/AdminPartners.vue'
-import AdminPartnerCreate from '@/views/admin/AdminPartnerCreate.vue'
+import AdminPartners from '@/views/admin/Partners/index.vue'
+import AdminPartnerCreate from '@/views/admin/Partners/create.vue'
 import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
 
 
@@ -48,7 +53,7 @@ const routes = [
     name: 'parent',
     component: ParentPortal
   },
-  
+
   {
     path: '/dashboard',
     name: 'dashboard',
@@ -73,6 +78,16 @@ const routes = [
     path: '/admin/students/batch',
     name: 'admin.students.batch',
     component: AdminStudentsBatch
+  },
+  {
+    path: '/admin/students/:id/edit',
+    name: 'admin.students.edit',
+    component: AdminStudentEdit
+  },
+  {
+    path: '/admin/students/:id/show',
+    name: 'admin.students.show',
+    component: AdminStudentShow
   },
   {
     path: '/admin/exams',
