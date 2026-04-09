@@ -46,10 +46,10 @@ const errorMsg = ref('');
 
 onMounted(async () => {
     try {
-        const [pkgRes, skillRes] = await Promise.all([
+        const [pkgRes, skillRes, partnerRes] = await Promise.all([
             api.get('/admin/packages'),
             api.get('/admin/skills'),
-            api.get('/admin/partners/active') // ✅ افترض عندك API endpoint للـ partner
+            api.get('/admin/partners/active')
         ]);
         packages.value = pkgRes.data;
         skills.value = skillRes.data;
