@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 
 const router = useRouter();
+const route = useRoute();
 const skills = ref([]);
 const isSubmitting = ref(false);
 const errorMsg = ref('');
@@ -26,7 +27,17 @@ const fetchSkills = async () => {
     try {
         const res = await api.get('/admin/skills');
         skills.value = res.data;
-        if (skills.value.length > 0) form.value.skill_id = skills.value[0].id;
+        
+        // Handle query params for auto-fill
+        if (route.query.skill_id) {
+            form.value.skill_id = Number(route.query.skill_id);
+        } else if (skills.value.length > 0) {
+            form.value.skill_id = skills.value[0].id;
+        }
+
+        if (route.query.difficulty_level) {
+            form.value.difficulty_level = Number(route.query.difficulty_level);
+        }
     } catch (err) {
         console.error('Failed to load skills', err);
     }

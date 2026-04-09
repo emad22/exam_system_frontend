@@ -7,6 +7,7 @@ const questions = ref([]);
 const loading = ref(true);
 const filterSkill = ref('');
 const filterType = ref('');
+const searchQuery = ref('');
 const skills = ref([]);
 const showInstructionsModal = ref(false);
 const selectedSkillForInst = ref(null);
@@ -93,6 +94,10 @@ const filteredQuestions = () => {
     if (filterType.value) {
         filtered = filtered.filter(q => q.type === filterType.value);
     }
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        filtered = filtered.filter(q => q.content.toLowerCase().includes(query));
+    }
     return filtered;
 };
 
@@ -101,7 +106,7 @@ onMounted(fetchData);
 
 <template>
   <AdminLayout>
-    <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
         <!-- Header & HUD Filter Bar -->
         <div class="flex flex-col space-y-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
@@ -123,7 +128,18 @@ onMounted(fetchData);
             </div>
 
             <!-- Filter HUD -->
-            <div class="bg-white/60 backdrop-blur-md rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-wrap gap-6 items-center">
+            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-wrap gap-6 items-center">
+                 <!-- Search -->
+                 <div class="relative flex-1 min-w-[300px]">
+                    <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input v-model="searchQuery" type="text" placeholder="Search questions content..."
+                        class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs uppercase tracking-widest focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all placeholder:text-slate-300 font-bold text-slate-700 shadow-sm">
+                 </div>
+
+                 <div class="w-px h-6 bg-slate-100 hidden md:block"></div>
+
                  <div class="flex items-center space-x-4">
                       <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Skill</label>
                       <select v-model="filterSkill" class="bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition uppercase">
@@ -131,9 +147,9 @@ onMounted(fetchData);
                           <option v-for="skill in skills" :key="skill.id" :value="skill.name">{{ skill.name }}</option>
                       </select>
                  </div>
-                 <div class="w-px h-6 bg-slate-100 hidden md:block"></div>
+                 
                  <div class="flex items-center space-x-4">
-                      <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question Type</label>
+                      <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</label>
                       <select v-model="filterType" class="bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition uppercase">
                           <option value="">All Types</option>
                           <option value="mcq">Multiple Choice</option>
@@ -142,7 +158,7 @@ onMounted(fetchData);
                       </select>
                  </div>
                  <div class="ml-auto text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                      Displaying {{ filteredQuestions().length }} Questions
+                      Matched: {{ filteredQuestions().length }}
                  </div>
             </div>
         </div>
@@ -176,12 +192,12 @@ onMounted(fetchData);
                                          </div>
                                          <div>
                                               <p class="font-black text-slate-700 tracking-tight leading-relaxed line-clamp-2 uppercase text-sm">{{ q.content }}</p>
-                                              <div class="flex items-center space-x-3 mt-2">
-                                                   <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded border border-indigo-100">{{ q.skill?.name || 'General' }}</span>
-                                                   <span v-if="q.media_path" class="flex items-center text-[9px] font-black text-emerald-500 uppercase tracking-widest">
-                                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm0-2c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6zM9 13l6-4v8l-6-4z"/></svg> Media
-                                                   </span>
-                                              </div>
+                                               <div class="flex items-center space-x-3 mt-2">
+                                                    <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded border border-indigo-100">{{ q.skill?.name || 'General' }}</span>
+                                                    <span v-if="q.media_path" class="flex items-center text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                                                         <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm0-2c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6zM9 13l6-4v8l-6-4z"/></svg> Media
+                                                    </span>
+                                               </div>
                                          </div>
                                     </div>
                                 </td>
@@ -239,22 +255,22 @@ onMounted(fetchData);
                   <!-- Sidebar: Skills & Levels -->
                   <div class="w-full md:w-80 bg-slate-50 border-r border-slate-100 flex flex-col p-8 space-y-6">
                        <div>
-                            <h3 class="text-xl font-black text-slate-800 tracking-tight">Level Settings</h3>
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Configure audio & text instructions</p>
+                             <h3 class="text-xl font-black text-slate-800 tracking-tight">Level Settings</h3>
+                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Configure audio & text instructions</p>
                        </div>
 
                        <div class="space-y-4 overflow-y-auto no-scrollbar pb-10">
-                            <div v-for="skill in skillsWithLevels" :key="skill.id" class="space-y-2">
-                                 <div class="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2">{{ skill.name }}</div>
-                                 <div class="grid grid-cols-4 gap-2">
-                                      <button v-for="level in skill.levels" :key="level.id"
-                                              @click="selectedSkillForInst = skill; selectLevel(level)"
-                                              :class="selectedLevelForInst?.id === level.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 hover:bg-slate-100'"
-                                              class="h-10 rounded-xl font-black text-xs transition-all active:scale-95 border border-transparent shadow-sm flex items-center justify-center">
-                                          L{{ level.level_number }}
-                                      </button>
-                                 </div>
-                            </div>
+                             <div v-for="skill in skillsWithLevels" :key="skill.id" class="space-y-2">
+                                  <div class="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2">{{ skill.name }}</div>
+                                  <div class="grid grid-cols-4 gap-2">
+                                       <button v-for="level in skill.levels" :key="level.id"
+                                               @click="selectedSkillForInst = skill; selectLevel(level)"
+                                               :class="selectedLevelForInst?.id === level.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 hover:bg-slate-100'"
+                                               class="h-10 rounded-xl font-black text-xs transition-all active:scale-95 border border-transparent shadow-sm flex items-center justify-center">
+                                           L{{ level.level_number }}
+                                       </button>
+                                  </div>
+                             </div>
                        </div>
                   </div>
 
@@ -327,12 +343,6 @@ onMounted(fetchData);
     </div>
   </AdminLayout>
 </template>
-
-<style scoped>
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-</style>
 
 <style scoped>
 .no-scrollbar::-webkit-scrollbar {

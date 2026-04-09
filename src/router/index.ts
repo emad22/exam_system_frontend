@@ -22,12 +22,20 @@ import AdminExamImport from '@/views/admin/Exams/import.vue'
 import AdminQuestions from '@/views/admin/Questions/index.vue'
 import AdminQuestionCreate from '@/views/admin/Questions/create.vue'
 import AdminQuestionEdit from '@/views/admin/Questions/edit.vue'
+
 import AdminSkills from '@/views/admin/Skills/index.vue'
 import AdminSkillCreate from '@/views/admin/Skills/create.vue'
+
 import AdminReports from '@/views/admin/AdminReports.vue'
+
 import AdminPayments from '@/views/admin/AdminPayments.vue'
-import AdminStaff from '@/views/admin/AdminStaff.vue'
-import AdminLevels from '@/views/admin/AdminLevels.vue'
+
+import AdminStaff from '@/views/admin/Staff/index.vue'
+import AdminStaffCreate from '@/views/admin/Staff/create.vue'
+
+
+import AdminLevels from '@/views/admin/Levels/index.vue'
+
 import AdminPartners from '@/views/admin/Partners/index.vue'
 import AdminPartnerCreate from '@/views/admin/Partners/create.vue'
 import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
@@ -165,6 +173,17 @@ const routes = [
     path: '/admin/staff',
     name: 'admin.staff',
     component: AdminStaff
+  },
+  {
+    path: '/admin/staff/create',
+    name: 'admin.staff.create',
+    component: AdminStaffCreate
+  },
+  {
+    path: '/admin/staff/:id/edit',
+    name: 'admin.staff.edit',
+    component: AdminStaffCreate,
+    props: true
   },
   {
     path: '/exam/:id',

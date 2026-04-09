@@ -55,12 +55,13 @@ onMounted(async () => {
         skills.value = skillRes.data;
         partners.value = partnerRes.data;
 
-        if (packages.value.length > 0) form.value.package_id = packages.value[0].id;
+        // Start with custom
+        form.value.package_id = '';
         if (partners.value.length > 0) form.value.partner_id = partners.value[0].id; // اختياري
 
-        // Default skills (Listening, Reading Comprehension, Structure)
+        // Default skills (Listening, Reading, Structure)
         form.value.assigned_skills = skills.value
-            .filter(s => ['Listening', 'Reading Comprehension', 'Structure'].includes(s.name))
+            .filter(s => ['Listening', 'Reading', 'Structure'].includes(s.name))
             .map(s => s.id);
     } catch (err) {
         console.error('Failed to load prerequisites', err);
@@ -84,10 +85,12 @@ const addStudent = async () => {
 };
 
 const onPackageChange = () => {
-    const selected = packages.value.find(p => p.id === form.value.package_id);
-    if (selected && selected.skills) {
-        // Auto-select skills from the package
-        form.value.assigned_skills = selected.skills.map(s => s.id);
+    if (form.value.package_id !== '') {
+        const selected = packages.value.find(p => p.id === form.value.package_id);
+        if (selected && selected.skills) {
+            // Auto-select skills from the package and prevent manual edit
+            form.value.assigned_skills = selected.skills.map(s => s.id);
+        }
     }
 };
 </script>
@@ -327,16 +330,20 @@ const onPackageChange = () => {
                                     </svg>
                                     Cognitive Module Matrix
                                 </label>
-                                <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Override
-                                    Enabled</span>
+                                <span v-if="form.package_id === ''" class="text-[9px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">Custom Selection Enabled</span>
+                                <span v-else class="text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">Locked to Package</span>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <label v-for="skill in skills" :key="skill.id"
-                                    :class="form.assigned_skills.includes(skill.id) ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/50'"
-                                    class="flex items-center p-5 rounded-2xl border-2 cursor-pointer hover:border-emerald-500/30 transition-all duration-300 group">
+                                    :class="[
+                                        form.assigned_skills.includes(skill.id) ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/50',
+                                        form.package_id !== '' ? 'opacity-60 cursor-not-allowed grayscale-[30%]' : 'cursor-pointer hover:border-emerald-500/30'
+                                    ]"
+                                    class="flex items-center p-5 rounded-2xl border-2 transition-all duration-300 group">
                                     <input type="checkbox" :value="skill.id" v-model="form.assigned_skills"
-                                        class="w-5 h-5 text-emerald-500 rounded-lg border-slate-700 bg-slate-900 focus:ring-0 focus:ring-offset-0">
+                                        :disabled="form.package_id !== ''"
+                                        class="w-5 h-5 text-emerald-500 rounded-lg border-slate-700 bg-slate-900 focus:ring-0 focus:ring-offset-0 disabled:opacity-50">
                                     <span
                                         :class="form.assigned_skills.includes(skill.id) ? 'text-emerald-400 font-black' : 'text-slate-500 font-bold'"
                                         class="ml-4 text-[10px] uppercase tracking-wider transition-colors truncate">

@@ -83,9 +83,11 @@ const loadData = async () => {
 };
 
 const onPackageChange = () => {
-    const selected = packages.value.find(p => p.id === editForm.value.package_id);
-    if (selected && selected.skills) {
-        editForm.value.assigned_skills = selected.skills.map(s => s.id);
+    if (editForm.value.package_id !== '') {
+        const selected = packages.value.find(p => p.id === editForm.value.package_id);
+        if (selected && selected.skills) {
+            editForm.value.assigned_skills = selected.skills.map(s => s.id);
+        }
     }
 };
 
@@ -203,10 +205,21 @@ onMounted(() => {
                         </div>
 
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-4">Cognitive Module Matrix</label>
+                            <div class="flex items-center justify-between mb-4 ml-4">
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Cognitive Module Matrix</label>
+                                <span v-if="editForm.package_id === ''" class="text-[9px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Custom Selection Enabled</span>
+                                <span v-else class="text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">Locked to Package</span>
+                            </div>
                             <div class="grid grid-cols-2 gap-3">
-                                <label v-for="skill in skills" :key="skill.id" :class="editForm.assigned_skills.includes(skill.id) ? 'border-indigo-400 bg-white ring-4 ring-indigo-50 shadow-sm' : 'border-slate-50 bg-white/50'" class="flex items-center p-4 rounded-2xl border cursor-pointer hover:border-indigo-200 transition-all duration-300 group">
-                                    <input type="checkbox" :value="skill.id" v-model="editForm.assigned_skills" class="w-5 h-5 text-indigo-600 rounded-lg border-slate-200 bg-white shadow-inner focus:ring-0">
+                                <label v-for="skill in skills" :key="skill.id" 
+                                    :class="[
+                                        editForm.assigned_skills.includes(skill.id) ? 'border-indigo-400 bg-white ring-4 ring-indigo-50 shadow-sm' : 'border-slate-50 bg-white/50',
+                                        editForm.package_id !== '' ? 'opacity-60 cursor-not-allowed grayscale-[30%]' : 'cursor-pointer hover:border-indigo-200'
+                                    ]" 
+                                    class="flex items-center p-4 rounded-2xl border transition-all duration-300 group">
+                                    <input type="checkbox" :value="skill.id" v-model="editForm.assigned_skills" 
+                                        :disabled="editForm.package_id !== ''"
+                                        class="w-5 h-5 text-indigo-600 rounded-lg border-slate-200 bg-white shadow-inner focus:ring-0 disabled:opacity-50">
                                     <span :class="editForm.assigned_skills.includes(skill.id) ? 'text-indigo-600 font-black' : 'text-slate-500 font-bold'" class="ml-3 text-[9px] uppercase tracking-wider transition-colors">
                                         {{ skill.name }}
                                     </span>
