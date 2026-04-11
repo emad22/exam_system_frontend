@@ -21,7 +21,7 @@ const loadData = async () => {
         ]);
         
         selectedPartner.value = partnerRes.data;
-       // alert(selectedPartner.value);
+       // alert(selectedPartner.note);
        
     } catch (err) {
         console.error(err);
@@ -76,7 +76,7 @@ onMounted(() => {
                                 <span class="w-2 h-2 bg-indigo-500 rounded-full mr-3"></span> Identity Profile
                             </h4>
                             <div class="grid grid-cols-2 gap-6">
-                                <div v-for="(val, key) in { Email: selectedPartner.email, Phone: selectedPartner.phone || 'N/A', Website: selectedPartner.website, Country: selectedPartner.country || 'N/A', Is_Active: selectedPartner.is_active || 'N/A' }" :key="key" class="space-y-1">
+                                <div v-for="(val, key) in { Email: selectedPartner.email, Phone: selectedPartner.phone || 'N/A', Website: selectedPartner.website, Country: selectedPartner.country || 'N/A', Notes: selectedPartner.note || 'N/A', Is_Active: selectedPartner.is_active || 'N/A' }" :key="key" class="space-y-1">
                                     <label class="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{{ key }}</label>
                                     <p class="text-sm font-bold text-slate-700 truncate">{{ val }}</p>
                                 </div>

@@ -126,6 +126,10 @@ onMounted(() => {
                                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Website</label>
                                 <input v-model="editForm.website" type="text" class="premium-input text-xs" placeholder="+XX XXX XXXX">
                             </div>
+                             <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Notes</label>
+                                <input v-model="editForm.note" type="text" class="premium-input text-xs" placeholder="+XX XXX XXXX">
+                            </div>
                         </div>
                     </div>
 

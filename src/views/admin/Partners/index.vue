@@ -132,6 +132,7 @@ onMounted(fetchPartners);
                                     </td>
                                     <td class="px-6 py-4 text-xs font-bold text-slate-500">{{ partner.email || '-' }}</td>
                                     <td class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{{ partner.country }}</td>
+                                    <!-- <td class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{{ partner.notes }}</td> -->
                                     <td class="px-6 py-4">
                                         <span :class="partner.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'"
                                             class="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border">
