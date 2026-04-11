@@ -38,8 +38,9 @@ import AdminStaffCreate from '@/views/admin/Staff/create.vue'
 import AdminLevels from '@/views/admin/Levels/index.vue'
 
 import AdminPartners from '@/views/admin/Partners/index.vue'
-
 import AdminPartnerCreate from '@/views/admin/Partners/create.vue'
+import AdminPartnerEdit from '@/views/admin/Partners/edit.vue'
+import AdminPartnerShow from '@/views/admin/Partners/show.vue'
 import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
 
 
@@ -200,6 +201,16 @@ const routes = [
   {
     path: '/students',
     component: Students
+  },
+  {
+    path: '/admin/Partners/:id/edit',
+    name: 'admin.partners.edit',
+    component: AdminPartnerEdit
+  },
+  {
+    path: '/admin/Partners/:id/show',
+    name: 'admin.partners.show',
+    component: AdminPartnerShow
   },
 ]
 

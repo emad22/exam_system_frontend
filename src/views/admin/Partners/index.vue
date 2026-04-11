@@ -57,6 +57,16 @@ const toggleHold = async (partner) => {
     }
 };
 
+const openView = (partner) => {
+   // alert(partner);
+    router.push(`/admin/Partners/${partner.id}/show`);
+};
+
+const openEdit = (partner) => {
+    router.push(`/admin/Partners/${partner.id}/edit`);
+};
+
+
 onMounted(fetchPartners);
 </script>
 
@@ -129,19 +139,41 @@ onMounted(fetchPartners);
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right space-x-2">
-                                        <router-link :to="`/admin/partners/${partner.id}/edit`"
-                                            class="bg-white border border-slate-200 text-slate-500 font-black text-[9px] tracking-widest uppercase px-4 py-2 rounded-xl hover:border-indigo-100 hover:text-indigo-600 transition shadow-sm inline-block">
-                                            Edit
-                                        </router-link>
+                                       <div class="flex items-center justify-end space-x-2">
+                                         <button @click="openView(partner)"
+                                            class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center border border-blue-100 shadow-sm"
+                                            title="View Details">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
+                                        <button @click="openEdit(partner)"
+                                            class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 hover:bg-amber-600 hover:text-white transition-all flex items-center justify-center border border-amber-100 shadow-sm"
+                                            title="Edit Profile">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                     
+
                                         <button @click="toggleHold(partner)"
                                             :class="partner.is_active ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-500 hover:text-white' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-500 hover:text-white'"
                                             class="px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition">
                                             {{ partner.is_active ? 'Hold' : 'Unhold' }}
                                         </button>
                                         <button @click="deletePartner(partner.id)"
-                                            class="bg-rose-50 border border-rose-100 text-rose-400 font-black text-[9px] tracking-widest uppercase px-4 py-2 rounded-xl hover:bg-rose-500 hover:text-white transition">
-                                            Delete
+                                             class="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center border border-rose-100 shadow-sm"
+                                            title="Purge Identity">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
                                         </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
