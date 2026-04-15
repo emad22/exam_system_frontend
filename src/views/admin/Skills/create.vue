@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+import Button from 'primevue/button';
 
 const router = useRouter();
 
@@ -32,20 +33,16 @@ const addSkill = async () => {
 
 <template>
   <AdminLayout>
-    <div class="max-w-3xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-4 md:px-12 mt-6">
         
         <!-- Header -->
-        <div class="flex items-center space-x-6">
-            <router-link to="/admin/skills"
-                class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-slate-400 hover:text-indigo-600 hover:shadow-md transition-all border border-slate-100 group">
-                <svg class="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" />
-                </svg>
-            </router-link>
-            <div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Inject Cognitive Module</h1>
-                <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Manual Skill Registry</p>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-6">
+                <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/skills')" />
+                <div>
+                     <h1 class="text-3xl font-black text-slate-800 tracking-tight">Inject Cognitive Module</h1>
+                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Manual Skill Registry</p>
+                </div>
             </div>
         </div>
 
@@ -80,10 +77,12 @@ const addSkill = async () => {
                         <div class="w-2 h-2 bg-slate-400 rounded-full"></div>
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Commit Sequence</span>
                     </div>
-                    <button type="submit" :disabled="isSubmitting" 
-                        class="w-full sm:w-auto bg-slate-900 text-white font-black py-5 px-16 rounded-[2rem] shadow-xl hover:shadow-indigo-500/20 hover:-translate-y-1 active:scale-95 transition-all duration-300 disabled:opacity-50 text-[10px] uppercase tracking-[0.4em]">
-                        {{ isSubmitting ? 'COMPILING...' : 'COMMIT MODULE ➜' }}
-                    </button>
+                    <Button :label="isSubmitting ? 'COMPILING...' : 'COMMIT MODULE ➜'" 
+                           :loading="isSubmitting" 
+                           icon="pi pi-check" 
+                           size="large" 
+                           class="w-full sm:w-auto" 
+                           @click="addSkill" />
                 </div>
             </form>
         </div>

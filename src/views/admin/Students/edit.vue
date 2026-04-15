@@ -4,6 +4,14 @@ import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 
+import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
+import Checkbox from 'primevue/checkbox';
+import Button from 'primevue/button';
+import Card from 'primevue/card';
+import ProgressSpinner from 'primevue/progressspinner';
+import Password from 'primevue/password';
+
 const route = useRoute();
 const router = useRouter();
 
@@ -113,114 +121,112 @@ onMounted(() => {
 <template>
     <AdminLayout>
         <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-            <div class="w-12 h-12 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+            <ProgressSpinner />
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Database...</p>
         </div>
-        <div v-else class="max-w-3xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+        <div v-else class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4 md:px-12">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Sync Entity</h1>
-                    <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Manual identity reconciliation</p>
+                <div class="flex items-center space-x-6">
+                    <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/students')" />
+                    <div>
+                         <h1 class="text-3xl font-black text-slate-800 tracking-tight">Sync Entity</h1>
+                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Manual identity reconciliation</p>
+                    </div>
                 </div>
-                <button @click="router.push('/admin/students')"
-                    class="w-10 h-10 rounded-full bg-white border border-slate-100 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shadow-sm">✕</button>
             </div>
 
-            <div class="bg-white rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full overflow-hidden flex flex-col border border-slate-100">
-                <div class="p-10 space-y-12">
+            <Card class="border border-slate-100 shadow-sm rounded-3xl overflow-hidden mt-6">
+                <template #content>
+                    <div class="p-4 md:p-10 space-y-12">
                     <!-- Section 1: Core -->
                     <div class="space-y-6">
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Given Name</label>
-                                <input v-model="editForm.first_name" type="text" class="premium-input text-xs uppercase" placeholder="FIRST_NAME">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="flex flex-col">
+                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Given Name</label>
+                                <InputText v-model="editForm.first_name" class="w-full shadow-sm rounded-xl uppercase" placeholder="First Name" />
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Family Name</label>
-                                <input v-model="editForm.last_name" type="text" class="premium-input text-xs uppercase" placeholder="LAST_NAME">
+                            <div class="flex flex-col">
+                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Family Name</label>
+                                <InputText v-model="editForm.last_name" class="w-full shadow-sm rounded-xl uppercase" placeholder="Last Name" />
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Identifier (Email)</label>
-                                <input v-model="editForm.email" type="email" class="premium-input text-xs" placeholder="EMAIL@DOMAIN.COM">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="flex flex-col">
+                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Identifier (Email)</label>
+                                <InputText v-model="editForm.email" type="email" class="w-full shadow-sm rounded-xl" placeholder="email@domain.com" />
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Contact Phone</label>
-                                <input v-model="editForm.phone" type="text" class="premium-input text-xs" placeholder="+XX XXX XXXX">
+                            <div class="flex flex-col">
+                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Contact Phone</label>
+                                <InputText v-model="editForm.phone" class="w-full shadow-sm rounded-xl" placeholder="+XX XXX XXXX" />
                             </div>
                         </div>
                     </div>
 
                     <!-- Section 2: Bio -->
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Belief System (Religion)</label>
-                            <input v-model="editForm.religion" type="text" class="premium-input text-xs uppercase" placeholder="RELIGION">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="flex flex-col">
+                            <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Belief System (Religion)</label>
+                            <InputText v-model="editForm.religion" class="w-full shadow-sm rounded-xl uppercase" placeholder="Religion" />
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Core Profession</label>
-                            <input v-model="editForm.occupation" type="text" class="premium-input text-xs uppercase" placeholder="OCCUPATION">
+                        <div class="flex flex-col">
+                            <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Core Profession</label>
+                            <InputText v-model="editForm.occupation" class="w-full shadow-sm rounded-xl uppercase" placeholder="Occupation" />
                         </div>
                     </div>
 
                     <!-- Section 3: Academic -->
-                    <div class="space-y-6 p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Assigned Package</label>
-                                <select v-model="editForm.package_id" @change="onPackageChange" class="premium-input text-[10px] uppercase tracking-widest">
-                                    <option value="">CUSTOM_SYNC</option>
-                                    <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">{{ pkg.name }}</option>
-                                </select>
+                    <div class="space-y-8 p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="flex flex-col">
+                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Assigned Package</label>
+                                <Select v-model="editForm.package_id" 
+                                    @change="onPackageChange" 
+                                    :options="[{id: '', name: 'Custom Sync'}, ...packages]" 
+                                    optionLabel="name" 
+                                    optionValue="id" 
+                                    class="w-full shadow-sm rounded-xl" />
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Logic Mode</label>
-                                <select v-model="editForm.exam_type" class="premium-input text-[10px] uppercase tracking-widest">
-                                    <option value="adult">ADULT (18+)</option>
-                                    <option value="children">CHILD (-18)</option>
-                                </select>
+                            <div class="flex flex-col">
+                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Logic Mode</label>
+                                <Select v-model="editForm.exam_type" 
+                                    :options="[{label:'Adult (18+)', value:'adult'}, {label:'Child (-18)', value:'children'}]" 
+                                    optionLabel="label" 
+                                    optionValue="value" 
+                                    class="w-full shadow-sm rounded-xl" />
                             </div>
                         </div>
 
-                        <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-8">
+                        <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-8 pt-4">
                             <label class="flex items-center cursor-pointer group">
-                                <div class="relative">
-                                    <input type="checkbox" v-model="editForm.not_adaptive" class="sr-only">
-                                    <div :class="editForm.not_adaptive ? 'bg-amber-500' : 'bg-slate-200'" class="block w-12 h-7 rounded-full transition-colors"></div>
-                                    <div :class="editForm.not_adaptive ? 'translate-x-6' : 'translate-x-1'" class="absolute left-0 top-1 bg-white w-5 h-5 rounded-full transition-transform shadow-sm"></div>
-                                </div>
-                                <span class="ml-3 text-[10px] font-black text-slate-600 uppercase tracking-widest">Linear Mode (Non-Adaptive)</span>
+                                <Checkbox v-model="editForm.not_adaptive" :binary="true" />
+                                <span class="ml-3 text-xs font-bold text-slate-600">Linear Mode (Non-Adaptive)</span>
                             </label>
 
                             <label class="flex items-center cursor-pointer group">
-                                <div class="relative">
-                                    <input type="checkbox" v-model="editForm.is_active" class="sr-only">
-                                    <div :class="editForm.is_active ? 'bg-emerald-500' : 'bg-slate-200'" class="block w-12 h-7 rounded-full transition-colors"></div>
-                                    <div :class="editForm.is_active ? 'translate-x-6' : 'translate-x-1'" class="absolute left-0 top-1 bg-white w-5 h-5 rounded-full transition-transform shadow-sm"></div>
-                                </div>
-                                <span class="ml-3 text-[10px] font-black text-slate-600 uppercase tracking-widest">Active Status</span>
+                                <Checkbox v-model="editForm.is_active" :binary="true" />
+                                <span class="ml-3 text-xs font-bold text-slate-600">Active Status</span>
                             </label>
                         </div>
 
                         <div>
-                            <div class="flex items-center justify-between mb-4 ml-4">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Cognitive Module Matrix</label>
-                                <span v-if="editForm.package_id === ''" class="text-[9px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Custom Selection Enabled</span>
-                                <span v-else class="text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">Locked to Package</span>
+                            <div class="flex items-center justify-between mb-8 ml-4">
+                                <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center">
+                                    <i class="pi pi-bolt mr-2"></i> Module Assignment Matrix
+                                </label>
+                                <span class="text-[9px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 flex items-center">
+                                    <i class="pi pi-unlock mr-2"></i> Custom Overrides Enabled
+                                </span>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
+                            
+                            <p class="text-[10px] font-bold text-slate-400 mb-6 px-4 uppercase tracking-tight italic">Adjusting these modules will directly impact the content of the student's next exam attempt.</p>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <label v-for="skill in skills" :key="skill.id" 
-                                    :class="[
-                                        editForm.assigned_skills.includes(skill.id) ? 'border-indigo-400 bg-white ring-4 ring-indigo-50 shadow-sm' : 'border-slate-50 bg-white/50',
-                                        editForm.package_id !== '' ? 'opacity-60 cursor-not-allowed grayscale-[30%]' : 'cursor-pointer hover:border-indigo-200'
-                                    ]" 
-                                    class="flex items-center p-4 rounded-2xl border transition-all duration-300 group">
-                                    <input type="checkbox" :value="skill.id" v-model="editForm.assigned_skills" 
-                                        :disabled="editForm.package_id !== ''"
-                                        class="w-5 h-5 text-indigo-600 rounded-lg border-slate-200 bg-white shadow-inner focus:ring-0 disabled:opacity-50">
-                                    <span :class="editForm.assigned_skills.includes(skill.id) ? 'text-indigo-600 font-black' : 'text-slate-500 font-bold'" class="ml-3 text-[9px] uppercase tracking-wider transition-colors">
+                                    :class="editForm.assigned_skills.includes(skill.id) ? 'border-indigo-600 bg-white shadow-sm' : 'border-slate-100 bg-white'"
+                                    class="flex items-center p-5 rounded-2xl border-2 transition-all duration-300 group cursor-pointer hover:border-indigo-200">
+                                    <Checkbox :value="skill.id" v-model="editForm.assigned_skills" />
+                                    <span class="ml-4 text-xs font-bold text-slate-700 truncate">
                                         {{ skill.name }}
                                     </span>
                                 </label>
@@ -229,20 +235,19 @@ onMounted(() => {
                     </div>
 
                     <!-- Password -->
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2 ml-4">Credential Override (Passphrase)</label>
-                        <input v-model="editForm.password" type="password" placeholder="LEAVE BLANK TO RETAIN CURRENT KEY" class="premium-input font-mono text-xs tracking-widest text-center bg-slate-50 border-dashed">
+                    <div class="flex flex-col pb-4">
+                        <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Credential Override (Passphrase)</label>
+                        <InputText v-model="editForm.password" type="password" placeholder="Leave blank to retain current key" class="w-full shadow-sm rounded-xl font-mono" />
                     </div>
                 </div>
 
                 <!-- Footer -->
-                <div class="p-10 bg-slate-50 border-t border-slate-100 flex justify-end space-x-4 shrink-0">
-                    <button @click="router.push('/admin/students')" class="px-8 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition">Discard</button>
-                    <button @click="saveStudent" :disabled="isSaving" class="bg-slate-900 text-white font-black px-12 py-5 rounded-[1.5rem] shadow-xl shadow-slate-200 hover:bg-black active:scale-95 transition-all uppercase tracking-[0.2em] text-[10px]">
-                        {{ isSaving ? 'SYNCHRONIZING...' : 'COMMIT CHANGES' }}
-                    </button>
+                <div class="pt-8 border-t border-slate-100 flex justify-end space-x-4">
+                    <Button label="Discard" severity="secondary" text @click="router.push('/admin/students')" />
+                    <Button label="COMMIT CHANGES" icon="pi pi-check" :loading="isSaving" @click="saveStudent" />
                 </div>
-            </div>
+                </template>
+            </Card>
         </div>
     </AdminLayout>
 </template>

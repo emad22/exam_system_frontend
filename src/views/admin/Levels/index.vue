@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+import Button from 'primevue/button';
 
 const route = useRoute();
 const skillId = route.params.id;
@@ -194,25 +195,21 @@ onMounted(fetchData);
         <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Config...</p>
     </div>
 
-    <div v-else-if="skill" class="max-w-5xl mx-auto pb-20">
-        <!-- Breadcrumbs & Header -->
-        <div class="flex items-center space-x-4 mb-8">
-            <router-link to="/admin/skills" class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition font-bold text-xl">
-                ←
-            </router-link>
-            <div>
-                <div class="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    <router-link to="/admin/skills" class="hover:text-indigo-500 transition">Skills</router-link>
-                    <span>/</span>
-                    <span class="text-indigo-600">{{ skill.name }}</span>
+    <div v-else-if="skill" class="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-4 md:px-12 mt-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-12">
+            <div class="flex items-center space-x-6">
+                <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/skills')" />
+                <div>
+                     <div class="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                        <span @click="router.push('/admin/skills')" class="hover:text-indigo-500 transition cursor-pointer">Skills</span>
+                        <span>/</span>
+                        <span class="text-indigo-600">{{ skill.name }}</span>
+                    </div>
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Adaptive Leveling Matrix</h1>
                 </div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Adaptive Leveling Matrix</h1>
             </div>
-            
-            <button @click="openAddModal" 
-                class="ml-auto bg-indigo-600 text-white font-black text-[10px] tracking-widest uppercase px-8 py-3.5 rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all">
-                Add New Level +
-            </button>
+            <Button label="Add New Level" icon="pi pi-plus" size="large" @click="openAddModal" />
         </div>
 
         <!-- Adaptive Matrix Roadmap -->
@@ -273,12 +270,12 @@ onMounted(fetchData);
                     <!-- Manage Questions (High Proximity) -->
                     <div class="flex-shrink-0 px-8 border-x border-slate-50 ml-auto">
                         <button @click="openQuestionsModal(level)" 
-                                class="group/btn relative flex items-center space-x-4 bg-slate-900 text-white pl-6 pr-4 py-3.5 rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200">
+                                class="group/btn relative flex items-center space-x-4 bg-indigo-50/50 text-indigo-600 pl-6 pr-4 py-3.5 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all active:scale-95 border border-indigo-100/50">
                             <div class="text-left">
                                 <p class="text-[10px] font-black uppercase tracking-widest opacity-50 mb-0.5">Assigned Bank</p>
                                 <p class="text-xs font-black">{{ getQuestionsForLevel(level.level_number).length }} Questions</p>
                             </div>
-                            <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center group-hover/btn:translate-x-1 transition-transform">
+                            <div class="w-8 h-8 rounded-xl bg-indigo-600/10 group-hover:bg-white/20 flex items-center justify-center group-hover/btn:translate-x-1 transition-transform">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
                             </div>
                         </button>
@@ -470,12 +467,9 @@ onMounted(fetchData);
 
             <!-- Footer -->
             <div class="px-10 py-8 border-t border-slate-50 flex justify-end space-x-4 bg-white flex-shrink-0">
-                <button @click="showLevelModal = false" :disabled="isSaving"
-                    class="px-10 py-4 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-all duration-300">Abort Changes</button>
-                <button @click="saveLevel" :disabled="isSaving" 
-                    class="bg-slate-900 text-white px-12 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all duration-300 shadow-2xl shadow-slate-200 hover:shadow-indigo-200 disabled:opacity-50">
-                    {{ isSaving ? 'Executing...' : (isEditing ? 'COMMIT UPDATES' : 'INITIALIZE LEVEL') }}
-                </button>
+                <Button label="Abort Changes" severity="secondary" text @click="showLevelModal = false" :disabled="isSaving" />
+                <Button :label="isSaving ? 'Executing...' : (isEditing ? 'COMMIT UPDATES' : 'INITIALIZE LEVEL')" 
+                       icon="pi pi-check" :loading="isSaving" @click="saveLevel" />
             </div>
         </div>
     </div>

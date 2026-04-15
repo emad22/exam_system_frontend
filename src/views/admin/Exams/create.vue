@@ -3,14 +3,21 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+import Button from 'primevue/button';
+import InputNumber from 'primevue/inputnumber';
+import Dialog from 'primevue/dialog';
 
 const router = useRouter();
 const route = useRoute();
 
 const examId = ref(route.params.id || null);
 const availableSkills = ref([]);
+const languages = ref([]);
+const currentStep = ref(1); // 1: Identity, 2: Skills, 3: Questions/Levels, 4: Review
+
 const form = ref({
     title: '',
+    description: '',
     language_id: null,
     exam_type: 'adult',
     passing_score: 60,
@@ -18,10 +25,13 @@ const form = ref({
     selectedSkills: [] 
 });
 
+// For Step 3: Local storage of questions being added
+// Structure: { skillId: { levelNum: [questions] } }
+const localQuestions = ref({}); 
+
 const isSubmitting = ref(false);
 const isLoading = ref(false);
 const errorMsg = ref('');
-const skillTagsMap = ref({}); // { skillId: [tags] }
 
 const isEditMode = computed(() => !!examId.value);
 
@@ -32,8 +42,13 @@ onMounted(async () => {
             api.get('/admin/languages'),
             api.get('/admin/skills-with-levels')
         ]);
-        // Auto-select first (only) language
-        if (langRes.data.length > 0) form.value.language_id = langRes.data[0].id;
+        
+        languages.value = langRes.data;
+        // Auto-select Arabic if it exists
+        const arabic = languages.value.find(l => l.name.toLowerCase().includes('arab'));
+        if (arabic) form.value.language_id = arabic.id;
+        else if (languages.value.length > 0) form.value.language_id = languages.value[0].id;
+
         availableSkills.value = skillRes.data;
         
         if (isEditMode.value) {
@@ -47,24 +62,14 @@ onMounted(async () => {
                 passing_score: exam.passing_score ?? 60,
                 is_adaptive: false,
                 selectedSkills: exam.skills.map(skill => {
-                    const rules = exam.question_rules.filter(r => r.skill_id === skill.id).map(r => ({
-                        difficulty_level: r.difficulty_level || null,
-                        group_tag: r.group_tag || '',
-                        quantity: r.quantity,
-                        randomize: !!r.randomize
-                    }));
-
                     return {
                         skill_id: skill.id,
                         duration: skill.pivot.duration,
                         is_optional: !!skill.pivot.is_optional,
-                        rules: rules.length > 0 ? rules : [{ difficulty_level: null, group_tag: '', quantity: 5, randomize: true }]
+                        rules: [] // We'll manage questions directly now
                     };
                 })
             };
-
-            // Fetch tags for selected skills
-            form.value.selectedSkills.forEach(s => fetchSkillTags(s.skill_id));
         }
     } catch (err) {
         console.error('Failed to load pre-requisites', err);
@@ -74,59 +79,26 @@ onMounted(async () => {
     }
 });
 
-const fetchSkillTags = async (skillId) => {
-    if (skillTagsMap.value[skillId]) return;
-    try {
-        const res = await api.get(`/admin/skills/${skillId}/tags`);
-        skillTagsMap.value[skillId] = res.data;
-    } catch (err) {
-        console.error(`Failed to fetch tags for skill ${skillId}`, err);
-    }
+const nextStep = () => {
+    if (currentStep.value < 4) currentStep.value++;
 };
 
-const toggleSkill = async (skillId) => {
+const prevStep = () => {
+    if (currentStep.value > 1) currentStep.value--;
+};
+
+const toggleSkill = (skillId) => {
     const idx = form.value.selectedSkills.findIndex(s => s.skill_id === skillId);
     if (idx === -1) {
-        // Find skill info to get levels
-        const skillInfo = availableSkills.value.find(s => s.id === skillId);
-        const autoRules = [];
-        
-        if (skillInfo?.levels?.length > 0) {
-            skillInfo.levels.forEach(lvl => {
-                autoRules.push({
-                    difficulty_level: lvl.level_number,
-                    group_tag: '',
-                    quantity: 5, // Defaulting to 5 as requested in example
-                    randomize: true
-                });
-            });
-        } else {
-            autoRules.push({ difficulty_level: null, group_tag: '', quantity: 5, randomize: true });
-        }
-
         form.value.selectedSkills.push({ 
             skill_id: skillId, 
             duration: 30, 
             is_optional: false,
-            rules: autoRules
+            rules: []
         });
-        await fetchSkillTags(skillId);
+        if (!localQuestions.value[skillId]) localQuestions.value[skillId] = {};
     } else {
         form.value.selectedSkills.splice(idx, 1);
-    }
-};
-
-const addRule = (skillId) => {
-    const skill = form.value.selectedSkills.find(s => s.skill_id === skillId);
-    if (skill) {
-        skill.rules.push({ difficulty_level: null, group_tag: '', quantity: 5, randomize: true });
-    }
-};
-
-const removeRule = (skillId, ruleIdx) => {
-    const skill = form.value.selectedSkills.find(s => s.skill_id === skillId);
-    if (skill && skill.rules.length > 1) {
-        skill.rules.splice(ruleIdx, 1);
     }
 };
 
@@ -134,56 +106,249 @@ const isSkillSelected = (skillId) => {
     return form.value.selectedSkills.some(s => s.skill_id === skillId);
 };
 
-const getLevelRule = (skillId, levelNumber) => {
-    const skill = form.value.selectedSkills.find(s => s.skill_id === skillId);
-    if (!skill) return null;
-    
-    // Find skill info to check if level is active
-    const skillInfo = availableSkills.value.find(s => s.id === skillId);
-    const levelInfo = skillInfo?.levels?.find(l => l.level_number === levelNumber);
-    if (levelInfo && !levelInfo.is_active) return null;
+// Question Builder Logic
+const activeSkillForQuestions = ref(null);
+const activeLevelForQuestions = ref(null);
+const showQuestionForm = ref(false);
+const isPassageMode = ref(false);
+const passageContent = ref('');
 
-    let rule = skill.rules.find(r => r.difficulty_level === levelNumber);
-    if (!rule) {
-        // Create it on the fly if needed for the UI to be responsive
-        rule = { difficulty_level: levelNumber, group_tag: '', quantity: 0, randomize: true };
-        skill.rules.push(rule);
+// Bank Selector Logic
+const showBankModal = ref(false);
+const bankQuestions = ref([]);
+const bankLoading = ref(false);
+
+const openBankSelector = async (skillId, levelNum) => {
+    activeSkillForQuestions.value = skillId;
+    activeLevelForQuestions.value = levelNum;
+    showBankModal.value = true;
+    bankLoading.value = true;
+    
+    try {
+        const res = await api.get('/admin/questions', {
+            params: { skill_id: skillId, difficulty_level: levelNum }
+        });
+        bankQuestions.value = res.data.data; // Assuming pagination structure
+    } catch (err) {
+        console.error('Failed to load bank questions', err);
+    } finally {
+        bankLoading.value = false;
     }
-    return rule;
 };
 
-const getSkillTotalQuestions = (skillId) => {
-    const skill = form.value.selectedSkills.find(s => s.skill_id === skillId);
-    if (!skill) return 0;
-    return skill.rules.reduce((acc, r) => acc + (r.quantity || 0), 0);
+const isAlreadyAdded = (questionId) => {
+    const questions = localQuestions.value[activeSkillForQuestions.value]?.[activeLevelForQuestions.value] || [];
+    return questions.some(q => q.original_id === questionId);
+};
+
+const importQuestion = (q) => {
+    if (isAlreadyAdded(q.id)) return;
+
+    // Map existing question to our local format (duplicate without ID to force re-creation with new tag)
+    const cloned = {
+        type: q.type,
+        content: q.content,
+        points: q.points,
+        passage_content: q.passage_content,
+        passage_group_id: q.passage_group_id,
+        passage_randomize: q.passage_randomize,
+        options: q.options.map(o => ({ 
+            option_text: o.option_text, 
+            is_correct: o.is_correct 
+        })),
+        original_id: q.id // Keep track to prevent duplicates
+    };
+    
+    if (!localQuestions.value[activeSkillForQuestions.value]) {
+        localQuestions.value[activeSkillForQuestions.value] = {};
+    }
+    if (!localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value]) {
+        localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value] = [];
+    }
+    
+    localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value].push(cloned);
+};
+
+const newQuestion = ref({
+    type: 'mcq',
+    content: '',
+    points: 1,
+    options: [
+        { option_text: '', is_correct: true },
+        { option_text: '', is_correct: false }
+    ],
+    passage_content: null,
+    passage_group_id: null,
+    passage_randomize: true
+});
+
+const openQuestionBuilder = (skillId, levelNum, isPassage = false) => {
+    activeSkillForQuestions.value = skillId;
+    activeLevelForQuestions.value = levelNum;
+    isPassageMode.value = isPassage;
+    passageContent.value = '';
+    
+    if (!localQuestions.value[skillId]) localQuestions.value[skillId] = {};
+    if (!localQuestions.value[skillId][levelNum]) localQuestions.value[skillId][levelNum] = [];
+    
+    resetNewQuestion();
+    showQuestionForm.value = true;
+};
+
+const resetNewQuestion = () => {
+    newQuestion.value = {
+        type: 'mcq',
+        content: '',
+        points: 1,
+        options: [
+            { option_text: '', is_correct: true },
+            { option_text: '', is_correct: false }
+        ],
+        passage_content: isPassageMode.value ? passageContent.value : null,
+        passage_group_id: currentGroupId.value || null,
+        passage_randomize: true
+    };
+};
+
+const addOption = () => {
+    newQuestion.value.options.push({ option_text: '', is_correct: false });
+};
+
+const removeOption = (idx) => {
+    if (newQuestion.value.options.length > 1) newQuestion.value.options.splice(idx, 1);
+};
+
+const generateGroupId = () => {
+    return 'grp_' + Math.random().toString(36).substr(2, 9);
+};
+
+const currentGroupId = ref(null);
+
+const commitQuestion = () => {
+    if (!newQuestion.value.content) return;
+    
+    let sanitizedOptions = JSON.parse(JSON.stringify(newQuestion.value.options));
+    
+    // Auto-fill True/False if not explicitly clicked but type is set
+    if (newQuestion.value.type === 'true_false' && sanitizedOptions[0].option_text === '') {
+        sanitizedOptions = [
+            { option_text: 'True', is_correct: true },
+            { option_text: 'False', is_correct: false }
+        ];
+    }
+
+    // Filter out completely empty options for MCQ
+    if (newQuestion.value.type === 'mcq') {
+        sanitizedOptions = sanitizedOptions.filter(o => o.option_text.trim() !== '');
+    }
+
+    // For short_answer, writing, speaking - options might be optional or handle keyword matching
+    if (['writing', 'speaking', 'short_answer'].includes(newQuestion.value.type)) {
+        if (sanitizedOptions.every(o => o.option_text === '')) {
+            sanitizedOptions = []; // Send empty array if no keywords provided
+        }
+    }
+
+    const questionToSave = {
+        ...newQuestion.value,
+        options: sanitizedOptions
+    };
+
+    if (isPassageMode.value) {
+        if (!currentGroupId.value) currentGroupId.value = generateGroupId();
+        questionToSave.passage_group_id = currentGroupId.value;
+        questionToSave.passage_content = passageContent.value;
+    }
+
+    if (!localQuestions.value[activeSkillForQuestions.value]) {
+        localQuestions.value[activeSkillForQuestions.value] = {};
+    }
+    if (!localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value]) {
+        localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value] = [];
+    }
+
+    localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value].push(questionToSave);
+
+    resetNewQuestion();
+};
+
+const finishPassage = () => {
+    currentGroupId.value = null;
+    showQuestionForm.value = false;
+};
+
+const removeLocalQuestion = (skillId, levelNum, idx) => {
+    localQuestions.value[skillId][levelNum].splice(idx, 1);
+};
+
+const getTotalQuestions = () => {
+    let total = 0;
+    Object.values(localQuestions.value).forEach(skillLevels => {
+        Object.values(skillLevels).forEach(questions => {
+            total += questions.length;
+        });
+    });
+    return total;
 };
 
 const saveExam = async () => {
-    if (form.value.selectedSkills.length === 0) {
-        errorMsg.value = 'Please select at least one skill.';
-        return;
-    }
-
     isSubmitting.value = true;
     errorMsg.value = '';
     
-    const payload = {
-        ...form.value,
-        skills: form.value.selectedSkills
-    };
-
     try {
+        // 1. Save all questions first
+        for (const skillId in localQuestions.value) {
+            for (const levelNum in localQuestions.value[skillId]) {
+                const questions = localQuestions.value[skillId][levelNum];
+                for (const q of questions) {
+                    await api.post('/admin/questions', {
+                        ...q,
+                        skill_id: skillId,
+                        difficulty_level: levelNum,
+                        group_tag: form.value.title
+                    });
+                }
+            }
+        }
+
+        // 2. Prepare Rules (quantity = count of questions we just added)
+        const skillsWithRules = form.value.selectedSkills.map(s => {
+            const rules = [];
+            if (localQuestions.value[s.skill_id]) {
+                Object.keys(localQuestions.value[s.skill_id]).forEach(lvlNum => {
+                    const count = localQuestions.value[s.skill_id][lvlNum].length;
+                    if (count > 0) {
+                        rules.push({
+                            difficulty_level: parseInt(lvlNum),
+                            quantity: count,
+                            group_tag: form.value.title,
+                            randomize: true
+                        });
+                    }
+                });
+            }
+            return {
+                ...s,
+                rules: rules
+            };
+        });
+
+        const payload = {
+            ...form.value,
+            skills: skillsWithRules
+        };
+
         if (isEditMode.value) {
             await api.patch(`/admin/exams/${examId.value}`, payload);
-            alert('Exam updated successfully!');
         } else {
             await api.post('/admin/exams', payload);
-            alert('Exam created successfully!');
         }
+        
+        alert('Exam and associated questions saved successfully!');
         router.push('/admin/exams');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to save exam.';
+        errorMsg.value = err.response?.data?.message || 'Failed to initialize exam sequence.';
     } finally {
         isSubmitting.value = false;
     }
@@ -197,243 +362,350 @@ const saveExam = async () => {
         <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Loading exam details...</p>
     </div>
     
-    <div v-else class="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4 md:px-12">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
+        <div class="flex items-center justify-between mb-12">
             <div class="flex items-center space-x-6">
-                <router-link to="/admin/exams" class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-slate-400 hover:text-indigo-600 hover:shadow-md transition-all border border-slate-100 group">
-                    <svg class="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
-                </router-link>
+                <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/exams')" />
                 <div>
                      <h1 class="text-3xl font-black text-slate-800 tracking-tight">{{ isEditMode ? 'Edit Exam' : 'Create Exam' }}</h1>
-                     <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Exam Settings</p>
+                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Guided Assessment Constructor</p>
                 </div>
             </div>
-            <button @click="saveExam" :disabled="isSubmitting" class="bg-indigo-600 text-white font-black text-[10px] tracking-widest uppercase px-10 py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">
-                {{ isSubmitting ? 'SAVING...' : 'SAVE EXAM ➜' }}
-            </button>
+            
+            <!-- Stepper Indicator -->
+            <div class="hidden lg:flex items-center space-x-4 bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm">
+                <div v-for="s in 4" :key="s" class="flex items-center space-x-2">
+                    <div :class="currentStep === s ? 'bg-indigo-600' : (currentStep > s ? 'bg-emerald-500' : 'bg-slate-100')" 
+                         class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-[10px] font-black transition-all">
+                         <i v-if="currentStep > s" class="pi pi-check"></i>
+                         <span v-else>{{ s }}</span>
+                    </div>
+                    <span v-if="s < 4" class="w-4 h-0.5 bg-slate-100"></span>
+                </div>
+            </div>
         </div>
 
-        <form @submit.prevent="saveExam" class="space-y-12">
-            <!-- Sidebar Setup (Now Top) -->
-            <div class="w-full">
-                <div class="premium-card p-10 relative overflow-hidden">
-                    <div class="absolute -right-16 -top-16 w-32 h-32 bg-indigo-50/50 rounded-full blur-2xl"></div>
-                    
-                    <h3 class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] mb-10 relative z-10">Basic Information</h3>
-                    
-                    <!-- Basic Info: Only Title and Category in one row -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Exam Title</label>
-                            <input v-model="form.title" type="text" required class="premium-input text-xs uppercase" placeholder="e.g. Midterm Alpha">
+        <div v-if="errorMsg" class="mb-8 bg-rose-50 border border-rose-100 text-rose-500 text-[10px] font-black uppercase tracking-widest p-5 rounded-2xl">
+            ⚠️ Sequence Error: {{ errorMsg }}
+        </div>
+
+        <!-- STEP 1: IDENTITY -->
+        <div v-if="currentStep === 1" class="space-y-10 animate-in fade-in zoom-in-95 duration-500">
+            <div class="premium-card p-12 md:p-16 relative overflow-hidden">
+                <div class="absolute -right-24 -top-24 w-64 h-64 bg-indigo-50/40 rounded-full blur-3xl"></div>
+                <div class="relative z-10 space-y-12">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Step 1: Exam Identity</h3>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Specify core assessment parameters</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div class="space-y-3">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Logical Designation (Exam Title)</label>
+                            <input v-model="form.title" type="text" 
+                                class="premium-input text-sm font-bold uppercase" 
+                                placeholder="E.G. MIDTERM_ALPHAV1">
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Category</label>
-                            <select v-model="form.exam_type" required class="premium-input text-xs uppercase tracking-widest cursor-pointer">
-                                <option value="adult">Adult (18+)</option>
-                                <option value="children">Children (Young Learners)</option>
+                        <div class="space-y-3">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Target Audience Stratum</label>
+                            <select v-model="form.exam_type" class="premium-input text-xs font-black uppercase tracking-widest cursor-pointer">
+                                <option value="adult">Adult (Professional Matrix)</option>
+                                <option value="children">Children (Foundation Tier)</option>
                             </select>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Main Logic Designer -->
-            <div class="w-full space-y-10">
-                <div v-if="errorMsg" class="bg-rose-50 border border-rose-100 text-rose-500 text-[10px] font-black uppercase tracking-widest p-5 rounded-2xl">
-                    ⚠️ Error: {{ errorMsg }}
-                </div>
-
-                <div class="premium-card p-12 md:p-16">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 space-y-4 md:space-y-0">
+                    <div class="p-8 bg-slate-50/50 rounded-3xl border border-slate-100 flex items-center space-x-6">
+                        <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-slate-100">
+                            <i class="pi pi-globe text-xl"></i>
+                        </div>
                         <div>
-                            <h3 class="text-2xl font-black text-slate-800 tracking-tight">Skill Blocks</h3>
-                            <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Choose skills and define how questions are selected</p>
-                        </div>
-                        <div class="flex items-center space-x-2 opacity-30">
-                             <div class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-                             <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Config Mode</span>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Language Context</p>
+                            <p class="text-xs font-black text-slate-700 uppercase">Universal Arabic Assessment Protocol</p>
                         </div>
                     </div>
-
-                    <div class="space-y-10">
-                        <div v-for="skill in availableSkills" :key="skill.id" class="space-y-6">
-                            <!-- Skill Node Header -->
-                            <div @click="toggleSkill(skill.id)" 
-                                 :class="isSkillSelected(skill.id) ? 'border-indigo-600 bg-white shadow-xl shadow-indigo-100/30' : 'border-slate-50 bg-slate-50/50 opacity-40 grayscale'"
-                                 class="flex items-center justify-between p-8 rounded-[2.5rem] border-2 transition-all duration-300 cursor-pointer group active:scale-95">
-                                <div class="flex items-center space-x-6">
-                                     <div :class="isSkillSelected(skill.id) ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-100 text-slate-400'" 
-                                          class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black transform group-hover:rotate-6 transition-all duration-500">
-                                          {{ skill.icon || '🧠' }}
-                                     </div>
-                                     <div>
-                                          <h4 :class="isSkillSelected(skill.id) ? 'text-slate-800' : 'text-slate-400'" class="font-black text-xl uppercase tracking-tighter">{{ skill.name }} Skill</h4>
-                                          <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">{{ isSkillSelected(skill.id) ? 'Added to Exam' : 'Not Added' }}</p>
-                                     </div>
-                                </div>
-                                <div v-if="isSkillSelected(skill.id)" class="bg-indigo-600 text-white rounded-xl px-4 py-2 text-[10px] font-black shadow-md">ACTIVE</div>
-                                <div v-else class="text-slate-200 text-2xl font-black opacity-20">+</div>
-                            </div>
-
-                            <!-- Rule Config Sub-HUD -->
-                            <div v-if="isSkillSelected(skill.id)" class="ml-16 bg-slate-50/50 border border-slate-100 rounded-[3rem] p-10 space-y-12 animate-in slide-in-from-top-4 duration-500">
-                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                                    <div class="flex items-center space-x-12">
-                                         <div>
-                                              <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Section Duration (Mins)</label>
-                                              <input v-model.number="form.selectedSkills.find(s => s.skill_id === skill.id).duration" type="number" class="premium-input w-32 bg-white text-center font-black">
-                                         </div>
-                                         <label class="flex items-center cursor-pointer pt-6">
-                                              <input v-model="form.selectedSkills.find(s => s.skill_id === skill.id).is_optional" type="checkbox" class="w-5 h-5 text-indigo-600 rounded-lg border-slate-200 focus:ring-0">
-                                              <span class="ml-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Optional Module</span>
-                                         </label>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auto-detected Levels</p>
-                                        <p class="text-xs font-black text-indigo-600 uppercase">{{ skill.levels?.length || 0 }} Matrix Nodes</p>
-                                    </div>
-                                </div>
-
-                                <!-- Level Matrix (The User's Request) -->
-                                <div class="space-y-4">
-                                    <div class="flex items-center justify-between px-6">
-                                        <div class="flex items-center space-x-3">
-                                            <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adaptive Matrix Rules</h5>
-                                            <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[8px] font-black border border-indigo-100">AUTO-SYNC</span>
-                                        </div>
-                                        <div class="flex-1 mx-8 h-px bg-slate-100"></div>
-                                        <div class="text-right">
-                                            <span class="text-[8px] font-black text-slate-300 uppercase block tracking-tighter">Skill Weight</span>
-                                            <span class="text-xs font-black text-slate-700">{{ getSkillTotalQuestions(skill.id) }} Items</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="space-y-6">
-                                        <!-- Iterate over all ACTIVE levels defined for the skill -->
-                                        <div v-for="level in (skill.levels || []).filter(l => l.is_active)" :key="level.id"
-                                             :class="getLevelRule(skill.id, level.level_number)?.quantity > 0 ? 'border-indigo-600 bg-white ring-4 ring-indigo-500/5' : 'border-slate-100 bg-slate-50/30 opacity-80'"
-                                             class="group relative rounded-[2.5rem] border-2 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-100/40">
-                                            
-                                            <!-- Level Indicator Badge -->
-                                            <div class="absolute -left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-2xl bg-indigo-600 text-white flex flex-col items-center justify-center shadow-xl shadow-indigo-200 border-4 border-white z-10 transition-transform group-hover:scale-110">
-                                                <span class="text-[8px] font-black opacity-50 uppercase leading-none">LVL</span>
-                                                <span class="text-xs font-black leading-none">{{ level.level_number }}</span>
-                                            </div>
-
-                                            <div class="flex flex-col md:flex-row items-start md:items-center gap-10 pl-8">
-                                                <!-- Identification -->
-                                                <div class="w-full md:w-1/4">
-                                                    <h5 class="text-sm font-black text-slate-800 uppercase tracking-tight truncate">{{ level.name }}</h5>
-                                                    <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-1">Difficulty Tier</p>
-                                                </div>
-
-                                                <!-- Content Tag (Topic) -->
-                                                <div class="flex-1 w-full space-y-2">
-                                                    <label class="block text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Content Filter (Topic/Tag)</label>
-                                                    <div class="relative group/tag">
-                                                        <input v-model="getLevelRule(skill.id, level.level_number).group_tag" 
-                                                               type="text" :list="`tags-skill-${skill.id}`"
-                                                               placeholder="Pull from entire pool (General)..."
-                                                               class="w-full bg-white border border-slate-100 rounded-2xl text-[10px] font-black uppercase py-4 px-6 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all outline-none placeholder:opacity-30">
-                                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-hover/tag:opacity-100 transition-opacity">
-                                                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Quantity Stepper & Shuffle -->
-                                                <div class="flex items-center gap-8 w-full md:w-auto">
-                                                    <!-- Stepper -->
-                                                    <div class="space-y-2">
-                                                        <label class="block text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Questions Count</label>
-                                                        <div class="flex items-center bg-slate-900 rounded-2xl p-1 shadow-xl shadow-slate-200 border-2 border-slate-800">
-                                                            <button @click="getLevelRule(skill.id, level.level_number).quantity = Math.max(0, getLevelRule(skill.id, level.level_number).quantity - 1)" 
-                                                                    type="button" class="w-10 h-10 flex items-center justify-center text-white hover:bg-white/10 rounded-xl transition-all font-black text-lg">-</button>
-                                                            <input v-model.number="getLevelRule(skill.id, level.level_number).quantity" 
-                                                                   type="number" min="0" 
-                                                                   class="w-14 bg-transparent border-0 text-white text-center font-black text-sm p-0 focus:ring-0">
-                                                            <button @click="getLevelRule(skill.id, level.level_number).quantity++" 
-                                                                    type="button" class="w-10 h-10 flex items-center justify-center text-white hover:bg-white/10 rounded-xl transition-all font-black text-lg">+</button>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Shuffle Toggle -->
-                                                    <div class="space-y-2">
-                                                        <label class="block text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Order</label>
-                                                        <button @click="getLevelRule(skill.id, level.level_number).randomize = !getLevelRule(skill.id, level.level_number).randomize" 
-                                                                type="button" 
-                                                                :class="getLevelRule(skill.id, level.level_number).randomize ? 'bg-emerald-500 text-white shadow-emerald-100 ring-emerald-500' : 'bg-slate-200 text-slate-400 ring-slate-200'"
-                                                                class="px-5 h-[52px] rounded-2xl flex flex-col items-center justify-center transition-all shadow-lg active:scale-95 border-2 border-white ring-2">
-                                                            <span class="text-[7px] font-black uppercase tracking-widest leading-none mb-1 opacity-60">Mode</span>
-                                                            <span class="text-[9px] font-black uppercase tracking-widest leading-none">{{ getLevelRule(skill.id, level.level_number).randomize ? 'Shuffle' : 'Linear' }}</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Tag Suggestions Source (NEW) -->
-                                    <datalist :id="`tags-skill-${skill.id}`">
-                                        <option v-for="tag in (skillTagsMap[skill.id] || [])" :key="tag" :value="tag"></option>
-                                    </datalist>
-
-                                    <div v-if="!skill.levels || skill.levels.length === 0" class="py-10 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem]">
-                                        <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-loose">
-                                            No levels defined for this skill yet.<br/>
-                                            <router-link :to="`/admin/skills/${skill.id}/levels`" class="text-indigo-400 hover:underline">Define Matrix Structure ➜</router-link>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Supplementary / Tag Overrides -->
-                                <div class="space-y-6 pt-6 border-t border-slate-100">
-                                    <div class="flex items-center justify-between px-6">
-                                        <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tag & Manual Overrides</h5>
-                                        <button @click="addRule(skill.id)" type="button" class="text-indigo-600 font-black text-[9px] uppercase tracking-widest hover:underline">+ Add Custom Filter</button>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 gap-4">
-                                        <div v-for="(rule, rIdx) in form.selectedSkills.find(s => s.skill_id === skill.id).rules.filter(r => r.group_tag)" :key="`tag-${rIdx}`" 
-                                             class="bg-white border-2 border-dashed border-slate-100 rounded-[2rem] p-6 relative group/rule hover:border-indigo-100 transition-all flex items-center justify-between">
-                                            
-                                            <div class="grid grid-cols-3 gap-6 flex-1 pr-10">
-                                                <div class="space-y-1">
-                                                    <label class="text-[8px] font-black text-slate-400 uppercase ml-2">Tag/Group</label>
-                                                    <input v-model="rule.group_tag" type="text" :list="`tags-skill-${skill.id}`" class="w-full bg-slate-50 border-0 rounded-xl text-[10px] font-black uppercase p-3">
-                                                </div>
-                                                <div class="space-y-1">
-                                                    <label class="text-[8px] font-black text-slate-400 uppercase ml-2">Lvl Override</label>
-                                                    <select v-model.number="rule.difficulty_level" class="w-full bg-slate-50 border-0 rounded-xl text-[10px] font-black uppercase p-3">
-                                                        <option :value="null">Any</option>
-                                                        <option v-for="l in 9" :key="l" :value="l">L{{l}}</option>
-                                                    </select>
-                                                </div>
-                                                <div class="space-y-1 text-center">
-                                                    <label class="text-[8px] font-black text-slate-400 uppercase">Qty</label>
-                                                    <input v-model.number="rule.quantity" type="number" class="w-full bg-slate-800 text-white border-0 rounded-xl text-[10px] font-black text-center p-3">
-                                                </div>
-                                            </div>
-
-                                            <button @click="removeRule(skill.id, form.value.selectedSkills.find(s => s.skill_id === skill.id).rules.indexOf(rule))" type="button" 
-                                                    class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm">✕</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-center py-6">
-                     <p class="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em] text-center italic">
-                         Note: Specific tags and levels will override general random selection within the skill.
-                     </p>
                 </div>
             </div>
-        </form>
+        </div>
+
+        <!-- STEP 2: SKILLS SELECTION -->
+        <div v-if="currentStep === 2" class="space-y-10 animate-in fade-in slide-in-from-right-10 duration-500">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-4">
+                 <div>
+                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Step 2: Cognitive Modules</h3>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Select the skills to be evaluated in this exam</p>
+                </div>
+                <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-xl border border-slate-100">
+                    Selected: {{ form.selectedSkills.length }} Modules
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div v-for="skill in availableSkills" :key="skill.id" 
+                     @click="toggleSkill(skill.id)"
+                     :class="isSkillSelected(skill.id) ? 'border-indigo-600 bg-white ring-4 ring-indigo-500/5' : 'border-slate-50 bg-slate-50 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'"
+                     class="group p-8 rounded-[2.5rem] border-2 transition-all duration-300 cursor-pointer text-center relative overflow-hidden">
+                    <div v-if="isSkillSelected(skill.id)" class="absolute top-4 right-4 text-indigo-600">
+                        <i class="pi pi-check-circle text-lg"></i>
+                    </div>
+                    <div :class="isSkillSelected(skill.id) ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400'" 
+                         class="w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-3xl mx-auto mb-6 shadow-sm transform group-hover:scale-110 transition-transform">
+                         {{ skill.icon || '🧠' }}
+                    </div>
+                    <h4 class="text-sm font-black uppercase tracking-tight">{{ skill.name }}</h4>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{{ skill.levels?.length || 0 }} Levels Available</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: MATRIX & QUESTIONS -->
+        <div v-if="currentStep === 3" class="space-y-12 animate-in fade-in slide-in-from-right-10 duration-500">
+            <div class="flex flex-col md:flex-row justify-between items-end">
+                <div>
+                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Step 3: Level Configuration</h3>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Configure difficulty levels and add questions</p>
+                </div>
+            </div>
+
+            <div v-if="form.selectedSkills.length === 0" class="p-20 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest italic">No skills selected. Return to Step 2 to proceed.</p>
+            </div>
+
+            <div v-else class="space-y-16">
+                <div v-for="selected in form.selectedSkills" :key="selected.skill_id" class="space-y-8">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-1.5 h-6 bg-indigo-600 rounded-full"></div>
+                        <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight">
+                            {{ availableSkills.find(s => s.id === selected.skill_id)?.name }} Matrix
+                        </h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div v-for="level in (availableSkills.find(s => s.id === selected.skill_id)?.levels || []).filter(l => l.is_active)" :key="level.id"
+                             class="premium-card p-2 group relative overflow-hidden border border-slate-100 hover:border-indigo-200 transition-all">
+                             
+                             <div class="flex items-center space-x-6 p-6">
+                                <div class="w-12 h-12 rounded-2xl bg-slate-50 flex flex-col items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    <span class="text-[8px] font-black opacity-40">LVL</span>
+                                    <span class="text-lg font-black leading-none">{{ level.level_number }}</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight">{{ level.name }}</p>
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{{ localQuestions[selected.skill_id]?.[level.level_number]?.length || 0 }} Added</p>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button @click="openQuestionBuilder(selected.skill_id, level.level_number)"
+                                            class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"
+                                            title="Add Single Question">
+                                        <i class="pi pi-plus text-xs"></i>
+                                    </button>
+                                    <button @click="openQuestionBuilder(selected.skill_id, level.level_number, true)"
+                                            class="w-8 h-8 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-800 hover:text-white transition-all"
+                                            title="Add Passage Group">
+                                        <i class="pi pi-align-left text-xs"></i>
+                                    </button>
+                                    <button @click="openBankSelector(selected.skill_id, level.level_number)"
+                                            class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all"
+                                            title="Import from Bank">
+                                        <i class="pi pi-search text-xs"></i>
+                                    </button>
+                                </div>
+                             </div>
+
+                             <!-- List of questions inside the card -->
+                             <div v-if="localQuestions[selected.skill_id]?.[level.level_number]?.length > 0" class="px-6 pb-6 space-y-2">
+                                <div v-for="(q, qIdx) in localQuestions[selected.skill_id][level.level_number]" :key="qIdx" 
+                                     :class="q.passage_group_id ? 'border-indigo-100 bg-indigo-50/30' : 'border-slate-100 bg-slate-50'"
+                                     class="flex justify-between items-center text-[9px] p-2 rounded-lg border">
+                                    <div class="flex items-center space-x-2 truncate">
+                                        <i v-if="q.passage_group_id" class="pi pi-link text-indigo-400 text-[8px]"></i>
+                                        <span class="font-bold text-slate-600 truncate">{{ q.content }}</span>
+                                    </div>
+                                    <button @click="removeLocalQuestion(selected.skill_id, level.level_number, qIdx)" class="text-rose-500">
+                                        <i class="pi pi-trash text-[8px]"></i>
+                                    </button>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: REVIEW -->
+        <div v-if="currentStep === 4" class="space-y-10 animate-in fade-in zoom-in-95 duration-500">
+            <div class="premium-card p-12 md:p-16 text-center space-y-12">
+                 <div>
+                    <h3 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Step 4: Review Sequence</h3>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Final validation of the assessment structure</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                    <div class="bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Exam Model</p>
+                        <p class="text-xl font-black text-slate-800 uppercase mt-1">{{ form.title || 'UNNAMED_ASSET' }}</p>
+                    </div>
+                    <div class="bg-indigo-50/50 p-8 rounded-3xl border border-indigo-100">
+                        <p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Active Modules</p>
+                        <p class="text-xl font-black text-indigo-600 uppercase mt-1">{{ form.selectedSkills.length }} Selected</p>
+                    </div>
+                    <div class="bg-emerald-50/50 p-8 rounded-3xl border border-emerald-100">
+                        <p class="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Total Inventory</p>
+                        <p class="text-xl font-black text-emerald-600 uppercase mt-1">{{ getTotalQuestions() }} Unique Items</p>
+                    </div>
+                </div>
+
+                <div class="pt-12">
+                    <Button :label="isSubmitting ? 'SYNCHRONIZING...' : 'INITIALIZE PROTOCOL ➜'" 
+                           :loading="isSubmitting" 
+                           size="large" 
+                           @click="saveExam" 
+                           class="w-full md:w-auto px-20 block mx-auto" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Navigation -->
+        <div class="mt-16 flex items-center justify-between border-t border-slate-100 pt-10">
+            <Button v-if="currentStep > 1" label="Previous" icon="pi pi-arrow-left" severity="secondary" outlined @click="prevStep" />
+            <div v-else class="w-10"></div>
+            
+            <Button v-if="currentStep < 4" label="Next Sequence" icon="pi pi-arrow-right" iconPos="right" @click="nextStep" />
+        </div>
+
+        <!-- Question Builder Modal -->
+        <Dialog v-model:visible="showQuestionForm" 
+               :header="isPassageMode ? 'Passage Group Constructor' : 'Add New Cognitive Item'" 
+               class="max-w-2xl w-full" 
+               modal 
+               :closable="!isPassageMode">
+            <div class="space-y-8 p-6">
+                <!-- Passage Content Area -->
+                <div v-if="isPassageMode" class="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-1">📖 Shared Passage Content</label>
+                        <div class="flex items-center space-x-2">
+                             <input type="checkbox" v-model="newQuestion.passage_randomize" class="w-4 h-4 rounded">
+                             <span class="text-[8px] font-black text-slate-400 uppercase">Randomize Internal Order</span>
+                        </div>
+                    </div>
+                    <textarea v-model="passageContent" rows="5" class="premium-input text-sm bg-white" placeholder="Enter the main passage/text here..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Type</label>
+                        <select v-model="newQuestion.type" class="premium-input text-xs uppercase cursor-pointer">
+                            <option value="mcq">MCQ (Multiple Choice)</option>
+                            <option value="true_false">True / False</option>
+                            <option value="short_answer">Short Answer</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Difficulty Points</label>
+                        <InputNumber v-model="newQuestion.points" :min="1" class="w-full" inputClass="font-black p-3" />
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Question Content</label>
+                    <textarea v-model="newQuestion.content" rows="3" class="premium-input text-sm resize-none" :placeholder="isPassageMode ? 'Enter a question related to the passage above...' : ''"></textarea>
+                </div>
+
+                <!-- MCQ Options -->
+                <div v-if="newQuestion.type === 'mcq'" class="space-y-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Choice Matrix</label>
+                        <button @click="addOption" class="text-indigo-600 text-[10px] font-black uppercase">+ Add Choice</button>
+                    </div>
+                    <div v-for="(opt, idx) in newQuestion.options" :key="idx" class="flex items-center space-x-3">
+                        <div class="flex-1 relative">
+                            <input v-model="opt.option_text" type="text" 
+                                   class="premium-input text-xs pr-12" 
+                                   :placeholder="'Choice ' + (idx + 1)">
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2">
+                                <input type="checkbox" v-model="opt.is_correct" 
+                                       class="w-5 h-5 text-indigo-600 rounded-lg cursor-pointer"
+                                       title="Mark as correct">
+                            </div>
+                        </div>
+                        <button v-if="newQuestion.options.length > 2" @click="removeOption(idx)" class="text-rose-400 hover:text-rose-600">
+                            <i class="pi pi-minus-circle text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- True / False Options (Only 2) -->
+                <div v-if="newQuestion.type === 'true_false'" class="flex space-x-4">
+                    <div @click="newQuestion.options = [{option_text: 'True', is_correct: true}, {option_text: 'False', is_correct: false}]" 
+                         :class="newQuestion.options[0]?.is_correct ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400'"
+                         class="flex-1 p-4 rounded-xl text-center font-black text-xs cursor-pointer transition-all">
+                         TRUE
+                    </div>
+                    <div @click="newQuestion.options = [{option_text: 'True', is_correct: false}, {option_text: 'False', is_correct: true}]" 
+                         :class="newQuestion.options[1]?.is_correct ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400'"
+                         class="flex-1 p-4 rounded-xl text-center font-black text-xs cursor-pointer transition-all">
+                         FALSE
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-slate-50 flex space-x-4">
+                    <Button :label="isPassageMode ? 'Add to Group' : 'Commit Item to Level'" icon="pi pi-check" size="large" class="flex-1" @click="commitQuestion" />
+                    <Button v-if="isPassageMode" label="Finish Group" icon="pi pi-flag" severity="secondary" outlined size="large" @click="finishPassage" />
+                </div>
+            </div>
+        </Dialog>
+
+        <!-- Question Bank Selector Modal -->
+        <Dialog v-model:visible="showBankModal" 
+               header="Question Bank Repository" 
+               class="max-w-4xl w-full" 
+               modal>
+            <div class="space-y-6 p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Available items for this module sequence
+                    </p>
+                    <div v-if="bankQuestions.length > 0" class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">
+                        {{ bankQuestions.length }} Items Found
+                    </div>
+                </div>
+
+                <div v-if="bankLoading" class="flex flex-col items-center py-20 animate-pulse">
+                    <i class="pi pi-spin pi-spinner text-4xl text-indigo-600 mb-4"></i>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Querying Neural Repository...</p>
+                </div>
+
+                <div v-else-if="bankQuestions.length === 0" class="text-center py-20 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-widest">No existing items found for this level in the bank.</p>
+                </div>
+
+                <div v-else class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    <div v-for="bq in bankQuestions" :key="bq.id" 
+                         class="group bg-white p-6 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all flex justify-between items-center">
+                        <div class="space-y-1 pr-10">
+                            <div class="flex items-center space-x-3 mb-1">
+                                <span class="text-[8px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-widest">{{ bq.type }}</span>
+                                <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest">{{ bq.points }} Points</span>
+                                <span v-if="bq.passage_group_id" class="text-[8px] font-black text-amber-500 uppercase tracking-widest">Passage Linked</span>
+                            </div>
+                            <h5 class="text-xs font-bold text-slate-700 leading-relaxed">{{ bq.content }}</h5>
+                        </div>
+                        <button @click="importQuestion(bq)" 
+                                :disabled="isAlreadyAdded(bq.id)"
+                                :class="isAlreadyAdded(bq.id) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'"
+                                class="shrink-0 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
+                            {{ isAlreadyAdded(bq.id) ? 'Added ✓' : 'Import +' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-slate-50 flex justify-end">
+                    <Button label="Close Repository" icon="pi pi-times" severity="secondary" outlined @click="showBankModal = false" />
+                </div>
+            </div>
+        </Dialog>
     </div>
   </AdminLayout>
 </template>

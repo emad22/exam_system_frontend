@@ -41,6 +41,8 @@ import AdminPartners from '@/views/admin/Partners/index.vue'
 import AdminPartnerCreate from '@/views/admin/Partners/create.vue'
 import AdminPartnerEdit from '@/views/admin/Partners/edit.vue'
 import AdminPartnerShow from '@/views/admin/Partners/show.vue'
+import AdminPackages from '@/views/admin/Packages.vue'
+import AdminSystemRequirements from '@/views/admin/SystemRequirements/index.vue'
 import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
 
 
@@ -74,6 +76,11 @@ const routes = [
     path: '/admin',
     name: 'admin',
     component: AdminDashboard
+  },
+  {
+    path: '/admin/packages',
+    name: 'admin.packages',
+    component: AdminPackages
   },
   {
     path: '/admin/students',
@@ -171,6 +178,11 @@ const routes = [
     path: '/admin/payments',
     name: 'admin.payments',
     component: AdminPayments
+  },
+  {
+    path: '/admin/system-requirements',
+    name: 'admin.system-requirements',
+    component: AdminSystemRequirements
   },
   {
     path: '/admin/staff',

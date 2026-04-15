@@ -1,20 +1,24 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
+import Button from 'primevue/button'
+import Avatar from 'primevue/avatar'
 
 const route = useRoute()
 const router = useRouter()
 
 const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
-    { name: 'Exams', href: '/admin/exams', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { name: 'Questions', href: '/admin/questions', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { name: 'Students', href: '/admin/students', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-    { name: 'Reports', href: '/admin/reports', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { name: 'Skills', href: '/admin/skills', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.989-2.386l-.548-.547z' },
-    { name: 'Partner', href: '/admin/partners', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.989-2.386l-.548-.547z' },
-    { name: 'Payments', href: '/admin/payments', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
-    { name: 'Staff & Roles', href: '/admin/staff', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+    { name: 'Dashboard', href: '/admin', icon: 'pi pi-home' },
+    { name: 'Exams', href: '/admin/exams', icon: 'pi pi-file-edit' },
+    { name: 'Questions', href: '/admin/questions', icon: 'pi pi-list' },
+    { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
+    { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
+    { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
+    { name: 'Partner', href: '/admin/partners', icon: 'pi pi-briefcase' },
+    { name: 'Skill Packages', href: '/admin/packages', icon: 'pi pi-box' },
+    { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
+    { name: 'Payments', href: '/admin/payments', icon: 'pi pi-credit-card' },
+    { name: 'Staff & Roles', href: '/admin/staff', icon: 'pi pi-shield' },
 ]
 
 const isActive = (path) => {
@@ -33,37 +37,36 @@ const logout = () => {
 
         <!-- Sidebar -->
         <aside
-            class="w-80 bg-white border-r border-slate-100 shadow-[20px_0_40px_rgba(0,0,0,0.02)] flex flex-col justify-between hidden lg:flex relative z-20">
+            class="w-[280px] bg-slate-900 border-r border-slate-800 shadow-2xl flex flex-col justify-between hidden lg:flex relative z-20">
             <div class="flex-1 flex flex-col">
                 <!-- Logo Section -->
-                <div class="h-28 flex items-center px-10 mb-6">
+                <div class="h-28 flex items-center px-8 mb-4 border-b border-slate-800/50">
                     <div
-                        class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-xl shadow-indigo-100 mr-4 transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center text-white text-lg font-black shadow-lg shadow-indigo-500/30 mr-4">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
                                 d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-black text-slate-800 tracking-tight leading-none mb-1">ArabAcademy<span
-                                class="text-indigo-600">.</span></h1>
-                        <span class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Exam
+                        <h1 class="text-xl font-black text-white tracking-tight leading-none mb-1">ArabAcademy<span
+                                class="text-indigo-400">.</span></h1>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Exam
                             Authority</span>
                     </div>
                 </div>
 
                 <!-- Navigation -->
-                <nav class="flex-1 px-6 space-y-1 overflow-y-auto no-scrollbar">
+                <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
+                    <div class="px-4 mb-3">
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Core Modules</p>
+                    </div>
                     <template v-for="item in navigation" :key="item.name">
                         <router-link :to="item.href" :class="[
-                            isActive(item.href) ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 translate-x-2' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700 hover:translate-x-1',
-                            'group flex items-center px-6 py-4 text-sm font-black rounded-[1.25rem] transition-all duration-300 active:scale-95'
+                            isActive(item.href) ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white',
+                            'group flex items-center px-4 py-3.5 text-xs font-bold rounded-xl transition-all duration-300'
                         ]">
-                            <svg :class="[isActive(item.href) ? 'text-white' : 'text-slate-300 group-hover:text-indigo-400']"
-                                class="w-5 h-5 mr-4 transition-colors" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.icon" />
-                            </svg>
+                            <i :class="[item.icon, isActive(item.href) ? 'text-white' : 'text-slate-500 group-hover:text-indigo-400']" class="text-lg mr-4 transition-colors"></i>
                             {{ item.name }}
                             <div v-if="isActive(item.href)" class="ml-auto w-1.5 h-1.5 bg-white rounded-full"></div>
                         </router-link>
@@ -72,28 +75,24 @@ const logout = () => {
             </div>
 
             <!-- User Profile / Bottom Section -->
-            <div class="p-8 border-t border-slate-50">
+            <div class="p-6 border-t border-slate-800/50">
                 <div
-                    class="bg-slate-50 rounded-3xl p-5 mb-4 group cursor-pointer hover:bg-indigo-50 transition-colors duration-300">
+                    class="bg-slate-800/40 rounded-2xl p-4 mb-4 group cursor-pointer hover:bg-slate-800 transition-colors duration-300 border border-slate-700/50">
                     <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md">
+                        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md">
                         </div>
                         <div>
-                            <p class="text-xs font-black text-slate-800">Admin Staff</p>
+                            <p class="text-xs font-black text-white">Admin Staff</p>
                             <p
-                                class="text-[10px] font-bold text-slate-400 group-hover:text-indigo-500 transition-colors">
-                                Management
-                                Portal</p>
+                                class="text-[10px] font-bold text-slate-400 group-hover:text-indigo-400 transition-colors">
+                                Management Portal</p>
                         </div>
                     </div>
                 </div>
                 <button @click="logout"
-                    class="w-full flex items-center justify-center space-x-2 px-6 py-4 text-xs font-black text-red-500 hover:bg-red-50 rounded-2xl transition-all active:scale-95 border border-transparent hover:border-red-100">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>SIGN OUT SECURELY</span>
+                    class="w-full flex items-center justify-center space-x-2 px-4 py-3 text-[10px] font-black text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all active:scale-95 uppercase tracking-widest">
+                    <i class="pi pi-sign-out text-sm"></i>
+                    <span>Secure Sign Out</span>
                 </button>
             </div>
         </aside>
@@ -122,29 +121,12 @@ const logout = () => {
                 </div>
 
                 <div class="flex items-center space-x-6">
-                    <div class="hidden md:flex space-x-4">
-                        <button
-                            class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition shadow-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
-                        </button>
-                        <button
-                            class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition shadow-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </button>
+                    <div class="hidden md:flex space-x-3">
+                        <Button icon="pi pi-bell" severity="secondary" rounded text aria-label="Notifications" />
+                        <Button icon="pi pi-cog" severity="secondary" rounded text aria-label="Settings" />
                     </div>
-                    <div class="h-10 w-px bg-slate-100"></div>
-                    <button
-                        class="bg-indigo-600 text-white font-black text-[10px] tracking-widest uppercase px-6 py-3 rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition active:scale-95">
-                        New Action
-                    </button>
+                    <div class="h-8 w-px bg-slate-200 mx-2"></div>
+                    <Button label="New Action" icon="pi pi-plus" size="small" class="font-bold tracking-wide" />
                 </div>
             </header>
 

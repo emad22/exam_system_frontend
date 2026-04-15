@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+import Button from 'primevue/button';
 
 const route = useRoute();
 const router = useRouter();
@@ -80,14 +81,15 @@ onMounted(() => {
             <div class="w-12 h-12 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Database...</p>
         </div>
-        <div v-else class="max-w-3xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+        <div v-else class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-4 md:px-12 mt-6">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Sync Entity</h1>
-                    <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Manual identity reconciliation</p>
+                <div class="flex items-center space-x-6">
+                    <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/partners')" />
+                    <div>
+                         <h1 class="text-3xl font-black text-slate-800 tracking-tight">Sync Entity</h1>
+                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Manual identity reconciliation</p>
+                    </div>
                 </div>
-                <button @click="router.push('/admin/partners')"
-                    class="w-10 h-10 rounded-full bg-white border border-slate-100 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shadow-sm">✕</button>
             </div>
 
             <div class="bg-white rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full overflow-hidden flex flex-col border border-slate-100">
@@ -156,10 +158,12 @@ onMounted(() => {
 
                 <!-- Footer -->
                 <div class="p-10 bg-slate-50 border-t border-slate-100 flex justify-end space-x-4 shrink-0">
-                    <button @click="router.push('/admin/partners')" class="px-8 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition">Discard</button>
-                    <button @click="savePartner" :disabled="isSaving" class="bg-slate-900 text-white font-black px-12 py-5 rounded-[1.5rem] shadow-xl shadow-slate-200 hover:bg-black active:scale-95 transition-all uppercase tracking-[0.2em] text-[10px]">
-                        {{ isSaving ? 'SYNCHRONIZING...' : 'COMMIT CHANGES' }}
-                    </button>
+                    <Button label="Discard" severity="secondary" text @click="router.push('/admin/partners')" />
+                    <Button :label="isSaving ? 'SYNCHRONIZING...' : 'COMMIT CHANGES'" 
+                           :loading="isSaving" 
+                           icon="pi pi-check" 
+                           size="large" 
+                           @click="savePartner" />
                 </div>
             </div>
         </div>
