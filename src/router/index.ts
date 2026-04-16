@@ -18,7 +18,9 @@ import AdminStudentShow from '@/views/admin/Students/show.vue'
 import AdminExams from '@/views/admin/Exams/index.vue'
 import AdminExamCreate from '@/views/admin/Exams/create.vue'
 import AdminExamImport from '@/views/admin/Exams/import.vue'
-import AdminExamCategories from '@/views/admin/Exams/Categories.vue'
+import AdminExamCategoriesIndex from '@/views/admin/ExamCategories/index.vue'
+import AdminExamCategoriesCreate from '@/views/admin/ExamCategories/create.vue'
+import AdminExamCategoriesEdit from '@/views/admin/ExamCategories/edit.vue'
 
 import AdminQuestions from '@/views/admin/Questions/index.vue'
 import AdminQuestionCreate from '@/views/admin/Questions/create.vue'
@@ -37,6 +39,8 @@ import AdminStaffCreate from '@/views/admin/Staff/create.vue'
 
 
 import AdminLevels from '@/views/admin/Levels/index.vue'
+import AdminLevelCreate from '@/views/admin/Levels/create.vue'
+import AdminLevelEdit from '@/views/admin/Levels/edit.vue'
 
 import AdminPartners from '@/views/admin/Partners/index.vue'
 import AdminPartnerCreate from '@/views/admin/Partners/create.vue'
@@ -46,6 +50,8 @@ import AdminPackagesIndex from '@/views/admin/Packages/index.vue'
 import AdminPackagesCreate from '@/views/admin/Packages/create.vue'
 import AdminPackagesEdit from '@/views/admin/Packages/edit.vue'
 import AdminSystemRequirements from '@/views/admin/SystemRequirements/index.vue'
+import AdminSystemRequirementsCreate from '@/views/admin/SystemRequirements/create.vue'
+import AdminSystemRequirementsEdit from '@/views/admin/SystemRequirements/edit.vue'
 import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
 
 
@@ -154,7 +160,17 @@ const routes = [
   {
     path: '/admin/exam-categories',
     name: 'admin.exams.categories',
-    component: AdminExamCategories
+    component: AdminExamCategoriesIndex
+  },
+  {
+    path: '/admin/exam-categories/create',
+    name: 'admin.exams.categories.create',
+    component: AdminExamCategoriesCreate
+  },
+  {
+    path: '/admin/exam-categories/:id/edit',
+    name: 'admin.exams.categories.edit',
+    component: AdminExamCategoriesEdit
   },
   {
     path: '/admin/questions',
@@ -184,12 +200,22 @@ const routes = [
   },
   {
     path: '/admin/levels',
-    name: 'admin.levels.all',
+    name: 'admin.levels',
     component: AdminLevels
   },
   {
+    path: '/admin/levels/create',
+    name: 'admin.levels.create',
+    component: AdminLevelCreate
+  },
+  {
+    path: '/admin/levels/:id/edit',
+    name: 'admin.levels.edit',
+    component: AdminLevelEdit
+  },
+  {
     path: '/admin/skills/:id/levels',
-    name: 'admin.levels',
+    name: 'admin.skills.levels',
     component: AdminLevels
   },
   {
@@ -206,6 +232,16 @@ const routes = [
     path: '/admin/system-requirements',
     name: 'admin.system-requirements',
     component: AdminSystemRequirements
+  },
+  {
+    path: '/admin/system-requirements/create',
+    name: 'admin.system-requirements.create',
+    component: AdminSystemRequirementsCreate
+  },
+  {
+    path: '/admin/system-requirements/:id/edit',
+    name: 'admin.system-requirements.edit',
+    component: AdminSystemRequirementsEdit
   },
   {
     path: '/admin/staff',

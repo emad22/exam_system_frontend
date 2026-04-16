@@ -1,38 +1,24 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
-import Textarea from 'primevue/textarea';
-import ToggleSwitch from 'primevue/toggleswitch';
-import Select from 'primevue/select';
-import Message from 'primevue/message';
+import Tag from 'primevue/tag';
+import Card from 'primevue/card';
+import ProgressSpinner from 'primevue/progressspinner';
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
+
+const router = useRouter();
+const toast = useToast();
 
 const requirements = ref([]);
 const isLoading = ref(true);
-const displayDialog = ref(false);
-const isEditing = ref(false);
-
-const categories = [
-    { label: 'General', value: 'General' },
-    { label: 'Browser', value: 'Browser' },
-    { label: 'Internet', value: 'Internet' },
-    { label: 'Hardware', value: 'Hardware' }
-];
-
-const form = ref({
-    id: null,
-    title: '',
-    description: '',
-    category: 'General',
-    is_active: true,
-    is_mandatory: true,
-    order: 0
-});
+const searchQuery = ref('');
 
 const fetchRequirements = async () => {
     isLoading.value = true;
@@ -41,135 +27,142 @@ const fetchRequirements = async () => {
         requirements.value = res.data;
     } catch (err) {
         console.error(err);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load requirements.' });
     } finally {
         isLoading.value = false;
     }
 };
 
-onMounted(fetchRequirements);
-
-const openNew = () => {
-    form.value = {
-        id: null,
-        title: '',
-        description: '',
-        category: 'General',
-        is_active: true,
-        is_mandatory: true,
-        order: requirements.value.length
-    };
-    isEditing.value = false;
-    displayDialog.value = true;
-};
-
-const editRequirement = (req) => {
-    form.value = { ...req };
-    isEditing.value = true;
-    displayDialog.value = true;
-};
-
-const saveRequirement = async () => {
-    try {
-        if (isEditing.value) {
-            await api.patch(`/admin/system-requirements/${form.value.id}`, form.value);
-        } else {
-            await api.post('/admin/system-requirements', form.value);
-        }
-        displayDialog.value = false;
-        fetchRequirements();
-    } catch (err) {
-        alert('Failed to save requirement');
-    }
-};
+const filteredRequirements = computed(() => {
+    if (!searchQuery.value) return requirements.value;
+    const query = searchQuery.value.toLowerCase();
+    return requirements.value.filter(r => {
+        return r.title.toLowerCase().includes(query) || 
+               r.category.toLowerCase().includes(query) ||
+               r.description?.toLowerCase().includes(query);
+    });
+});
 
 const deleteRequirement = async (id) => {
     if (!confirm('Are you sure you want to delete this requirement?')) return;
     try {
         await api.delete(`/admin/system-requirements/${id}`);
+        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Requirement removed.' });
         fetchRequirements();
     } catch (err) {
-        alert('Failed to delete');
+        console.error(err);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete.' });
     }
 };
+
+onMounted(fetchRequirements);
 </script>
 
 <template>
     <AdminLayout>
-        <div class="space-y-6">
-            <div class="flex justify-between items-center">
+        <Toast />
+        <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4 md:px-12">
+            
+            <!-- Header Section -->
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between space-y-6 md:space-y-0">
                 <div>
-                    <h1 class="text-2xl font-black text-slate-800">System Requirements</h1>
-                    <p class="text-xs text-slate-500 uppercase tracking-widest mt-1">Manage technical prerequisites for students</p>
+                     <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Technical prerequisites</h1>
+                     <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Manage system requirements for assessment enrollment</p>
                 </div>
-                <Button label="Add Requirement" icon="pi pi-plus" size="small" @click="openNew" />
+                <div class="flex items-center space-x-3">
+                    <Button label="Define Requirement" icon="pi pi-plus" 
+                        class="px-8 py-3 rounded-2xl bg-indigo-600 border-none shadow-lg shadow-indigo-100 text-[10px] font-black tracking-widest uppercase transition-all hover:-translate-y-1" 
+                        @click="router.push('/admin/system-requirements/create')" />
+                </div>
             </div>
 
-            <DataTable :value="requirements" :loading="isLoading" class="p-datatable-sm bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                <Column field="order" header="Order" style="width: 5rem"></Column>
-                <Column field="category" header="Category">
-                    <template #body="slotProps">
-                        <span class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-600">{{ slotProps.data.category }}</span>
-                    </template>
-                </Column>
-                <Column field="title" header="Requirement Title" class="font-bold"></Column>
-                <Column field="is_mandatory" header="Mandatory">
-                     <template #body="slotProps">
-                        <i :class="slotProps.data.is_mandatory ? 'pi pi-check-circle text-indigo-500' : 'pi pi-circle text-slate-300'"></i>
-                    </template>
-                </Column>
-                <Column field="is_active" header="Status">
-                    <template #body="slotProps">
-                        <span :class="slotProps.data.is_active ? 'text-emerald-500' : 'text-slate-300'" class="text-[10px] font-black uppercase tracking-widest">
-                            {{ slotProps.data.is_active ? 'Active' : 'Inactive' }}
-                        </span>
-                    </template>
-                </Column>
-                <Column header="Actions" style="width: 8rem">
-                    <template #body="slotProps">
-                        <div class="flex space-x-2">
-                            <Button icon="pi pi-pencil" text rounded size="small" @click="editRequirement(slotProps.data)" />
-                            <Button icon="pi pi-trash" text rounded severity="danger" size="small" @click="deleteRequirement(slotProps.data.id)" />
-                        </div>
-                    </template>
-                </Column>
-            </DataTable>
+            <div v-if="isLoading" class="flex flex-col items-center justify-center py-32 space-y-4">
+                <ProgressSpinner />
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Registry...</p>
+            </div>
 
-            <Dialog v-model:visible="displayDialog" :header="isEditing ? 'Edit Requirement' : 'New Requirement'" modal :style="{ width: '500px' }" class="p-fluid">
-                <div class="space-y-6 pt-4">
-                    <div class="field">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Standard Title</label>
-                        <InputText v-model="form.title" required placeholder="e.g. Stable Internet Connection" />
-                    </div>
-                    <div class="field">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Description / Details</label>
-                        <Textarea v-model="form.description" required rows="3" placeholder="Explain why this is needed..." />
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="field">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Category</label>
-                            <Select v-model="form.category" :options="categories" optionLabel="label" optionValue="value" />
-                        </div>
-                        <div class="field">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Display Order</label>
-                            <InputText v-model="form.order" type="number" />
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between bg-slate-50 p-4 rounded-xl">
-                        <div class="flex items-center space-x-4">
-                            <ToggleSwitch v-model="form.is_active" />
-                            <span class="text-xs font-bold text-slate-700">Display to Students</span>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <ToggleSwitch v-model="form.is_mandatory" />
-                            <span class="text-xs font-bold text-slate-700">Mandatory</span>
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <Button label="Cancel" text severity="secondary" @click="displayDialog = false" />
-                    <Button label="Save Requirement" icon="pi pi-check" @click="saveRequirement" />
+            <!-- Registry Table Card -->
+            <Card v-else class="border border-slate-100 shadow-sm rounded-3xl overflow-hidden mt-6">
+                <template #content>
+                    <DataTable :value="filteredRequirements" dataKey="id" paginator :rows="10" 
+                               class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                        
+                        <template #header>
+                            <div class="flex flex-col md:flex-row justify-end items-center gap-4 p-2 pb-4">
+                                <div class="w-full md:w-80">
+                                    <span class="relative">
+                                        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+                                        <InputText v-model="searchQuery" placeholder="Search prerequisites..." class="pl-10 w-full shadow-sm rounded-xl border-slate-100" />
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <Column field="order" header="#" style="width: 80px">
+                            <template #body="{ data }">
+                                <span class="font-black text-slate-400">#{{ data.order }}</span>
+                            </template>
+                        </Column>
+
+                        <Column header="Requirement Module" style="min-width: 250px">
+                            <template #body="{ data }">
+                                <div class="flex items-center space-x-4 py-2">
+                                     <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shadow-sm">
+                                         <i :class="data.category === 'Browser' ? 'pi pi-compass' : 
+                                                    data.category === 'Internet' ? 'pi pi-wifi' : 
+                                                    data.category === 'Hardware' ? 'pi pi-desktop' : 'pi pi-cog'" 
+                                            class="text-lg"></i>
+                                     </div>
+                                     <div>
+                                         <div class="font-black text-slate-700 uppercase tracking-tight">{{ data.title }}</div>
+                                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ data.category }} Category</div>
+                                     </div>
+                                </div>
+                            </template>
+                        </Column>
+
+                        <Column header="Importance" style="width: 150px" class="text-center">
+                            <template #body="{ data }">
+                                <Tag :value="data.is_mandatory ? 'Mandatory' : 'Optional'"
+                                     :severity="data.is_mandatory ? 'danger' : 'info'"
+                                     class="text-[9px] uppercase tracking-wider px-3" />
+                            </template>
+                        </Column>
+
+                        <Column header="Status" style="width: 120px" class="text-center">
+                            <template #body="{ data }">
+                                <Tag :value="data.is_active ? 'Active' : 'Archived'"
+                                     :severity="data.is_active ? 'success' : 'secondary'"
+                                     class="text-[9px] uppercase tracking-wider px-3" />
+                            </template>
+                        </Column>
+
+                        <Column :exportable="false" style="min-width: 150px" class="text-right pr-6">
+                            <template #body="{ data }">
+                                <div class="flex items-center justify-end space-x-2">
+                                     <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="router.push(`/admin/system-requirements/${data.id}/edit`)" />
+                                     <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="deleteRequirement(data.id)" />
+                                </div>
+                            </template>
+                        </Column>
+
+                        <template #empty>
+                            <div class="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No technical prerequisites discovered.</div>
+                        </template>
+                    </DataTable>
                 </template>
-            </Dialog>
+            </Card>
         </div>
     </AdminLayout>
 </template>
+
+<style scoped>
+@keyframes slide-in-bottom {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+    animation: slide-in-bottom 0.8s ease-out;
+}
+</style>

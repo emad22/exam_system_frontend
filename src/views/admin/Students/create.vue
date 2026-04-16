@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -21,6 +21,7 @@ const generatePassword = () => {
 
 const skills = ref([]);
 const partners = ref([]);
+const packages = ref([]);
 const exams = ref([]);
 const categories = ref([]);
 
@@ -36,6 +37,7 @@ const form = ref({
     exam_category_id: null,
     exam_id: null,
     assigned_skills: [],
+    package_id: null,
     is_active: true,
     partner_id: '',
 });
@@ -45,14 +47,16 @@ const errorMsg = ref('');
 
 onMounted(async () => {
     try {
-        const [skillRes, partnerRes, examRes, catRes] = await Promise.all([
+        const [skillRes, partnerRes, packageRes, examRes, catRes] = await Promise.all([
             api.get('/admin/skills'),
             api.get('/admin/partners/active'),
+            api.get('/admin/packages'),
             api.get('/admin/exams'),
             api.get('/admin/exam-categories')
         ]);
         skills.value = skillRes.data;
         partners.value = partnerRes.data;
+        packages.value = packageRes.data;
         exams.value = examRes.data;
         categories.value = catRes.data;
 
@@ -82,6 +86,39 @@ const addStudent = async () => {
         isSubmitting.value = false;
     }
 };
+
+
+// Watch package selection to sync skills and category
+watch(() => form.value.package_id, (newVal) => {
+    if (newVal && newVal !== 4) { // 4 is Custom Pack
+        const pkg = packages.value.find(p => p.id === newVal)
+        if (pkg) {
+            if (pkg.skills) {
+                form.value.assigned_skills = [...pkg.skills]
+            }
+            if (pkg.exam_id) {
+                const exam = exams.value.find(e => e.id === pkg.exam_id)
+                if (exam) {
+                    form.value.exam_category_id = exam.exam_category_id
+                }
+            }
+        }
+    }
+})
+
+// Watch manual skill changes to switch to Custom Pack
+watch(() => form.value.assigned_skills, (newVal) => {
+    if (form.value.package_id && form.value.package_id !== 4) {
+        const pkg = packages.value.find(p => p.id === form.value.package_id)
+        if (pkg && pkg.skills) {
+            const current = [...newVal].sort().join(',')
+            const target = [...pkg.skills].sort().join(',')
+            if (current !== target) {
+                form.value.package_id = 4 // Switch to Custom Pack
+            }
+        }
+    }
+}, { deep: true })
 
 const filteredExams = computed(() => {
     return exams.value.filter(e => e.exam_category_id === form.value.exam_category_id);
@@ -199,29 +236,20 @@ const filteredExams = computed(() => {
                                         <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Classification</h3>
                                     </div>
 
-                                    <div class="flex flex-col">
-                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Exam category</label>
-                                        <Select v-model="form.exam_category_id" 
-                                            @change="form.exam_id = null"
-                                            :options="categories" 
-                                            optionLabel="name" 
-                                            optionValue="id" 
-                                            class="w-full rounded-xl bg-slate-50 border-slate-100" />
-                                    </div>
-
-                                    <div class="flex flex-col">
-                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Specific Exam (Optional Override)</label>
-                                        <Select v-model="form.exam_id" 
-                                            :options="filteredExams" 
-                                            optionLabel="title" 
-                                            optionValue="id" 
-                                            placeholder="System Default"
-                                            class="w-full rounded-xl bg-slate-50 border-slate-100" />
-                                    </div>
 
                                     <div class="flex flex-col">
                                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Assigned Partner</label>
                                         <Select v-model="form.partner_id" :options="partners" optionLabel="partner_name" optionValue="id" class="w-full rounded-xl bg-slate-50 border-slate-100" />
+                                    </div>
+
+                                    <div class="flex flex-col">
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Curriculum Package</label>
+                                        <Select v-model="form.package_id" 
+                                            :options="packages" 
+                                            optionLabel="name" 
+                                            optionValue="id" 
+                                            placeholder="Select a package..."
+                                            class="w-full rounded-xl bg-slate-50 border-slate-100" />
                                     </div>
 
                                     <div class="flex flex-col">

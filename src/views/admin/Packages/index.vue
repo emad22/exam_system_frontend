@@ -3,16 +3,56 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import InputText from 'primevue/inputtext';
+import Button from 'primevue/button';
+import Tag from 'primevue/tag';
+import Card from 'primevue/card';
+import ProgressSpinner from 'primevue/progressspinner';
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 
 const router = useRouter();
+const toast = useToast();
+
 const packages = ref([]);
 const loading = ref(true);
 const searchQuery = ref('');
 
+const fetchPackages = async () => {
+    loading.value = true;
+    try {
+        const res = await api.get('/admin/packages');
+        packages.value = res.data;
+    } catch (err) {
+        console.error('Failed to load packages', err);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to access package registry.' });
+    } finally {
+        loading.value = false;
+    }
+};
+
+const deletePackage = async (id) => {
+    if (!confirm('Are you sure you want to delete this package configuration?')) return;
+    try {
+        await api.delete(`/admin/packages/${id}`);
+        toast.add({ severity: 'success', summary: 'Decommissioned', detail: 'Package removed from matrix.' });
+        fetchPackages();
+    } catch (err) {
+        console.error(err);
+        toast.add({ severity: 'error', summary: 'Error', detail: err.response?.data?.error || 'Failed to delete package.' });
+    }
+};
+
 const filteredPackages = computed(() => {
     if (!searchQuery.value) return packages.value;
     const query = searchQuery.value.toLowerCase();
-    return packages.value.filter(p => p.name.toLowerCase().includes(query));
+    return packages.value.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        p.wp_package_id?.toString().includes(query) ||
+        p.exam?.title?.toLowerCase().includes(query)
+    );
 });
 
 // Stats
@@ -23,154 +63,147 @@ const avgSkills = computed(() => {
     return (total / packages.value.length).toFixed(1);
 });
 
-const fetchPackages = async () => {
-    loading.value = true;
-    try {
-        const res = await api.get('/admin/packages');
-        packages.value = res.data;
-    } catch (err) {
-        console.error('Failed to load packages', err);
-    } finally {
-        loading.value = false;
-    }
-};
-
-const deletePackage = async (id) => {
-    if (!confirm('Are you sure you want to delete this package?')) return;
-    try {
-        await api.delete(`/admin/packages/${id}`);
-        fetchPackages();
-    } catch (err) {
-        alert(err.response?.data?.error || 'Failed to delete package.');
-    }
-};
-
-const openCreate = () => {
-    router.push('/admin/packages/create');
-};
-
-const openEdit = (pkg) => {
-    router.push(`/admin/packages/${pkg.id}/edit`);
-};
-
 onMounted(fetchPackages);
 </script>
 
 <template>
     <AdminLayout>
-        <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-            <!-- Header -->
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
+        <Toast />
+        <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4 md:px-12">
+            
+            <!-- Header Section -->
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between space-y-6 md:space-y-0">
                 <div>
-                    <h1 class="text-3xl font-black text-slate-800 tracking-tight text-indigo-900">Standard Packages</h1>
-                    <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Configure skill bundles & WP integrations</p>
+                     <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Assessment bundles</h1>
+                     <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Configure skill matrices and e-commerce integrations</p>
                 </div>
-                <button @click="openCreate"
-                    class="bg-indigo-600 text-white px-8 py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all font-black text-xs uppercase tracking-widest">
-                    Create New Package +
-                </button>
+                <div class="flex items-center space-x-3">
+                    <Button label="Initialize Package" icon="pi pi-plus" 
+                        class="px-8 py-3 rounded-2xl bg-indigo-600 border-none shadow-lg shadow-indigo-100 text-[10px] font-black tracking-widest uppercase transition-all hover:-translate-y-1" 
+                        @click="router.push('/admin/packages/create')" />
+                </div>
             </div>
 
             <!-- Stats Bar -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Tiers</p>
-                    <h4 class="text-2xl font-black text-slate-800">{{ totalPackages }} Units</h4>
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Active Tiers</p>
+                    <h4 class="text-2xl font-black text-slate-800 tracking-tight">{{ totalPackages }} <span class="text-slate-300 text-sm italic font-medium ml-1">Units</span></h4>
                 </div>
-                <div class="bg-indigo-50/50 p-8 rounded-[2rem] border border-indigo-100">
-                    <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Average Depth</p>
-                    <h4 class="text-2xl font-black text-indigo-900">{{ avgSkills }} Skills/Pkg</h4>
+                <div class="bg-indigo-50/50 p-8 rounded-3xl border border-indigo-100 transition-all hover:bg-white">
+                    <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 italic">Average Depth</p>
+                    <h4 class="text-2xl font-black text-indigo-900 tracking-tight">{{ avgSkills }} <span class="text-indigo-300 text-sm italic font-medium ml-1">Skills/Bundle</span></h4>
                 </div>
-                <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between">
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between transition-all hover:shadow-md group">
                     <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">WP Sync Status</p>
-                        <h4 class="text-xs font-black text-emerald-600 uppercase">Operational</h4>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">WP Sync Status</p>
+                        <h4 class="text-xs font-black text-emerald-600 uppercase tracking-wider group-hover:tracking-widest transition-all">Operational</h4>
                     </div>
-                    <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                 </div>
             </div>
 
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-                <div class="w-12 h-12 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Repositories...</p>
+                <ProgressSpinner />
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Unit Registry...</p>
             </div>
 
-            <div v-else>
-                <!-- Search & Results Container -->
-                <div v-if="packages.length > 0 || searchQuery" class="bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_32px_120px_rgba(0,0,0,0.02)] overflow-hidden">
-                    
-                    <!-- Search Bar -->
-                    <div class="p-8 border-b border-slate-50">
-                        <div class="relative w-full max-w-md">
-                            <i class="pi pi-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                            <input v-model="searchQuery" type="text" placeholder="Filter packages by name..."
-                                class="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] uppercase tracking-widest focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all placeholder:text-slate-300 font-black text-slate-700">
-                        </div>
-                    </div>
+            <!-- Registry Table Card -->
+            <Card v-else class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden mt-6">
+                <template #content>
+                    <DataTable :value="filteredPackages" dataKey="id" paginator :rows="10" 
+                               class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                        
+                        <template #header>
+                            <div class="flex flex-col md:flex-row justify-end items-center gap-4 p-2 pb-4">
+                                <div class="w-full md:w-80">
+                                    <span class="relative">
+                                        <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
+                                        <InputText v-model="searchQuery" placeholder="Search bundles..." class="pl-12 w-full shadow-sm rounded-xl border-slate-100 bg-slate-50/50 focus:bg-white text-[10px] font-black uppercase tracking-widest placeholder:text-slate-300" />
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
 
-                    <div v-if="filteredPackages.length > 0" class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-50">
-                            <thead class="bg-slate-50/30">
-                                <tr>
-                                    <th class="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">ID</th>
-                                    <th class="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Package Identity</th>
-                                    <th class="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Skill Count</th>
-                                    <th class="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Linked Exam</th>
-                                    <th class="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">WP Linked ID</th>
-                                    <th class="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Management</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-slate-50">
-                                <tr v-for="pkg in filteredPackages" :key="pkg.id" class="hover:bg-slate-50/50 transition-colors group">
-                                    <td class="px-8 py-6 text-[10px] font-bold text-slate-300 italic">#{{ String(pkg.id).padStart(3, '0') }}</td>
-                                    <td class="px-8 py-6">
-                                        <div class="flex flex-col">
-                                            <span class="text-xs font-black text-slate-700 uppercase tracking-tight">{{ pkg.name }}</span>
-                                            <span class="text-[9px] text-slate-400 italic mt-0.5">{{ pkg.description || 'No description provided' }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-8 py-6">
-                                        <span class="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100/50">
-                                            {{ pkg.skills_count }} SKILLS
-                                        </span>
-                                    </td>
-                                    <td class="px-8 py-6">
-                                        <span v-if="pkg.exam" class="text-[10px] font-bold text-slate-600">{{ pkg.exam?.title || 'Unknown Exam' }}</span>
-                                        <span v-else class="text-[10px] font-bold text-slate-400 italic">No Exam</span>
-                                    </td>
-                                    <td class="px-8 py-6">
-                                        <code class="text-[10px] font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-                                            {{ pkg.wp_package_id || 'NOT_LINKED' }}
-                                        </code>
-                                    </td>
-                                    <td class="px-8 py-6 text-right space-x-2">
-                                        <button @click="openEdit(pkg)"
-                                            class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm inline-flex">
-                                            <i class="pi pi-pencil text-sm"></i>
-                                        </button>
-                                        <button @click="deletePackage(pkg.id)"
-                                            class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm inline-flex">
-                                            <i class="pi pi-trash text-sm"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                        <Column header="ID" style="width: 80px">
+                            <template #body="{ data }">
+                                <span class="font-bold text-slate-300 italic">#{{ String(data.id).padStart(3, '0') }}</span>
+                            </template>
+                        </Column>
 
-                <!-- Empty State -->
-                <div v-else class="bg-white rounded-[4rem] shadow-[0_32px_120px_rgba(0,0,0,0.02)] border border-slate-100 p-24 text-center group">
-                    <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-5xl group-hover:rotate-12 transition-all duration-500">📦</div>
-                    <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight uppercase">Package Registry Empty</h3>
-                    <p class="text-slate-400 font-medium max-w-sm mx-auto mb-12 text-sm leading-relaxed italic">
-                        Define your standardized assessment packages to automate student exam generation.
-                    </p>
-                    <button @click="openCreate" class="inline-block bg-indigo-600 text-white font-black py-5 px-12 rounded-2xl shadow-xl shadow-indigo-100 hover:shadow-indigo-200 hover:bg-indigo-700 transition transform hover:-translate-y-1 active:scale-95 uppercase tracking-widest text-xs">
-                        Define First Package ➜
-                    </button>
-                </div>
-            </div>
+                        <Column header="Package Identity" style="min-width: 250px">
+                            <template #body="{ data }">
+                                <div class="flex items-center space-x-4 py-2">
+                                     <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shadow-sm border border-slate-200/50">
+                                         <i class="pi pi-box text-lg"></i>
+                                     </div>
+                                     <div>
+                                         <div class="font-black text-slate-700 uppercase tracking-tight">{{ data.name }}</div>
+                                         <div class="text-[9px] font-bold text-slate-400 italic">{{ data.description || 'No descriptive narrative' }}</div>
+                                     </div>
+                                </div>
+                            </template>
+                        </Column>
+
+                        <Column header="Capacity" style="width: 140px">
+                            <template #body="{ data }">
+                                <Tag :value="`${data.skills_count} Skills`" 
+                                     class="text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100/50 px-3 py-1 rounded-lg" />
+                            </template>
+                        </Column>
+
+                        <Column header="Linked Assessment" style="min-width: 180px">
+                            <template #body="{ data }">
+                                <div v-if="data.exam" class="flex flex-col">
+                                    <span class="text-[10px] font-black text-slate-600 uppercase tracking-tight">{{ data.exam?.title }}</span>
+                                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{{ data.exam?.category?.name || 'General' }} Matrix</span>
+                                </div>
+                                <span v-else class="text-[9px] font-black text-slate-300 uppercase tracking-widest italic flex items-center">
+                                    <i class="pi pi-link-slash mr-2 text-[8px]"></i> Independent
+                                </span>
+                            </template>
+                        </Column>
+
+                        <Column header="WP ID" style="width: 120px">
+                            <template #body="{ data }">
+                                <code class="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 tracking-tighter shadow-inner">
+                                    {{ data.wp_package_id || 'NULL' }}
+                                </code>
+                            </template>
+                        </Column>
+
+                        <Column :exportable="false" style="min-width: 150px" class="text-right pr-6">
+                            <template #body="{ data }">
+                                <div class="flex items-center justify-end space-x-2">
+                                     <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="router.push(`/admin/packages/${data.id}/edit`)" />
+                                     <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="deletePackage(data.id)" />
+                                </div>
+                            </template>
+                        </Column>
+
+                        <template #empty>
+                            <div class="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No bundle configurations established.</div>
+                        </template>
+                    </DataTable>
+                </template>
+            </Card>
         </div>
     </AdminLayout>
 </template>
+
+<style scoped>
+@keyframes slide-in-bottom {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+    animation: slide-in-bottom 0.8s ease-out;
+}
+
+:deep(.p-datatable-header) {
+    background: transparent;
+    border: none;
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+}
+</style>

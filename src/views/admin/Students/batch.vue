@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -23,21 +23,21 @@ const step = ref(1); // 1: Select, 2: Process, 3: Result
 const partners = ref([])
 const partner_id = ref('')
 
-const exams = ref([])
-const exam_id = ref(null)
+const packages = ref([])
+const package_id = ref(null)
 const skills = ref([])
 const assigned_skills = ref([])
 
 
 const fetchData = async () => {
     try {
-        const [pRes, eRes, sRes] = await Promise.all([
+        const [pRes, pkgRes, sRes] = await Promise.all([
             api.get('/admin/partners/active'),
-            api.get('/admin/exams'),
+            api.get('/admin/packages'),
             api.get('/admin/skills')
         ])
         partners.value = pRes.data
-        exams.value = eRes.data
+        packages.value = pkgRes.data
         skills.value = sRes.data
     } catch (e) {
         console.error('Failed to load batch prerequisites', e)
@@ -71,7 +71,7 @@ const triggerUpload = async () => {
     formData.append('file', selectedFile.value);
 
     formData.append('partner_id', partner_id.value); 
-    if (exam_id.value) formData.append('exam_id', exam_id.value);
+    if (package_id.value) formData.append('package_id', package_id.value);
     if (assigned_skills.value.length > 0) {
         formData.append('assigned_skills', JSON.stringify(assigned_skills.value));
     }
@@ -100,10 +100,34 @@ const reset = () => {
     selectedFile.value = null;
     uploadErrors.value = [];
     partner_id.value = '';
-    exam_id.value = null;
+    package_id.value = null;
     assigned_skills.value = [];
     successMsg.value = '';
 };
+// Watch package selection to sync skills
+watch(package_id, (newVal) => {
+    if (newVal && newVal !== 4) { // 4 is Custom Pack
+        const pkg = packages.value.find(p => p.id === newVal)
+        if (pkg && pkg.skills) {
+            assigned_skills.value = [...pkg.skills]
+        }
+    }
+})
+
+// Watch manual skill changes to switch to Custom Pack
+watch(assigned_skills, (newVal) => {
+    if (package_id.value && package_id.value !== 4) {
+        const pkg = packages.value.find(p => p.id === package_id.value)
+        if (pkg && pkg.skills) {
+            const current = [...newVal].sort().join(',')
+            const target = [...pkg.skills].sort().join(',')
+            if (current !== target) {
+                package_id.value = 4 // Switch to Custom Pack
+            }
+        }
+    }
+}, { deep: true })
+
 const downloadTemplate = async () => {
     try {
         const response = await api.get('/admin/students/template', { responseType: 'blob' });
@@ -162,20 +186,20 @@ const downloadTemplate = async () => {
                                     />
                                 </div>
 
-                                <!-- Exam Override -->
+                                <!-- Package Selection -->
                                 <div class="space-y-4 shadow-sm border border-slate-100 p-6 rounded-3xl bg-white">
                                     <div class="flex items-center gap-3 mb-2">
                                         <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
-                                            <i class="pi pi-book text-xs"></i>
+                                            <i class="pi pi-box text-xs"></i>
                                         </div>
-                                        <label class="text-xs font-black text-slate-800 uppercase tracking-widest pl-2">2. Global Exam Override</label>
+                                        <label class="text-xs font-black text-slate-800 uppercase tracking-widest pl-2">2. Global Package Selection</label>
                                     </div>
                                     <Select 
-                                        v-model="exam_id" 
-                                        :options="exams" 
-                                        optionLabel="title" 
+                                        v-model="package_id" 
+                                        :options="packages" 
+                                        optionLabel="name" 
                                         optionValue="id"
-                                        placeholder="Default from File/System" 
+                                        placeholder="Select a package..." 
                                         class="w-full rounded-xl"
                                     />
                                 </div>

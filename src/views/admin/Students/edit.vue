@@ -18,6 +18,7 @@ const router = useRouter();
 const loading = ref(true);
 const isSaving = ref(false);
 const packages = ref([]);
+const exams = ref([]);
 const skills = ref([]);
 const categories = ref([]);
 const studentId = route.params.id;
@@ -49,14 +50,16 @@ const editForm = ref({
 const loadData = async () => {
     loading.value = true;
     try {
-        const [studentRes, pctRes, skillRes, catRes] = await Promise.all([
+        const [studentRes, pctRes, examRes, skillRes, catRes] = await Promise.all([
             api.get(`/admin/students/${studentId}`),
             api.get('/admin/packages'),
+            api.get('/admin/exams'),
             api.get('/admin/skills'),
             api.get('/admin/exam-categories')
         ]);
         
         packages.value = pctRes.data;
+        exams.value = examRes.data;
         skills.value = skillRes.data;
         categories.value = catRes.data;
         
@@ -96,8 +99,16 @@ const loadData = async () => {
 const onPackageChange = () => {
     if (editForm.value.package_id !== '') {
         const selected = packages.value.find(p => p.id === editForm.value.package_id);
-        if (selected && selected.skills) {
-            editForm.value.assigned_skills = selected.skills.map(s => s.id || s.short_code);
+        if (selected) {
+            if (selected.skills) {
+                editForm.value.assigned_skills = selected.skills.map(s => s.id || s.short_code);
+            }
+            if (selected.exam_id) {
+                const exam = exams.value.find(e => e.id === selected.exam_id)
+                if (exam) {
+                    editForm.value.exam_category_id = exam.exam_category_id
+                }
+            }
         }
     }
 };
@@ -205,14 +216,6 @@ onMounted(() => {
                                 <Select v-model="editForm.package_id" 
                                     @change="onPackageChange" 
                                     :options="[{id: '', name: 'Custom Sync'}, ...packages]" 
-                                    optionLabel="name" 
-                                    optionValue="id" 
-                                    class="w-full shadow-sm rounded-xl" />
-                            </div>
-                            <div class="flex flex-col">
-                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Logic Mode (Category)</label>
-                                <Select v-model="editForm.exam_category_id" 
-                                    :options="categories" 
                                     optionLabel="name" 
                                     optionValue="id" 
                                     class="w-full shadow-sm rounded-xl" />
