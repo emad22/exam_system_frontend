@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 
@@ -13,6 +14,7 @@ import Dialog from 'primevue/dialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputNumber from 'primevue/inputnumber';
 
+const router = useRouter();
 const exams = ref([]);
 const loading = ref(true);
 const searchQuery = ref('');
@@ -23,8 +25,15 @@ const filteredExams = computed(() => {
     return exams.value.filter(e => {
         const title = (e.title || '').toLowerCase();
         const desc = (e.description || '').toLowerCase();
-        return title.includes(query) || desc.includes(query);
+        const cat = (e.category?.name || '').toLowerCase();
+        return title.includes(query) || desc.includes(query) || cat.includes(query);
     });
+});
+
+const stats = computed(() => {
+    const total = exams.value.length;
+    const defaultExams = exams.value.filter(e => e.is_default).length;
+    return { total, defaultExams };
 });
 
 const showRulesModal = ref(false);
@@ -58,7 +67,7 @@ const openRules = async (exam) => {
             name: skill.name,
             duration: skill.pivot.duration,
             is_optional: !!skill.pivot.is_optional,
-            rules: fullExam.question_rules.filter(r => r.skill_id === skill.id).map(r => ({
+            rules: (fullExam.question_rules || []).filter(r => r.skill_id === skill.id).map(r => ({
                 id: r.id,
                 difficulty_level: r.difficulty_level,
                 quantity: r.quantity,
@@ -67,7 +76,6 @@ const openRules = async (exam) => {
         }));
     } catch (err) {
         console.error('Failed to load exam rules', err);
-        alert('Failed to load rules.');
     }
 };
 
@@ -82,12 +90,10 @@ const saveRules = async () => {
             is_adaptive: selectedExam.value.is_adaptive,
             skills: rulesForm.value.skills
         });
-        alert('Rules updated successfully!');
         showRulesModal.value = false;
         fetchExams();
     } catch (err) {
         console.error('Failed to save rules', err);
-        alert('Failed to save rules.');
     } finally {
         isSavingRules.value = false;
     }
@@ -96,33 +102,28 @@ const saveRules = async () => {
 const getCategorySeverity = (category) => {
     if (!category) return 'secondary';
     const slug = (category.slug || '').toLowerCase();
-    switch(slug) {
-        case 'adult': return 'success';
-        case 'children': return 'warn';
-        default: return 'info';
-    }
+    if (slug.includes('adult')) return 'info';
+    if (slug.includes('child')) return 'warn';
+    return 'info';
 }
 
 const setDefaultExam = async (exam) => {
-    if (!window.confirm(`Are you sure you want to set "${exam.title}" as the default exam for ${exam.category?.name || 'General'} registration?`)) return;
+    if (!window.confirm(`Set "${exam.title}" as default for ${exam.category?.name || 'General'}?`)) return;
     try {
         await api.patch(`/admin/exams/${exam.id}/set-default`);
-        alert('Universal Default Exam updated.');
         fetchExams();
     } catch (err) {
-        console.error('Failed to set default exam', err);
-        alert('Action failure.');
+        console.error(err);
     }
 };
 
 const deleteExam = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this exam?')) return;
+    if (!window.confirm('IRREVERSIBLE ACTION: Delete this exam and all associated data?')) return;
     try {
         await api.delete(`/admin/exams/${id}`);
         fetchExams();
     } catch (err) {
-        console.error('Failed to delete exam', err);
-        alert('Deletion failure.');
+        console.error(err);
     }
 };
 
@@ -131,160 +132,183 @@ onMounted(fetchExams);
 
 <template>
     <AdminLayout>
-        <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6">
-            <!-- Header -->
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
+        <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4">
+            
+            <!-- Standardized Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6 md:space-y-0">
                 <div>
-                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Manage Exams</h1>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">View and configure exam templates</p>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Assessment Matrix</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Registry of administrative templates</p>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <Button label="Import Exam" icon="pi pi-download" severity="secondary" outlined size="small" @click="$router.push('/admin/exams/import')" />
-                    <Button label="Create Exam" icon="pi pi-plus" size="small" @click="$router.push('/admin/exams/create')" />
+                    <Button label="Import Asset" icon="pi pi-download" severity="secondary" outlined class="text-[10px] font-black uppercase tracking-widest px-6" @click="router.push('/admin/exams/import')" />
+                    <Button label="Initialize Exam" icon="pi pi-plus" class="bg-indigo-600 border-none text-[10px] font-black uppercase tracking-widest px-6 shadow-lg shadow-indigo-100 transition-all hover:-translate-y-1" @click="router.push('/admin/exams/create')" />
                 </div>
             </div>
 
+            
+
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Loading exams...</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Exam Data...</p>
             </div>
 
             <div v-else>
                 <div v-if="exams.length > 0 || searchQuery" class="space-y-6">
                     
-                    <!-- Search Bar -->
-                    <Card class="border border-slate-100 shadow-sm rounded-3xl">
-                        <template #content>
-                            <div class="relative w-full md:max-w-md">
-                                <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                                <InputText v-model="searchQuery" placeholder="Search exams by title or content..." class="w-full pl-12 rounded-2xl shadow-sm" />
-                            </div>
-                        </template>
-                    </Card>
+                    <!-- Integrated Search -->
+                    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                        <div class="relative w-full md:max-w-md">
+                            <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <InputText v-model="searchQuery" placeholder="Filter by title, category, or content..." class="w-full pl-12 rounded-xl border-slate-200 text-xs font-bold uppercase tracking-tight" />
+                        </div>
+                    </div>
 
-                    <Card v-if="filteredExams.length > 0" class="border border-slate-100 shadow-sm rounded-3xl overflow-hidden pb-4">
+                    <Card class="border border-slate-100 shadow-sm rounded-3xl overflow-hidden pb-4">
                         <template #content>
                             <DataTable :value="filteredExams" dataKey="id" paginator :rows="10" 
-                                class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                                class="p-datatable-sm" responsiveLayout="scroll">
 
-                                <Column header="Exam" style="min-width: 350px">
+                                <Column header="Assessment Entity" style="min-width: 350px">
                                     <template #body="{ data }">
                                         <div class="flex items-center space-x-4">
                                             <div :class="data.is_default ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'"
-                                                class="w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-all transform"
-                                                :title="data.is_default ? 'Primary Enrollment Node' : 'Standard Exam'">
-                                                 <i :class="data.is_default ? 'pi pi-star-fill' : 'pi pi-file'" class="text-lg"></i>
+                                                class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all transform">
+                                                 <i :class="data.is_default ? 'pi pi-star-fill' : 'pi pi-file'" class="text-xl"></i>
                                             </div>
                                             <div>
                                                  <div class="flex items-center gap-2">
-                                                     <div class="font-bold text-slate-700 uppercase tracking-tight">{{ data.title }}</div>
-                                                     <Tag v-if="data.is_default" value="DEFAULT" severity="info" class="text-[8px] font-black px-1" />
+                                                     <div class="font-black text-slate-800 uppercase tracking-tight">{{ data.title }}</div>
+                                                     <Tag v-if="data.is_default" value="PRIMARY_NODE" severity="success" class="text-[8px] font-black px-2 py-0.5 rounded-full" />
                                                  </div>
-                                                 <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-clamp-1 italic">{{ data.description || 'No description' }}</div>
+                                                 <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-clamp-1 italic">{{ data.description || 'No descriptive metadata' }}</div>
                                             </div>
                                         </div>
                                     </template>
                                 </Column>
 
-                                <Column header="Category" style="min-width: 120px">
+                                <Column header="Category" style="min-width: 140px">
                                     <template #body="{ data }">
-                                        <Tag :value="data.category?.name || 'General'" :severity="getCategorySeverity(data.category)" class="text-[9px] uppercase tracking-widest" />
+                                        <Tag :value="data.category?.name || 'GENERIC'" :severity="getCategorySeverity(data.category)" class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border-none" />
                                     </template>
                                 </Column>
 
-                                <Column header="Language" style="min-width: 120px">
+
+
+                                <Column header="Engagement" style="min-width: 120px" class="text-center">
                                     <template #body="{ data }">
-                                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">{{ data.language?.name || 'Universal' }}</span>
+                                         <div class="flex flex-col items-center">
+                                             <div class="font-black text-slate-800 tracking-tighter">{{ data.attempts_count || 0 }}</div>
+                                             <div class="text-[8px] font-black text-slate-300 uppercase tracking-widest">Attempts</div>
+                                         </div>
                                     </template>
                                 </Column>
 
-                                <Column header="Type" style="min-width: 120px">
-                                    <template #body="{ data }">
-                                        <Tag :value="data.is_adaptive ? 'Adaptive' : 'Standard'" :severity="data.is_adaptive ? 'info' : 'secondary'" rounded class="text-[9px] uppercase tracking-wider" />
-                                    </template>
-                                </Column>
-
-                                <Column header="Attempts" style="min-width: 100px" class="text-center">
-                                    <template #body="{ data }">
-                                         <div class="font-black text-slate-800 text-lg tracking-tighter">{{ data.attempts_count || 0 }}</div>
-                                    </template>
-                                </Column>
-
-                                <Column :exportable="false" style="min-width: 150px" class="text-right">
+                                <Column :exportable="false" style="min-width: 200px" class="text-right">
                                     <template #body="{ data }">
                                         <div class="flex items-center justify-end space-x-2">
-                                            <Button v-if="!data.is_default" icon="pi pi-bookmark" outlined rounded severity="secondary" size="small" 
-                                                v-tooltip.top="'Set as Global Default'" @click="setDefaultExam(data)" />
-                                            <Button label="RULES" outlined rounded severity="info" size="small" @click="openRules(data)" class="text-[9px]" />
-                                            <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="$router.push(`/admin/exams/${data.id}/edit`)" />
+                                            <Button v-if="!data.is_default" icon="pi pi-bookmark" outlined rounded severity="secondary" @click="setDefaultExam(data)" v-tooltip.top="'Promote to Default'" />
+                                            <Button label="RULES" text severity="info" class="text-[9px] font-black tracking-widest uppercase hover:bg-indigo-50" @click="openRules(data)" />
+                                            <Button icon="pi pi-pencil" rounded severity="warn" text @click="router.push(`/admin/exams/${data.id}/edit`)" />
+                                            <Button icon="pi pi-trash" rounded severity="danger" text @click="deleteExam(data.id)" />
                                         </div>
                                     </template>
                                 </Column>
                             </DataTable>
                         </template>
                     </Card>
-
-                    <!-- Empty Search -->
-                    <Card v-else class="border border-slate-100 shadow-sm rounded-3xl mt-6">
-                        <template #content>
-                            <div class="p-20 text-center">
-                                <i class="pi pi-search text-slate-300 text-6xl mb-6"></i>
-                                <h4 class="text-xl font-black text-slate-400 uppercase tracking-widest">No matching exams found</h4>
-                                <p class="text-xs text-slate-300 font-bold mt-2">Try adjusting your search query</p>
-                            </div>
-                        </template>
-                    </Card>
                 </div>
 
                 <!-- Empty State -->
-                <div v-else class="bg-white rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.02)] border border-slate-100 p-24 text-center mt-6">
-                    <i class="pi pi-file text-slate-300 text-6xl mb-6"></i>
-                    <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight uppercase">No Exams Found</h3>
-                    <p class="text-slate-400 font-bold mb-8">
-                        Create your first exam template to start evaluating students.
+                <div v-else class="bg-white rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.02)] border border-slate-100 p-24 text-center mt-6 animate-in zoom-in-95 duration-700">
+                    <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-5xl">📄</div>
+                    <h3 class="text-2xl font-black text-slate-800 mb-4 tracking-tight uppercase">Isolated Logic Pool</h3>
+                    <p class="text-slate-400 font-bold max-w-sm mx-auto mb-12 text-sm leading-relaxed">
+                        No examination templates have been initialized. Commencing setup is required for student evaluation.
                     </p>
-                    <Button label="Create First Exam" icon="pi pi-arrow-right" iconPos="right" @click="$router.push('/admin/exams/create')" />
+                    <Button label="Initialize Workflow" icon="pi pi-arrow-right" iconPos="right" class="px-10 py-5 bg-indigo-600 border-none rounded-2xl shadow-xl shadow-indigo-100 font-black text-[10px] uppercase tracking-widest" @click="router.push('/admin/exams/create')" />
                 </div>
             </div>
         </div>
 
-        <!-- Rules Modal -->
-        <Dialog v-model:visible="showRulesModal" :header="'Exam Rule Config — ' + selectedExam?.title" :style="{ width: '80vw', height: '80vh' }" maximizable modal>
-            <div class="h-full flex flex-col pt-4">
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest -mt-6 mb-8">Adjust question counts for each skill & level</p>
+        <!-- Rules Modal Redesign -->
+        <Dialog v-model:visible="showRulesModal" :header="'Logic Configuration — ' + selectedExam?.title" :style="{ width: '70vw' }" modal class="rounded-[2rem] overflow-hidden border-none shadow-2xl" :breakpoints="{'960px': '90vw', '641px': '100vw'}">
+            <template #header>
+                <div class="flex flex-col">
+                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Logic Configuration</h3>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Adjust question distribution metrics</p>
+                </div>
+            </template>
+            
+            <div class="pt-6 space-y-12 max-h-[60vh] overflow-y-auto no-scrollbar pr-4">
+                <div v-for="skill in rulesForm.skills" :key="skill.skill_id" class="space-y-6">
+                    <div class="flex items-center space-x-4 sticky top-0 bg-white z-10 py-2">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-[10px] uppercase shadow-lg shadow-indigo-100">{{ skill.name.charAt(0) }}</div>
+                            <h3 class="text-sm font-black text-slate-700 uppercase tracking-wider">{{ skill.name }}</h3>
+                    </div>
 
-                <div class="flex-1 overflow-y-auto space-y-12 no-scrollbar pr-2">
-                    <div v-for="skill in rulesForm.skills" :key="skill.skill_id" class="space-y-6">
-                        <div class="flex items-center space-x-4">
-                                <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase">{{ skill.name.charAt(0) }}</div>
-                                <h3 class="text-lg font-black text-slate-700 uppercase tracking-tight">{{ skill.name }}</h3>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pl-14">
-                                <div v-for="(rule, rIdx) in skill.rules" :key="rIdx" class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 flex flex-col space-y-4 transition-colors">
-                                    <div class="flex justify-between items-start">
-                                            <span class="font-black text-slate-800 text-sm uppercase flex items-center"><i class="pi pi-filter mr-2 text-indigo-400"></i> Level {{ rule.difficulty_level || 'Any' }}</span>
-                                            <span v-if="rule.group_tag" class="font-mono text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-black tracking-widest border border-slate-200">{{ rule.group_tag }}</span>
-                                    </div>
-                                    <div class="pt-4 border-t border-slate-100 flex flex-col">
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Question Count</label>
-                                            <InputNumber v-model="rule.quantity" showButtons buttonLayout="horizontal" :step="1" :min="1"
-                                                decrementButtonIcon="pi pi-minus" incrementButtonIcon="pi pi-plus" 
-                                                class="w-full" inputClass="text-center font-black" />
-                                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 ml-14">
+                            <div v-for="(rule, rIdx) in skill.rules" :key="rIdx" class="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col space-y-4">
+                                <div class="flex justify-between items-center">
+                                        <span class="font-black text-slate-800 text-[10px] uppercase tracking-widest flex items-center">
+                                            <i class="pi pi-filter mr-2 text-indigo-400"></i> Level {{ rule.difficulty_level || 'General' }}
+                                        </span>
+                                        <Tag v-if="rule.group_tag" :value="rule.group_tag" class="text-[8px] font-black uppercase tracking-tighter bg-indigo-600 text-white border-none px-2" />
                                 </div>
-                        </div>
+                                <div class="pt-4 border-t border-slate-200">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Item Quantity</label>
+                                        <InputNumber v-model="rule.quantity" showButtons buttonLayout="horizontal" :step="1" :min="1"
+                                            decrementButtonIcon="pi pi-minus" incrementButtonIcon="pi pi-plus" 
+                                            class="w-full" inputClass="text-center font-black text-sm border-none bg-transparent" />
+                                </div>
+                            </div>
                     </div>
                 </div>
             </div>
             
             <template #footer>
-                <Button label="Cancel" icon="pi pi-times" text severity="secondary" @click="showRulesModal = false" />
-                <Button label="Update Counts" icon="pi pi-check" :loading="isSavingRules" @click="saveRules" />
+                <div class="flex justify-end pt-6 border-t border-slate-50 space-x-3">
+                    <Button label="Discard" outlined severity="secondary" class="text-[10px] font-black uppercase tracking-widest px-8" @click="showRulesModal = false" />
+                    <Button label="Persist Architecture" :loading="isSavingRules" class="bg-indigo-600 border-none text-[10px] font-black uppercase tracking-widest px-8 shadow-lg shadow-indigo-50" @click="saveRules" />
+                </div>
             </template>
         </Dialog>
     </AdminLayout>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+:deep(.p-datatable-header) {
+    background: transparent;
+    border: none;
+}
+:deep(.p-datatable-thead > tr > th) {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+:deep(.p-datatable-tbody > tr > td) {
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid #f8fafc;
+}
+:deep(.p-inputtext) {
+    padding: 0.8rem 1.2rem;
+}
+@keyframes slide-in-bottom {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+    animation: slide-in-bottom 0.8s ease-out;
+}
+</style>
 
 <style scoped>
 .no-scrollbar::-webkit-scrollbar {
