@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -24,13 +24,20 @@ const form = ref({
     email: '',
     password: '',
     role: 'teacher',
-    is_active: true
+    is_active: true,
+    partner_name: '',
+    phone: '',
+    website: '',
+    country: '',
+    note: ''
 });
 
 const roles = [
     { value: 'admin', label: 'Administrator', desc: 'Full system access & control' },
     { value: 'teacher', label: 'Teacher / Proctor', desc: 'Manage exams & view results' },
-    { value: 'supervisor', label: 'Academic Supervisor', desc: 'Reporting & quality control' }
+    { value: 'supervisor', label: 'Academic Supervisor', desc: 'Reporting & quality control' },
+    { value: 'demo', label: 'Demo Account', desc: 'Limited system trial access' },
+    { value: 'partner', label: 'Partner', desc: 'Partner system dashboard' },
 ];
 
 const isSubmitting = ref(false);
@@ -157,7 +164,50 @@ onMounted(fetchStaff);
                                     </div>
                                 </template>
                             </Card>
+                       
+
+                        <!-- Partner Specific Details -->
+                        <div v-if="form.role === 'partner'" class="lg:col-span-2 space-y-8 animate-in fade-in slide-in-from-top-2 duration-500">
+                            <Card class="border border-slate-100 shadow-sm rounded-[2.5rem] bg-indigo-50/30">
+                                <template #content>
+                                    <div class="space-y-8 p-4">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
+                                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Partner Profile Details</h3>
+                                        </div>
+
+                                        <div class="space-y-8">
+                                            <div class="flex flex-col">
+                                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Company / Organization Name</label>
+                                                <InputText v-model="form.partner_name" placeholder="Enter Company Name" class="w-full shadow-sm rounded-xl uppercase" />
+                                            </div>
+
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div class="flex flex-col">
+                                                    <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Phone Number</label>
+                                                    <InputText v-model="form.phone" placeholder="+XX XXX XXX XXXX" class="w-full shadow-sm rounded-xl" />
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Country</label>
+                                                    <InputText v-model="form.country" placeholder="Egypt" class="w-full shadow-sm rounded-xl uppercase" />
+                                                </div>
+                                            </div>
+
+                                            <div class="flex flex-col">
+                                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Website</label>
+                                                <InputText v-model="form.website" placeholder="https://www.example.com" class="w-full shadow-sm rounded-xl" />
+                                            </div>
+                                            
+                                            <div class="flex flex-col">
+                                                <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Additional Notes</label>
+                                                <InputText v-model="form.note" placeholder="Any specific contract details or notes..." class="w-full shadow-sm rounded-xl" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </Card>
                         </div>
+                         </div>
 
                         <!-- Sidebar: Role Selection -->
                         <div class="space-y-8">
