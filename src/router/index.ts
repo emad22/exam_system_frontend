@@ -1,4 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router';
+import api from '@/services/api';
 
 import DashboardView from '@/views/student/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
@@ -274,12 +275,12 @@ const routes = [
     component: Students
   },
   {
-    path: '/admin/Partners/:id/edit',
+    path: '/admin/partners/:id/edit',
     name: 'admin.partners.edit',
     component: AdminPartnerEdit
   },
   {
-    path: '/admin/Partners/:id/show',
+    path: '/admin/partners/:id/show',
     name: 'admin.partners.show',
     component: AdminPartnerShow
   },
@@ -291,18 +292,21 @@ const router = createRouter({
 })
 
 // Global Navigation Guard
-router.beforeEach((to) => {
-    const token = localStorage.getItem('token');
-    const publicPages = ['/login', '/register', '/parent'];
-    const authRequired = !publicPages.includes(to.path);
+// router.beforeEach(async (to) => {
+//   const publicPages = ['/login', '/register'];
 
-    if (authRequired && !token) {
-        return '/login';
-    }
+//   try {
+//     await api.get('/api/user');
 
-    if (token && publicPages.includes(to.path) && to.path !== '/parent') {
-        return '/admin'; 
-    }
-});
+//     if (publicPages.includes(to.path)) {
+//       return '/admin';
+//     }
 
-export default router
+//   } catch {
+//     if (!publicPages.includes(to.path)) {
+//       return '/login';
+//     }
+//   }
+// });
+
+export default router
