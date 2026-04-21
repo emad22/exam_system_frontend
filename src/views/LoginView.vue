@@ -67,13 +67,7 @@ const handleRegister = async () => {
             
             <!-- Logo Section -->
             <div class="flex flex-col items-center justify-center mb-10">
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-brand-primary rounded-xl flex items-center justify-center text-white text-2xl font-black shadow-md shadow-brand-primary/30">
-                        <i class="pi pi-book"></i>
-                    </div>
-                    <h1 class="text-3xl font-black text-brand-primary tracking-tight">Arab<span class="text-brand-accent">Academy</span></h1>
-                </div>
-                <p class="text-[12px] font-bold text-slate-400 tracking-[0.2em] mt-3 uppercase">Learn Arabic Online</p>
+                <img src="/logo.png" alt="Arab Academy Logo" class="h-16 w-auto object-contain drop-shadow-sm" />
             </div>
 
             <div class="relative z-10">
