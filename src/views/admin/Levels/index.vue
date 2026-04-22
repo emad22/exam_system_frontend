@@ -72,6 +72,26 @@ const filteredLevels = computed(() => {
     return result;
 });
 
+const groupedLevels = computed(() => {
+    const groups = {};
+    filteredLevels.value.forEach(level => {
+        if (!groups[level.skill_id]) {
+            groups[level.skill_id] = {
+                skill: getSkill(level.skill_id),
+                levels: []
+            };
+        }
+        groups[level.skill_id].levels.push(level);
+    });
+    
+    // Sort levels within each group
+    Object.values(groups).forEach(group => {
+        group.levels.sort((a, b) => a.level_number - b.level_number);
+    });
+    
+    return groups;
+});
+
 const deleteLevel = async (id) => {
     if (!confirm('Are you sure you want to delete this level globally?')) return;
     
@@ -116,88 +136,97 @@ watch(selectedSkill, (newVal) => {
         </div>
 
         <!-- Registry Table Card -->
-        <Card v-else class="border border-slate-100 shadow-sm rounded-[2.5rem] overflow-hidden mt-6">
+        <Card v-else class="border border-slate-100 shadow-sm rounded-[2.5rem] overflow-hidden mt-6 bg-white">
             <template #content>
-            <DataTable :value="filteredLevels" dataKey="id" paginator :rows="10" 
-                       class="p-datatable-sm text-sm" responsiveLayout="scroll">
+            <DataTable :value="filteredLevels" rowGroupMode="subheader" groupRowsBy="skill_id"
+                       sortField="skill_id" :sortOrder="1"
+                       class="p-datatable-sm" responsiveLayout="scroll">
                 
                 <template #header>
                     <div class="flex flex-col md:flex-row justify-between items-center gap-6 p-2 pb-4">
                         <div class="flex items-center space-x-4 w-full md:w-auto bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest flex-shrink-0 ml-2">Module Filter</span>
-                            <Select v-model="selectedSkill" :options="skills" optionLabel="name" placeholder="Filter by Skill Domain" 
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest flex-shrink-0 ml-2">Domain Filter</span>
+                            <Select v-model="selectedSkill" :options="skills" optionLabel="name" placeholder="All Domains" 
                                      class="w-full md:w-64 rounded-xl border-none bg-white text-xs font-bold shadow-sm" showClear />
                         </div>
                         <div class="w-full md:w-80">
                             <span class="relative">
                                 <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
-                                <InputText v-model="searchQuery" placeholder="Search difficulty metadata..." class="pl-12 w-full shadow-sm rounded-xl border-slate-100 bg-slate-50/50 focus:bg-white transition-all font-bold" />
+                                <InputText v-model="searchQuery" placeholder="Filter tier registry..." class="pl-12 w-full shadow-sm rounded-xl border-slate-100 bg-slate-50/50 focus:bg-white transition-all font-bold" />
                             </span>
                         </div>
                     </div>
                 </template>
 
-                <Column field="level_number" header="#" style="width: 80px">
+                <template #rowgroupheader="slotProps">
+                    <div class="flex items-center space-x-4 py-3 px-6 bg-slate-50/50 backdrop-blur-sm border-y border-slate-100/50">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] italic">Sequence: {{ getSkill(slotProps.data.skill_id).name }}</span>
+                    </div>
+                </template>
+
+                <Column field="level_number" header="#" style="width: 70px" class="pl-12">
                     <template #body="{ data }">
-                        <span class="font-black text-slate-300 italic tracking-tighter">#{{ data.level_number }}</span>
+                        <span class="font-black text-slate-300 italic">#{{ data.level_number }}</span>
                     </template>
                 </Column>
 
-                <Column header="Competency Domain" style="min-width: 280px">
+                <Column header="Skill Domain" style="width: 220px">
                     <template #body="{ data }">
-                        <div class="flex items-center space-x-4 py-2">
-                             <div class="w-11 h-11 rounded-2xl bg-slate-50 text-brand-primary flex items-center justify-center text-xl border border-slate-100 shadow-sm">
-                                 {{ getSkill(data.skill_id).icon }}
-                             </div>
-                             <div>
-                                 <div class="font-black text-slate-800 uppercase tracking-tight leading-none mb-1.5">{{ getSkill(data.skill_id).name }}</div>
-                                 <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic opacity-80">Institutional Master Domain</div>
-                             </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-slate-100 text-brand-primary flex items-center justify-center text-sm border border-slate-200">
+                                {{ getSkill(data.skill_id).icon }}
+                            </div>
+                            <span class="font-black text-slate-700 uppercase tracking-tight text-[11px]">{{ getSkill(data.skill_id).name }}</span>
                         </div>
                     </template>
                 </Column>
 
-                <Column field="name" header="Designation" style="min-width: 150px">
+                <Column field="name" header="Designation" style="min-width: 200px">
                     <template #body="{ data }">
-                        <span class="font-black text-slate-600 uppercase tracking-wider text-xs">{{ data.name }}</span>
-                    </template>
-                </Column>
-
-                <Column header="Cognitive Load (Score Range)" style="width: 200px" class="text-center">
-                    <template #body="{ data }">
-                        <div class="flex items-center justify-center space-x-3">
-                             <div class="bg-rose-50 text-brand-primary px-4 py-1.5 rounded-xl text-[10px] font-black border border-brand-primary/10 shadow-sm">{{ data.min_score }}</div>
-                             <i class="pi pi-arrow-right text-[8px] text-slate-300"></i>
-                             <div class="bg-rose-50 text-brand-primary px-4 py-1.5 rounded-xl text-[10px] font-black border border-brand-primary/10 shadow-sm">{{ data.max_score }}</div>
+                        <div class="flex flex-col">
+                            <span class="font-black text-slate-700 uppercase tracking-tight text-xs">{{ data.name }}</span>
+                            <span class="text-[9px] text-slate-400 italic">{{ data.instructions ? data.instructions.substring(0, 40) + '...' : 'No instructions set' }}</span>
                         </div>
                     </template>
                 </Column>
 
-                <Column header="Mastery Threshold" style="width: 180px">
+                <Column header="Score Matrix" style="width: 180px" class="text-center">
                     <template #body="{ data }">
-                        <div class="space-y-2 pt-1 px-2">
-                             <div class="flex justify-between items-center">
-                                 <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">{{ data.pass_threshold }}% Target</span>
-                             </div>
-                             <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden p-0 border border-slate-50 shadow-inner">
-                                  <div class="bg-brand-accent h-full rounded-full transition-all duration-1000" :style="{ width: data.pass_threshold + '%' }"></div>
-                             </div>
+                        <div class="flex items-center justify-center space-x-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                             <span class="text-[10px] font-black text-slate-500">{{ data.min_score }}</span>
+                             <i class="pi pi-arrows-h text-[8px] text-slate-300"></i>
+                             <span class="text-[10px] font-black text-slate-800">{{ data.max_score }}</span>
                         </div>
                     </template>
                 </Column>
 
-                <Column header="Status" style="width: 120px" class="text-center">
+                <Column header="Default Count" style="width: 140px" class="text-center">
                     <template #body="{ data }">
-                        <Tag :value="data.is_active ? 'ENABLED' : 'ARCHIVED'"
-                             :severity="data.is_active ? 'success' : 'secondary'"
-                             class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg" />
+                        <Tag :value="data.default_question_count || 2" severity="info" class="font-black px-4 rounded-lg" />
                     </template>
                 </Column>
 
-                <Column :exportable="false" style="min-width: 150px" class="text-right">
+                <Column header="Threshold" style="width: 150px">
                     <template #body="{ data }">
-                        <div class="flex items-center justify-end space-x-2">
-                             <Button icon="pi pi-pencil" text severity="info" size="small" @click="router.push(`/admin/levels/${data.id}/edit`)" />
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-brand-primary h-full rounded-full" :style="{ width: data.pass_threshold + '%' }"></div>
+                            </div>
+                            <span class="text-[10px] font-black text-slate-600">{{ data.pass_threshold }}%</span>
+                        </div>
+                    </template>
+                </Column>
+
+                <Column header="Visibility" style="width: 120px" class="text-center">
+                    <template #body="{ data }">
+                        <i :class="data.is_active ? 'pi pi-eye text-emerald-500' : 'pi pi-eye-slash text-slate-300'" class="text-lg"></i>
+                    </template>
+                </Column>
+
+                <Column :exportable="false" style="min-width: 120px" class="text-right">
+                    <template #body="{ data }">
+                        <div class="flex items-center justify-end space-x-1">
+                             <Button icon="pi pi-pencil" text severity="secondary" size="small" @click="router.push(`/admin/levels/${data.id}/edit`)" />
                              <Button icon="pi pi-trash" text severity="danger" size="small" @click="deleteLevel(data.id)" />
                         </div>
                     </template>

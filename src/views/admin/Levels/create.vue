@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -26,6 +26,7 @@ const form = ref({
     min_score: 0,
     max_score: 100,
     pass_threshold: 70,
+    default_question_count: 2,
     instructions: '',
     is_active: true
 });
@@ -167,6 +168,14 @@ const saveLevel = async () => {
                                                 <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Enable Tier Availability</p>
                                             </div>
                                             <ToggleSwitch v-model="form.is_active" />
+                                        </div>
+
+                                        <!-- Default Question Count -->
+                                        <div class="space-y-2">
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default Questions Per Exam</label>
+                                            <p class="text-[9px] text-slate-400 ml-1 mb-2">عدد الأسئلة الافتراضي المقترح لكل امتحان</p>
+                                            <InputNumber v-model="form.default_question_count" showButtons :min="2" placeholder="e.g. 2"
+                                                class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-indigo-600" />
                                         </div>
                                     </div>
                                 </template>

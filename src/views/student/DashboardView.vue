@@ -182,78 +182,62 @@ const logout = () => {
                     </p>
                 </div>
 
-                <!-- Skills Selection Grid -->
-                <section v-else>
-                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+                <!-- Skills Selection List (TOEFL Style) -->
+                <section v-else class="max-w-4xl mx-auto">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 border-b border-slate-100 pb-8">
                         <div class="space-y-4">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-1">Academic Assessment Matrix</p>
-                            <div class="flex items-center space-x-4">
-                                <div class="w-2 h-10 bg-brand-primary rounded-full"></div>
-                                <h3 class="text-3xl font-black text-slate-800 tracking-tight uppercase">Select Evaluation Domain</h3>
-                            </div>
+                            <p class="text-[10px] font-black text-brand-primary uppercase tracking-[0.4em] ml-1">Assessment Roadmap</p>
+                            <h3 class="text-4xl font-black text-slate-900 tracking-tighter uppercase">Academic Modules</h3>
                         </div>
-                        <div class="bg-white border border-slate-100 rounded-[1.5rem] px-8 py-4 shadow-sm flex items-center space-x-4">
-                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] whitespace-nowrap">{{ skills().length }} Active Modalities</span>
+                        <div class="flex items-center space-x-3 bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">{{ skills().length }} Domains Available</span>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        <button v-for="(skill, index) in skills()" :key="skill.id"
-                            @click="startSkill(skill.id)"
-                            :disabled="startingSkillId !== null || isSkillCompleted(skill.id)"
-                            :class="[
-                                isSkillCompleted(skill.id) ? 'opacity-70 grayscale-[0.5]' : 'group hover:-translate-y-2',
-                                'relative text-left focus:outline-none disabled:cursor-not-allowed transition-all duration-500'
-                            ]">
-
-                            <!-- Premium Card Component -->
-                            <div :class="isSkillCompleted(skill.id) ? 'bg-slate-50/50' : 'bg-white hover:shadow-[0_45px_100px_rgba(0,0,0,0.06)] hover:border-brand-primary/10'"
-                                 class="relative rounded-[2.5rem] p-10 overflow-hidden border border-slate-100 shadow-sm transition-all duration-500 h-full">
-                                
-                                <!-- Decorative Background Element -->
-                                <div class="absolute -right-6 -bottom-6 text-[140px] text-slate-50 opacity-[0.4] select-none pointer-events-none leading-none transition-all duration-700 transform group-hover:-rotate-12">
-                                    {{ getSkillIcon(skill.name) }}
-                                </div>
-
-                                <div class="relative z-10 space-y-8">
-                                    <!-- Dynamic Icon Housing -->
-                                    <div :class="[
-                                        isSkillCompleted(skill.id) ? 'bg-emerald-50 text-emerald-500 border-emerald-100' : 'bg-brand-primary/5 text-brand-primary border-brand-primary/10 group-hover:bg-brand-primary group-hover:text-white',
-                                        'w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-3xl shadow-sm border transition-all duration-500'
-                                    ]">
-                                        <i v-if="isSkillCompleted(skill.id)" class="pi pi-check"></i>
-                                        <span v-else-if="startingSkillId !== skill.id" class="transform transition-transform group-hover:rotate-12">{{ getSkillIcon(skill.name) }}</span>
-                                        <div v-else class="w-6 h-6 border-3 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
-                                    </div>
-
-                                    <!-- Labeling -->
-                                    <div class="space-y-3">
-                                        <div class="flex items-center justify-between">
-                                            <h4 class="text-2xl font-black text-slate-800 tracking-tight group-hover:text-brand-primary transition-colors uppercase leading-none">{{ skill.name }}</h4>
-                                            <Tag v-if="isSkillCompleted(skill.id)" value="COMPLETED" severity="success" class="text-[8px] px-2 font-black tracking-widest" />
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Protocol Type: </span>
-                                            <span class="text-[9px] font-black text-brand-accent uppercase tracking-widest">Institutional</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Bottom Interface -->
-                                    <div class="pt-6 border-t border-slate-50 flex items-center justify-between">
-                                        <span class="text-[10px] font-black uppercase tracking-[0.2em]" 
-                                              :class="isSkillCompleted(skill.id) ? 'text-emerald-600' : 'text-slate-400 group-hover:text-brand-primary'">
-                                            {{ isSkillCompleted(skill.id) ? 'EVALUATION FINISHED' : (startingSkillId === skill.id ? 'SYNCING CONTENT...' : 'ENTER ASSESSMENT') }}
-                                        </span>
-                                        <div :class="isSkillCompleted(skill.id) ? 'bg-emerald-50' : 'bg-slate-50 group-hover:bg-brand-primary'"
-                                             class="w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:translate-x-1">
-                                            <i :class="isSkillCompleted(skill.id) ? 'pi pi-verified text-emerald-500' : 'pi pi-arrow-right text-brand-primary group-hover:text-white'" 
-                                               class="text-[10px]"></i>
-                                        </div>
-                                    </div>
+                    <div class="space-y-4">
+                        <div v-for="(skill, index) in skills()" :key="skill.id"
+                             class="group relative bg-white border border-slate-100 rounded-[2rem] p-6 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:border-brand-primary/20 flex flex-col md:flex-row items-center gap-8"
+                             :class="isSkillCompleted(skill.id) ? 'opacity-70 bg-slate-50/50' : ''">
+                            
+                            <!-- Index & Icon -->
+                            <div class="flex items-center gap-6 shrink-0 w-full md:w-auto">
+                                <div class="text-[10px] font-black text-slate-300 w-6 tabular-nums">0{{ index + 1 }}</div>
+                                <div :class="[
+                                    isSkillCompleted(skill.id) ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600 group-hover:bg-brand-primary group-hover:text-white',
+                                    'w-16 h-16 rounded-2xl flex items-center justify-center text-2xl transition-all duration-500 shadow-sm'
+                                ]">
+                                    <i v-if="isSkillCompleted(skill.id)" class="pi pi-check text-xl"></i>
+                                    <span v-else>{{ getSkillIcon(skill.name) }}</span>
                                 </div>
                             </div>
-                        </button>
+
+                            <!-- Name & Details -->
+                            <div class="flex-grow text-center md:text-left space-y-1">
+                                <h4 class="text-xl font-black text-slate-800 tracking-tight group-hover:text-brand-primary transition-colors uppercase leading-none">{{ skill.name }}</h4>
+                                <div class="flex items-center justify-center md:justify-start gap-3 mt-2">
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Standard Proficiency Track</span>
+                                    <div v-if="isSkillCompleted(skill.id)" class="w-1 h-1 rounded-full bg-emerald-300"></div>
+                                    <span v-if="isSkillCompleted(skill.id)" class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Completed</span>
+                                </div>
+                            </div>
+
+                            <!-- Action Area -->
+                            <div class="shrink-0 w-full md:w-auto">
+                                <button v-if="!isSkillCompleted(skill.id)" 
+                                    @click="startSkill(skill.id)"
+                                    :disabled="startingSkillId !== null"
+                                    class="w-full md:w-auto px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-brand-primary hover:shadow-xl hover:shadow-brand-primary/20 transition-all active:scale-95 disabled:opacity-50">
+                                    <span v-if="startingSkillId === skill.id" class="flex items-center gap-3">
+                                        <i class="pi pi-spin pi-spinner text-xs"></i> Initialize...
+                                    </span>
+                                    <span v-else>Launch Module</span>
+                                </button>
+                                <div v-else class="px-10 py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-[11px] uppercase tracking-widest border border-emerald-100 text-center">
+                                    Assessment Logged
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
