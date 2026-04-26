@@ -82,6 +82,7 @@ const loadData = async () => {
             password: '', // Empty initially
             is_active: !!student.user?.is_active,
         };
+        reconcilePackageFromSkills();
     } catch (err) {
         console.error(err);
         errorMsg.value = 'Failed to load identity data';
@@ -108,19 +109,44 @@ watch(() => editForm.value.package_id, (newVal) => {
     }
 })
 
-// Watch manual skill changes to switch to Custom Pack
-watch(() => editForm.value.assigned_skills, (newVal) => {
-    if (editForm.value.package_id && editForm.value.package_id !== 4) {
-        const pkg = packages.value.find(p => p.id === editForm.value.package_id)
-        if (pkg && pkg.skills) {
-            const current = [...newVal].sort().join(',')
-            const target = [...pkg.skills].sort().join(',')
-            if (current !== target) {
-                editForm.value.package_id = 4 // Switch to Custom Pack
+// Helper to normalize skills for comparison (ID to Code if needed)
+const normalizeSkills = (skillList) => {
+    return (skillList || [])
+        .map(s => {
+            if (typeof s === 'number' || !isNaN(s)) {
+                const found = skills.value.find(sk => sk.id == s);
+                return found ? found.short_code : s;
             }
+            return s;
+        })
+        .map(s => String(s).toUpperCase().trim())
+        .sort();
+};
+
+const reconcilePackageFromSkills = () => {
+    if (packages.value.length === 0) return;
+    
+    const current = normalizeSkills(editForm.value.assigned_skills).join(',');
+    let match = 4; // Default to Custom
+    
+    for (const pkg of packages.value) {
+        if (pkg.id === 4) continue;
+        const target = normalizeSkills(pkg.skills).join(',');
+        if (target && target === current) {
+            match = pkg.id;
+            break;
         }
     }
-}, { deep: true })
+    
+    if (editForm.value.package_id !== match) {
+        editForm.value.package_id = match;
+    }
+};
+
+// Watch manual skill changes to switch to appropriate package or custom
+watch(() => editForm.value.assigned_skills, () => {
+    reconcilePackageFromSkills();
+}, { deep: true });
 
 const saveStudent = async () => {
     isSaving.value = true;
@@ -228,26 +254,38 @@ onMounted(() => {
                         </Card>
 
                         <!-- Module Discovery Matrix -->
-                        <Card v-if="editForm.package_id === 4" class="border border-slate-100 shadow-sm rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-500">
+                        <Card class="border border-slate-100 shadow-sm rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-500">
                             <template #content>
                                 <div class="p-4 space-y-6">
                                     <div class="flex items-center justify-between mb-4">
-                                        <div class="flex items-center space-x-3">
+                                        <div v-if="editForm.package_id === 4" class="flex items-center space-x-3">
                                             <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                 <i class="pi pi-th-large text-xs"></i>
                                             </div>
                                             <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Module Assignment</h3>
                                         </div>
-                                        <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest bg-rose-50 px-3 py-1 rounded-lg border border-indigo-100 flex items-center">
+                                        <div v-else class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center">
+                                                <i class="pi pi-lock text-xs"></i>
+                                            </div>
+                                            <h3 class="text-sm font-black text-slate-400 uppercase tracking-wider">Fixed Module Set</h3>
+                                        </div>
+                                        <span v-if="editForm.package_id === 4" class="text-[9px] font-black text-brand-primary uppercase tracking-widest bg-rose-50 px-3 py-1 rounded-lg border border-indigo-100 flex items-center">
                                             <i class="pi pi-unlock mr-2 text-[8px]"></i> Custom Allowed
+                                        </span>
+                                        <span v-else class="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 flex items-center">
+                                            <i class="pi pi-lock mr-2 text-[8px]"></i> Package Controlled
                                         </span>
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         <label v-for="skill in skills" :key="skill.id" 
-                                            :class="editForm.assigned_skills.includes(skill.short_code) ? 'border-brand-primary bg-rose-50/30' : 'border-slate-100 bg-white'"
-                                            class="flex items-center p-4 rounded-2xl border-2 transition-all duration-300 group cursor-pointer hover:border-indigo-200">
-                                            <Checkbox :value="skill.short_code" v-model="editForm.assigned_skills" />
+                                            :class="[
+                                                editForm.assigned_skills.includes(skill.short_code) ? 'border-brand-primary bg-rose-50/30' : 'border-slate-100 bg-white',
+                                                editForm.package_id !== 4 ? 'opacity-70 grayscale-[0.5] cursor-not-allowed' : 'cursor-pointer'
+                                            ]"
+                                            class="flex items-center p-4 rounded-2xl border-2 transition-all duration-300 group">
+                                            <Checkbox :value="skill.short_code" v-model="editForm.assigned_skills" :disabled="editForm.package_id !== 4" />
                                             <span class="ml-4 text-xs font-bold text-slate-700 truncate">
                                                 {{ skill.name }}
                                             </span>

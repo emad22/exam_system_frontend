@@ -19,6 +19,7 @@ const loading = ref(true);
 const filterSkill = ref('');
 const filterType = ref('');
 const searchQuery = ref('');
+const filterLevel = ref('');
 const skills = ref([]);
 const showInstructionsModal = ref(false);
 const selectedSkillForInst = ref(null);
@@ -114,6 +115,7 @@ const filteredQuestions = computed(() => {
     let filtered = questions.value;
     if (filterSkill.value) filtered = filtered.filter(q => q.skill?.name === filterSkill.value);
     if (filterType.value)  filtered = filtered.filter(q => q.type === filterType.value);
+    if (filterLevel.value) filtered = filtered.filter(q => (q.level?.level_number || q.level_id) === Number(filterLevel.value));
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase();
         filtered = filtered.filter(item =>
@@ -122,7 +124,19 @@ const filteredQuestions = computed(() => {
             item.passage?.title?.toLowerCase().includes(q)
         );
     }
-    return filtered;
+    // Sort by level for grouping, then by passage to keep them together
+    return [...filtered].sort((a, b) => {
+        const lvA = a.level?.level_number || a.level_id || 0;
+        const lvB = b.level?.level_number || b.level_id || 0;
+        if (lvA !== lvB) return lvA - lvB;
+
+        // Group by passage (keep questions with same passage_id together)
+        const passA = a.passage_id || 0;
+        const passB = b.passage_id || 0;
+        if (passA !== passB) return passB - passA;
+
+        return (a.id - b.id); // Sequential order within passage
+    });
 });
 
 onMounted(fetchData);
@@ -178,6 +192,14 @@ onMounted(fetchData);
                     class="w-full rounded-xl text-sm font-semibold" />
             </div>
 
+            <div class="flex flex-col gap-2 min-w-[120px]">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Level</label>
+                <Select v-model="filterLevel"
+                    :options="[{label:'All Levels', value:''}, ...Array.from({length:9}, (_,i)=>({label:`Level ${i+1}`, value:i+1}))]"
+                    optionLabel="label" optionValue="value"
+                    class="w-full rounded-xl text-sm font-semibold" />
+            </div>
+
             <div class="ml-auto bg-indigo-50 px-5 py-2.5 rounded-xl border border-indigo-100">
                 <span class="text-xs font-black text-indigo-600 uppercase tracking-widest">{{ filteredQuestions.length }} Questions</span>
             </div>
@@ -209,44 +231,87 @@ onMounted(fetchData);
                 @click="$router.push('/admin/questions/create')"
                 class="font-bold text-sm px-8 shadow-md" />
             <Button v-else label="Clear Filters" icon="pi pi-times" severity="secondary" outlined
-                @click="searchQuery=''; filterSkill=''; filterType=''"
+                @click="searchQuery=''; filterSkill=''; filterType=''; filterLevel=''"
                 class="font-bold text-sm px-8" />
         </div>
 
         <!-- Table -->
         <Card v-else class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden">
             <template #content>
-                <DataTable :value="filteredQuestions" dataKey="id" paginator :rows="12"
+                <DataTable :value="filteredQuestions" dataKey="id" paginator :rows="20"
+                    rowGroupMode="subheader" groupRowsBy="level.id"
                     class="p-datatable-sm text-sm" responsiveLayout="scroll">
+
+                    <template #groupheader="slotProps">
+                        <div class="flex items-center gap-4 py-3 px-6 bg-slate-50/80 backdrop-blur-sm rounded-xl border border-slate-100/50 my-2 mx-4">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black shadow-lg">L{{ slotProps.data.level?.level_number || slotProps.data.level_id }}</span>
+                                <span class="text-xs font-black text-slate-700 uppercase tracking-widest">Cognitive Matrix: Tier {{ slotProps.data.level?.level_number || slotProps.data.level_id }}</span>
+                            </div>
+                            <div class="h-4 w-px bg-slate-200"></div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ slotProps.data.skill?.name }} Domain</span>
+                            <div class="ml-auto text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                                {{ filteredQuestions.filter(q => (q.level?.level_number || q.level_id) === (slotProps.data.level?.level_number || slotProps.data.level_id)).length }} Items in this tier
+                            </div>
+                        </div>
+                    </template>
 
                     <!-- Question Content -->
                     <Column header="Question" style="min-width: 460px">
-                        <template #body="{ data }">
-                            <div class="flex items-start gap-4 py-4">
-                                <!-- ID Badge -->
-                                <div class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center font-black border border-slate-100 text-xs shrink-0">
-                                    #{{ data.id }}
+                        <template #body="{ data, index }">
+                            <div class="flex flex-col gap-4 py-4">
+                                <!-- Passage Sub-header (Show only once per passage group) -->
+                                <div v-if="data.passage && (index === 0 || filteredQuestions[index-1]?.passage_id !== data.passage_id)" 
+                                    class="flex items-center gap-3 bg-amber-50/50 border-l-4 border-amber-400 px-4 py-3 rounded-r-xl mb-2 animate-in slide-in-from-left duration-500">
+                                    <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
+                                        <i class="pi pi-book text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] block leading-none mb-1">Shared Context Passage</span>
+                                        <h4 class="text-sm font-black text-slate-800 tracking-tight">{{ data.passage.title }}</h4>
+                                    </div>
+                                    <div class="ml-auto text-[9px] font-bold text-amber-400 uppercase tracking-widest bg-white px-2 py-1 rounded-lg border border-amber-100">
+                                        {{ filteredQuestions.filter(q => q.passage_id === data.passage_id).length }} Connected Questions
+                                    </div>
                                 </div>
 
+                                <div class="flex items-start gap-4" :class="{'ml-8 border-l-2 border-slate-100 pl-6 pb-4': data.passage}">
+                                    <!-- ID Badge -->
+                                    <div class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center font-black border border-slate-100 text-xs shrink-0 shadow-sm">
+                                        #{{ data.id }}
+                                    </div>
+
                                 <div class="flex-1 space-y-2 min-w-0">
-                                    <!-- Passage badge -->
-                                    <div v-if="data.passage" class="flex items-center gap-1.5 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full w-fit">
+                                    <div v-if="data.passage && !data.passage_id" class="flex items-center gap-1.5 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full w-fit">
                                         <i class="pi pi-book text-[10px] text-amber-600"></i>
                                         <span class="text-[10px] font-black text-amber-700 uppercase tracking-wider">{{ data.passage.title || 'Passage' }}</span>
                                     </div>
 
-                                    <!-- Media preview -->
-                                    <div v-if="data.media_url && isImage(data.media_url)" class="w-20 h-16 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-                                        <img :src="data.media_url" class="w-full h-full object-cover" />
+                                    <!-- Media preview (New logic: Image or Audio preview takes priority if content is empty) -->
+                                    <div v-if="data.image_url" class="w-full max-w-sm rounded-xl overflow-hidden border border-slate-100 shadow-sm animate-in fade-in duration-500">
+                                        <img :src="data.image_url" class="w-full h-auto object-contain max-h-48" />
                                     </div>
 
                                     <!-- Question text -->
-                                    <p class="font-bold text-slate-800 leading-snug line-clamp-2 text-sm">
-                                        {{ data.content || '— No content —' }}
+                                    <div v-if="data.content" 
+                                        class="font-bold text-slate-800 leading-relaxed text-sm ql-editor-preview" 
+                                        v-html="data.content">
+                                    </div>
+                                    <p v-else-if="!data.image_url && !data.audio_url && !data.media_url" class="text-slate-300 italic text-xs">
+                                        — No verbal content provided —
                                     </p>
 
                                     <!-- Audio -->
-                                    <audio v-if="data.media_url && isAudio(data.media_url)" :src="data.media_url" controls class="h-7 w-48 opacity-80"></audio>
+                                    <div v-if="data.audio_url" class="flex flex-col gap-1">
+                                        <audio :src="data.audio_url" controls class="h-8 w-64 opacity-90"></audio>
+                                        <span class="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Question Audio Asset</span>
+                                    </div>
+
+                                    <!-- Legacy Media -->
+                                    <div v-if="data.media_url && !data.audio_url && !data.image_url" class="mt-2">
+                                        <video v-if="data.media_url.includes('.mp4')" :src="data.media_url" controls class="h-32 rounded-xl"></video>
+                                        <audio v-else :src="data.media_url" controls class="h-8 w-64"></audio>
+                                    </div>
 
                                     <!-- Instructions -->
                                     <p v-if="data.instructions" class="text-xs text-slate-400 italic line-clamp-1 border-l-2 border-slate-100 pl-2.5">
@@ -264,6 +329,7 @@ onMounted(fetchData);
                                         <span v-if="data.media_url" class="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">
                                             <i class="pi pi-paperclip text-[9px] mr-1"></i>Media
                                         </span>
+                                    </div>
                                     </div>
                                 </div>
                             </div>

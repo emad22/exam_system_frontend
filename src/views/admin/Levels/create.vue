@@ -66,15 +66,20 @@ const saveLevel = async () => {
             <!-- Standardized Header -->
             <div class="flex items-center justify-between bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                 <div class="flex items-center space-x-6">
-                    <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/levels')" />
+                    <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded
+                        @click="router.push('/admin/levels')" />
                     <div>
-                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Initialize tier</h1>
-                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Level provisioning matrix</p>
+                        <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">
+                            Initialize tier</h1>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Level
+                            provisioning matrix</p>
                     </div>
                 </div>
-                <div class="hidden md:flex items-center space-x-2 bg-rose-50 px-4 py-2 rounded-2xl border border-indigo-100">
+                <div
+                    class="hidden md:flex items-center space-x-2 bg-rose-50 px-4 py-2 rounded-2xl border border-indigo-100">
                     <div class="w-2 h-2 bg-brand-primary rounded-full animate-pulse"></div>
-                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Adaptive Logic Engine</span>
+                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Adaptive Logic
+                        Engine</span>
                 </div>
             </div>
             <div class="max-w-6xl mx-auto">
@@ -89,31 +94,49 @@ const saveLevel = async () => {
                                 <template #content>
                                     <div class="p-4 space-y-8">
                                         <div class="flex items-center space-x-3 mb-2">
-                                            <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
+                                            <div
+                                                class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                 <i class="pi pi-tag text-xs"></i>
                                             </div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Classification</h3>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">
+                                                Classification</h3>
                                         </div>
 
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Target Module (Skill)</label>
-                                                <Select v-model="form.skill_id" :options="skills" optionLabel="name" optionValue="id" class="w-full rounded-xl bg-slate-50 border-slate-100" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Target
+                                                    Module (Skill)</label>
+                                                <Select v-model="form.skill_id" :options="skills" optionLabel="name"
+                                                    optionValue="id"
+                                                    class="w-full rounded-xl bg-slate-50 border-slate-100" />
                                             </div>
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Designation Name</label>
-                                                <InputText v-model="form.name" required class="w-full rounded-xl bg-slate-50 border-slate-100" placeholder="e.g. Intermediate I" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Designation
+                                                    Name</label>
+                                                <InputText v-model="form.name" required
+                                                    class="w-full rounded-xl bg-slate-50 border-slate-100"
+                                                    placeholder="e.g. Intermediate I" />
                                             </div>
                                         </div>
 
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Serial Number (#)</label>
-                                                <InputNumber v-model="form.level_number" showButtons :min="1" class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Serial
+                                                    Number (#)</label>
+                                                <InputNumber v-model="form.level_number" showButtons :min="1"
+                                                    class="w-full"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100" />
                                             </div>
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Instructions Label</label>
-                                                <Textarea v-model="form.instructions" rows="1" class="w-full rounded-xl bg-slate-50 border-slate-100" placeholder="Brief guidance summary..." />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Instructions
+                                                    Label</label>
+                                                <Textarea v-model="form.instructions" rows="1"
+                                                    class="w-full rounded-xl bg-slate-50 border-slate-100"
+                                                    placeholder="Brief guidance summary..." />
                                             </div>
                                         </div>
                                     </div>
@@ -124,24 +147,35 @@ const saveLevel = async () => {
                                 <template #content>
                                     <div class="p-4 space-y-8">
                                         <div class="flex items-center space-x-3 mb-2">
-                                            <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
+                                            <div
+                                                class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                 <i class="pi pi-chart-bar text-xs"></i>
                                             </div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Performance Metrics</h3>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">
+                                                Performance Metrics</h3>
                                         </div>
 
                                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Minimum Score</label>
-                                                <InputNumber v-model="form.min_score" class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-bold" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Minimum
+                                                    Score</label>
+                                                <InputNumber v-model="form.min_score" class="w-full"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-bold" />
                                             </div>
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Maximum Score</label>
-                                                <InputNumber v-model="form.max_score" class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-bold" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Maximum
+                                                    Score</label>
+                                                <InputNumber v-model="form.max_score" class="w-full"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-bold" />
                                             </div>
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Pass Threshold (%)</label>
-                                                <InputNumber v-model="form.pass_threshold" suffix="%" class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-brand-primary" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Pass
+                                                    Threshold (%)</label>
+                                                <InputNumber v-model="form.pass_threshold" suffix="%" class="w-full"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-brand-primary" />
                                             </div>
                                         </div>
                                     </div>
@@ -155,32 +189,49 @@ const saveLevel = async () => {
                                 <template #content>
                                     <div class="p-4 space-y-8">
                                         <div class="flex items-center space-x-3 mb-2">
-                                            <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
+                                            <div
+                                                class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                 <i class="pi pi-cog text-xs"></i>
                                             </div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Settings</h3>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">
+                                                Settings</h3>
                                         </div>
 
-                                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group transition-all duration-300 hover:bg-white hover:border-indigo-100">
+                                        <div
+                                            class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group transition-all duration-300 hover:bg-white hover:border-indigo-100">
                                             <div class="space-y-0.5">
-                                                <p class="text-[11px] font-black text-slate-800 uppercase tracking-tight">Active Matrix</p>
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Enable Tier Availability</p>
+                                                <p
+                                                    class="text-[11px] font-black text-slate-800 uppercase tracking-tight">
+                                                    Active Matrix</p>
+                                                <p
+                                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                                    Enable Tier Availability</p>
                                             </div>
                                             <ToggleSwitch v-model="form.is_active" />
                                         </div>
 
-                                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group transition-all duration-300 hover:bg-white hover:border-indigo-100">
+                                        <div
+                                            class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group transition-all duration-300 hover:bg-white hover:border-indigo-100">
                                             <div class="space-y-0.5">
-                                                <p class="text-[11px] font-black text-slate-800 uppercase tracking-tight">Randomize Questions</p>
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Shuffle question order</p>
+                                                <p
+                                                    class="text-[11px] font-black text-slate-800 uppercase tracking-tight">
+                                                    Randomize Questions</p>
+                                                <p
+                                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                                    Shuffle question order</p>
                                             </div>
                                             <ToggleSwitch v-model="form.is_random" />
                                         </div>
 
-                                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group transition-all duration-300 hover:bg-white hover:border-amber-100">
+                                        <div
+                                            class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group transition-all duration-300 hover:bg-white hover:border-amber-100">
                                             <div class="space-y-0.5">
-                                                <p class="text-[11px] font-black text-slate-800 uppercase tracking-tight">Allow Retry on Fail</p>
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">One extra chance per level</p>
+                                                <p
+                                                    class="text-[11px] font-black text-slate-800 uppercase tracking-tight">
+                                                    Allow Retry on Fail</p>
+                                                <p
+                                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                                    One extra chance per level</p>
                                             </div>
                                             <ToggleSwitch v-model="form.allows_retry" />
                                         </div>
@@ -188,24 +239,36 @@ const saveLevel = async () => {
                                         <!-- Default Question Count -->
                                         <div class="space-y-4 pt-4 border-t border-slate-100">
                                             <div class="space-y-2">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default Standalone Qs</label>
-                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الافتراضي للأسئلة المستقلة</p>
-                                                <InputNumber v-model="form.default_standalone_quantity" showButtons :min="0" 
-                                                    class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-emerald-600" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default
+                                                    Standalone Qs</label>
+                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الافتراضي للأسئلة
+                                                    المستقلة</p>
+                                                <InputNumber v-model="form.default_standalone_quantity" showButtons
+                                                    :min="0" class="w-full"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-emerald-600" />
                                             </div>
 
                                             <div class="space-y-2">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default Passages</label>
-                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الافتراضي للقطع (Reading/Listening)</p>
-                                                <InputNumber v-model="form.default_passage_quantity" showButtons :min="0" 
-                                                    class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-brand-primary" />
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default
+                                                    Passages</label>
+                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الافتراضي للقطع
+                                                    (Reading/Listening)</p>
+                                                <InputNumber v-model="form.default_passage_quantity" showButtons
+                                                    :min="0" class="w-full"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-brand-primary" />
                                             </div>
 
                                             <div class="space-y-2 opacity-50">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Legacy Total Count</label>
-                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الإجمالي الافتراضي (في حال عدم تحديد أعلاه)</p>
+                                                <label
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Legacy
+                                                    Total Count</label>
+                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الإجمالي الافتراضي
+                                                    (في حال عدم تحديد أعلاه)</p>
                                                 <InputNumber v-model="form.default_question_count" showButtons :min="0"
-                                                    class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-slate-500" />
+                                                    class="w-full"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-slate-500" />
                                             </div>
                                         </div>
                                     </div>
@@ -213,7 +276,9 @@ const saveLevel = async () => {
                             </Card>
 
                             <div class="pt-4">
-                                <Button type="submit" label="Deploy Configuration" icon="pi pi-check" :loading="isSaving" class="w-full py-6 rounded-3xl shadow-lg shadow-rose-100 text-[10px] font-black tracking-widest uppercase transition-all hover:-translate-y-1" />
+                                <Button type="submit" label="Deploy Configuration" icon="pi pi-check"
+                                    :loading="isSaving"
+                                    class="w-full py-6 rounded-3xl shadow-lg shadow-rose-100 text-[10px] font-black tracking-widest uppercase transition-all hover:-translate-y-1" />
                             </div>
                         </div>
 
@@ -236,12 +301,18 @@ const saveLevel = async () => {
 }
 
 @keyframes slide-in-bottom {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .animate-in {
     animation: slide-in-bottom 0.8s ease-out;
 }
 </style>
-

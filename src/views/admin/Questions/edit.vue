@@ -12,6 +12,7 @@ import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
 import Slider from 'primevue/slider';
+import Editor from 'primevue/editor';
 
 const router = useRouter();
 const route = useRoute();
@@ -45,6 +46,10 @@ const form = ref({
     passage_questions_limit: null,
     passage_is_random: false,
     p_media: null,
+    p_audio: null,
+    p_audio_preview: null,
+    p_image: null,
+    p_image_preview: null,
     questions: []
 });
 
@@ -68,10 +73,15 @@ const createEmptyQuestion = () => ({
     content: '',
     instructions: '',
     points: 1,
+    sort_order: 0,
     min_words: null,
     max_words: null,
     q_media: null,
     q_media_preview: null,
+    q_audio: null,
+    q_audio_preview: null,
+    q_image: null,
+    q_image_preview: null,
     options: [
         { option_text: '', is_correct: true },
         { option_text: '', is_correct: false }
@@ -132,18 +142,29 @@ const loadInitialData = async () => {
             if (q.passage.media_url) {
                 pMediaPreview.value = { url: q.passage.media_url, type: q.passage.media_path?.split('.').pop() || 'image' };
             }
+            if (q.passage.audio_url) {
+                updatedForm.p_audio_preview = { url: q.passage.audio_url, type: 'audio' };
+            }
+            if (q.passage.image_url) {
+                updatedForm.p_image_preview = { url: q.passage.image_url, type: 'image' };
+            }
 
             updatedForm.questions = q.passage.questions.map(sq => ({
                 id: sq.id,
                 type: sq.type,
-                content_mode: sq.media_url ? 'media' : 'text',
+                content_mode: (sq.media_url || sq.audio_url || sq.image_url) ? 'media' : 'text',
                 content: sq.content,
                 instructions: sq.instructions || '',
                 points: sq.points,
+                sort_order: sq.sort_order || 0,
                 min_words: sq.min_words,
                 max_words: sq.max_words,
                 q_media: null,
                 q_media_preview: sq.media_url ? { url: sq.media_url, type: sq.media_path?.split('.').pop() || 'image' } : null,
+                q_audio: null,
+                q_audio_preview: sq.audio_url ? { url: sq.audio_url, type: 'audio' } : null,
+                q_image: null,
+                q_image_preview: sq.image_url ? { url: sq.image_url, type: 'image' } : null,
                 options: (sq.options || []).map(o => ({
                     option_text: o.option_text,
                     is_correct: !!o.is_correct
@@ -154,14 +175,19 @@ const loadInitialData = async () => {
             updatedForm.questions = [{
                 id: q.id,
                 type: q.type,
-                content_mode: q.media_url ? 'media' : 'text',
+                content_mode: (q.media_url || q.audio_url || q.image_url) ? 'media' : 'text',
                 content: q.content,
                 instructions: q.instructions || '',
                 points: q.points,
+                sort_order: q.sort_order || 0,
                 min_words: q.min_words,
                 max_words: q.max_words,
                 q_media: null,
                 q_media_preview: q.media_url ? { url: q.media_url, type: q.media_path?.split('.').pop() || 'image' } : null,
+                q_audio: null,
+                q_audio_preview: q.audio_url ? { url: q.audio_url, type: 'audio' } : null,
+                q_image: null,
+                q_image_preview: q.image_url ? { url: q.image_url, type: 'image' } : null,
                 options: (q.options || []).map(o => ({
                     option_text: o.option_text,
                     is_correct: !!o.is_correct
@@ -185,11 +211,39 @@ const handlePFileChange = (e) => {
     pMediaPreview.value = { url: URL.createObjectURL(file), type: file.type };
 };
 
+const handlePAudioChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    form.value.p_audio = file;
+    form.value.p_audio_preview = { url: URL.createObjectURL(file), type: file.type };
+};
+
+const handlePImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    form.value.p_image = file;
+    form.value.p_image_preview = { url: URL.createObjectURL(file), type: file.type };
+};
+
 const handleQFileChange = (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
     form.value.questions[index].q_media = file;
     form.value.questions[index].q_media_preview = { url: URL.createObjectURL(file), type: file.type };
+};
+
+const handleQAudioChange = (e, index) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    form.value.questions[index].q_audio = file;
+    form.value.questions[index].q_audio_preview = { url: URL.createObjectURL(file), type: file.type };
+};
+
+const handleQImageChange = (e, index) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    form.value.questions[index].q_image = file;
+    form.value.questions[index].q_image_preview = { url: URL.createObjectURL(file), type: file.type };
 };
 
 const addOption = (qIdx) => {
@@ -257,6 +311,8 @@ const updateBatch = async () => {
             if (form.value.passage_questions_limit) fd.append('passage_questions_limit', form.value.passage_questions_limit);
             fd.append('passage_is_random', form.value.passage_is_random ? 1 : 0);
             if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
+            if (form.value.p_audio) fd.append('p_audio_file', form.value.p_audio);
+            if (form.value.p_image) fd.append('p_image_file', form.value.p_image);
         } else if (form.value.passage_mode === 'new') {
             fd.append('passage_type', form.value.passage_type);
             fd.append('passage_title', form.value.passage_title || '');
@@ -264,6 +320,8 @@ const updateBatch = async () => {
             if (form.value.passage_questions_limit) fd.append('passage_questions_limit', form.value.passage_questions_limit);
             fd.append('passage_is_random', form.value.passage_is_random ? 1 : 0);
             if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
+            if (form.value.p_audio) fd.append('p_audio_file', form.value.p_audio);
+            if (form.value.p_image) fd.append('p_image_file', form.value.p_image);
         }
 
         form.value.questions.forEach((q, qIdx) => {
@@ -272,9 +330,12 @@ const updateBatch = async () => {
             fd.append(`questions[${qIdx}][content]`, q.content);
             fd.append(`questions[${qIdx}][instructions]`, q.instructions || '');
             fd.append(`questions[${qIdx}][points]`, q.points);
+            fd.append(`questions[${qIdx}][sort_order]`, q.sort_order || 0);
             if (q.min_words) fd.append(`questions[${qIdx}][min_words]`, q.min_words);
             if (q.max_words) fd.append(`questions[${qIdx}][max_words]`, q.max_words);
             if (q.q_media) fd.append(`questions[${qIdx}][q_media_file]`, q.q_media);
+            if (q.q_audio) fd.append(`questions[${qIdx}][q_audio_file]`, q.q_audio);
+            if (q.q_image) fd.append(`questions[${qIdx}][q_image_file]`, q.q_image);
 
             q.options.forEach((opt, oIdx) => {
                 fd.append(`questions[${qIdx}][options][${oIdx}][option_text]`, opt.option_text);
@@ -369,43 +430,93 @@ onMounted(() => {
                     </div>
                 </template>
                 <template #content>
-                    <div class="px-4 space-y-8">
-                        <div v-if="form.passage_mode === 'none'" class="bg-slate-50 p-6 rounded-[2rem] text-center border-2 border-dashed border-slate-200">
-                            <i class="pi pi-ban text-3xl text-slate-300 mb-3 block"></i>
-                            <span class="text-sm font-black text-slate-500 uppercase tracking-widest">No Passage Linked to this Question</span>
+                    <div class="px-4 space-y-6">
+                        <!-- Mode Selector: Display Only (Cannot change mode in edit) -->
+                        <div class="flex items-center gap-4 bg-slate-100/50 p-4 rounded-2xl">
+                            <i :class="[form.passage_mode === 'none' ? 'pi pi-ban' : 'pi pi-book', 'text-xl text-slate-400']"></i>
+                            <div>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Passage Mode</span>
+                                <span class="text-sm font-black text-slate-700 uppercase tracking-wider">{{ form.passage_mode === 'none' ? 'No Passage Linked' : 'Integrated Context' }}</span>
+                            </div>
                         </div>
 
-                        <div v-if="form.passage_mode === 'existing' && form.passage_id" class="bg-white p-8 rounded-[2rem] shadow-sm space-y-8 animate-in zoom-in-95 duration-400">
-                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="flex flex-col">
-                                    <label class="text-xs font-black text-slate-500 mb-3 uppercase tracking-wide">Context Type</label>
-                                    <Select v-model="form.passage_type" 
-                                        :options="[{label: 'Dynamic Text', value: 'text'}, {label: 'Image / Diagram', value: 'image'}, {label: 'Audio Clip', value: 'audio'}, {label: 'Video Clip', value: 'video'}]"
-                                        optionLabel="label" optionValue="value" class="w-full rounded-2xl" />
+                        <!-- Integrated Passage Editor -->
+                        <div v-if="form.passage_mode !== 'none'" class="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-50 space-y-8 animate-in zoom-in-95 duration-400">
+                            
+                            <!-- Header Info -->
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                                <div class="md:col-span-8 flex flex-col">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Passage Title</label>
+                                    <InputText v-model="form.passage_title" placeholder="Descriptive title..." class="w-full rounded-2xl h-14 bg-slate-50/50 border-none px-6 font-bold text-slate-800" />
                                 </div>
-                                <div class="flex flex-col">
-                                    <label class="text-xs font-black text-slate-500 mb-3 uppercase tracking-wide">Internal Title</label>
-                                    <InputText v-model="form.passage_title" placeholder="Context identifier..." class="w-full rounded-2xl font-bold" />
+                                <div class="md:col-span-4 flex flex-col">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Primary Type</label>
+                                    <Select v-model="form.passage_type"
+                                        :options="[{ label: 'Text', value: 'text' }, { label: 'Image', value: 'image' }, { label: 'Audio', value: 'audio' }, { label: 'Video', value: 'video' }]"
+                                        optionLabel="label" optionValue="value" class="w-full rounded-2xl h-14 bg-slate-50/50 border-none px-4" />
                                 </div>
                             </div>
-                            <div v-if="form.passage_type === 'text'" class="flex flex-col">
-                                <label class="text-xs font-black text-slate-500 mb-3 uppercase tracking-wide">Text Content</label>
-                                <Textarea v-model="form.passage_content" rows="6" placeholder="Context content..." class="w-full rounded-[1.5rem] p-6 leading-relaxed" autoResize />
+
+                            <!-- Text Content: Rich Editor -->
+                            <div class="flex flex-col">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Textual Content (Optional)</label>
+                                <Editor v-model="form.passage_content" editorStyle="height: 300px" 
+                                    class="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50/50"
+                                    placeholder="Update formatted text content here..." />
                             </div>
-                            <div v-else class="flex flex-col">
-                                <label class="text-xs font-black text-slate-500 mb-4 uppercase tracking-wide">Context Asset</label>
-                                <div class="flex gap-6 items-start">
-                                    <div @click="pFileInput.click()" class="w-40 h-40 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400 transition-all">
-                                        <input type="file" ref="pFileInput" class="hidden" @change="handlePFileChange" accept="image/*,audio/*,video/*" />
-                                        <i class="pi pi-cloud-upload text-3xl text-slate-300 mb-2"></i>
-                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Update File</span>
+
+                            <!-- Media Attachments -->
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Media Assets</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    
+                                    <!-- Image Part -->
+                                    <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all" 
+                                         :class="form.p_image_preview ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
+                                        <div v-if="!form.p_image_preview" @click="$refs.pImgInput.click()" class="flex items-center gap-4 cursor-pointer py-2">
+                                            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                                                <i class="pi pi-image text-xl"></i>
+                                            </div>
+                                            <span class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach Image</span>
+                                        </div>
+                                        <div v-else class="flex items-center justify-between">
+                                            <div class="flex items-center gap-4">
+                                                <img :src="form.p_image_preview.url" class="w-16 h-16 rounded-xl object-cover shadow-sm" />
+                                                <span class="text-xs font-black text-emerald-600 uppercase tracking-widest">Image Linked</span>
+                                            </div>
+                                            <Button icon="pi pi-trash" text severity="danger" size="small" @click="form.p_image = null; form.p_image_preview = null" />
+                                        </div>
+                                        <input type="file" ref="pImgInput" class="hidden" @change="handlePImageChange" accept="image/*" />
                                     </div>
-                                    <div v-if="pMediaPreview" class="flex-grow bg-slate-50 p-4 rounded-[2rem] flex items-center justify-center min-h-[10rem]">
-                                        <img v-if="form.passage_type === 'image' || pMediaPreview.type?.startsWith('image/')" :src="pMediaPreview.url" class="rounded-2xl max-h-32 shadow-sm" />
-                                        <audio v-else-if="form.passage_type === 'audio' || pMediaPreview.type?.startsWith('audio/')" :src="pMediaPreview.url" controls class="w-full"></audio>
-                                        <video v-else-if="form.passage_type === 'video' || pMediaPreview.type?.startsWith('video/')" :src="pMediaPreview.url" controls class="rounded-2xl max-h-32"></video>
+
+                                    <!-- Audio Part -->
+                                    <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all"
+                                         :class="form.p_audio_preview ? 'border-indigo-200 bg-indigo-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
+                                        <div v-if="!form.p_audio_preview" @click="$refs.pAudInput.click()" class="flex items-center gap-4 cursor-pointer py-2">
+                                            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                                                <i class="pi pi-volume-up text-xl"></i>
+                                            </div>
+                                            <span class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach Audio</span>
+                                        </div>
+                                        <div v-else class="flex flex-col gap-3">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-xs font-black text-indigo-600 uppercase tracking-widest">Audio Linked</span>
+                                                <Button icon="pi pi-trash" text severity="danger" size="small" @click="form.p_audio = null; form.p_audio_preview = null" />
+                                            </div>
+                                            <audio :src="form.p_audio_preview.url" controls class="h-8 w-full"></audio>
+                                        </div>
+                                        <input type="file" ref="pAudInput" class="hidden" @change="handlePAudioChange" accept="audio/*" />
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Misc -->
+                            <div class="pt-4 flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity">
+                                <i class="pi pi-info-circle text-slate-400"></i>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Need to attach other files?</p>
+                                <button type="button" @click="$refs.pFileInput.click()" class="text-[9px] font-black text-indigo-500 uppercase tracking-widest underline decoration-dotted">Click here</button>
+                                <input type="file" ref="pFileInput" class="hidden" @change="handlePFileChange" accept="video/*" />
+                                <span v-if="pMediaPreview" class="text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded ml-auto">FILE ATTACHED</span>
                             </div>
                         </div>
                     </div>
@@ -467,76 +578,147 @@ onMounted(() => {
                                 </div>
                             </div>
 
-                            <!-- Text Mode -->
-                            <Textarea v-if="q.content_mode === 'text'"
-                                v-model="q.content" rows="2"
-                                placeholder="Type your question here..."
-                                class="w-full rounded-[1.5rem] bg-slate-50/50 border-none p-6 font-bold text-lg" autoResize />
+                            <!-- Text Mode: Rich Editor -->
+                            <Editor v-if="q.content_mode === 'text'" v-model="q.content" editorStyle="height: 120px" 
+                                class="rounded-[1.5rem] overflow-hidden border border-slate-100 bg-slate-50/50"
+                                placeholder="Type your formatted question here..." />
 
-                            <!-- Media Mode -->
+                            <!-- Media Mode: Multiple Files Support -->
                             <div v-else class="animate-in zoom-in-95 duration-300">
-                                <div class="flex gap-6 items-start">
-                                    <div @click="$refs[`qFile_${qIdx}`][0].click()"
-                                        class="w-44 h-44 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all group"
-                                        :class="q.q_media_preview ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50'">
-                                        <input type="file" :ref="`qFile_${qIdx}`" class="hidden"
-                                            @change="(e) => handleQFileChange(e, qIdx)"
-                                            accept="image/*,audio/*,video/*" />
-                                        <i v-if="!q.q_media_preview" class="pi pi-cloud-upload text-3xl text-slate-300 group-hover:text-indigo-400 mb-2"></i>
-                                        <i v-else class="pi pi-check-circle text-3xl text-emerald-500 mb-2"></i>
-                                        <span class="text-[10px] font-black uppercase tracking-widest"
-                                            :class="q.q_media_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-indigo-500'">
-                                            {{ q.q_media_preview ? 'File Selected' : 'Upload File' }}
-                                        </span>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Image Upload -->
+                                    <div class="flex flex-col gap-3">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Image Attachment</label>
+                                        <div class="flex gap-4 items-center">
+                                            <div @click="$refs[`qImage_${qIdx}`][0].click()"
+                                                class="w-32 h-32 border-2 border-dashed rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer transition-all group shrink-0"
+                                                :class="q.q_image_preview ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50'">
+                                                <input type="file" :ref="`qImage_${qIdx}`" class="hidden"
+                                                    @change="(e) => handleQImageChange(e, qIdx)"
+                                                    accept="image/*" />
+                                                <i v-if="!q.q_image_preview"
+                                                    class="pi pi-image text-2xl text-slate-300 group-hover:text-indigo-400 mb-1"></i>
+                                                <i v-else class="pi pi-check-circle text-2xl text-emerald-500 mb-1"></i>
+                                                <span class="text-[8px] font-black uppercase tracking-widest text-center px-2"
+                                                    :class="q.q_image_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-indigo-500'">
+                                                    {{ q.q_image_preview ? 'Image Attached' : 'Select Image' }}
+                                                </span>
+                                            </div>
+                                            <div v-if="q.q_image_preview" class="relative group/preview">
+                                                <img :src="q.q_image_preview.url" class="w-32 h-32 rounded-[1.5rem] object-cover shadow-sm border border-slate-100" />
+                                                <button @click="q.q_image = null; q.q_image_preview = null" class="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover/preview:opacity-100 transition-all">
+                                                    <i class="pi pi-times text-[10px]"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div v-if="q.q_media_preview" class="flex-grow bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center min-h-[11rem] gap-3">
-                                        <img v-if="q.q_media_preview.url?.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) || q.q_media_preview.type?.startsWith('image/')" :src="q.q_media_preview.url" class="max-h-36 rounded-2xl shadow-sm object-contain" />
-                                        <audio v-else-if="q.q_media_preview.url?.match(/\.(mp3|wav|ogg|m4a)$/i) || q.q_media_preview.type?.startsWith('audio/')" :src="q.q_media_preview.url" controls class="w-full"></audio>
-                                        <video v-else-if="q.q_media_preview.url?.match(/\.(mp4|webm)$/i) || q.q_media_preview.type?.startsWith('video/')" :src="q.q_media_preview.url" controls class="max-h-36 rounded-2xl shadow-sm"></video>
-                                        <button type="button" @click="q.q_media = null; q.q_media_preview = null" class="text-[9px] font-black text-rose-400 hover:text-rose-600 uppercase tracking-wide">
-                                            <i class="pi pi-times mr-1"></i>Remove
-                                        </button>
+
+                                    <!-- Audio Upload -->
+                                    <div class="flex flex-col gap-3">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Audio Attachment</label>
+                                        <div class="flex flex-col gap-4">
+                                            <div @click="$refs[`qAudio_${qIdx}`][0].click()"
+                                                class="w-full h-20 border-2 border-dashed rounded-[1.5rem] flex items-center justify-center gap-4 cursor-pointer transition-all group"
+                                                :class="q.q_audio_preview ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50'">
+                                                <input type="file" :ref="`qAudio_${qIdx}`" class="hidden"
+                                                    @change="(e) => handleQAudioChange(e, qIdx)"
+                                                    accept="audio/*" />
+                                                <i v-if="!q.q_audio_preview"
+                                                    class="pi pi-volume-up text-2xl text-slate-300 group-hover:text-indigo-400"></i>
+                                                <i v-else class="pi pi-check-circle text-2xl text-emerald-500"></i>
+                                                <span class="text-[9px] font-black uppercase tracking-widest"
+                                                    :class="q.q_audio_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-indigo-500'">
+                                                    {{ q.q_audio_preview ? 'Audio Clip Added' : 'Select Audio File' }}
+                                                </span>
+                                            </div>
+                                            <div v-if="q.q_audio_preview" class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                                <audio :src="q.q_audio_preview.url" controls class="h-8 grow"></audio>
+                                                <button @click="q.q_audio = null; q.q_audio_preview = null" class="w-8 h-8 text-rose-500 hover:bg-rose-50 rounded-xl transition-all flex items-center justify-center">
+                                                    <i class="pi pi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Other Media (Fallback) -->
+                                    <div class="md:col-span-2 pt-4 border-t border-slate-50">
+                                         <div class="flex items-center gap-4">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Other Media (Video/Misc)</label>
+                                            <div class="grow h-[1px] bg-slate-50"></div>
+                                            <Button icon="pi pi-plus" label="Add Video/Other" text class="text-[9px] font-black" @click="$refs[`qFile_${qIdx}`][0].click()" />
+                                            <input type="file" :ref="`qFile_${qIdx}`" class="hidden" @change="(e) => handleQFileChange(e, qIdx)" accept="video/*" />
+                                         </div>
+                                         <div v-if="q.q_media_preview" class="mt-4 p-4 bg-slate-50 rounded-2xl flex items-center gap-4">
+                                            <video v-if="q.q_media_preview.url?.match(/\.(mp4|webm)$/i) || q.q_media_preview.type?.startsWith('video/')" :src="q.q_media_preview.url" controls class="max-h-24 rounded-xl"></video>
+                                            <span v-else class="text-xs font-bold text-slate-600">File: {{ q.q_media_preview.type }}</span>
+                                            <button @click="q.q_media = null; q.q_media_preview = null" class="text-rose-500 font-black text-[10px] uppercase">Remove</button>
+                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                             <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)" class="space-y-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                             <!-- Options Section: Enlarged -->
+                             <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)" class="lg:col-span-8 space-y-6">
                                 <div class="flex items-center justify-between">
-                                    <label class="text-xs font-black text-indigo-500 ml-2 uppercase tracking-wide">Options</label>
+                                    <label class="text-xs font-black text-indigo-500 ml-2 uppercase tracking-wide">Options Matrix</label>
                                     <Button v-if="['mcq', 'short_answer'].includes(q.type)" icon="pi pi-plus" label="Add Option" text rounded @click="addOption(qIdx)" class="text-[10px] font-black text-emerald-600" />
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-4">
                                     <div v-for="(opt, oIdx) in q.options" :key="oIdx" 
-                                        class="flex items-center gap-4 p-3 rounded-2xl border-2 transition-all"
-                                        :class="opt.is_correct ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-50'">
+                                        class="flex items-center gap-6 p-5 rounded-[2rem] border-2 transition-all bg-white"
+                                        :class="opt.is_correct ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-50 shadow-sm'">
                                         <button v-if="q.type !== 'short_answer'" type="button" @click="setCorrect(qIdx, oIdx)" 
-                                            class="w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all shrink-0"
+                                            class="w-12 h-12 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0"
                                             :class="opt.is_correct ? 'bg-emerald-500 border-emerald-600 text-white shadow-md' : 'bg-white border-slate-200 text-transparent'">
-                                            <i class="pi pi-check text-[10px] font-black"></i>
+                                            <i class="pi pi-check text-sm font-black"></i>
                                         </button>
-                                        <InputText v-model="opt.option_text" :disabled="q.type === 'true_false'" class="w-full border-none bg-transparent font-bold text-slate-800" />
-                                        <button v-if="['mcq', 'short_answer'].includes(q.type) && q.options.length > 1" @click="removeOption(qIdx, oIdx)" class="text-slate-300 hover:text-rose-500 p-2">
-                                            <i class="pi pi-trash text-xs"></i>
+                                        <InputText v-model="opt.option_text" :disabled="q.type === 'true_false'" class="w-full border-none bg-transparent font-black text-slate-800 text-lg py-2 focus:ring-0" />
+                                        <button v-if="['mcq', 'short_answer'].includes(q.type) && q.options.length > 1" @click="removeOption(qIdx, oIdx)" class="w-10 h-10 rounded-xl hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center shrink-0">
+                                            <i class="pi pi-trash"></i>
                                         </button>
                                     </div>
                                 </div>
                             </div>
-
-                             <div class="flex flex-col space-y-6 bg-slate-50/50 p-6 rounded-[2rem]">
-                                <label class="text-xs font-black text-slate-500 ml-2 uppercase tracking-wide">Scoring</label>
-                                <div class="grid grid-cols-2 gap-6 mt-4">
+ 
+                             <!-- Parameters: Sidebar -->
+                             <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'" class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
+                                <div class="flex items-center gap-3">
+                                    <i class="pi pi-calculator text-indigo-400"></i>
+                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring & Parameters</label>
+                                </div>
+                                <div class="grid grid-cols-1 gap-6 mt-4">
                                     <div class="flex flex-col">
-                                        <label class="text-[9px] font-black text-slate-400 mb-2 ml-1">Points</label>
-                                        <InputNumber v-model="q.points" :min="1" class="w-full" showButtons />
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort Order</label>
+                                        <InputNumber v-model="q.sort_order" :min="0" showButtons
+                                            buttonLayout="horizontal"
+                                            class="w-full h-10"
+                                            inputClass="text-center font-black text-slate-600 bg-slate-50/50 border-none rounded-xl"
+                                            incrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-r-xl"
+                                            decrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-l-xl"
+                                            incrementButtonIcon="pi pi-plus text-[8px]"
+                                            decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-                                    <div v-if="q.type === 'writing'" class="flex gap-2">
-                                         <div class="grow">
-                                            <InputNumber v-model="q.min_words" placeholder="Min" class="w-full" />
+                                    <div class="flex flex-col">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
+                                        <InputNumber v-model="q.points" :min="1" showButtons
+                                            buttonLayout="horizontal"
+                                            class="w-full h-10"
+                                            inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-none rounded-xl"
+                                            incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-xl"
+                                            decrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-l-xl"
+                                            incrementButtonIcon="pi pi-plus text-[8px]"
+                                            decrementButtonIcon="pi pi-minus text-[8px]" />
+                                    </div>
+                                    <div v-if="q.type === 'writing'" class="space-y-4 pt-4 border-t border-slate-200/50">
+                                         <div class="flex flex-col">
+                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Min Words</label>
+                                            <InputNumber v-model="q.min_words" placeholder="0" class="w-full" />
                                         </div>
-                                         <div class="grow">
-                                            <InputNumber v-model="q.max_words" placeholder="Max" class="w-full" />
+                                         <div class="flex flex-col">
+                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Max Words</label>
+                                            <InputNumber v-model="q.max_words" placeholder="200" class="w-full" />
                                         </div>
                                     </div>
                                 </div>

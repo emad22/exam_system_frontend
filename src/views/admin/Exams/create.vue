@@ -582,49 +582,46 @@ const saveExam = async () => {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 relative z-10 pb-12">
+                <div class="max-w-2xl mx-auto space-y-4 relative z-10 pb-12">
                     <div v-for="skill in availableSkills" :key="skill.id"
-                        @click="toggleSkill(skill.id)"
-                        :class="isSkillSelected(skill.id)
-                            ? 'bg-white border-slate-900 shadow-sm ring-1 ring-slate-900/5'
-                            : 'bg-slate-50/50 border-slate-100 hover:border-slate-300 hover:bg-white'"
-                        class="group p-8 rounded-[2rem] border transition-all duration-500 cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[180px]">
+                        class="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-slate-200 transition-all shadow-sm group">
                         
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center space-x-5">
-                                <div :class="isSkillSelected(skill.id) ? 'bg-slate-900 text-white' : 'bg-white text-slate-400 border border-slate-100'"
-                                    class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-colors duration-500">
-                                    {{ skill.icon || '🧠' }}
-                                </div>
-                                <div class="space-y-1">
-                                    <h4 class="text-sm font-bold text-slate-800 tracking-tight">{{ skill.name }}</h4>
-                                    <p class="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{{ skill.short_code || 'MODALITY' }}</p>
-                                </div>
+                        <div class="flex items-center space-x-6">
+                            <!-- Custom Checkbox -->
+                            <div @click="toggleSkill(skill.id)" 
+                                class="w-8 h-8 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all duration-300"
+                                :class="isSkillSelected(skill.id) ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 group-hover:border-slate-300'">
+                                <i v-if="isSkillSelected(skill.id)" class="pi pi-check text-[10px] font-black"></i>
                             </div>
 
-                            <div v-if="isSkillSelected(skill.id)" class="animate-in zoom-in duration-300">
-                                <i class="pi pi-check-circle text-slate-900 text-lg"></i>
+                            <div @click="toggleSkill(skill.id)" class="cursor-pointer space-y-0.5">
+                                <h4 class="text-sm font-black text-slate-800 tracking-tight uppercase">{{ skill.name }}</h4>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{{ skill.short_code || 'MODALITY' }}</p>
                             </div>
                         </div>
 
-                        <!-- Minimal Duration Control -->
+                        <!-- Compact Duration Control -->
                         <div v-if="isSkillSelected(skill.id)" 
-                            class="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between animate-in fade-in slide-in-from-top-2"
-                            @click.stop>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time (Min)</span>
-                            <div class="flex items-center space-x-4 bg-slate-50 px-4 py-2 rounded-xl">
-                                <button @click="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))" class="text-slate-400 hover:text-slate-900 transition-colors">
-                                    <i class="pi pi-minus text-[8px]"></i>
-                                </button>
-                                <span class="text-xs font-black text-slate-900 w-8 text-center">{{ getSkillDuration(skill.id) }}</span>
-                                <button @click="setSkillDuration(skill.id, Math.min(120, getSkillDuration(skill.id) + 5))" class="text-slate-400 hover:text-slate-900 transition-colors">
-                                    <i class="pi pi-plus text-[8px]"></i>
-                                </button>
+                            class="flex items-center space-x-6 bg-slate-50/50 px-6 py-3 rounded-2xl border border-slate-100 animate-in slide-in-from-right-4 duration-500">
+                            <div class="flex flex-col">
+                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Time Limit</span>
+                                <div class="flex items-center space-x-4">
+                                    <button @click.stop="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))" 
+                                        class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg transition-all">
+                                        <i class="pi pi-minus text-[8px]"></i>
+                                    </button>
+                                    <span class="text-xs font-black text-slate-900 w-8 text-center tabular-nums">{{ getSkillDuration(skill.id) }}</span>
+                                    <button @click.stop="setSkillDuration(skill.id, Math.min(120, getSkillDuration(skill.id) + 5))" 
+                                        class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg transition-all">
+                                        <i class="pi pi-plus text-[8px]"></i>
+                                    </button>
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">min</span>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div v-else class="mt-6 text-[9px] font-bold text-slate-300 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                            Select to activate
+
+                        <div v-else class="pr-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Click to Synchronize</span>
                         </div>
                     </div>
                 </div>

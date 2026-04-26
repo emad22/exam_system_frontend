@@ -11,13 +11,14 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@primevue/themes": "^4.2.5",
     "@tailwindcss/vite": "^4.2.2",
     "axios": "^1.14.0",
     "chart.js": "^4.5.1",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.2.5",
-    "@primevue/themes": "^4.2.5",
+    "quill": "^2.0.3",
     "vue": "^3.5.31",
     "vue-router": "^5.0.4"
   },

@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -295,10 +295,17 @@ const downloadTemplate = async () => {
                                     </div>
                                 </div>
 
-                                <div class="bg-slate-50 border border-slate-100 rounded-3xl p-6 max-h-[350px] overflow-y-auto">
-                                    <Message v-for="(err, idx) in uploadErrors" :key="idx" severity="error" :closable="false" class="mb-3 w-full justify-start text-sm font-bold">
-                                        <span class="mr-2 font-black text-black">Row {{ idx + 1 }}:</span> {{ err }}
-                                    </Message>
+                                <div class="bg-slate-50 border border-slate-100 rounded-3xl p-6 max-h-[450px] overflow-y-auto">
+                                    <div v-for="(err, key) in uploadErrors" :key="key" class="mb-4 last:mb-0">
+                                        <div v-if="Array.isArray(err)" class="space-y-2">
+                                            <Message v-for="(msg, mIdx) in err" :key="mIdx" severity="error" :closable="false" class="w-full justify-start text-sm font-bold">
+                                                <span class="mr-2 font-black text-black uppercase tracking-tighter">{{ key }}:</span> {{ msg }}
+                                            </Message>
+                                        </div>
+                                        <Message v-else severity="error" :closable="false" class="w-full justify-start text-sm font-bold">
+                                            <span class="mr-2 font-black text-black uppercase tracking-tighter">{{ isNaN(key) ? key : 'Row ' + (parseInt(key) + 1) }}:</span> {{ err }}
+                                        </Message>
+                                    </div>
                                 </div>
 
                                 <div class="text-center pt-4">

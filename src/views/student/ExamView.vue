@@ -135,10 +135,14 @@ const fetchNextBatch = async () => {
                 recorded_file: null
             }));
         } else {
-            errorMsg.value = "Module content empty.";
+            errorMsg.value = res.data.error || "Module content empty.";
         }
     } catch (err) {
-        errorMsg.value = err.response?.data?.error || "Assessment segment unavailable.";
+        if (err.response?.status === 404) {
+            errorMsg.value = err.response?.data?.error || "No more questions available for this level.";
+        } else {
+            errorMsg.value = err.response?.data?.error || "Assessment segment unavailable.";
+        }
     } finally {
         isLoading.value = false;
         // Reset interactive states for the new batch
@@ -219,6 +223,15 @@ const currentQ = computed(() => questions.value[currentIndex.value] || null);
 const displayNumber = computed(() => globalOffset.value + currentIndex.value + 1);
 const wordCount = computed(() => (answers.value[currentIndex.value]?.text_answer || '').trim().split(/\s+/).filter(w => w).length);
 
+const resolveUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    // Fallback: Use the base URL from the API service if the path is relative
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+    const storageBase = baseUrl.replace('/api', '/storage');
+    return `${storageBase}/${path.replace('storage/', '')}`;
+};
+
 const getSkillIcon = (name) => {
     name = name?.toLowerCase() || '';
     if (name.includes('listening')) return '🎧';
@@ -230,7 +243,7 @@ const getSkillIcon = (name) => {
 
 // Auto-play media when question changes
 watch(currentQ, (newQ) => {
-    const mediaUrl = newQ?.passage?.media_url || newQ?.media_url;
+    const mediaUrl = newQ?.passage?.media_url || newQ?.audio_url || newQ?.media_url;
     if (mediaUrl) {
         nextTick(() => {
             if (audioRef.value) {
@@ -354,36 +367,69 @@ onMounted(fetchData);
                     </div>
 
                     <div class="flex-grow prose prose-slate max-w-none">
-                        <!-- Passage Handling -->
-                        <div v-if="currentQ.passage" class="space-y-8">
-                            <h3 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">{{ currentQ.passage.title }}</h3>
+                        <!-- 1. Passage Content (Stimulus) -->
+                        <div v-if="currentQ.passage" class="space-y-8 mb-12 pb-12 border-b border-slate-100 border-dashed">
+                            <h3 v-if="currentQ.passage.title" class="text-2xl font-black text-slate-900 tracking-tight leading-tight">{{ currentQ.passage.title }}</h3>
                             
-                            <!-- Passage Media (Audio/Video) -->
-                            <div v-if="currentQ.passage.media_url" class="bg-slate-50 p-6 border border-slate-200 rounded space-y-4">
-                                <audio ref="audioRef" :src="currentQ.passage.media_url" controls @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="hasListened = true" class="w-full h-10"></audio>
-                                <p class="text-center text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Audio Resource Stream</p>
+                            <!-- Passage Image -->
+                            <div v-if="currentQ.passage.image_url || currentQ.passage.image_path" class="w-full animate-in zoom-in-95 duration-500 mb-8">
+                                <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)" 
+                                    class="w-full h-auto rounded-3xl shadow-xl border border-slate-100" alt="Passage Resource" />
                             </div>
 
-                            <p class="text-xs text-slate-400 font-bold italic leading-relaxed">
-                                {{ currentQ.instructions || 'Review the stimulus carefully and provide your academic response.' }}
-                            </p>
+                            <!-- Passage Media (Audio/Video/General) -->
+                            <div v-if="currentQ.passage.audio_url || currentQ.passage.audio_path || currentQ.passage.media_url || currentQ.passage.media_path" 
+                                class="bg-slate-50 p-8 border border-slate-200 rounded-3xl space-y-6 shadow-inner mb-8">
+                                
+                                <div class="flex items-center gap-4 mb-2">
+                                    <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-500">
+                                        <i class="pi pi-volume-up"></i>
+                                    </div>
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passage Resource Stream</span>
+                                </div>
 
-                            <div v-if="currentQ.passage.content" class="text-lg text-slate-700 leading-[1.8] font-serif text-justify whitespace-pre-wrap">{{ currentQ.passage.content }}</div>
+                                <audio v-if="currentQ.passage.audio_url || currentQ.passage.audio_path" 
+                                    ref="audioRef" :src="resolveUrl(currentQ.passage.audio_url || currentQ.passage.audio_path)" 
+                                    controls @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="hasListened = true" 
+                                    class="w-full h-12"></audio>
+                                
+                                <video v-if="(currentQ.passage.media_url || currentQ.passage.media_path) && (currentQ.passage.media_url || currentQ.passage.media_path).includes('.mp4')" 
+                                    :src="resolveUrl(currentQ.passage.media_url || currentQ.passage.media_path)" 
+                                    controls class="w-full rounded-2xl shadow-2xl"></video>
+                            </div>
+
+                            <div v-if="currentQ.passage.content" 
+                                class="text-xl text-slate-700 leading-[2] font-serif text-justify ql-content rtl-support" 
+                                v-html="currentQ.passage.content" dir="auto">
+                            </div>
                         </div>
 
-                        <!-- Standalone Media Handling -->
-                        <div v-else-if="currentQ.media_url" class="flex flex-col items-center justify-center py-10 space-y-8 h-full bg-slate-50 rounded border border-slate-200 border-dashed">
-                            <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center text-slate-400 border border-slate-200 shadow-sm">
-                                <i :class="currentQ.media_url.includes('.mp4') ? 'pi pi-video' : 'pi pi-volume-up'" class="text-3xl"></i>
+                        <!-- 2. Individual Question Media (Always check) -->
+                        <div v-if="currentQ.image_url || currentQ.audio_url || currentQ.media_url || currentQ.image_path || currentQ.audio_path || currentQ.media_path" 
+                            class="flex flex-col items-center justify-center py-12 space-y-8 h-full bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                            
+                            <!-- Question Specific Image -->
+                            <div v-if="currentQ.image_url || currentQ.image_path" class="w-full max-w-xl px-6 animate-in zoom-in-95 duration-500">
+                                <img :src="resolveUrl(currentQ.image_url || currentQ.image_path)" class="w-full h-auto rounded-3xl shadow-2xl border border-white" alt="Question Resource" />
                             </div>
-                            <div class="w-full max-w-sm bg-white p-6 border border-slate-200 shadow-md rounded space-y-4">
-                                <audio ref="audioRef" :src="currentQ.media_url" controls @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="hasListened = true" class="w-full h-10"></audio>
-                                <p class="text-center text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Institutional Audio Content</p>
+
+                            <!-- Question Specific Audio -->
+                            <div v-if="currentQ.audio_url || currentQ.audio_path" class="w-full max-w-md bg-white p-8 border border-slate-100 shadow-xl rounded-[2rem] space-y-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i class="pi pi-microphone text-indigo-500"></i>
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Question Audio Clip</span>
+                                </div>
+                                <audio ref="audioRef" :src="resolveUrl(currentQ.audio_url || currentQ.audio_path)" controls @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="hasListened = true" class="w-full h-12"></audio>
+                            </div>
+
+                            <!-- Question Specific Video -->
+                            <div v-if="(currentQ.media_url || currentQ.media_path) && (currentQ.media_url || currentQ.media_path).includes('.mp4')" class="w-full max-w-xl px-6">
+                                <video :src="resolveUrl(currentQ.media_url || currentQ.media_path)" controls class="w-full rounded-3xl shadow-2xl"></video>
                             </div>
                         </div>
 
-                        <!-- Standalone Placeholder -->
-                        <div v-else class="flex flex-col items-center justify-center h-full space-y-6 py-20 bg-slate-50 border border-dashed border-slate-200 rounded">
+                        <!-- 3. Placeholder (Only if NO passage AND NO media) -->
+                        <div v-else-if="!currentQ.passage" class="flex flex-col items-center justify-center h-full space-y-6 py-20 bg-slate-50 border border-dashed border-slate-200 rounded">
                             <i class="pi pi-shield text-4xl text-slate-200"></i>
                             <div class="text-center space-y-2">
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Direct Engagement Protocol</p>
@@ -401,28 +447,46 @@ onMounted(fetchData);
                     </div>
 
                     <div class="flex-grow overflow-y-auto custom-scrollbar pr-4 space-y-8">
-                        <h3 class="text-xl font-bold text-slate-900 leading-tight">
-                            {{ currentQ.content || 'Academic Prompt Task' }}
+                        <div v-if="currentQ.content" 
+                            class="text-2xl font-black text-slate-900 leading-tight ql-content rtl-support" 
+                            v-html="currentQ.content" dir="auto">
+                        </div>
+                        <h3 v-else class="text-xl font-bold text-slate-900 leading-tight">
+                            Academic Prompt Task
                         </h3>
-                        <p class="text-[11px] font-bold text-slate-500 italic border-l-2 border-brand-primary/20 pl-4">
-                            {{ currentQ.instructions || 'Carefully review the provided material and deliver your institutional response accordingly.' }}
-                        </p>
+                        <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
+                            <div class="flex items-center gap-2 mb-1.5">
+                                <i class="pi pi-question-circle text-brand-primary text-[10px]"></i>
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Task Instruction</span>
+                            </div>
+                            <p class="text-[11px] font-bold text-slate-600 leading-relaxed" dir="auto">
+                                {{ currentQ.instructions || 'Carefully review the provided material and deliver your institutional response accordingly.' }}
+                            </p>
+                        </div>
 
                         <div class="pt-4 space-y-4">
                             <!-- MCQ -->
                             <div v-if="currentQ.type === 'mcq' || currentQ.type === 'true_false'" class="space-y-2">
-                                <button v-for="opt in currentQ.options" :key="opt.id"
+                                <button v-for="(opt, oIdx) in currentQ.options" :key="opt.id"
                                     @click="answers[currentIndex].option_id = opt.id"
                                     :disabled="questionSubmitted"
-                                    class="w-full text-left p-4 rounded border transition-all flex items-start gap-4 group"
+                                    class="w-full p-6 rounded-[1.5rem] border-2 transition-all flex flex-row-reverse items-center gap-5 group"
                                     :class="answers[currentIndex].option_id === opt.id 
-                                        ? 'border-brand-primary bg-brand-primary/5' 
-                                        : 'border-slate-200 hover:border-slate-400 bg-white'">
-                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all"
-                                        :class="answers[currentIndex].option_id === opt.id ? 'bg-brand-primary border-brand-primary' : 'border-slate-300'">
-                                        <div v-if="answers[currentIndex].option_id === opt.id" class="w-2 h-2 bg-white rounded-full"></div>
+                                        ? 'border-brand-primary bg-indigo-50/30 ring-4 ring-indigo-500/5' 
+                                        : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50 bg-white shadow-sm'">
+                                    
+                                    <!-- Premium Radio Indicator (Now on the Right for RTL) -->
+                                    <div class="w-10 h-10 rounded-xl border-2 flex items-center justify-center shrink-0 transition-all shadow-sm"
+                                        :class="answers[currentIndex].option_id === opt.id 
+                                            ? 'bg-brand-primary border-brand-primary scale-110 shadow-lg shadow-indigo-200' 
+                                            : 'bg-slate-50 border-slate-100 group-hover:border-slate-200'">
+                                        <span v-if="answers[currentIndex].option_id !== opt.id" class="text-[10px] font-black text-slate-300">{{ String.fromCharCode(65 + oIdx) }}</span>
+                                        <i v-else class="pi pi-check text-xs text-white"></i>
                                     </div>
-                                    <span class="font-medium text-slate-700 leading-snug">{{ opt.option_text }}</span>
+
+                                    <span class="font-black text-slate-700 leading-snug text-lg grow text-right" dir="auto">{{ opt.option_text }}</span>
+
+                                    <i v-if="answers[currentIndex].option_id === opt.id" class="pi pi-check-circle text-brand-primary animate-in zoom-in-50"></i>
                                 </button>
                             </div>
 

@@ -13,6 +13,7 @@ const stats = ref({
     students_count: 0,
     exams_count: 0,
     attempts_count: 0,
+    live_students_count: 0,
     recent_attempts: []
 });
 const loading = ref(true);
@@ -118,6 +119,25 @@ const getStatusSeverity = (status) => {
                      <p class="mt-8 text-[10px] font-black text-slate-500 uppercase tracking-widest border-t border-slate-50 pt-6 flex items-center">
                          <i class="pi pi-spin pi-spinner mr-2 opacity-50"></i> Total Evaluated Sessions
                      </p>
+                </div>
+            </div>
+
+            <!-- Stat Card 4 (Live) -->
+            <div class="bg-emerald-50/50 p-10 rounded-[2.5rem] border border-emerald-100 shadow-sm group hover:shadow-xl transition-all duration-500 relative overflow-hidden md:col-span-3">
+                <div class="absolute -right-4 -top-4 w-32 h-32 bg-emerald-500/5 rounded-full group-hover:scale-150 transition-all duration-700 opacity-50"></div>
+                <div class="relative z-10 flex items-center justify-between">
+                     <div>
+                         <div class="flex items-center gap-3 mb-4">
+                             <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+                             <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Live telemetry active</span>
+                         </div>
+                         <h3 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-1 italic">Real-time engagement</h3>
+                         <div class="text-7xl font-black text-emerald-600 tracking-tighter">{{ stats.live_students_count }}</div>
+                         <p class="mt-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Students currently performing assessments</p>
+                     </div>
+                     <div class="hidden md:block">
+                         <i class="pi pi-bolt text-7xl text-emerald-100 group-hover:text-emerald-200 transition-colors"></i>
+                     </div>
                 </div>
             </div>
         </div>
