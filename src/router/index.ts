@@ -257,6 +257,18 @@ const adminRoutes = [
     name: 'admin.partners.show',
     component: AdminPartnerShow
   },
+  {
+    path: '/admin/certificates',
+    name: 'admin.certificates',
+    component: () => import('@/views/admin/Certificates/index.vue'),
+    meta: { title: 'Issued Certificates' }
+  },
+  {
+    path: '/admin/certificates/templates',
+    name: 'admin.certificates.templates',
+    component: () => import('@/views/admin/Certificates/Templates.vue'),
+    meta: { title: 'Certificate Templates' }
+  },
 ];
 
 // Map Admin routes to Teacher routes
@@ -289,6 +301,12 @@ const routes = [
     component: ParentPortal
   },
   {
+    path: '/verify-certificate/:code',
+    name: 'certificate.verify',
+    component: () => import('@/views/PublicCertificateVerify.vue'),
+    meta: { title: 'Certificate Verification' }
+  },
+  {
     path: '/dashboard',
     name: 'dashboard',
     component: DashboardView,
@@ -319,7 +337,8 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const publicPages = ['/login', '/register'];
-  const authRequired = !publicPages.includes(to.path);
+  const isPublicVerification = to.path.startsWith('/verify-certificate/');
+  const authRequired = !publicPages.includes(to.path) && !isPublicVerification;
   const token = localStorage.getItem('token');
 
   if (authRequired && !token) {

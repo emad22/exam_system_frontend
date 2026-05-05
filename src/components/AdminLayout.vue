@@ -18,6 +18,7 @@ const navigation = [
     { name: 'Levels', href: '/admin/levels', icon: 'pi pi-sort-amount-up' },
     { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
+    { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-award' },
     { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
     { name: 'Partner', href: '/admin/partners', icon: 'pi pi-briefcase' },
     { name: 'Skill Packages', href: '/admin/packages', icon: 'pi pi-box' },
@@ -122,7 +123,10 @@ const vClickOutside = {
                 binding.value(event);
             }
         };
-        document.addEventListener('click', el.clickOutsideEvent);
+        // Use a timeout to avoid catching the same click that triggered the mounting
+        setTimeout(() => {
+            document.addEventListener('click', el.clickOutsideEvent);
+        }, 0);
     },
     unmounted(el) {
         document.removeEventListener('click', el.clickOutsideEvent);
@@ -227,7 +231,7 @@ const vClickOutside = {
                 <div class="flex items-center space-x-6">
                     <div class="hidden md:flex space-x-3">
                         <div class="relative">
-                            <Button @click="toggleNotifications" icon="pi pi-bell" :severity="showNotifications ? 'primary' : 'secondary'" rounded text aria-label="Notifications" />
+                            <Button @click.stop="toggleNotifications" icon="pi pi-bell" :severity="showNotifications ? 'primary' : 'secondary'" rounded text aria-label="Notifications" />
                             <span v-if="notifications.length > 0" class="absolute top-1 right-1 w-4 h-4 bg-brand-accent text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
                                 {{ notifications.length }}
                             </span>

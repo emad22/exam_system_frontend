@@ -3,6 +3,10 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import Tag from 'primevue/tag';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Password from 'primevue/password';
 
 const router = useRouter();
 const exams = ref([]);
@@ -21,6 +25,7 @@ const fetchDashboard = async () => {
         ]);
         student.value = userRes.data;
         exams.value = examsRes.data;
+        
         // Check role case-insensitively and include typos
         const userRole = (student.value?.role || '').toLowerCase();
         isDemo.value = ['demo', 'deom', 'staff'].includes(userRole);
@@ -88,6 +93,45 @@ const logout = () => {
     localStorage.removeItem('token');
     router.push('/login');
 };
+
+const showProfileModal = ref(false);
+const isUpdating = ref(false);
+const profileForm = ref({
+    password: '',
+    password_confirmation: '',
+    avatar: null
+});
+
+const onFileSelect = (event) => {
+    profileForm.value.avatar = event.target.files[0];
+};
+
+const updateProfile = async () => {
+    isUpdating.value = true;
+    try {
+        const formData = new FormData();
+        if (profileForm.value.avatar) {
+            formData.append('avatar', profileForm.value.avatar);
+        }
+        if (profileForm.value.password) {
+            formData.append('password', profileForm.value.password);
+            formData.append('password_confirmation', profileForm.value.password_confirmation);
+        }
+
+        await api.post('/profile', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        alert('Profile updated successfully!');
+        showProfileModal.value = false;
+        profileForm.value = { password: '', password_confirmation: '', avatar: null };
+        fetchDashboard();
+    } catch (err) {
+        alert(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+        isUpdating.value = false;
+    }
+};
 </script>
 
 <template>
@@ -116,6 +160,10 @@ const logout = () => {
                         <p class="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Authorized Candidate</p>
                         <p class="text-[10px] font-bold text-slate-700 uppercase tracking-tight leading-none">{{ student?.name || student?.email }}</p>
                     </div>
+                    <button @click="showProfileModal = true" 
+                            class="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 transition-all border border-slate-100 flex items-center justify-center group">
+                        <i class="pi pi-cog text-sm group-hover:rotate-90 transition-transform duration-500"></i>
+                    </button>
                     <button @click="logout" 
                             class="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-100 flex items-center justify-center group">
                         <i class="pi pi-sign-out text-sm group-hover:scale-110 transition-transform"></i>
@@ -144,8 +192,9 @@ const logout = () => {
                     </div>
                     
                     <div class="flex items-center space-x-4">
-                        <div class="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-2xl font-black shadow-lg shrink-0">
-                            {{ student?.first_name?.[0] || 'S' }}
+                        <div class="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-2xl font-black shadow-lg shrink-0 overflow-hidden">
+                            <img v-if="student?.avatar" :src="'http://localhost:8000/storage/' + student.avatar" class="w-full h-full object-cover" />
+                            <span v-else>{{ student?.first_name?.[0] || 'S' }}</span>
                         </div>
                         <div class="min-w-0">
                             <h2 class="text-xl font-black text-slate-900 tracking-tight leading-tight truncate uppercase">
@@ -279,6 +328,8 @@ const logout = () => {
                 </div>
 
                 <!-- Footer Integration inside Right Column -->
+
+                <!-- Footer Integration inside Right Column -->
                 <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between shrink-0">
                     <span class="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em]">Institutional Protocol 2024</span>
                     <div class="flex space-x-4">
@@ -288,6 +339,40 @@ const logout = () => {
                 </div>
             </div>
         </main>
+
+        <!-- Profile Settings Modal -->
+        <Dialog v-model:visible="showProfileModal" header="Profile Settings" modal class="w-full max-w-md">
+            <div class="space-y-6 p-1">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Picture</label>
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-200">
+                            <img v-if="student?.avatar" :src="'http://localhost:8000/storage/' + student.avatar" class="w-full h-full object-cover" />
+                            <i v-else class="pi pi-user text-slate-300 text-xl"></i>
+                        </div>
+                        <input type="file" @change="onFileSelect" accept="image/*" class="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20 cursor-pointer" />
+                    </div>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t border-slate-100">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">New Password</label>
+                        <Password v-model="profileForm.password" toggleMask class="w-full" inputClass="w-full p-inputtext-sm" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Confirm Password</label>
+                        <Password v-model="profileForm.password_confirmation" toggleMask :feedback="false" class="w-full" inputClass="w-full p-inputtext-sm" />
+                    </div>
+                </div>
+            </div>
+
+            <template #footer>
+                <div class="flex justify-end gap-2 pt-4">
+                    <Button label="Cancel" class="p-button-text p-button-sm font-black uppercase tracking-widest text-slate-400" @click="showProfileModal = false" />
+                    <Button label="Save Changes" :loading="isUpdating" class="p-button-raised p-button-sm font-black uppercase tracking-widest" @click="updateProfile" />
+                </div>
+            </template>
+        </Dialog>
     </div>
 </template>
 
