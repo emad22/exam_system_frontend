@@ -80,24 +80,47 @@ const calculateDuration = (start, end) => {
     return `${mins}m ${secs}s`;
 };
 
+const skillMap = {
+    'listening': 'Listening',
+    'reading': 'Reading',
+    'grammar': 'Grammar',
+    'writing': 'Writing',
+    'writting': 'Writing',
+    'speaking': 'Speaking'
+};
+
+const getSkillDisplayName = (name) => {
+    if (!name) return 'Unknown Skill';
+    const lowerName = name.toLowerCase();
+    const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
+    return matchedKey ? skillMap[matchedKey] : name;
+};
+
 const sortedAttemptSkills = computed(() => {
     if (!selectedAttempt.value || !selectedAttempt.value.attempt_skills) return [];
-
-    const orderMap = {
+const orderMap = {
         'listening': 1,
         'reading': 2,
         'grammar': 3,
         'writing': 4,
         'speaking': 5
     };
+
+    const getOrder = (name) => {
+        name = name?.toLowerCase() || '';
+
+        const matchedKey = Object.keys(orderMap).find(key =>
+            name.includes(key)
+        );
+
+        return orderMap[matchedKey] || 99;
+    };
+
     return [...selectedAttempt.value.attempt_skills].sort((a, b) => {
-        const nameA = a.skill?.name?.toLowerCase() || '';
-        const nameB = b.skill?.name?.toLowerCase() || '';
+        const nameA = a.skill?.name;
+        const nameB = b.skill?.name;
 
-        const orderA = orderMap[nameA] || 99;
-        const orderB = orderMap[nameB] || 99;
-
-        return orderA - orderB;
+        return getOrder(nameA) - getOrder(nameB);
     });
 });
 
@@ -237,7 +260,7 @@ onMounted(fetchDetails);
                                     class="w-6 h-6 rounded-lg bg-indigo-50/50 text-indigo-500 group-aria-selected:bg-white/20 group-aria-selected:text-white flex items-center justify-center font-black text-[10px]">{{
                                     skillResult.skill?.short_code || 'S' }}</span>
                                 <span class="text-[11px] font-black uppercase tracking-widest">{{
-                                    skillResult.skill?.name }}</span>
+                                    getSkillDisplayName(skillResult.skill?.name) }}</span>
                             </div>
                         </Tab>
                     </TabList>
@@ -262,7 +285,7 @@ onMounted(fetchDetails);
                                             <div>
                                                 <h4
                                                     class="text-base font-black text-slate-800 uppercase tracking-wider">
-                                                    {{ skillResult.skill?.name }}</h4>
+                                                    {{ getSkillDisplayName(skillResult.skill?.name) }}</h4>
                                                 <p
                                                     class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                                                     Skill Domain Assessment</p>
@@ -297,7 +320,7 @@ onMounted(fetchDetails);
                                             <Button v-if="currentUser?.role === 'admin'" label="Reset Skill"
                                                 icon="pi pi-refresh" severity="danger" outlined size="small"
                                                 class="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl"
-                                                @click="resetSkill(skillResult.skill_id, skillResult.skill?.name)" />
+                                                @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
 
                                             <div class="text-right border-l border-slate-100 pl-6 ml-2">
                                                 <div class="text-3xl font-black text-emerald-600 italic">
