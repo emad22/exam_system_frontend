@@ -56,6 +56,7 @@ import AdminSystemRequirementsCreate from '@/views/admin/SystemRequirements/crea
 import AdminSystemRequirementsEdit from '@/views/admin/SystemRequirements/edit.vue'
 import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
 import ProfileView from '@/views/ProfileView.vue'
+import AdminActivityLogs from '@/views/admin/ActivityLogs/index.vue'
 
 
 const adminRoutes = [
@@ -275,6 +276,12 @@ const adminRoutes = [
     name: 'admin.profile',
     component: ProfileView,
     meta: { title: 'Security & Identity' }
+  },
+  {
+    path: '/admin/activity-logs',
+    name: 'admin.logs',
+    component: AdminActivityLogs,
+    meta: { title: 'System Activity Logs' }
   },
 ];
 

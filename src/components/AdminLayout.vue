@@ -25,6 +25,7 @@ const navigation = [
     { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
     { name: 'Payments', href: '/admin/payments', icon: 'pi pi-credit-card' },
     { name: 'Staff & Roles', href: '/admin/staff', icon: 'pi pi-shield' },
+    { name: 'Activity Logs', href: '/admin/activity-logs', icon: 'pi pi-history' },
 ]
 
 const currentUser = computed(() => adminStore.user);

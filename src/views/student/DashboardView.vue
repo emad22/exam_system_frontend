@@ -29,7 +29,7 @@ const fetchDashboard = async () => {
 
         // Fetch certificates if student is from arabacademy
         const partnerName = (student.value?.student?.partner?.partner_name || '').toLowerCase();
-        console.log('partnerName', partnerName);
+
         if (partnerName.includes('arabacademy')) {
             const certRes = await api.get('/certificates');
             certificates.value = certRes.data;
