@@ -168,53 +168,59 @@ onMounted(fetchData);
 
 <template>
   <AdminLayout>
-    <div class="min-h-screen bg-[#F8FAFC] pb-24">
-      <!-- Premium Sticky Header -->
-      <div class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 px-6 py-4 mb-8">
-        <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-              <i class="pi pi-database text-white text-xl"></i>
+    <div class="min-h-screen bg-slate-50/50 pb-24">
+      <!-- Title & Filters Section (Sticky) -->
+      <div class="sticky top-[-40px] z-[100] bg-white border-b border-slate-200 shadow-lg shadow-slate-200/20 -mx-10 px-10 pt-16 pb-8 mb-10 transition-all duration-300">
+        <div class="max-w-[1600px] mx-auto space-y-8">
+          <!-- Header: Title + Actions -->
+          <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-5">
+              <div class="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-100 ring-4 ring-indigo-50">
+                <i class="pi pi-database text-white text-2xl"></i>
+              </div>
+              <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-none uppercase">Question Bank</h1>
+                <p class="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-[0.3em] flex items-center gap-2">
+                  <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                  {{ filteredQuestions.length }} Cognitive Assets Managed
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 class="text-2xl font-black text-slate-800 tracking-tight leading-none">Question Bank</h1>
-              <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">{{ filteredQuestions.length }} Items Managed</p>
+
+            <div class="flex items-center gap-3">
+              <Button label="Level Guides" icon="pi pi-book" severity="secondary" text @click="openInstructions" class="font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 px-6 py-4 rounded-xl" />
+              <Button label="Add New Question" icon="pi pi-plus" raised @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.create' : 'admin.questions.create' })" class="font-black text-[10px] uppercase tracking-widest px-10 h-14 shadow-2xl shadow-indigo-200 rounded-2xl" />
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
-            <Button label="Level Guides" icon="pi pi-book" severity="secondary" text @click="openInstructions" class="font-bold text-sm" />
-            <Button label="Add Question" icon="pi pi-plus" raised @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.create' : 'admin.questions.create' })" class="font-bold text-sm px-6 h-11" />
+          <!-- Filter Bar -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-50 p-3 rounded-[2rem] border border-slate-100 shadow-inner">
+            <div class="lg:col-span-4 relative group">
+              <i class="pi pi-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"></i>
+              <InputText v-model="searchQuery" placeholder="Search by content or keywords..." 
+                class="w-full pl-12 h-12 rounded-[1.5rem] bg-white border-transparent shadow-sm focus:border-indigo-500/20 transition-all font-bold text-xs" />
+            </div>
+
+            <div class="lg:col-span-8 flex flex-wrap items-center justify-end gap-3">
+              <Select v-model="filterExam" :options="[{title:'All Exams', id:null}, ...exams]" optionLabel="title" optionValue="id" placeholder="Exam" class="h-12 rounded-xl border-transparent shadow-sm min-w-[160px] text-[10px] font-black uppercase" />
+              <Select v-model="filterSkill" :options="[{name:'All Skills', id:null}, ...skills]" optionLabel="name" optionValue="id" placeholder="Skill" class="h-12 rounded-xl border-transparent shadow-sm min-w-[140px] text-[10px] font-black uppercase" />
+              <Select v-model="filterType" :options="[{label:'All Types', value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label:v.label, value:k}))]" optionLabel="label" optionValue="value" placeholder="Type" class="h-12 rounded-xl border-transparent shadow-sm min-w-[140px] text-[10px] font-black uppercase" />
+              <Select v-model="filterLevel" :options="[{label:'All Levels', value:null}, ...Array.from({length:10}, (_,i)=>({label:`Level ${i+1}`, value:i+1}))]" optionLabel="label" optionValue="value" placeholder="Level" class="h-12 rounded-xl border-transparent shadow-sm min-w-[120px] text-[10px] font-black uppercase" />
+              
+              <Button v-if="searchQuery || filterSkill || filterExam || filterLevel || filterType" 
+                icon="pi pi-filter-slash" severity="danger" rounded outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" 
+                v-tooltip.top="'Reset Filters'" class="h-12 w-12" />
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="max-w-[1600px] mx-auto px-6 space-y-8">
+      <div class="max-w-[1600px] mx-auto px-6">
         
-        <!-- Smart Filters Bar -->
-        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/60 flex flex-wrap items-center gap-4">
-          <div class="flex-1 min-w-[300px] relative group">
-            <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"></i>
-            <InputText v-model="searchQuery" placeholder="Search by content, instructions, or passage..." 
-              class="w-full pl-11 h-12 rounded-2xl bg-slate-50 border-transparent focus:bg-white focus:border-indigo-500/30 transition-all font-semibold text-sm" />
-          </div>
-
-          <div class="flex items-center gap-3 flex-wrap">
-            <Select v-model="filterExam" :options="[{title:'All Exams', id:null}, ...exams]" optionLabel="title" optionValue="id" placeholder="Exam" class="h-12 rounded-2xl border-slate-200 min-w-[180px] text-sm font-bold" />
-            <Select v-model="filterSkill" :options="[{name:'All Skills', id:null}, ...skills]" optionLabel="name" optionValue="id" placeholder="Skill" class="h-12 rounded-2xl border-slate-200 min-w-[160px] text-sm font-bold" />
-            <Select v-model="filterType" :options="[{label:'All Types', value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label:v.label, value:k}))]" optionLabel="label" optionValue="value" placeholder="Type" class="h-12 rounded-2xl border-slate-200 min-w-[160px] text-sm font-bold" />
-            <Select v-model="filterLevel" :options="[{label:'All Levels', value:null}, ...Array.from({length:10}, (_,i)=>({label:`Level ${i+1}`, value:i+1}))]" optionLabel="label" optionValue="value" placeholder="Level" class="h-12 rounded-2xl border-slate-200 min-w-[140px] text-sm font-bold" />
-            
-            <Button v-if="searchQuery || filterSkill || filterExam || filterLevel || filterType" 
-              icon="pi pi-filter-slash" severity="danger" text @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" 
-              v-tooltip.top="'Clear Filters'" class="h-12 w-12 rounded-2xl" />
-          </div>
-        </div>
-
         <!-- Loading State -->
-        <div v-if="loading" class="flex flex-col items-center justify-center py-40 animate-pulse">
-          <div class="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-          <p class="text-sm font-black text-slate-400 uppercase tracking-widest">Organizing Database...</p>
+        <div v-if="loading" class="flex flex-col items-center justify-center py-40">
+          <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
+          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-6">Accessing Matrix Repository...</p>
         </div>
 
         <!-- Empty State -->
@@ -223,14 +229,14 @@ onMounted(fetchData);
             <i class="pi pi-search text-5xl"></i>
           </div>
           <div class="text-center">
-            <h3 class="text-2xl font-black text-slate-800 tracking-tight">No Questions Found</h3>
-            <p class="text-slate-400 font-semibold mt-1">Try adjusting your search or filters to see more results.</p>
+            <h3 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Zero Results Found</h3>
+            <p class="text-slate-400 font-bold mt-2 uppercase text-[10px] tracking-widest">Adjust your filters to refine the search</p>
           </div>
-          <Button label="Reset All Filters" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" class="rounded-2xl font-bold px-8" />
+          <Button label="Clear All Parameters" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" class="rounded-2xl font-black text-[10px] uppercase tracking-widest px-8" />
         </div>
 
         <!-- Content View (Table Only) -->
-        <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
+        <div v-else class="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative z-0">
           <DataTable :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm" responsiveLayout="scroll">
             <Column header="#" style="width: 70px">
               <template #body="{ data }"><span class="text-[10px] font-black text-slate-400">#{{ data.id }}</span></template>
