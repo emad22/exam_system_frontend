@@ -206,7 +206,7 @@ const autoVerifyRequirements = (requirements) => {
         else if (cat === 'hardware' || title.includes('audio')) verified = hasMediaDevices;
 
         if (verified) {
-            autoVerifiedIds.value.push(req.id);
+            // No need to track in autoVerifiedIds as we don't show the check here anymore
             if (!checkedRequirements.value.includes(req.id)) checkedRequirements.value.push(req.id);
         }
     });
@@ -990,22 +990,22 @@ onUnmounted(() => {
                         are now about to enter a timed testing environment.</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-1 gap-8 text-right mb-16">
-                        <div class="bg-slate-100/100 p-8 rounded-3xl border border-slate-100">
-                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-6">متطلبات النظام
-                            </h4>
-                            <div class="space-y-4">
-                                <div v-for="req in systemRequirements" :key="req.id" @click="toggleRequirement(req)"
-                                    class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-slate-100 cursor-pointer group">
-                                    <span class="text-[10px] font-black text-slate-600 uppercase tracking-tight">{{
-                                        req.title
-                                        }}</span>
-                                    <div :class="checkedRequirements.includes(req.id) ? 'bg-emerald-500 border-emerald-500' : 'bg-slate-50 border-slate-200'"
-                                        class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all">
-                                        <i v-if="checkedRequirements.includes(req.id)"
-                                            class="pi pi-check text-[8px] text-white"></i>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">تعليمات الاختبار</h4>
+                            <ul class="text-right space-y-3 text-sm text-slate-600 font-medium">
+                                <li class="flex items-start gap-3">
+                                    <i class="pi pi-info-circle text-brand-primary mt-1"></i>
+                                    <span>بمجرد البدء، سيبدأ المؤقت الخاص بهذا الجزء من الاختبار.</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <i class="pi pi-info-circle text-brand-primary mt-1"></i>
+                                    <span>يرجى التأكد من تواجدك في بيئة هادئة وتركيز كامل.</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <i class="pi pi-info-circle text-brand-primary mt-1"></i>
+                                    <span>لا تغادر صفحة الاختبار حتى تنتهي من جميع الأسئلة.</span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
 
