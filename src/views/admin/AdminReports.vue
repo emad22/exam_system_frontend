@@ -27,7 +27,6 @@ const skillMap = {
 };
 
 const getSkillDisplayName = (name) => {
-    alert(name);
     if (!name) return 'Unknown Skill';
     const lowerName = name.toLowerCase();
     const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
@@ -56,7 +55,6 @@ const fetchReports = async () => {
    
     try {
         const res = await api.get('/admin/reports');
-        // api.get('/admin/partners/active');
         attempts.value = res.data.data || res.data;
       //   console.log("****************************"+JSON.stringify(attempts.value));
     } catch (err) {
@@ -113,6 +111,7 @@ const scoreColor = (score) => {
 onMounted(() => {
     fetchReports();
     fetchPartners();
+    
 });
 </script>
 
@@ -155,71 +154,68 @@ onMounted(() => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 text-sm">
-                        <tr v-for="attempt in filtered()" :key="attempt.id" 
-                            @click="viewDetails(attempt.id)"
-                            class="hover:bg-slate-50/50 transition cursor-pointer group">
-                            <td class="p-6 flex items-center gap-4">
-                                <div class="w-11 h-11 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-black text-xs shadow-lg shadow-rose-100 flex-shrink-0 group-hover:scale-110 transition-transform">
-                                    {{ attempt.student?.user?.first_name?.[0] || 'S' }}
-                                </div>
-                                <div>
-                                    <div class="font-black text-slate-800 uppercase tracking-tight">
-                                        {{ attempt.student?.user?.first_name || attempt.user?.first_name || 'DEMO' }} 
-                                        {{ attempt.student?.user?.last_name || attempt.user?.last_name || 'USER' }}
+                        <template v-for="attempt in filtered()" :key="attempt.id">
+                            <tr @click="viewDetails(attempt.id)"
+                                class="hover:bg-slate-50/50 transition cursor-pointer group">
+                                <td class="p-6 flex items-center gap-4">
+                                    <div class="w-11 h-11 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-black text-xs shadow-lg shadow-rose-100 flex-shrink-0 group-hover:scale-110 transition-transform">
+                                        {{ attempt.student?.user?.first_name?.[0] || 'S' }}
                                     </div>
-                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        {{ attempt.student?.student_code || 'STAFF/DEMO' }}
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="p-6">
-                                <div class="font-bold text-slate-600">{{ attempt.exam?.title }}</div>
-                                <div class="text-[9px] font-black text-brand-accent uppercase tracking-widest">Placement Protocol</div>
-                            </td>
-                            <td class="p-6 text-center">
-                                <span :class="scoreColor(attempt.overall_score)" class="text-2xl font-black italic tracking-tighter">
-                                    {{ attempt.overall_score !== null ? attempt.overall_score + '%' : 'â€”' }}
-                                </span>
-                            </td>
-                            <td class="p-6 text-center">
-                                <Tag :value="attempt.status" 
-                                     :severity="attempt.status === 'completed' ? 'success' : 'warning'" 
-                                     class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg" />
-                            </td>
-                            <td class="p-6 pr-8 text-right">
-                                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString('en-GB') : 'PENDING' }}
-                                </div>
-                                <div class="text-[8px] font-bold text-emerald-500 uppercase tracking-tight" v-if="attempt.status === 'completed'">Validated Outcome</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" class="bg-slate-50 px-10 pb-6">
-                                <div class="flex flex-wrap gap-3 mt-2">
-                                    <div 
-                                        v-for="skillResult in sortedAttemptSkills" :key="skillResult.id"
-                                        :value="skillResult.skill_id.toString()" class="mr-4 group shrink-0">
-
-                                        <div class="flex items-center space-x-3 px-6 py-3 rounded-2xl transition-all group-aria-selected:bg-brand-primary group-aria-selected:text-white group-aria-selected:shadow-lg group-aria-selected:shadow-indigo-200/50 bg-white border border-slate-100 hover:border-slate-200">
-                                        <span class="w-6 h-6 rounded-lg bg-indigo-50/50 text-indigo-500 group-aria-selected:bg-white/20 group-aria-selected:text-white flex items-center justify-center font-black text-[10px]">{{
-                                            skillResult.skill?.short_code || 'S' }}</span>
-                                        <span class="text-[11px] font-black uppercase tracking-widest">{{
-                                            getSkillDisplayName(skillResult.skill?.name) }}</span>
+                                    <div>
+                                        <div class="font-black text-slate-800 uppercase tracking-tight">
+                                            {{ attempt.student?.user?.first_name || attempt.user?.first_name || 'DEMO' }} 
+                                            {{ attempt.student?.user?.last_name || attempt.user?.last_name || 'USER' }}
                                         </div>
-
-                                        <span class="font-bold text-slate-500 text-xs uppercase">
-                                            {{ getSkillDisplayName(skillResult.skill?.name) }}
-                                        </span>
-
-                                        <span class="font-black text-sm" :class="scoreColor(skillResult.score)">
-                                            {{ sk.score !== null ? Math.round(sk.score) + '%' : '—' }}
-                                        </span>
+                                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            {{ attempt.student?.student_code || 'STAFF/DEMO' }}
+                                        </div>
                                     </div>
+                                </td>
+                                <td class="p-6">
+                                    <div class="font-bold text-slate-600">{{ attempt.exam?.title }}</div>
+                                    <div class="text-[9px] font-black text-brand-accent uppercase tracking-widest">Placement Protocol</div>
+                                </td>
+                                <td class="p-6 text-center">
+                                    <span :class="scoreColor(attempt.overall_score)" class="text-2xl font-black italic tracking-tighter">
+                                        {{ attempt.overall_score !== null ? attempt.overall_score + '%' : '—' }}
+                                    </span>
+                                </td>
+                                <td class="p-6 text-center">
+                                    <Tag :value="attempt.status" 
+                                         :severity="attempt.status === 'completed' ? 'success' : 'warning'" 
+                                         class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg" />
+                                </td>
+                                <td class="p-6 pr-8 text-right">
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString('en-GB') : 'PENDING' }}
+                                    </div>
+                                    <div class="text-[8px] font-bold text-emerald-500 uppercase tracking-tight" v-if="attempt.status === 'completed'">Validated Outcome</div>
+                                </td>
+                            </tr>
+                            <tr v-if="attempt.attempt_skills && attempt.attempt_skills.length > 0">
+                                <td colspan="5" class="bg-slate-50/50 px-10 pb-6 pt-2 border-t-0">
+                                    <div class="flex flex-wrap gap-3 mt-2">
+                                        <div 
+                                            v-for="skillResult in getSortedSkills(attempt.attempt_skills)" :key="skillResult.id"
+                                            class="mr-4 group shrink-0">
 
-                                </div>
+                                            <div class="flex items-center space-x-3 px-6 py-3 rounded-2xl bg-white border border-slate-100 shadow-sm transition-all hover:border-slate-200">
+                                                <span class="w-6 h-6 rounded-lg bg-indigo-50/50 text-indigo-500 flex items-center justify-center font-black text-[10px]">{{
+                                                    skillResult.skill?.short_code || 'S' }}</span>
+                                                
+                                                <span class="font-bold text-slate-500 text-xs uppercase ml-1">
+                                                    {{ getSkillDisplayName(skillResult.skill?.name) }}
+                                                </span>
 
-                            </td>
-                        </tr>
+                                                <span class="font-black text-sm ml-3" :class="scoreColor(skillResult.score)">
+                                                    {{ skillResult.score !== null ? Math.round(skillResult.score) + '%' : '—' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
