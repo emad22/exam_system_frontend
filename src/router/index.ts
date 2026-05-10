@@ -294,7 +294,7 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { title: 'System Authentication' }
+    meta: { title: 'Login ALPT' }
   },
   {
     path: '/register',
@@ -367,9 +367,9 @@ router.beforeEach((to) => {
 });
 
 router.afterEach((to) => {
-  const baseTitle = 'ALPH_EVAL';
+  const baseTitle = 'Arab Academy';
   const pageTitle = to.meta.title || (to.name as string)?.split('.').pop() || 'System';
-  document.title = `${pageTitle.toString().toUpperCase()} | ${baseTitle}`;
+  document.title = `${pageTitle.toString()} | ${baseTitle}`;
 });
 
 export default router

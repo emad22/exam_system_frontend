@@ -165,23 +165,18 @@ const resolveUrl = (path) => {
             <div class="flex-1 flex flex-col min-h-0">
                 <!-- Logo Section -->
                 <div class="h-24 flex items-center px-8 shrink-0 border-b border-slate-100 bg-slate-50/50">
-                    <div
-                        class="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white text-lg font-black shadow-md shadow-brand-primary/30 mr-4">
-                        <i class="pi pi-book"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-black text-brand-primary tracking-tight leading-none mb-1">Arab<span
-                                class="text-brand-accent">Academy</span></h1>
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Management
-                            Platform</span>
-                    </div>
+                    <img
+                        src="/logo.png"
+                        alt="Arab Academy"
+                        class="h-14 w-auto max-w-[190px] object-contain"
+                    />
                 </div>
 
                 <!-- Navigation -->
                 <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
-                    <div class="px-4 mb-3">
+                    <!--<div class="px-4 mb-3">
                         <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Core Modules</p>
-                    </div>
+                    </div>-->
                     <template v-for="item in filteredNavigation" :key="item.name">
                         <router-link :to="item.href" :class="[
                             isActive(item.href) ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',

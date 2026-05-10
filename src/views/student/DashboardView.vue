@@ -90,12 +90,12 @@ const resetDemoProgress = async () => {
 
 const getSkillIcon = (name) => {
     name = name.toLowerCase();
-    if (name.includes('listening')) return '🎧';
-    if (name.includes('reading')) return '📖';
-    if (name.includes('writing')) return '✍️';
-    if (name.includes('speaking')) return '🗣️';
-    if (name.includes('grammar') || name.includes('structure')) return '📋';
-    return '🎯';
+    if (name.includes('listening')) return '/Listening02.png';
+    if (name.includes('reading')) return '/Reading-1.png';
+    if (name.includes('writing')) return '/Writing-01.png';
+    if (name.includes('speaking')) return '/Speaking-02.png';
+    if (name.includes('grammar') || name.includes('structure')) return '/Strac-01.png';
+    return '/logo.png';
 };
 
 const logout = () => {
@@ -162,6 +162,12 @@ const isArabAcademy = computed(() => {
     return partnerName.includes('arabacademy');
 });
 
+const fullStudentName = computed(() => {
+    const firstName = student.value?.first_name || '';
+    const lastName = student.value?.last_name || '';
+    return [firstName, lastName].filter(Boolean).join(' ') || student.value?.name || 'Candidate';
+});
+
 const showUserMenu = ref(false);
 
 const vClickOutside = {
@@ -194,17 +200,12 @@ const vClickOutside = {
         <!-- Header -->
         <header class="bg-white border-b border-slate-100 shrink-0 shadow-sm transition-all duration-300">
             <div class="max-w-[1600px] mx-auto px-6 h-16 flex justify-between items-center">
-                <div class="flex items-center space-x-4">
-                    <div
-                        class="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-brand-primary/20">
-                        <i class="pi pi-book text-sm"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-sm font-black text-brand-primary tracking-tight leading-none uppercase">
-                            Arab<span class="text-brand-accent">Academy</span></h1>
-                        <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Excellence
-                            Portal</span>
-                    </div>
+                <div class="flex items-center">
+                    <img
+                        src="/logo.png"
+                        alt="Arab Academy"
+                        class="h-12 w-auto max-w-[180px] object-contain"
+                    />
                 </div>
 
                 <div class="flex items-center space-x-4">
@@ -222,7 +223,7 @@ const vClickOutside = {
                         <div v-if="showUserMenu" v-click-outside="() => showUserMenu = false" class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
                             <div class="p-4 border-b border-slate-50 bg-slate-50/50">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-left">Candidate</p>
-                                <p class="text-xs font-black text-slate-800 truncate text-left">{{ student?.name || student?.first_name }}</p>
+                                <p class="text-xs font-black text-slate-800 truncate text-left">{{ fullStudentName }}</p>
                             </div>
                             <div class="p-2">
                                 <button @click="router.push('/profile'); showUserMenu = false" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-brand-primary/5 hover:text-brand-primary rounded-xl transition-all group">
@@ -246,7 +247,7 @@ const vClickOutside = {
         </header>
 
         <!-- Main Dashboard Split Layout -->
-        <main class="flex-grow relative z-10 max-w-[1600px] mx-auto w-full px-6 py-4 overflow-hidden flex gap-6">
+        <main class="flex-grow relative z-10 max-w-[1600px] mx-auto w-full px-6 py-2 overflow-hidden flex gap-6">
 
             <!-- Loading Overlay -->
             <div v-if="isLoading"
@@ -257,10 +258,10 @@ const vClickOutside = {
             </div>
 
             <!-- Left Column: Identity & Stats -->
-            <div class="w-1/3 flex flex-col gap-4 overflow-hidden animate-in fade-in slide-in-from-left-8 duration-700">
+            <div class="w-1/4 flex flex-col gap-4 overflow-hidden animate-in fade-in slide-in-from-left-8 duration-700">
 
                 <!-- Greeting & Basic Info -->
-                <section class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <section class="bg-white rounded-[0.5rem] p-6 border border-slate-100 shadow-sm space-y-4">
                     <div
                         class="inline-flex items-center space-x-2 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-md border border-emerald-100">
                         <i class="pi pi-verified text-[8px]"></i>
@@ -276,11 +277,11 @@ const vClickOutside = {
                         </div>
                         <div class="min-w-0">
                             <h2
-                                class="text-xl font-black text-slate-900 tracking-tight leading-tight truncate uppercase">
-                                {{ student?.first_name || student?.name || 'Candidate' }}
+                                class="text-base font-black text-slate-900 tracking-tight leading-tight truncate uppercase">
+                                {{ fullStudentName }}
                             </h2>
-                            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest truncate">{{
-                                student?.student?.student_code || 'DEMO-ACC' }}</p>
+                            <!--<p class="text-[9px] font-black text-slate-300 uppercase tracking-widest truncate">{{
+                                student?.student?.student_code || 'DEMO-ACC' }}</p>-->
                         </div>
                     </div>
 
@@ -302,15 +303,15 @@ const vClickOutside = {
 
                 <!-- Evaluator Progress Card -->
                 <section
-                    class="bg-brand-primary rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex-shrink-0">
+                    class="bg-brand-primary rounded-[0.5rem] p-6 text-white shadow-lg relative overflow-hidden flex-shrink-0">
                     <div class="absolute -left-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
                     <p class="text-[9px] font-black text-white/50 uppercase tracking-widest mb-2 relative z-10">
-                        Evaluations Finished</p>
+                        Arabic Language Skills</p>
                     <div class="flex items-baseline relative z-10">
                         <span class="text-5xl font-black italic tracking-tighter">{{
                             exams?.[0]?.completed_skill_ids?.length || 0 }}</span>
                         <span class="text-sm font-bold ml-2 opacity-60">/ {{ (exams?.[0]?.skills?.length || 0) }}
-                            Modules</span>
+                            Skills</span>
                     </div>
                     <div class="mt-4 bg-white/10 h-1.5 rounded-full overflow-hidden">
                         <div class="bg-white h-full transition-all duration-1000"
@@ -320,7 +321,7 @@ const vClickOutside = {
                 </section>
 
                 <!-- Demo Tool -->
-                <section v-if="isDemo" class="bg-amber-50 border border-amber-200 p-5 rounded-3xl shadow-sm">
+                <section v-if="isDemo" class="bg-amber-50 border border-amber-200 p-5 rounded-[0.5rem] shadow-sm">
                     <div class="flex items-center gap-3 mb-3">
                         <div
                             class="w-6 h-6 bg-amber-500 text-white rounded-lg flex items-center justify-center shadow-md">
@@ -350,7 +351,7 @@ const vClickOutside = {
 
                 <!-- Certificate QR Code (Arab Academy Exclusive) -->
                 <section v-if="isArabAcademy && qrUrl"
-                    class="bg-white rounded-3xl p-6 border-2 border-indigo-50 shadow-xl shadow-indigo-100/20 space-y-4 animate-in fade-in zoom-in duration-1000">
+                    class="bg-white rounded-[0.5rem] p-6 border-2 border-indigo-50 shadow-xl shadow-indigo-100/20 space-y-4 animate-in fade-in zoom-in duration-1000">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-1">Official
@@ -388,14 +389,15 @@ const vClickOutside = {
 
             <!-- Right Column: Skills Selection -->
             <div
-                class="w-2/3 flex flex-col bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-right-8 duration-700">
+                class="w-3/4 flex flex-col bg-white rounded-[0.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-right-8 duration-700">
 
                 <!-- Section Header -->
-                <div class="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div class="p-5 border-b border-slate-100 flex items-center justify-between shrink-0">
                     <div>
-                        <p class="text-[9px] font-black text-brand-primary uppercase tracking-[0.3em] mb-1">Assessment
-                            Matrix</p>
-                        <h3 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Academic Modules</h3>
+                        <p class="text-[9px] font-black text-brand-primary uppercase tracking-[0.3em] mb-1">ARAB
+                            ACADEMY</p>
+                        <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">Arabic Language
+                            Proficiency Test (ALPT)</h3>
                     </div>
                     <div class="flex items-center space-x-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
                         <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -405,7 +407,7 @@ const vClickOutside = {
                 </div>
 
                 <!-- Skills List Scroll Area -->
-                <div class="flex-grow overflow-y-auto p-6 custom-scrollbar space-y-3">
+                <div class="flex-grow overflow-hidden p-4 space-y-2">
                     <div v-if="!exams.length" class="h-full flex flex-col items-center justify-center text-center p-12">
                         <span class="text-5xl mb-4 grayscale opacity-20">🎯</span>
                         <h3 class="text-lg font-black text-slate-700 uppercase tracking-tight">No Active Evaluations
@@ -416,17 +418,21 @@ const vClickOutside = {
                     </div>
 
                     <div v-else v-for="skill in exams[0]?.skills" :key="skill.id"
-                        class="group relative bg-slate-50/50 border border-slate-100 rounded-2xl p-4 transition-all duration-300 flex items-center gap-6"
+                        class="group relative bg-slate-50/50 border border-slate-100 rounded-2xl p-4 min-h-[82px] transition-all duration-300 flex items-center gap-6"
                         :class="isSkillCompleted(exams[0], skill.id) ? 'opacity-50 grayscale pointer-events-none' : 'hover:bg-white hover:shadow-lg hover:shadow-slate-200/50 hover:border-brand-primary/20'">
 
                         <!-- Icon -->
                         <div :class="[
                             isSkillCompleted(exams[0], skill.id) ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-slate-600 group-hover:bg-brand-primary group-hover:text-white',
-                            'w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all duration-500 shadow-sm border border-slate-100 shrink-0'
+                            'w-12 h-12 rounded-xl flex items-center justify-center text-lg transition-all duration-500 shadow-sm border border-slate-100 shrink-0'
                         ]">
                             <i v-if="isSkillCompleted(exams[0], skill.id)" class="pi pi-check text-sm"></i>
-                            <span v-else class="group-hover:scale-110 transition-transform">{{ getSkillIcon(skill.name)
-                                }}</span>
+                            <img
+                                v-else
+                                :src="getSkillIcon(skill.name)"
+                                :alt="skill.name"
+                                class="h-9 w-9 object-contain group-hover:scale-110 transition-transform"
+                            />
                         </div>
 
                         <!-- Details -->
@@ -450,14 +456,14 @@ const vClickOutside = {
                         <div class="shrink-0">
                             <button v-if="!isSkillCompleted(exams[0], skill.id)" @click="startSkill(skill.id)"
                                 :disabled="startingSkillId !== null"
-                                class="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-brand-primary transition-all active:scale-95 disabled:opacity-50">
+                                class="px-6 py-2 bg-slate-900 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-brand-primary transition-all active:scale-95 disabled:opacity-50">
                                 <span v-if="startingSkillId === skill.id" class="flex items-center gap-2">
                                     <i class="pi pi-spin pi-spinner text-[10px]"></i> Wait
                                 </span>
                                 <span v-else>Launch</span>
                             </button>
                             <div v-else
-                                class="px-6 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-emerald-100">
+                                class="px-6 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-emerald-100">
                                 Verified
                             </div>
                         </div>
@@ -465,16 +471,10 @@ const vClickOutside = {
                 </div>
 
                 <!-- Footer Integration inside Right Column -->
-
-                <!-- Footer Integration inside Right Column -->
-                <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between shrink-0">
-                    <span class="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em]">Institutional Protocol
-                        2024</span>
-                    <div class="flex space-x-4">
-                        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Session
-                            Encrypted</span>
-                        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Arab Academy</span>
-                    </div>
+                <div class="p-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                    <span class="text-[8px] font-black text-slate-300 tracking-[0.16em]">
+                     © Copyright 2012 – 2026 Arab Academy | All Rights Reserved
+                    </span>
                 </div>
             </div>
         </main>

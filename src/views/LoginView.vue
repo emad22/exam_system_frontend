@@ -70,7 +70,7 @@ const handleRegister = async () => {
         <!-- Login Container -->
         <div class="relative z-10 w-full max-w-lg animate-in fade-in zoom-in duration-700">
             <div
-                class="bg-white p-10 md:p-14 rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden relative">
+                class="bg-white p-10 md:p-14 rounded-[0.5rem] shadow-xl border border-slate-100 overflow-hidden relative">
 
                 <!-- Logo Section -->
                 <div class="flex flex-col items-center justify-center mb-10">
@@ -78,15 +78,6 @@ const handleRegister = async () => {
                 </div>
 
                 <div class="relative z-10">
-                    <div class="mb-8 text-center space-y-1">
-                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">
-                            {{ isLogin ? 'Account Login' : 'Create an Account' }}
-                        </h2>
-                        <p class="text-slate-500 text-sm font-semibold">
-                            {{ isLogin ? 'Welcome back, please enter your details' : 'Join our vibrant learning community' }}
-                        </p>
-                    </div>
-
                     <form @submit.prevent="isLogin ? handleLogin() : handleRegister()" class="space-y-5">
                         <div v-if="errorMsg"
                             class="bg-rose-50 border border-rose-200 text-brand-primary text-xs font-bold py-4 rounded-xl text-center animate-in slide-in-from-top-2">
@@ -117,20 +108,23 @@ const handleRegister = async () => {
                         <div class="pt-4">
                             <button type="submit" :disabled="isLoading"
                                 class="w-full bg-brand-primary text-white font-bold py-4 rounded-xl shadow-md shadow-brand-primary/20 hover:shadow-lg hover:shadow-brand-primary/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 disabled:opacity-50 text-sm tracking-widest uppercase">
-                                {{ isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Register Now') }}
+                                {{ isLoading ? 'Processing...' : (isLogin ? 'Login' : 'Register Now') }}
                             </button>
                         </div>
                     </form>
 
                     <div class="mt-8 text-center border-t border-slate-100 pt-6">
-                        <button @click="isLogin = !isLogin"
-                            class="text-slate-500 text-sm font-semibold hover:text-brand-primary transition-colors duration-300">
-                            {{ isLogin ? "Don't have an account? " : "Already have an account? " }}
-                            <span
-                                class="text-brand-accent underline underline-offset-4 decoration-brand-accent/30 font-bold">
-                                {{ isLogin ? "Register here" : "Login here" }}
-                            </span>
-                        </button>
+                        <p class="text-slate-500 text-sm font-semibold">
+                            Don't have an account?
+                            <a
+                                href="https://www.arabacademy.com/alpt-for-individuals/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-block px-2 py-1 rounded-md text-brand-primary underline underline-offset-4 decoration-brand-primary/30 font-bold hover:bg-brand-primary hover:text-white hover:no-underline transition-all duration-300"
+                            >
+                                Register here
+                            </a>
+                        </p>
                     </div>
                 </div>
             </div>
