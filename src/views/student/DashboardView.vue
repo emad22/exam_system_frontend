@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import StudentHeader from '@/components/StudentHeader.vue';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
@@ -211,63 +212,7 @@ const vClickOutside = {
             </div>
         </div>
 
-        <!-- Header -->
-        <header class="bg-white border-b border-slate-100 shrink-0 shadow-sm transition-all duration-300">
-            <div class="max-w-[1600px] mx-auto px-6 h-16 flex justify-between items-center">
-                <div class="flex items-center">
-                    <img
-                        src="/logo.png"
-                        alt="Arab Academy"
-                        class="h-12 w-auto max-w-[180px] object-contain"
-                    />
-                </div>
-
-                <div class="flex items-center space-x-4">
-                    <!-- User Profile Dropdown -->
-                    <div class="relative">
-                        <div @click.stop="showUserMenu = !showUserMenu"
-                            class="flex items-center gap-2 bg-slate-50 hover:bg-white p-1.5 pr-3 rounded-2xl border border-slate-100 cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md group">
-                            <div
-                                class="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center overflow-hidden border border-brand-primary/20">
-                                <img v-if="student?.avatar" :src="resolveUrl(student.avatar)"
-                                    class="w-full h-full object-cover" />
-                                <i v-else class="pi pi-user text-brand-primary"></i>
-                            </div>
-                            <i class="pi pi-chevron-down text-[10px] text-slate-400 group-hover:text-brand-primary transition-transform duration-300"
-                                :class="{ 'rotate-180': showUserMenu }"></i>
-                        </div>
-
-                        <!-- Dropdown Menu -->
-                        <div v-if="showUserMenu" v-click-outside="() => showUserMenu = false"
-                            class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
-                            <div class="p-4 border-b border-slate-50 bg-slate-50/50">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-left">Candidate</p>
-                                <p class="text-xs font-black text-slate-800 truncate text-left">{{ fullStudentName }}</p>
-                            </div>
-                            <div class="p-2">
-                                <button @click="router.push('/profile'); showUserMenu = false"
-                                    class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-brand-primary/5 hover:text-brand-primary rounded-xl transition-all group">
-                                    <div
-                                        class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-brand-primary/10">
-                                        <i class="pi pi-user-edit text-xs"></i>
-                                    </div>
-                                    Edit Profile
-                                </button>
-                                <div class="h-px bg-slate-50 my-1"></div>
-                                <button @click="logout"
-                                    class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-50 rounded-xl transition-all group">
-                                    <div
-                                        class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center group-hover:bg-rose-100">
-                                        <i class="pi pi-sign-out text-xs"></i>
-                                    </div>
-                                    Sign Out
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <StudentHeader />
 
         <!-- Main Dashboard Split Layout -->
         <main class="flex-grow relative z-10 max-w-[1600px] mx-auto w-full px-6 py-2 overflow-hidden flex gap-6">
@@ -408,90 +353,57 @@ const vClickOutside = {
                 </section>
             </div>
 
-            <!-- Right Column: Skills Selection -->
+            <!-- Right Column: Dashboard Hub -->
             <div
                 class="w-3/4 flex flex-col bg-white rounded-[0.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-right-8 duration-700">
 
                 <!-- Section Header -->
-                <div class="p-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div class="p-8 border-b border-slate-100 flex items-center justify-between shrink-0">
                     <div>
-                        <p class="text-[9px] font-black text-brand-primary uppercase tracking-[0.3em] mb-1">ARAB
-                            ACADEMY</p>
-                        <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">Arabic Language
-                            Proficiency Test (ALPT)</h3>
-                    </div>
-                    <div class="flex items-center space-x-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">{{ skills().length
-                        }} Active Skills</span>
+                        <p class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Student Hub</p>
+                        <h3 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Welcome back, {{ student?.first_name }}</h3>
                     </div>
                 </div>
 
-                <!-- Skills List Scroll Area -->
-                <div class="flex-grow overflow-hidden p-4 space-y-2">
-                    <div v-if="!exams.length" class="h-full flex flex-col items-center justify-center text-center p-12">
-                        <span class="text-5xl mb-4 grayscale opacity-20">🎯</span>
-                        <h3 class="text-lg font-black text-slate-700 uppercase tracking-tight">No Active Skills</h3>
-                        <p class="text-slate-400 font-bold mt-2 text-[10px] uppercase tracking-widest max-w-xs">
-                            Account pending institutional approval. Contact administration.
-                        </p>
-                    </div>
-
-                    <div v-else v-for="skill in exams[0]?.skills" :key="skill.id"
-                        class="group relative bg-slate-50/50 border border-slate-100 rounded-2xl p-4 min-h-[82px] transition-all duration-300 flex items-center gap-6"
-                        :class="isSkillCompleted(exams[0], skill.id) ? 'opacity-50 grayscale pointer-events-none' : 'hover:bg-white hover:shadow-lg hover:shadow-slate-200/50 hover:border-brand-primary/20'">
-
-                        <!-- Icon -->
-                        <div :class="[
-                            isSkillCompleted(exams[0], skill.id) ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-slate-600 group-hover:bg-brand-primary group-hover:text-white',
-                            'w-12 h-12 rounded-xl flex items-center justify-center text-lg transition-all duration-500 shadow-sm border border-slate-100 shrink-0'
-                        ]">
-                            <i v-if="isSkillCompleted(exams[0], skill.id)" class="pi pi-check text-sm"></i>
-                            <img
-                                v-else
-                                :src="getSkillIcon(skill.name)"
-                                :alt="skill.name"
-                                class="h-9 w-9 object-contain group-hover:scale-110 transition-transform"
-                            />
-                        </div>
-
-                        <!-- Details -->
-                        <div class="flex-grow min-w-0">
-                            <h4
-                                class="text-sm font-black text-slate-800 tracking-tight group-hover:text-brand-primary transition-colors uppercase leading-none mb-1.5 truncate">
-                                {{ getSkillDisplayName(skill.name) }}</h4>
-                            <div class="flex items-center gap-2">
-                                <span
-                                    class="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">Standard
-                                    Tracks</span>
-                                <div v-if="isSkillCompleted(exams[0], skill.id)" class="flex items-center gap-1.5">
-                                    <div class="w-1 h-1 rounded-full bg-emerald-400"></div>
-                                    <span
-                                        class="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Completed</span>
-                                </div>
+                <!-- Main Hub Content -->
+                <div class="flex-grow flex items-center justify-center p-12">
+                    <div class="max-w-md w-full text-center space-y-8 animate-in zoom-in duration-1000">
+                        <div class="w-32 h-32 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border border-slate-100 relative">
+                            <i class="pi pi-compass text-4xl text-brand-primary animate-pulse"></i>
+                            <div class="absolute -right-2 -top-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
+                                <i class="pi pi-check text-[10px] text-white"></i>
                             </div>
                         </div>
+                        
+                        <div class="space-y-3">
+                            <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Ready to Assess?</h2>
+                            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest leading-relaxed">
+                                You have pending skills to assess. Start your journey with the Arab Academy Proficiency Test today.
+                            </p>
+                        </div>
 
-                        <!-- Action -->
-                        <div class="shrink-0">
-                            <button v-if="!isSkillCompleted(exams[0], skill.id)" @click="startSkill(skill.id)"
-                                :disabled="startingSkillId !== null"
-                                class="px-6 py-2 bg-slate-900 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-brand-primary transition-all active:scale-95 disabled:opacity-50">
-                                <span v-if="startingSkillId === skill.id" class="flex items-center gap-2">
-                                    <i class="pi pi-spin pi-spinner text-[10px]"></i> Wait
-                                </span>
-                                <span v-else>Launch</span>
-                            </button>
-                            <div v-else
-                                class="px-6 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-emerald-100">
-                                Verified
+                        <button @click="router.push('/requirements')"
+                            class="group relative w-full py-6 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl hover:bg-brand-primary hover:shadow-brand-primary/30 hover:-translate-y-1 transition-all duration-300">
+                            <span class="flex items-center justify-center gap-3">
+                                Start New Assessment <i class="pi pi-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                            </span>
+                        </button>
+
+                        <div class="pt-8 grid grid-cols-2 gap-4">
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Last Activity</p>
+                                <p class="text-[10px] font-black text-slate-700 uppercase">Today</p>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Global Rank</p>
+                                <p class="text-[10px] font-black text-brand-accent uppercase">Candidate</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Footer Integration inside Right Column -->
-                <div class="p-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                <!-- Footer Integration -->
+                <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between shrink-0">
                     <span class="text-[8px] font-black text-slate-300 tracking-[0.16em]">
                      © Copyright 2012 – 2026 Arab Academy | All Rights Reserved
                     </span>

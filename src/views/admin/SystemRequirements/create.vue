@@ -41,15 +41,40 @@ const form = ref({
     category: 'General',
     is_active: true,
     is_mandatory: true,
-    order: 0
+    order: 0,
+    test_config: {}
 });
+
+const audioFile = ref(null);
+
+const onFileSelect = (event) => {
+    audioFile.value = event.target.files[0];
+};
 
 const saveRequirement = async () => {
     isSaving.value = true;
     errorMsg.value = '';
 
     try {
-        await api.post('/admin/system-requirements', form.value);
+        const formData = new FormData();
+        formData.append('title', form.value.title);
+        formData.append('description', form.value.description);
+        formData.append('test_type', form.value.test_type);
+        formData.append('category', form.value.category);
+        formData.append('is_active', form.value.is_active ? 1 : 0);
+        formData.append('is_mandatory', form.value.is_mandatory ? 1 : 0);
+        formData.append('order', form.value.order);
+        formData.append('test_config', JSON.stringify(form.value.test_config));
+
+        if (audioFile.value) {
+            formData.append('audio_file', audioFile.value);
+        }
+
+        await api.post('/admin/system-requirements', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
         router.push('/admin/system-requirements');
     } catch (err) {
         console.error(err);
@@ -129,6 +154,25 @@ const saveRequirement = async () => {
                                         <div class="flex flex-col space-y-2">
                                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Interactive Test Type</label>
                                             <Select v-model="form.test_type" :options="testTypes" optionLabel="label" optionValue="value" class="w-full rounded-xl bg-slate-50 border-slate-100" />
+                                        </div>
+
+                                        <!-- Audio Upload for Audio Output Test -->
+                                        <div v-if="form.test_type === 'audio_output'" class="flex flex-col space-y-2 animate-in fade-in duration-300">
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Test Audio File</label>
+                                            <div class="relative group">
+                                                <input type="file" @change="onFileSelect" accept="audio/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                                <div class="flex items-center space-x-4 p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 group-hover:bg-indigo-50 transition-colors">
+                                                    <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-indigo-500 shadow-sm">
+                                                        <i class="pi pi-volume-up"></i>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <p class="text-xs font-black text-slate-700">{{ audioFile ? audioFile.name : 'Select Custom Audio' }}</p>
+                                                        <p class="text-[9px] font-bold text-slate-400 uppercase">MP3, WAV, or OGG (MAX 5MB)</p>
+                                                    </div>
+                                                    <i class="pi pi-upload text-indigo-300"></i>
+                                                </div>
+                                            </div>
+                                            <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest ml-1">This audio will play for the student during the test.</p>
                                         </div>
 
                                         <div class="flex flex-col space-y-2">

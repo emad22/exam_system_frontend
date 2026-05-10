@@ -1,0 +1,187 @@
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import api from '@/services/api';
+import StudentHeader from '@/components/StudentHeader.vue';
+
+const router = useRouter();
+const exams = ref([]);
+const isLoading = ref(true);
+
+const fetchExams = async () => {
+    isLoading.value = true;
+    try {
+        const res = await api.get('/exams');
+        exams.value = res.data;
+    } catch (err) {
+        console.error('Failed to load exams', err);
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+const skillMap = {
+    'listening': 'Listening',
+    'reading': 'Reading',
+    'grammar': 'Structure',
+    'structure': 'Structure',
+    'writing': 'Writing',
+    'speaking': 'Speaking'
+};
+
+const getSkillDisplayName = (name) => {
+    if (!name) return 'Unknown Skill';
+    const lowerName = name.toLowerCase();
+    const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
+    return matchedKey ? skillMap[matchedKey] : name;
+};
+
+const getSkillIcon = (name) => {
+    name = name.toLowerCase();
+    if (name.includes('listening')) return '/Listening02.png';
+    if (name.includes('reading')) return '/Reading-1.png';
+    if (name.includes('writing')) return '/Writing-01.png';
+    if (name.includes('speaking')) return '/Speaking-02.png';
+    if (name.includes('grammar') || name.includes('structure')) return '/Strac-01.png';
+    return '/logo.png';
+};
+
+const isSkillCompleted = (exam, skillId) => {
+    if (!exam || !exam.skill_statuses) return false;
+    const status = exam.skill_statuses[skillId];
+    return ['completed', 'failed', 'skipped'].includes(status);
+};
+
+const isSkillInProgress = (exam, skillId) => {
+    if (!exam || !exam.skill_statuses) return false;
+    return exam.skill_statuses[skillId] === 'in_progress';
+};
+
+const selectSkill = (skillId) => {
+    const exam = exams.value[0];
+    if (!exam) return;
+    
+    router.push({
+        name: 'exam.instructions',
+        params: {
+            examId: exam.id,
+            skillId: skillId
+        }
+    });
+};
+
+onMounted(fetchExams);
+</script>
+
+<template>
+    <div class="h-screen bg-[#F8FAFC] flex flex-col font-sans overflow-hidden">
+        <StudentHeader />
+        
+        <!-- Soft background blobs -->
+        <div class="fixed inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute -top-[10%] -right-[5%] w-[40%] h-[40%] bg-brand-primary/5 rounded-full blur-[120px]"></div>
+            <div class="absolute top-[30%] -left-[10%] w-[30%] h-[30%] bg-brand-accent/5 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div class="max-w-5xl mx-auto w-full flex-grow flex flex-col relative z-10 p-6 md:p-12 overflow-hidden">
+            <!-- Header Section -->
+            <div class="flex flex-col md:flex-row items-end justify-between mb-12 gap-6 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0 border-b border-slate-100 pb-8">
+                <div>
+                    <h1 class="text-4xl font-black text-slate-900 tracking-tight uppercase leading-none">Assessment Modules</h1>
+                    <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-4">Select a skill to begin your evaluation</p>
+                </div>
+                
+                <div class="flex items-center gap-3 bg-emerald-50 px-5 py-2 rounded-full border border-emerald-100 shadow-sm">
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">System Ready</span>
+                </div>
+            </div>
+
+            <!-- Skills List Area -->
+            <div class="flex-grow overflow-hidden relative">
+                <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-12 h-12 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin"></div>
+                </div>
+
+                <div v-else-if="!exams.length" class="absolute inset-0 flex flex-col items-center justify-center text-center p-12">
+                    <span class="text-6xl mb-6 opacity-20">🎯</span>
+                    <h2 class="text-2xl font-black text-slate-700 uppercase tracking-tight">No Active Assessments</h2>
+                    <p class="text-slate-400 font-bold mt-4 text-sm uppercase tracking-widest max-w-md">Your account is currently pending activation.</p>
+                </div>
+
+                <div v-else class="h-full overflow-y-auto pr-4 custom-scrollbar">
+                    <div class="space-y-4 pb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div v-for="skill in exams[0]?.skills" :key="skill.id"
+                            @click="!isSkillCompleted(exams[0], skill.id) && selectSkill(skill.id)"
+                            class="group relative bg-white border border-slate-100 rounded-3xl p-6 transition-all duration-300 flex items-center gap-8 cursor-pointer hover:shadow-xl hover:shadow-slate-200/50 hover:border-brand-primary/20 hover:-translate-x-2"
+                            :class="isSkillCompleted(exams[0], skill.id) ? 'opacity-50 grayscale pointer-events-none' : ''">
+                            
+                            <!-- Icon -->
+                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm border border-slate-50 shrink-0"
+                                :class="isSkillCompleted(exams[0], skill.id) ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-600 group-hover:bg-brand-primary group-hover:text-white'">
+                                <i v-if="isSkillCompleted(exams[0], skill.id)" class="pi pi-check text-xl"></i>
+                                <img v-else :src="getSkillIcon(skill.name)" :alt="skill.name" class="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
+                            </div>
+
+                            <!-- Details -->
+                            <div class="flex-grow">
+                                <div class="flex items-center gap-4 mb-1">
+                                    <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-brand-primary transition-colors leading-none">
+                                        {{ getSkillDisplayName(skill.name) }}
+                                    </h3>
+                                <div v-if="isSkillCompleted(exams[0], skill.id)" class="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-md border border-emerald-100">
+                                        <i class="pi pi-check-circle text-[10px]"></i>
+                                        <span class="text-[8px] font-black uppercase tracking-widest">Completed</span>
+                                    </div>
+                                    <div v-else-if="isSkillInProgress(exams[0], skill.id)" class="flex items-center gap-1.5 bg-brand-primary/10 text-brand-primary px-3 py-1 rounded-md border border-brand-primary/20">
+                                        <div class="w-1 h-1 rounded-full bg-brand-primary animate-pulse"></div>
+                                        <span class="text-[8px] font-black uppercase tracking-widest">In Progress</span>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Institutional Proficiency Assessment Track</p>
+                            </div>
+
+                            <!-- Action "Link" Style -->
+                            <div class="shrink-0 flex items-center gap-4">
+                                <div v-if="!isSkillCompleted(exams[0], skill.id)" 
+                                    class="flex items-center gap-2 text-slate-300 group-hover:text-brand-primary transition-all font-black text-[10px] uppercase tracking-[0.2em]">
+                                    <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Assessment' : 'Start Assessment' }}</span>
+                                    <i class="pi pi-arrow-right text-[8px] group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                                <div v-else class="text-emerald-500 font-black text-[10px] uppercase tracking-[0.2em]">
+                                    Verified
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="mt-8 text-center animate-in fade-in duration-1000 shrink-0 border-t border-slate-50 pt-8">
+                <p class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em]">
+                    Arab Academy Institutional Assessment Protocol © 2026
+                </p>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+.animate-in {
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #E2E8F0;
+    border-radius: 10px;
+}
+</style>

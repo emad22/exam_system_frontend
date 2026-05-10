@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
+import StudentHeader from '@/components/StudentHeader.vue';
 
 const route  = useRoute();
 const router = useRouter();
@@ -34,7 +35,8 @@ const levelLabel = (level) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 font-sans text-slate-900 border-t-[6px] border-brand-primary">
+  <div class="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <StudentHeader />
 
     <!-- Loading -->
     <div v-if="loading" class="flex flex-col items-center justify-center min-h-screen space-y-6">
@@ -46,7 +48,7 @@ const levelLabel = (level) => {
     <div v-else-if="hasError" class="max-w-xl mx-auto py-32 text-center space-y-6">
       <div class="text-5xl grayscale opacity-20">⚠️</div>
       <h2 class="text-xl font-black text-slate-700">تعذّر تحميل النتائج</h2>
-      <button @click="router.push('/dashboard')" class="bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-brand-primary/20">
+      <button @click="router.push('/skill-selection')" class="bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-brand-primary/20">
         العودة للوحة التحكم
       </button>
     </div>
@@ -126,7 +128,7 @@ const levelLabel = (level) => {
 
       <!-- CTA -->
       <div class="text-center pt-8">
-        <button @click="router.push('/dashboard')"
+        <button @click="router.push('/skill-selection')"
           class="bg-brand-primary text-white px-14 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-brand-primary/20 hover:-translate-y-1 hover:shadow-brand-primary/40 active:scale-95 transition-all duration-300">
           العودة إلى لوحة المهارات
         </button>

@@ -59,12 +59,37 @@ onMounted(async () => {
     }
 });
 
+const audioFile = ref(null);
+
+const onFileSelect = (event) => {
+    audioFile.value = event.target.files[0];
+};
+
 const updateRequirement = async () => {
     isSaving.value = true;
     errorMsg.value = '';
 
     try {
-        await api.patch(`/admin/system-requirements/${route.params.id}`, form.value);
+        const formData = new FormData();
+        formData.append('_method', 'PATCH');
+        formData.append('title', form.value.title);
+        formData.append('description', form.value.description);
+        formData.append('test_type', form.value.test_type);
+        formData.append('category', form.value.category);
+        formData.append('is_active', form.value.is_active ? 1 : 0);
+        formData.append('is_mandatory', form.value.is_mandatory ? 1 : 0);
+        formData.append('order', form.value.order);
+        formData.append('test_config', JSON.stringify(form.value.test_config || {}));
+
+        if (audioFile.value) {
+            formData.append('audio_file', audioFile.value);
+        }
+
+        await api.post(`/admin/system-requirements/${route.params.id}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
         router.push('/admin/system-requirements');
     } catch (err) {
         console.error(err);
@@ -149,6 +174,35 @@ const updateRequirement = async () => {
                                         <div class="flex flex-col space-y-2">
                                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Interactive Test Type</label>
                                             <Select v-model="form.test_type" :options="testTypes" optionLabel="label" optionValue="value" class="w-full rounded-xl bg-slate-50 border-slate-100" />
+                                        </div>
+
+                                        <!-- Audio Upload for Audio Output Test -->
+                                        <div v-if="form.test_type === 'audio_output'" class="flex flex-col space-y-2 animate-in fade-in duration-300">
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Test Audio File</label>
+                                            
+                                            <!-- Current Audio Indicator -->
+                                            <div v-if="form.test_config?.audio_url" class="p-3 mb-2 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-between">
+                                                <div class="flex items-center space-x-3">
+                                                    <i class="pi pi-check-circle text-emerald-500"></i>
+                                                    <span class="text-xs font-bold text-emerald-700 uppercase tracking-tight">Audio file configured</span>
+                                                </div>
+                                                <a :href="form.test_config.audio_url" target="_blank" class="text-[10px] font-black text-emerald-600 hover:underline">PLAY CURRENT</a>
+                                            </div>
+
+                                            <div class="relative group">
+                                                <input type="file" @change="onFileSelect" accept="audio/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                                <div class="flex items-center space-x-4 p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 group-hover:bg-indigo-50 transition-colors">
+                                                    <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-indigo-500 shadow-sm">
+                                                        <i class="pi pi-volume-up"></i>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <p class="text-xs font-black text-slate-700">{{ audioFile ? audioFile.name : 'Update Custom Audio' }}</p>
+                                                        <p class="text-[9px] font-bold text-slate-400 uppercase">MP3, WAV, or OGG (MAX 5MB)</p>
+                                                    </div>
+                                                    <i class="pi pi-upload text-indigo-300"></i>
+                                                </div>
+                                            </div>
+                                            <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest ml-1">Upload a new file to replace the existing one.</p>
                                         </div>
 
                                         <div class="flex flex-col space-y-2">

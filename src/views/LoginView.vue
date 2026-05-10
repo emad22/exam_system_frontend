@@ -32,7 +32,7 @@ const handleLogin = async () => {
         } else if (res.data.role === 'teacher') {
             router.push('/teacher');
         } else {
-            router.push('/dashboard');
+            router.push('/requirements');
         }
     } catch (err) {
         errorMsg.value = err.response?.data?.message || 'Invalid credentials. Please try again.';

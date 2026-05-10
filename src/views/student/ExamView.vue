@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import api from '@/services/api';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import AudioRecorder from '@/components/AudioRecorder.vue';
 import RequirementTester from '@/components/RequirementTester.vue';
+import StudentHeader from '@/components/StudentHeader.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -25,7 +26,7 @@ const totalSkillQuestions = ref(0);
 const currentLevel = ref(null);
 
 const isLoading = ref(true);
-const isStarting = ref(true);
+const isStarting = ref(false);
 const isSubmittingBatch = ref(false);
 const questionSubmitted = ref(false);
 const isRetryAttempt = ref(false);
@@ -187,49 +188,23 @@ const handleTestPassed = (req) => {
 };
 
 const autoVerifyRequirements = (requirements) => {
-    const ua = navigator.userAgent.toLowerCase();
-    const isOnline = navigator.onLine;
-    const isChrome = ua.includes('chrome') && !ua.includes('edg');
-    const isEdge = ua.includes('edg');
-    const isDesktop = !/android|iphone|ipad|mobile/.test(ua);
-    const hasMediaDevices = !!(navigator.mediaDevices);
-
-    requirements.forEach(req => {
-        // Do not auto-verify if it requires an interactive test
-        if (req.test_type && req.test_type !== 'none') {
-            return;
-        }
-
-        const cat = req.category?.toLowerCase();
-        const title = req.title?.toLowerCase();
-        let verified = false;
-        
-        if (cat === 'internet' || title.includes('internet')) verified = isOnline;
-        else if (cat === 'browser' || title.includes('chrome')) verified = (isChrome || isEdge) && isDesktop;
-        else if (cat === 'hardware' || title.includes('audio')) verified = hasMediaDevices;
-
-        if (verified) {
-            autoVerifiedIds.value.push(req.id);
-            if (!checkedRequirements.value.includes(req.id)) checkedRequirements.value.push(req.id);
-        }
-    });
+    // Requirements are now handled in a separate screen
 };
 
 const fetchData = async () => {
     isLoading.value = true;
     try {
-        const [reqRes] = await Promise.all([
-            api.get('/public/system-requirements')
-        ]);
-        systemRequirements.value = reqRes.data;
-        autoVerifyRequirements(reqRes.data);
-
         if (attemptId.value && attemptId.value !== 'start') {
             const attRes = await api.get(`/attempts/${attemptId.value}`);
             attempt.value = attRes.data;
             if (attempt.value.status === 'completed' || attempt.value.status === 'voided') {
-                router.push('/dashboard');
+                router.push('/skill-selection');
+                return;
             }
+            await fetchNextBatch();
+            startTimer();
+        } else {
+            await beginExam();
         }
     } catch (err) {
         errorMsg.value = "Session initialization failed.";
@@ -269,10 +244,10 @@ const confirmExit = async () => {
     try {
         isLoading.value = true;
         await api.post(`/attempts/${attemptId.value}/completion`);
-        router.push('/dashboard');
+        router.push('/skill-selection');
     } catch (err) {
         console.error('Error finishing attempt:', err);
-        router.push('/dashboard');
+        router.push('/skill-selection');
     }
 };
 
@@ -281,6 +256,11 @@ const exitExam = () => {
 };
 
 const isNavigatingBack = ref(false);
+const isIntentionallyLeaving = ref(false);
+
+onBeforeRouteLeave((to, from) => {
+    isIntentionallyLeaving.value = true;
+});
 
 const prevQuestion = () => {
     if (currentIndex.value > 0) {
@@ -622,7 +602,7 @@ const submitCurrentBatch = async () => {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         if (res.data.finished_exam) router.push(`/exam/${attemptId.value}/result`);
-        else if (res.data.next_step === 'dashboard') router.push('/dashboard');
+        else if (res.data.next_step === 'dashboard') router.push('/skill-selection');
         else {
             // Handle retry notification logic
             if (res.data.retry_attempt) {
@@ -647,10 +627,10 @@ const submitCurrentBatch = async () => {
 const handleTimeout = async () => {
     try {
         await api.post(`/attempts/${attemptId.value}/timeout`);
-        router.push('/dashboard');
+        router.push('/skill-selection');
     } catch (err) {
         console.error('Timeout finalization failed', err);
-        router.push('/dashboard');
+        router.push('/skill-selection');
     }
 };
 
@@ -790,7 +770,7 @@ const hasStimulusContent = computed(() => {
 
 // --- ANTI-CHEAT LOGIC ---
 const handleVisibilityChange = async () => {
-    if (document.visibilityState === 'hidden' && !isStarting.value && !showTimeoutModal.value) {
+    if (document.visibilityState === 'hidden' && !isStarting.value && !showTimeoutModal.value && !isIntentionallyLeaving.value) {
         cheatWarnings.value++;
 
         // Log to database
@@ -802,7 +782,7 @@ const handleVisibilityChange = async () => {
                 showFinalCheatModal.value = true;
                 setTimeout(() => {
                     // Redirect to dashboard as requested
-                    router.push('/dashboard');
+                    router.push('/skill-selection');
                 }, 5000);
                 return;
             }
@@ -842,6 +822,10 @@ const checkInactivity = () => {
     }
 };
 
+const handleBeforeUnload = () => {
+    isIntentionallyLeaving.value = true;
+};
+
 onMounted(async () => {
     const user = JSON.parse(localStorage.getItem('user'));
     isDemo.value = user && ['demo', 'deom', 'staff'].includes(user.role?.toLowerCase());
@@ -852,6 +836,7 @@ onMounted(async () => {
     document.addEventListener('copy', preventCopyPaste);
     document.addEventListener('paste', preventCopyPaste);
     document.addEventListener('contextmenu', preventCopyPaste);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Inactivity tracking
     document.addEventListener('mousemove', updateActivity);
@@ -876,6 +861,7 @@ onUnmounted(() => {
     document.removeEventListener('copy', preventCopyPaste);
     document.removeEventListener('paste', preventCopyPaste);
     document.removeEventListener('contextmenu', preventCopyPaste);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
     document.removeEventListener('mousemove', updateActivity);
     document.removeEventListener('keydown', updateActivity);
     document.removeEventListener('click', updateActivity);
@@ -884,6 +870,7 @@ onUnmounted(() => {
 
 <template>
     <div class="h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden flex flex-col">
+        <StudentHeader />
 
 
         <header v-if="!isStarting && currentSkill" class="bg-slate-800 text-white shadow-md h-20 px-6 shrink-0"
@@ -1005,41 +992,7 @@ onUnmounted(() => {
                 <p class="mt-6 text-sm font-bold text-slate-500 uppercase tracking-widest">جاري تحميل المحتوى...</p>
             </div>
 
-            <!-- Start Screen -->
-            <div v-else-if="isStarting" class="max-w-4xl mx-auto py-12" dir="rtl">
-                <div class="bg-white rounded-xl p-16 border border-slate-200 shadow-xl text-center">
-                    <h2 class="text-4xl font-black text-slate-900 tracking-tight mb-4 uppercase">System Readiness Check
-                    </h2>
-                    <p class="text-slate-500 text-base font-medium mb-12">The system has verified your system
-                        requirements. You
-                        are now about to enter a timed testing environment.</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-1 gap-8 text-right mb-16">
-                        <div class="bg-slate-100/100 p-8 rounded-3xl border border-slate-100">
-                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-6">متطلبات النظام
-                            </h4>
-                            <div class="space-y-4">
-                                <div v-for="req in systemRequirements" :key="req.id" @click="toggleRequirement(req)"
-                                    class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-slate-100 cursor-pointer group">
-                                    <span class="text-[10px] font-black text-slate-600 uppercase tracking-tight">{{
-                                        req.title
-                                        }}</span>
-                                    <div :class="checkedRequirements.includes(req.id) ? 'bg-emerald-500 border-emerald-500' : 'bg-slate-50 border-slate-200'"
-                                        class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all">
-                                        <i v-if="checkedRequirements.includes(req.id)"
-                                            class="pi pi-check text-[8px] text-white"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button @click="beginExam" :disabled="!canStart"
-                        class="w-full py-8 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-sm tracking-[0.2em] shadow-2xl hover:bg-brand-primary hover:shadow-brand-primary/20 transition-all active:scale-95 disabled:opacity-30">
-                        بدء الاختبار الآن
-                    </button>
-                </div>
-            </div>
 
             <!-- Error State -->
             <div v-else-if="errorMsg" class="max-w-xl mx-auto py-32 text-center space-y-8" dir="rtl">
@@ -1051,7 +1004,7 @@ onUnmounted(() => {
                     <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">تنبيه النظام</h2>
                     <p class="text-slate-500 font-medium leading-relaxed">{{ errorMsg }}</p>
                 </div>
-                <button @click="router.push('/dashboard')"
+                <button @click="router.push('/skill-selection')"
                     class="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-brand-primary transition-all active:scale-95">
                     العودة للوحة التحكم
                 </button>

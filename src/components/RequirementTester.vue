@@ -25,6 +25,27 @@ const playTestSound = () => {
     isPlaying.value = true;
     errorMessage.value = '';
     
+    const customAudioUrl = props.requirement.test_config?.audio_url;
+
+    if (customAudioUrl) {
+        try {
+            const audio = new Audio(customAudioUrl);
+            audio.play().catch(e => {
+                console.error("Audio play failed:", e);
+                errorMessage.value = "فشل تشغيل الصوت. قد يكون المتصفح يمنع ذلك.";
+                isPlaying.value = false;
+            });
+            audio.onended = () => {
+                isPlaying.value = false;
+            };
+        } catch (e) {
+            console.error("Audio initialization failed:", e);
+            errorMessage.value = "فشل تهيئة مشغل الصوت.";
+            isPlaying.value = false;
+        }
+        return;
+    }
+
     try {
         testAudioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = testAudioContext.createOscillator();
@@ -48,8 +69,8 @@ const playTestSound = () => {
             isPlaying.value = false;
         };
     } catch (e) {
-        console.error("Audio play failed:", e);
-        errorMessage.value = "فشل تشغيل الصوت. قد يكون المتصفح يمنع ذلك.";
+        console.error("Audio tone failed:", e);
+        errorMessage.value = "فشل تشغيل نغمة الاختبار.";
         isPlaying.value = false;
     }
 };

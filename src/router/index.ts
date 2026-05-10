@@ -351,6 +351,24 @@ const routes = [
     component: ProfileView,
     meta: { title: 'My Profile' }
   },
+  {
+    path: '/requirements',
+    name: 'requirements',
+    component: () => import('@/views/student/RequirementsView.vue'),
+    meta: { title: 'System Requirements' }
+  },
+  {
+    path: '/skill-selection',
+    name: 'skill-selection',
+    component: () => import('@/views/student/SkillSelectionView.vue'),
+    meta: { title: 'Select Skill' }
+  },
+  {
+    path: '/instructions/:examId/:skillId/:levelId?',
+    name: 'exam.instructions',
+    component: () => import('@/views/student/InstructionsView.vue'),
+    meta: { title: 'Exam Instructions' }
+  },
   ...adminRoutes,
   ...teacherRoutes
 ]
