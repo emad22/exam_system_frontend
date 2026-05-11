@@ -37,6 +37,7 @@ const questionTypes = [
     { label: 'Writing Task', value: 'writing', icon: 'pi-file-edit' },
     { label: 'Speaking Task', value: 'speaking', icon: 'pi-microphone' },
     { label: 'File Upload', value: 'upload', icon: 'pi-upload' },
+    { label: 'Highlight', value: 'highlight', icon: 'pi-eye' },
     { label: 'Word Selection (Legacy)', value: 'word_selection', icon: 'pi-cursor-click' }
 ];
 
@@ -62,7 +63,7 @@ const form = ref({
 const filteredSkills = computed(() => {
     const exam = exams.value.find(e => e.id === form.value.exam_id);
     if (!exam || !exam.skills) return [];
-    
+
     // Map the exam skills to include levels_count from the master skills list
     return exam.skills.map(examSkill => {
         const masterSkill = skills.value.find(s => s.id === examSkill.id);
@@ -420,7 +421,8 @@ onMounted(() => {
                             <label
                                 class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Difficulty
                                 Level ({{ form.level_id }})</label>
-                            <Slider v-model="form.level_id" :min="1" :max="currentSkillMaxLevel" :step="1" class="w-full mt-4" />
+                            <Slider v-model="form.level_id" :min="1" :max="currentSkillMaxLevel" :step="1"
+                                class="w-full mt-4" />
                             <div
                                 class="flex justify-between text-[10px] text-slate-400 font-black mt-4 uppercase tracking-tighter">
                                 <span>Beginner</span>
@@ -473,14 +475,16 @@ onMounted(() => {
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                                 <div class="md:col-span-8 flex flex-col">
                                     <label
-                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Title of the Material / Text</label>
+                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Title
+                                        of the Material / Text</label>
                                     <InputText v-model="form.passage_title"
                                         placeholder="e.g. Reading Comprehension: The Solar System..."
                                         class="w-full rounded-2xl h-14 bg-slate-50/50 border-none px-6 font-bold text-slate-800" />
                                 </div>
                                 <div class="md:col-span-4 flex flex-col">
                                     <label
-                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Material Type</label>
+                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Material
+                                        Type</label>
                                     <Select v-model="form.passage_type"
                                         :options="[{ label: 'Reading Text', value: 'text' }, { label: 'Image-based', value: 'image' }, { label: 'Audio-based', value: 'audio' }, { label: 'Video-based', value: 'video' }]"
                                         optionLabel="label" optionValue="value"
@@ -490,9 +494,12 @@ onMounted(() => {
 
                             <!-- Text Content: Rich Editor -->
                             <div class="flex flex-col">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Main Content / Passage Text</label>
-                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Type the reading text that questions will be based on</p>
-                                <Editor v-model="form.passage_content" editorStyle="height: 200px" 
+                                <label
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Main
+                                    Content / Passage Text</label>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Type
+                                    the reading text that questions will be based on</p>
+                                <Editor v-model="form.passage_content" editorStyle="height: 200px"
                                     class="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50/50"
                                     placeholder="Enter formatted reading text here..." />
                             </div>
@@ -659,64 +666,86 @@ onMounted(() => {
 
                             <!-- Text Mode: Rich Editor -->
                             <div v-if="q.content_mode === 'text'" class="space-y-2">
-                                <Editor v-model="q.content" editorStyle="height: 120px" 
+                                <Editor v-model="q.content" editorStyle="height: 120px"
                                     class="rounded-[1.5rem] overflow-hidden border border-slate-100 bg-slate-50/50"
                                     placeholder="Type your formatted question here..." />
-                                
-                                <div v-if="q.type === 'drag_drop'" class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                                    <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+
+                                <div v-if="q.type === 'drag_drop'"
+                                    class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                                    <p
+                                        class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Drag & Drop Guide
                                     </p>
                                     <p class="text-[11px] text-indigo-500 mt-1">
-                                        Use <b>...............</b> where you want a blank space. Each <b>...............</b> will be matched to one of the options below in order.
+                                        Use <b>...............</b> where you want a blank space. Each
+                                        <b>...............</b> will be
+                                        matched to one of the options below in order.
                                         Example: "The <b>...............</b> is a <b>...............</b> animal."
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'word_selection' || q.type === 'click_word'" class="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                                    <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'word_selection' || q.type === 'click_word'"
+                                    class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                                    <p
+                                        class="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Word Selection Guide
                                     </p>
                                     <p class="text-[11px] text-amber-500 mt-1">
-                                        The system will automatically make the words you add in "Options" clickable. 
+                                        The system will automatically make the words you add in "Options" clickable.
                                         Mark <b>Is Correct</b> for words that the student <b>should</b> click.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'fill_blank'" class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'fill_blank'"
+                                    class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <p
+                                        class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Fill in the Blank Guide
                                     </p>
                                     <p class="text-[11px] text-blue-500 mt-1">
-                                        Use <b>[input]</b> where you want a text box. Each <b>[input]</b> will be checked against the options below in order.
+                                        Use <b>[input]</b> where you want a text box. Each <b>[input]</b> will be
+                                        checked against
+                                        the options below in order.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'matching'" class="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                                    <p class="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'matching'"
+                                    class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                    <p
+                                        class="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Matching Guide
                                     </p>
                                     <p class="text-[11px] text-purple-500 mt-1">
                                         Add pairs using the pipe symbol. Example: <b>Term | Definition</b>.<br>
-                                        Each pair will be split automatically. To add a distractor (a target with no matching source), simply enter the text without the pipe symbol.
+                                        Each pair will be split automatically. To add a distractor (a target with no
+                                        matching
+                                        source), simply enter the text without the pipe symbol.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'ordering'" class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                    <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'ordering'"
+                                    class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <p
+                                        class="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Ordering Guide
                                     </p>
                                     <p class="text-[11px] text-slate-500 mt-1">
-                                        Add items in the correct order. Use the <b>Sort Order</b> field to define the sequence if necessary, but typically the order in the list is used.
+                                        Add items in the correct order. Use the <b>Sort Order</b> field to define the
+                                        sequence if
+                                        necessary, but typically the order in the list is used.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'highlight'" class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                                    <p class="text-[10px] font-black text-yellow-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'highlight'"
+                                    class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                                    <p
+                                        class="text-[10px] font-black text-yellow-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Highlight Guide
                                     </p>
                                     <p class="text-[11px] text-yellow-700 mt-1">
-                                        Add phrases or sentences as options. Mark <b>Is Correct</b> for those that should be highlighted by the student.
+                                        Add phrases or sentences as options. Mark <b>Is Correct</b> for those that
+                                        should be
+                                        highlighted by the student.
                                     </p>
                                 </div>
                             </div>
@@ -793,8 +822,7 @@ onMounted(() => {
                                                 Media (Video/Misc)</label>
                                             <div class="grow h-[1px] bg-slate-50"></div>
                                             <Button icon="pi pi-plus" label="Add Video/Other" text
-                                                class="text-[9px] font-black"
-                                                @click="triggerQFile(qIdx)" />
+                                                class="text-[9px] font-black" @click="triggerQFile(qIdx)" />
                                             <input type="file" :id="`qFile_${qIdx}`" class="hidden"
                                                 @change="(e) => handleQFileChange(e, qIdx)" accept="video/*" />
                                         </div>
@@ -815,12 +843,15 @@ onMounted(() => {
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
                             <!-- Options Section: Larger Space -->
-                            <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)" class="lg:col-span-8 space-y-6">
+                            <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)"
+                                class="lg:col-span-8 space-y-6">
                                 <div class="flex items-center justify-between">
                                     <label
-                                        class="text-xs font-black text-indigo-500 ml-2 uppercase tracking-wide">Options Matrix</label>
-                                    <Button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type)" icon="pi pi-plus"
-                                        label="Add Option" text rounded @click="addOption(qIdx)"
+                                        class="text-xs font-black text-indigo-500 ml-2 uppercase tracking-wide">Options
+                                        Matrix</label>
+                                    <Button
+                                        v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type)"
+                                        icon="pi pi-plus" label="Add Option" text rounded @click="addOption(qIdx)"
                                         class="text-[10px] font-black text-emerald-600" />
                                 </div>
                                 <div class="space-y-4">
@@ -828,7 +859,8 @@ onMounted(() => {
                                         class="flex items-center gap-6 p-5 rounded-[2rem] border-2 transition-all bg-white"
                                         :class="opt.is_correct ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-50 shadow-sm'">
                                         <div class="flex flex-col items-center gap-1 shrink-0">
-                                            <span class="text-[9px] font-black text-slate-400 uppercase">#{{ oIdx + 1 }}</span>
+                                            <span class="text-[9px] font-black text-slate-400 uppercase">#{{ oIdx + 1
+                                            }}</span>
                                             <button v-if="q.type !== 'short_answer'" type="button"
                                                 @click="setCorrect(qIdx, oIdx)"
                                                 class="w-12 h-12 rounded-2xl border-2 flex items-center justify-center transition-all"
@@ -844,11 +876,13 @@ onMounted(() => {
                                                 class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                 <i class="pi pi-chevron-up text-[10px]"></i>
                                             </button>
-                                            <button v-if="oIdx < q.options.length - 1" type="button" @click="moveOptionDown(qIdx, oIdx)"
+                                            <button v-if="oIdx < q.options.length - 1" type="button"
+                                                @click="moveOptionDown(qIdx, oIdx)"
                                                 class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                 <i class="pi pi-chevron-down text-[10px]"></i>
                                             </button>
-                                            <button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && (q.type === 'click_word' ? q.options.length > 1 : q.options.length > 1)"
+                                            <button
+                                                v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && (q.type === 'click_word' ? q.options.length > 1 : q.options.length > 1)"
                                                 @click="removeOption(qIdx, oIdx)"
                                                 class="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
                                                 <i class="pi pi-trash text-[10px]"></i>
@@ -859,17 +893,20 @@ onMounted(() => {
                             </div>
 
                             <!-- Points & Word Limits: Sidebar Style -->
-                            <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'" class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
+                            <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'"
+                                class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
                                 <div class="flex items-center gap-3">
                                     <i class="pi pi-calculator text-indigo-400"></i>
-                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring & Parameters</label>
+                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring &
+                                        Parameters</label>
                                 </div>
                                 <div class="grid grid-cols-1 gap-6">
                                     <div class="flex flex-col">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort Order</label>
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort
+                                            Order</label>
                                         <InputNumber v-model="q.sort_order" :min="0" showButtons
-                                            buttonLayout="horizontal"
-                                            class="w-full h-10"
+                                            buttonLayout="horizontal" class="w-full h-10"
                                             inputClass="text-center font-black text-slate-600 bg-slate-50/50 border-none rounded-xl"
                                             incrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-r-xl"
                                             decrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-l-xl"
@@ -877,9 +914,9 @@ onMounted(() => {
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
                                     <div class="flex flex-col">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
-                                        <InputNumber v-model="q.points" :min="1" showButtons
-                                            buttonLayout="horizontal"
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
+                                        <InputNumber v-model="q.points" :min="1" showButtons buttonLayout="horizontal"
                                             class="w-full h-10"
                                             inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-none rounded-xl"
                                             incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-xl"
@@ -887,13 +924,16 @@ onMounted(() => {
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-                                    <div v-if="q.type === 'writing'" class="space-y-4 pt-4 border-t border-slate-200/50">
+                                    <div v-if="q.type === 'writing'"
+                                        class="space-y-4 pt-4 border-t border-slate-200/50">
                                         <div class="flex flex-col">
-                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase">Min Words</label>
+                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase">Min
+                                                Words</label>
                                             <InputNumber v-model="q.min_words" placeholder="0" class="w-full" />
                                         </div>
                                         <div class="flex flex-col">
-                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase">Max Words</label>
+                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase">Max
+                                                Words</label>
                                             <InputNumber v-model="q.max_words" placeholder="200" class="w-full" />
                                         </div>
                                     </div>
