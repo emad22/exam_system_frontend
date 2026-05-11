@@ -83,12 +83,12 @@ onMounted(fetchExams);
             <div class="absolute top-[30%] -left-[10%] w-[30%] h-[30%] bg-brand-accent/5 rounded-full blur-[120px]"></div>
         </div>
 
-        <div class="max-w-5xl mx-auto w-full flex-grow flex flex-col relative z-10 p-6 md:p-12 overflow-hidden">
+        <div class="max-w-5xl mx-auto w-full flex-grow flex flex-col relative z-10 px-6 py-4 md:px-8 md:py-5 overflow-hidden">
             <!-- Header Section -->
-            <div class="flex flex-col md:flex-row items-end justify-between mb-12 gap-6 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0 border-b border-slate-100 pb-8">
+            <div class="flex flex-col md:flex-row items-end justify-between mb-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0 border-b border-slate-100 pb-4">
                 <div>
-                    <h1 class="text-4xl font-black text-slate-900 tracking-tight uppercase leading-none">Assessment Modules</h1>
-                    <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-4">Select a skill to begin your evaluation</p>
+                    <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase leading-tight">Arabic Language Proficiency Test (ALPT)</h1>
+                    <p class="text-slate-400 font-bold text-[9px] uppercase tracking-[0.3em] mt-2">Select a skill to begin your evaluation</p>
                 </div>
                 
                 <div class="flex items-center gap-3 bg-emerald-50 px-5 py-2 rounded-full border border-emerald-100 shadow-sm">
@@ -109,24 +109,24 @@ onMounted(fetchExams);
                     <p class="text-slate-400 font-bold mt-4 text-sm uppercase tracking-widest max-w-md">Your account is currently pending activation.</p>
                 </div>
 
-                <div v-else class="h-full overflow-y-auto pr-4 custom-scrollbar">
-                    <div class="space-y-4 pb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div v-else class="h-full overflow-hidden pt-2">
+                    <div class="space-y-2.5 pb-1 animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <div v-for="skill in exams[0]?.skills" :key="skill.id"
                             @click="!isSkillCompleted(exams[0], skill.id) && selectSkill(skill.id)"
-                            class="group relative bg-white border border-slate-100 rounded-3xl p-6 transition-all duration-300 flex items-center gap-8 cursor-pointer hover:shadow-xl hover:shadow-slate-200/50 hover:border-brand-primary/20 hover:-translate-x-2"
+                            class="group relative bg-white border border-slate-100 rounded-xl px-5 py-3 min-h-[78px] transition-all duration-300 flex items-center gap-5 cursor-pointer hover:shadow-lg hover:shadow-slate-200/50 hover:border-brand-primary/20 hover:-translate-x-1"
                             :class="isSkillCompleted(exams[0], skill.id) ? 'opacity-50 grayscale pointer-events-none' : ''">
                             
                             <!-- Icon -->
-                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm border border-slate-50 shrink-0"
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500 shadow-sm border border-slate-50 shrink-0"
                                 :class="isSkillCompleted(exams[0], skill.id) ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-600 group-hover:bg-brand-primary group-hover:text-white'">
-                                <i v-if="isSkillCompleted(exams[0], skill.id)" class="pi pi-check text-xl"></i>
-                                <img v-else :src="getSkillIcon(skill.name)" :alt="skill.name" class="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
+                                <i v-if="isSkillCompleted(exams[0], skill.id)" class="pi pi-check text-base"></i>
+                                <img v-else :src="getSkillIcon(skill.name)" :alt="skill.name" class="w-8 h-8 object-contain group-hover:scale-110 transition-transform" />
                             </div>
 
                             <!-- Details -->
                             <div class="flex-grow">
                                 <div class="flex items-center gap-4 mb-1">
-                                    <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-brand-primary transition-colors leading-none">
+                                    <h3 class="text-sm font-black text-slate-800 tracking-tight uppercase group-hover:text-brand-primary transition-colors leading-none">
                                         {{ getSkillDisplayName(skill.name) }}
                                     </h3>
                                 <div v-if="isSkillCompleted(exams[0], skill.id)" class="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-md border border-emerald-100">
@@ -137,14 +137,18 @@ onMounted(fetchExams);
                                         <div class="w-1 h-1 rounded-full bg-brand-primary animate-pulse"></div>
                                         <span class="text-[8px] font-black uppercase tracking-widest">In Progress</span>
                                     </div>
+                                    <div v-else  class="flex items-center gap-1.5 bg-brand-primary/10 text-brand-primary px-3 py-1 rounded-md border border-brand-primary/20">
+                                        <div class="w-1 h-1 rounded-full bg-brand-primary animate-pulse"></div>
+                                        <span class="text-[8px] font-black uppercase tracking-widest">no taken</span>
+                                    </div>
                                 </div>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Institutional Proficiency Assessment Track</p>
+                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Institutional Proficiency Assessment Track</p>
                             </div>
 
                             <!-- Action "Link" Style -->
                             <div class="shrink-0 flex items-center gap-4">
                                 <div v-if="!isSkillCompleted(exams[0], skill.id)" 
-                                    class="flex items-center gap-2 text-slate-300 group-hover:text-brand-primary transition-all font-black text-[10px] uppercase tracking-[0.2em]">
+                                    class="flex items-center gap-2 text-slate-300 group-hover:text-brand-primary transition-all font-black text-[9px] uppercase tracking-[0.2em]">
                                     <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Assessment' : 'Start Assessment' }}</span>
                                     <i class="pi pi-arrow-right text-[8px] group-hover:translate-x-1 transition-transform"></i>
                                 </div>
@@ -158,8 +162,8 @@ onMounted(fetchExams);
             </div>
 
             <!-- Footer Info -->
-            <div class="mt-8 text-center animate-in fade-in duration-1000 shrink-0 border-t border-slate-50 pt-8">
-                <p class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em]">
+            <div class="mt-3 text-center animate-in fade-in duration-1000 shrink-0 border-t border-slate-50 pt-3">
+                <p class="text-[8px] font-bold text-slate-300 uppercase tracking-[0.35em]">
                     Arab Academy Institutional Assessment Protocol © 2026
                 </p>
             </div>

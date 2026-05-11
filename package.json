@@ -18,7 +18,7 @@
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.2.5",
-    "quill": "^2.0.3",
+    "quill": "^2.0.2",
     "simple-keyboard": "^3.8.140",
     "vue": "^3.5.31",
     "vue-router": "^5.0.4"
