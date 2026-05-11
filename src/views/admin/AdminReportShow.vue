@@ -19,13 +19,37 @@ const attemptId = route.params.id;
 const selectedAttempt = ref(null);
 const loading = ref(true);
 const currentUser = ref(null);
+let totalLevels = 0;
+let calculated_score = 0;
 
-const totalScore = computed(() => {
-    if (!selectedAttempt.value || !selectedAttempt.value.attempt_skills) return 0;
-    return selectedAttempt.value.attempt_skills.reduce((sum, skillResult) => {
-        return sum + (getCalculatedSkillScore(skillResult) || 0);
-    }, 0);
-});
+// const totalScore = computed(() => {
+//     if (!selectedAttempt.value || !selectedAttempt.value.attempt_skills) return 0;
+//     return selectedAttempt.value.attempt_skills.reduce((sum, skillResult) => {
+//         return sum + (getCalculatedSkillScore(skillResult) || 0);
+//     }, 0);
+// });
+
+
+const getTotalScore = (attempt) => {
+    if (!attempt || !attempt.attempt_skills) return 0;
+    totalLevels = 0;
+    return attempt.attempt_skills
+        .filter(skillResult => {
+            const skillName = skillResult.skill?.name?.toLowerCase() || '';
+
+            return (
+                skillName.includes('read') ||
+                skillName.includes('listen') ||
+                skillName.includes('struct')
+            );
+        })
+        .reduce((sum, skillResult) => {
+            totalLevels += skillResult.skill?.levels_count || 1;
+            return sum + (getCalculatedSkillScore(skillResult) || 0);
+        }, 0);
+};
+
+
 const fetchDetails = async () => {
     loading.value = true;
     try {
@@ -243,7 +267,8 @@ onMounted(fetchDetails);
                             Index</p>
                         <div class="flex items-baseline gap-2">
                             <span class="text-5xl font-black italic tracking-tighter text-brand-primary">
-                                {{ totalScore }}</span>
+                                {{ Math.round(Number(getTotalScore(selectedAttempt)) / 3,2) }}</span>
+                            <span class="text-xl font-black text-slate-500">/ {{totalLevels * 100 /3}}</span>
                             
                         </div>
                         <div class="flex items-baseline gap-2 mt-2">
