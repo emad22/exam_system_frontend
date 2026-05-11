@@ -88,7 +88,7 @@ onMounted(fetchExams);
             <div class="flex flex-col md:flex-row items-end justify-between mb-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0 border-b border-slate-100 pb-4">
                 <div>
                     <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase leading-tight">Arabic Language Proficiency Test (ALPT)</h1>
-                    <p class="text-slate-400 font-bold text-[9px] uppercase tracking-[0.3em] mt-2">Select a skill to begin your evaluation</p>
+                    <p class="text-slate-400 font-bold text-[9px] uppercase tracking-[0.3em] mt-2">Select a skill to begin your ALPT</p>
                 </div>
                 
                 <div class="flex items-center gap-3 bg-emerald-50 px-5 py-2 rounded-full border border-emerald-100 shadow-sm">
@@ -139,21 +139,21 @@ onMounted(fetchExams);
                                     </div>
                                     <div v-else  class="flex items-center gap-1.5 bg-brand-primary/10 text-brand-primary px-3 py-1 rounded-md border border-brand-primary/20">
                                         <div class="w-1 h-1 rounded-full bg-brand-primary animate-pulse"></div>
-                                        <span class="text-[8px] font-black uppercase tracking-widest">no taken</span>
+                                        <span class="text-[8px] font-black uppercase tracking-widest">Not Taken</span>
                                     </div>
                                 </div>
-                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Institutional Proficiency Assessment Track</p>
+                               <!--<p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Institutional Proficiency Assessment Track</p>-->
                             </div>
 
                             <!-- Action "Link" Style -->
                             <div class="shrink-0 flex items-center gap-4">
                                 <div v-if="!isSkillCompleted(exams[0], skill.id)" 
                                     class="flex items-center gap-2 text-slate-300 group-hover:text-brand-primary transition-all font-black text-[9px] uppercase tracking-[0.2em]">
-                                    <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Assessment' : 'Start Assessment' }}</span>
+                                    <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Test' : 'Start Test' }}</span>
                                     <i class="pi pi-arrow-right text-[8px] group-hover:translate-x-1 transition-transform"></i>
                                 </div>
                                 <div v-else class="text-emerald-500 font-black text-[10px] uppercase tracking-[0.2em]">
-                                    Verified
+                                    Taken
                                 </div>
                             </div>
                         </div>
@@ -164,7 +164,7 @@ onMounted(fetchExams);
             <!-- Footer Info -->
             <div class="mt-3 text-center animate-in fade-in duration-1000 shrink-0 border-t border-slate-50 pt-3">
                 <p class="text-[8px] font-bold text-slate-300 uppercase tracking-[0.35em]">
-                    Arab Academy Institutional Assessment Protocol © 2026
+                    Arab Academy, All Right recived © 2026
                 </p>
             </div>
         </div>
