@@ -124,7 +124,7 @@ const isActive = (path) => {
 }
 
 const logout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.clear();
     router.push('/login');
 }
 

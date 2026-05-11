@@ -858,7 +858,7 @@ onMounted(() => {
                                                 class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                 <i class="pi pi-chevron-down text-[10px]"></i>
                                             </button>
-                                            <button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && q.options.length > 1" @click="removeOption(qIdx, oIdx)" class="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
+                                            <button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && (q.type === 'click_word' ? q.options.length > 1 : q.options.length > 1)" @click="removeOption(qIdx, oIdx)" class="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
                                                 <i class="pi pi-trash text-[10px]"></i>
                                             </button>
                                         </div>

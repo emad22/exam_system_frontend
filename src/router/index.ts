@@ -382,8 +382,8 @@ router.beforeEach((to) => {
   const publicPages = ['/login', '/register'];
   const isPublicVerification = to.path.startsWith('/verify-certificate/');
   const authRequired = !publicPages.includes(to.path) && !isPublicVerification;
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const token = sessionStorage.getItem('token');
+  const role = sessionStorage.getItem('role');
 
   if (authRequired && !token) {
     return '/login';

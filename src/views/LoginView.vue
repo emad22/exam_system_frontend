@@ -23,8 +23,8 @@ const handleLogin = async () => {
             password: form.value.password
         });
 
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('role', res.data.role);
+        sessionStorage.setItem('token', res.data.token);
+        sessionStorage.setItem('role', res.data.role);
 
         if (res.data.role === 'admin') {
 

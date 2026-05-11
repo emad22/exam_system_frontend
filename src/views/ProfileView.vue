@@ -131,7 +131,7 @@ const resolveUrl = (path) => {
     return `${storageBase}/${path.replace('storage/', '')}`;
 };
 
-const initialRole = localStorage.getItem('role');
+const initialRole = sessionStorage.getItem('role');
 const isStudent = computed(() => {
     const role = user.value?.role || initialRole;
     return role === 'student';

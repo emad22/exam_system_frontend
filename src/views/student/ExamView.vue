@@ -78,7 +78,7 @@ const {
 const handleVisibilityChange = () => logCheatWarning(isStarting.value, showTimeoutModal.value);
 
 const startTimer = () => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = JSON.parse(sessionStorage.getItem('user'));
     const role = (user?.role || '').toLowerCase();
     isDemo.value = ['demo', 'staff'].includes(role);
     if (isDemo.value) return;
@@ -599,7 +599,7 @@ const handleBeforeUnload = () => {
 };
 
 onMounted(async () => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = JSON.parse(sessionStorage.getItem('user'));
     isDemo.value = user && ['demo', 'deom', 'staff'].includes(user.role?.toLowerCase());
     await fetchData();
 
