@@ -61,179 +61,181 @@ const getSkillDisplayName = (name) => {
 
 const SKILL_SPECIFIC_INSTRUCTIONS = {
     listening: {
-        title: 'Listening Mastery',
-        icon: 'pi-volume-up',
+        title: 'Listening Test',
+        icon: '/Listening02.png',
         rules: [
             {
-                title: 'Audio Equipment',
-                description: 'Use high-quality headphones for the best experience. Check your system volume now.',
-                icon: 'pi-headphones'
+                title: 'Test Description',
+                description: 'The Listening test includes a number of: <br>* Short sentences<br>* Short dialogues<br>* Academic discussions<br><br>You are allowed to take notes while listening to the audios. This test is adaptive. In other words, it will adjust itself to your level and it will end when your ceiling has been reached. By ceiling is meant your uppermost language level. The higher your level, the longer the test.',
+                icon: '/Listening02.png'
             },
-            {
-                title: 'Single Playback',
-                description: 'Most audio clips will play only once. Listen carefully and take notes if needed.',
-                icon: 'pi-play'
-            },
-            {
-                title: 'No Pausing',
-                description: 'You cannot pause or rewind audio once it starts playing. Stay focused throughout.',
-                icon: 'pi-lock'
-            }
+         //   {
+           //     title: 'Single Playback',
+             //   description: 'Most audio clips will play only once. Listen carefully and take notes if needed.',
+               // icon: '/Listening02.png'
+            //},
+            //{
+              //  title: 'No Pausing',
+                //description: 'You cannot pause or rewind audio once it starts playing. Stay focused throughout.',
+                //icon: '/Listening02.png'
+           // }
         ],
         tips: [
-            'Read the questions before the audio starts.',
-            'Focus on keywords and general meaning.',
-            'Don\'t worry if you miss one word; keep listening.'
+            '<strong>What is the test composed of?</strong><br>The test is composed of three types of questions:<br>- Short sentences<br>- Short dialogues<br>- Lectures',
+            '<strong>What are the types of Questions?</strong><br>First, you get to listen to the material, and then you are given multiple-choice questions. You will have four choices. You should select the sentence that is closest in meaning to what you has been said or implied in the listening material..',
+            '<strong>How many times will you be able to listen to the material?</strong><br>Just once.',
+            '<strong>Can you return to earlier questions?</strong><br>No! Once you answer a question and confirm your answer, you will not be able to return to earlier questions.',
+            '<strong>Can you take notes while listening?</strong><br>Yes, you may take notes while listening.'
         ]
     },
     reading: {
-        title: 'Reading Proficiency',
-        icon: 'pi-book',
+        title: 'Reading Comprehension',
+        icon: '/Reading-1.png',
         rules: [
             {
-                title: 'Passage Navigation',
-                description: 'Scroll through the entire text. Questions may refer to any part of the passage.',
-                icon: 'pi-arrows-v'
+                title: 'Test Description',
+                description: 'The Reading test comprises a number of texts, followed by questions of different formats.<br><br>This test is adaptive. In other words, it will adjust itself to your level and it will end when your ceiling has been reached. By ceiling is meant your uppermost language level. The higher your level, the longer the test.',
+                icon: '/Reading-1.png'
             },
-            {
-                title: 'Time Management',
-                description: 'Don\'t spend too long on one difficult section. Move on and come back if possible.',
-                icon: 'pi-clock'
-            },
-            {
-                title: 'Context Clues',
-                description: 'Use the surrounding text to understand unfamiliar vocabulary or complex ideas.',
-                icon: 'pi-search'
-            }
+            //{
+              //  title: 'Time Management',
+               // description: 'Don\'t spend too long on one difficult section. Move on and come back if possible.',
+                //icon: '/Reading-1.png'
+            //},
+            //{
+              //  title: 'Context Clues',
+               // description: 'Use the surrounding text to understand unfamiliar vocabulary or complex ideas.',
+                //icon: '/Reading-1.png'
+            //}
         ],
         tips: [
-            'Skim the passage first to get the main idea.',
-            'Read questions carefully to know what to look for.',
-            'Look for synonyms of question keywords in the text.'
+            'The Reading Comprehension Part measures your ability to understand written Modern Standard Arabic.',
+            'You are given a number of passages. Each of those passages is followed by a number of questions. You should answer the questions based on what is stated or implied in the passage.'
         ]
     },
     grammar: {
-        title: 'Structure & Grammar',
-        icon: 'pi-pencil',
+        title: 'Structure',
+        icon: '/Strac-01.png',
         rules: [
             {
-                title: 'Best Fit',
-                description: 'Select the option that most naturally completes the sentence or fixes the error.',
-                icon: 'pi-check-circle'
+                title: 'Test Description',
+                description: 'The Structure Test aims at measuring your ability to recognize sentences in Modern Standard Arabic.<br><br>This test is adaptive. In other words, it will adjust itself to your level and it will end when your ceiling has been reached. By ceiling is meant your uppermost language level. The higher your level, the longer the test.',
+                icon: '/Strac-01.png'
             },
-            {
-                title: 'Pace Yourself',
-                description: 'Grammar questions are often shorter. Maintain a steady rhythm to save time.',
-                icon: 'pi-bolt'
-            },
-            {
-                title: 'Logical Review',
-                description: 'Read the completed sentence to yourself to ensure it sounds grammatically correct.',
-                icon: 'pi-refresh'
-            }
+            //{
+              //  title: 'Pace Yourself',
+               // description: 'Grammar questions are often shorter. Maintain a steady rhythm to save time.',
+                //icon: '/Strac-01.png'
+            //},
+            //{
+              //  title: 'Logical Review',
+               // description: 'Read the completed sentence to yourself to ensure it sounds grammatically correct.',
+                //icon: '/Strac-01.png'
+            //}
         ],
         tips: [
-            'Pay attention to subject-verb agreement.',
-            'Identify the tense before choosing an answer.',
-            'Eliminate obviously wrong options first.'
+            'The Structure Part measures your ability to understand how Arabic sentences are formed. This section has two types of questions..',
+            'The first type of question is to fill in the blank. You will have four choices. You should click on the best word or phrase to complete the sentence..',
+            'The second type of question asks you to click on the red word or phrase that must be changed to make a sentence correct.',
+            'In the Structure Part you will not be able to return to previous questions once you have confirmed your answer.'
         ]
     },
     structure: {
-        title: 'Structure & Grammar',
-        icon: 'pi-pencil',
+        title: 'Structure',
+        icon: '/Strac-01.png',
         rules: [
             {
-                title: 'Best Fit',
-                description: 'Select the option that most naturally completes the sentence or fixes the error.',
-                icon: 'pi-check-circle'
+                title: 'Test Description',
+                description: 'The Structure Test aims at measuring your ability to recognize sentences in Modern Standard Arabic.<br><br>This test is adaptive. In other words, it will adjust itself to your level and it will end when your ceiling has been reached. By ceiling is meant your uppermost language level. The higher your level, the longer the test.',
+                icon: '/Strac-01.png'
             },
-            {
-                title: 'Pace Yourself',
-                description: 'Grammar questions are often shorter. Maintain a steady rhythm to save time.',
-                icon: 'pi-bolt'
-            },
-            {
-                title: 'Logical Review',
-                description: 'Read the completed sentence to yourself to ensure it sounds grammatically correct.',
-                icon: 'pi-refresh'
-            }
+           // {
+             //   title: 'Pace Yourself',
+              //  description: 'Grammar questions are often shorter. Maintain a steady rhythm to save time.',
+               // icon: '/Strac-01.png'
+            //},
+            //{
+              //  title: 'Logical Review',
+               // description: 'Read the completed sentence to yourself to ensure it sounds grammatically correct.',
+                //icon: '/Strac-01.png'
+            //}
         ],
         tips: [
-            'Pay attention to subject-verb agreement.',
-            'Identify the tense before choosing an answer.',
-            'Eliminate obviously wrong options first.'
+            'The Structure Part measures your ability to understand how Arabic sentences are formed. This section has two types of questions..',
+            'The first type of question is to fill in the blank. You will have four choices. You should click on the best word or phrase to complete the sentence..',
+            'The second type of question asks you to click on the red word or phrase that must be changed to make a sentence correct.',
+            'In the Structure Part you will not be able to return to previous questions once you have confirmed your answer.'
         ]
     },
     writing: {
-        title: 'Writing Excellence',
-        icon: 'pi-file-edit',
+        title: 'Writing Composition',
+        icon: '/Writing-01.png',
         rules: [
             {
-                title: 'Clear Structure',
-                description: 'Organize your response with a clear introduction, body paragraphs, and conclusion.',
-                icon: 'pi-list'
+                title: 'Test Description',
+                description: 'This test measures you ability to write in Modern Standard Arabic.<br><br>You may not take this test until you have completed the previous parts of the Arabic Language Proficiency Test; namely, the Listening, Reading Comprehension and Structure sections.',
+                icon: '/Writing-01.png'
             },
-            {
-                title: 'Task Fulfillment',
-                description: 'Ensure you address all parts of the prompt provided in the task description.',
-                icon: 'pi-target'
-            },
-            {
-                title: 'Final Proofread',
-                description: 'Save 2-3 minutes at the end to check for spelling and punctuation errors.',
-                icon: 'pi-eye'
-            }
+            //{
+              //  title: 'Task Fulfillment',
+               // description: 'Ensure you address all parts of the prompt provided in the task description.',
+                //icon: '/Writing-01.png'
+            //},
+            //{
+              //  title: 'Final Proofread',
+               // description: 'Save 2-3 minutes at the end to check for spelling and punctuation errors.',
+                //icon: '/Writing-01.png'
+            //}
         ],
         tips: [
-            'Plan your outline before you start typing.',
-            'Use a variety of vocabulary and sentence structures.',
-            'Stay within the recommended word count if provided.'
+            'The Writing Part measures your ability to write in Modern Standard Arabic.',
+            'This test is to be completed by hand. You are given a number of topics. Select one topic and write a composition of 250 words on your answer sheet..',
+            'After completing your composition, make sure your full name and other required details are written on your answer sheet before submitting it by email to the examiner..',
+            'Click the <strong>Start the Test</strong> button only at the scheduled test time; otherwise, the test will be marked as <strong>Taken.</strong>'
         ]
     },
     speaking: {
-        title: 'Speaking Performance',
-        icon: 'pi-microphone',
+        title: 'Speaking',
+        icon: '/Speaking-02.png',
         rules: [
             {
-                title: 'Environment Check',
-                description: 'Ensure you are in a quiet room and your microphone is working correctly.',
-                icon: 'pi-verified'
+               title: 'Test Description',
+                description: 'This test measures you ability to write in Modern Standard Arabic.<br><br>You may not take this test until you have completed the previous parts of the Arabic Language Proficiency Test; namely, the Listening, Reading Comprehension and Structure sections.',
+                icon: '/Speaking-02.png'
             },
-            {
-                title: 'Steady Delivery',
-                description: 'Speak clearly and at a moderate pace. Do not rush your response.',
-                icon: 'pi-volume-up'
-            },
-            {
-                title: 'Recording Limits',
-                description: 'Watch the timer. Your response must be completed before the recording ends.',
-                icon: 'pi-stopwatch'
-            }
+            //{
+              //  title: 'Steady Delivery',
+               // description: 'Speak clearly and at a moderate pace. Do not rush your response.',
+                //icon: '/Speaking-02.png'
+            //},
+            //{
+              //  title: 'Recording Limits',
+                //description: 'Watch the timer. Your response must be completed before the recording ends.',
+                //icon: '/Speaking-02.png'
+            //}
         ],
         tips: [
-            'Take a deep breath before starting.',
-            'Use natural intonation and emphasis.',
-            'If you make a mistake, just correct yourself and keep going.'
+            'Contact info@arabacademy.com to schedule the test'
         ]
     },
     default: {
         title: 'Assessment Guidelines',
-        icon: 'pi-info-circle',
+        icon: '/logo.png',
         rules: [
             {
                 title: 'Timed Environment',
                 description: 'Each skill has a dedicated time limit. The timer starts when you click Begin.',
-                icon: 'pi-clock'
+                icon: '/logo.png'
             },
             {
                 title: 'Honesty & Integrity',
                 description: 'The system monitors activity. Please stay within the browser window.',
-                icon: 'pi-eye'
+                icon: '/logo.png'
             },
             {
                 title: 'Progress Saving',
                 description: 'Your answers are saved automatically as you progress through questions.',
-                icon: 'pi-save'
+                icon: '/logo.png'
             }
         ],
         tips: [
@@ -263,22 +265,25 @@ const getSkillSpecificInstructions = (name) => {
         </div>
 
         <main class="flex-grow flex items-center justify-center p-6 relative z-10 overflow-hidden">
-            <div class="w-full max-w-5xl h-full max-h-[min(750px,calc(100vh-120px))] bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-700">
+            <div class="w-full max-w-7xl h-full max-h-[min(750px,calc(100vh-120px))] bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-700">
                 <!-- Header Banner -->
-                <div class="bg-slate-900 p-10 md:p-12 text-white relative overflow-hidden shrink-0">
+                <div class="bg-slate-900 p-5 md:p-6 text-white relative overflow-hidden shrink-0">
                     <div class="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
                     
-                    <button @click="goBack" class="mb-6 flex items-center gap-2 text-white/60 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest">
-                        <i class="pi pi-arrow-left text-[8px]"></i> Back to Selection
+                    <button @click="goBack" class="mb-4 flex items-center gap-2 text-white/60 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest">
+                        <i class="pi pi-arrow-left text-[8px]"></i> Go Back
                     </button>
 
-                    <div class="flex items-center gap-6">
-                        <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-xl border border-white/10">
-                            <i :class="['pi', getSkillSpecificInstructions(skill?.name).icon]"></i>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center shadow-xl border border-white/10">
+                            <img
+                                :src="getSkillSpecificInstructions(skill?.name).icon"
+                                :alt="getSkillSpecificInstructions(skill?.name).title"
+                                class="w-8 h-8 object-contain"
+                            />
                         </div>
                         <div>
-                            <h1 class="text-3xl font-black tracking-tight uppercase mb-1">{{ getSkillSpecificInstructions(skill?.name).title }}</h1>
-                            <p class="text-white/50 font-bold text-[10px] uppercase tracking-widest">Crucial guidelines for your {{ getSkillDisplayName(skill?.name) }} assessment</p>
+                            <h1 class="text-xl md:text-2xl font-black tracking-tight uppercase">{{ getSkillSpecificInstructions(skill?.name).title }}</h1>
                         </div>
                     </div>
                 </div>
@@ -293,12 +298,16 @@ const getSkillSpecificInstructions = (name) => {
                         <!-- Left: Rules -->
                         <div class="space-y-8">
                             <div v-for="(rule, index) in getSkillSpecificInstructions(skill?.name).rules" :key="index" class="flex gap-6 animate-in slide-in-from-left duration-500" :style="{ animationDelay: `${index * 100}ms` }">
-                                <div class="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
-                                    <i :class="['pi', rule.icon]"></i>
+                                <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+                                    <img
+                                        :src="rule.icon"
+                                        :alt="rule.title"
+                                        class="w-6 h-6 object-contain"
+                                    />
                                 </div>
                                 <div>
                                     <h3 class="text-xs font-black text-slate-800 uppercase tracking-tight mb-2">{{ rule.title }}</h3>
-                                    <p class="text-[10px] font-medium text-slate-500 leading-relaxed uppercase">{{ rule.description }}</p>
+                                    <div class="instruction-description text-[10px] font-medium text-slate-500 leading-relaxed uppercase" v-html="rule.description"></div>
                                 </div>
                             </div>
                         </div>
@@ -306,16 +315,14 @@ const getSkillSpecificInstructions = (name) => {
                         <!-- Right: Tips -->
                         <div class="bg-slate-50/50 rounded-[2rem] p-8 border border-slate-100/50 animate-in slide-in-from-right duration-700">
                             <h3 class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                <i class="pi pi-sparkles"></i> Pro Tips for Success
+                                <i class="pi pi-sparkles"></i> {{ getSkillDisplayName(skill?.name) }}: Directions 
                             </h3>
                             <ul class="space-y-4">
                                 <li v-for="(tip, index) in getSkillSpecificInstructions(skill?.name).tips" :key="index" class="flex items-start gap-3">
                                     <div class="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0 text-[8px] text-brand-primary border border-slate-100">
                                         {{ index + 1 }}
                                     </div>
-                                    <p class="text-[10px] font-bold text-slate-600 uppercase leading-relaxed pt-0.5">
-                                        {{ tip }}
-                                    </p>
+                                    <div class="instruction-tip text-[10px] font-bold text-slate-600 uppercase leading-relaxed pt-0.5" v-html="tip"></div>
                                 </li>
                             </ul>
                             
@@ -335,16 +342,16 @@ const getSkillSpecificInstructions = (name) => {
                 </div>
 
                 <!-- Footer Action -->
-                <div class="p-10 md:p-12 border-t border-slate-50 bg-white shrink-0">
+                <div class="px-6 py-5 md:px-8 md:py-6 border-t border-slate-50 bg-white shrink-0">
                     <div class="flex flex-col items-center">
                         <button @click="startExam"
-                            class="group relative w-full max-w-md py-6 bg-brand-primary text-white rounded-2xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/40 hover:bg-brand-primary/90 hover:shadow-brand-primary/60 hover:-translate-y-1 transition-all duration-300">
+                            class="group relative w-full max-w-xs py-4 bg-brand-primary text-white rounded-xl font-black text-xs uppercase tracking-[0.25em] shadow-xl shadow-brand-primary/30 hover:bg-brand-primary/90 hover:shadow-brand-primary/50 hover:-translate-y-0.5 transition-all duration-300">
                             <span class="relative z-10 flex items-center justify-center gap-3">
-                                Begin Assessment <i class="pi pi-play text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                                Start The Test <i class="pi pi-play text-[10px] group-hover:translate-x-1 transition-transform"></i>
                             </span>
                         </button>
-                        <p class="mt-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                            By clicking begin, you agree to the examination terms & conditions
+                        <p class="mt-2 text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                            Click on the 'Start the Test' when you are ready to begin.
                         </p>
                     </div>
                 </div>
@@ -369,5 +376,36 @@ const getSkillSpecificInstructions = (name) => {
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #E2E8F0;
     border-radius: 10px;
+}
+
+.instruction-description :deep(p),
+.instruction-tip :deep(p) {
+    margin-bottom: 0.35rem;
+}
+
+.instruction-description :deep(strong),
+.instruction-description :deep(b),
+.instruction-tip :deep(strong),
+.instruction-tip :deep(b) {
+    font-weight: 900;
+    color: #1e293b;
+}
+
+.instruction-description :deep(ul),
+.instruction-description :deep(ol),
+.instruction-tip :deep(ul),
+.instruction-tip :deep(ol) {
+    margin: 0.35rem 0 0;
+    padding-left: 1rem;
+}
+
+.instruction-description :deep(ul),
+.instruction-tip :deep(ul) {
+    list-style: disc;
+}
+
+.instruction-description :deep(ol),
+.instruction-tip :deep(ol) {
+    list-style: decimal;
 }
 </style>
