@@ -112,17 +112,16 @@ const scoreColor = (score) => {
 const getCalculatedSkillScore = (skillResult) => {
     if (!skillResult || skillResult.score === null || skillResult.score === undefined) return null;
     const levelsCount = skillResult.skill?.levels_count || 1;
+ //   alert('levelsCount****************** '+ levelsCount);
     return Math.round(Number(skillResult.score) * levelsCount);
 };
 
 
 const getTotalScore = (attempt) => {
     if (!attempt || !attempt.attempt_skills) return 0;
-    totalLevels = 0;
     return attempt.attempt_skills
         .filter(skillResult => {
             const skillName = skillResult.skill?.name?.toLowerCase() || '';
-
             return (
                 skillName.includes('read') ||
                 skillName.includes('listen') ||
@@ -130,9 +129,23 @@ const getTotalScore = (attempt) => {
             );
         })
         .reduce((sum, skillResult) => {
-            totalLevels += skillResult.skill?.levels_count || 1;
-
             return sum + (getCalculatedSkillScore(skillResult) || 0);
+        }, 0);
+};
+
+const getTotalLevels = (attempt) => {
+    if (!attempt || !attempt.attempt_skills) return 0;
+    return attempt.attempt_skills
+        .filter(skillResult => {
+            const skillName = skillResult.skill?.name?.toLowerCase() || '';
+            return (
+                skillName.includes('read') ||
+                skillName.includes('listen') ||
+                skillName.includes('struct')
+            );
+        })
+        .reduce((sum, skillResult) => {
+            return sum + (skillResult.skill?.levels_count || 1);
         }, 0);
 };
 
@@ -209,10 +222,10 @@ onMounted(() => {
                                         {{ attempt.overall_score*800 }}
                                     </span> -->
                                     <span :class="scoreColor(attempt.overall_score)" class="text-2xl font-black italic tracking-tighter">
-                                       {{ Math.round(Number(getTotalScore(attempt)) / 3,2) }}</span>
+                                       {{ Number((Number(getTotalScore(attempt)) / 3).toFixed(2)) }}</span>
                                     
                                     <!-- <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2"></span> -->
-                                    <span class="text-xl font-black text-slate-500"> / {{totalLevels * 100 /3}}</span>
+                                    <span class="text-xl font-black text-slate-500"> / {{ Number((getTotalLevels(attempt) * 100 / 3).toFixed(2)) }}</span>
                                 </td>
                                 <td class="p-6 text-center">
                                     <Tag :value="attempt.status" 

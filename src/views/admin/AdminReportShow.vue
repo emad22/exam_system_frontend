@@ -20,14 +20,6 @@ const selectedAttempt = ref(null);
 const loading = ref(true);
 const currentUser = ref(null);
 let totalLevels = 0;
-let calculated_score = 0;
-
-// const totalScore = computed(() => {
-//     if (!selectedAttempt.value || !selectedAttempt.value.attempt_skills) return 0;
-//     return selectedAttempt.value.attempt_skills.reduce((sum, skillResult) => {
-//         return sum + (getCalculatedSkillScore(skillResult) || 0);
-//     }, 0);
-// });
 
 
 const getTotalScore = (attempt) => {
@@ -199,36 +191,6 @@ const getStudentParts = (answer) => {
         } catch (e) { }
     }
     return parseJson(answer.text_answer);
-};
-
-const normalizeString = (str) => {
-    if (!str) return '';
-    const tmp = document.createElement('div');
-    tmp.innerHTML = str;
-    let clean = tmp.textContent || tmp.innerText || '';
-    
-    // Replace non-breaking spaces with regular spaces
-    clean = clean.replace(/\u00a0/g, ' ');
-    
-    // Strip Arabic Tashkeel (diacritics) for robust matching
-    // Range: \u064B to \u0652
-    clean = clean.replace(/[\u064B-\u0652]/g, '');
-    
-    return clean.trim().toLowerCase();
-};
-
-const isPartCorrect = (answer, correctVal, pIdx) => {
-    const studentParts = getStudentParts(answer);
-    if (!studentParts || studentParts.length === 0) return false;
-
-    const normalizedCorrect = normalizeString(correctVal);
-    const normalizedStudentParts = studentParts.map(s => normalizeString(s));
-
-    if (['word_selection', 'click_word', 'highlight'].includes(answer.question?.type)) {
-        return normalizedStudentParts.includes(normalizedCorrect);
-    }
-
-    return normalizedStudentParts[pIdx] === normalizedCorrect;
 };
 
 const resolveUrl = (path) => {
@@ -517,28 +479,26 @@ onMounted(fetchDetails);
                                                                 <div v-for="(correctVal, pIdx) in getCorrectOptions(answer.question)"
                                                                     :key="pIdx"
                                                                     class="p-4 rounded-2xl border flex flex-col gap-2 transition-all"
-                                                                    :class="isPartCorrect(answer, correctVal, pIdx) ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'">
+                                                                    :class="getStudentParts(answer)[pIdx] === correctVal ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'">
                                                                     <div class="flex justify-between items-start">
                                                                         <span
                                                                             class="text-[8px] font-black uppercase tracking-wider"
-                                                                            :class="isPartCorrect(answer, correctVal, pIdx) ? 'text-emerald-400' : 'text-rose-400'">
+                                                                            :class="getStudentParts(answer)[pIdx] === correctVal ? 'text-emerald-400' : 'text-rose-400'">
                                                                             Part {{ pIdx + 1 }}
                                                                         </span>
                                                                         <i
-                                                                            :class="isPartCorrect(answer, correctVal, pIdx) ? 'pi pi-check-circle text-emerald-500' : 'pi pi-times-circle text-rose-500'"></i>
+                                                                            :class="getStudentParts(answer)[pIdx] === correctVal ? 'pi pi-check-circle text-emerald-500' : 'pi pi-times-circle text-rose-500'"></i>
                                                                     </div>
                                                                     <div class="space-y-1">
                                                                         <p
                                                                             class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                                                                             Student:</p>
                                                                         <p class="text-xs font-black"
-                                                                            :class="isPartCorrect(answer, correctVal, pIdx) ? 'text-emerald-700' : 'text-rose-700'">
-                                                                            {{ ['word_selection', 'click_word', 'highlight'].includes(answer.question?.type) 
-                                                                                ? (isPartCorrect(answer, correctVal, pIdx) ? correctVal : (getStudentParts(answer)[0] || '—'))
-                                                                                : (getStudentParts(answer)[pIdx] || '—') }}
+                                                                            :class="getStudentParts(answer)[pIdx] === correctVal ? 'text-emerald-700' : 'text-rose-700'">
+                                                                            {{ getStudentParts(answer)[pIdx] || '—' }}
                                                                         </p>
                                                                     </div>
-                                                                    <div v-if="!isPartCorrect(answer, correctVal, pIdx)"
+                                                                    <div v-if="getStudentParts(answer)[pIdx] !== correctVal"
                                                                         class="pt-1 border-t border-rose-100 mt-1">
                                                                         <p
                                                                             class="text-[10px] font-bold text-emerald-400 uppercase tracking-tighter">
