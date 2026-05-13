@@ -653,58 +653,61 @@ onUnmounted(() => {
         <StudentHeader />
 
         <header v-if="!isStarting && currentSkill" class="bg-slate-800 text-white shadow-md h-20 px-6 shrink-0"
-            dir="rtl">
+            dir="ltr">
             <div class="max-w-[1600px] mx-auto h-full flex justify-between items-center">
 
-                <!-- Right Side: Skill Info & Exit -->
-                <div class="flex items-center space-x-6 space-x-reverse">
+                <!-- Left Side: Skill Info -->
+                <div class="flex items-center">
 
-                    <div class="flex flex-col items-end text-right">
-                        <div class="flex items-center space-x-3 space-x-reverse mb-0.5">
-                            <span class="text-xs font-black uppercase tracking-wider text-slate-400">{{
+                    <div class="flex flex-col items-start text-left">
+                        <div class="flex items-center mb-0.5">
+                            <span class="text-mm font-black uppercase tracking-wider text-slate-400">{{
                                 currentSkill?.name }}</span>
                         </div>
                     </div>
 
                 </div>
 
-                <!-- Left Side: Navigation & Timer -->
-                <div class="flex items-center space-x-3 space-x-reverse">
+                <!-- Right Side: Navigation & Timer -->
+                <div class="flex items-center gap-3">
                     <button @click="prevQuestion"
                         :class="currentIndex > 0 ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-800 text-slate-500 cursor-not-allowed'"
-                        class="h-10 px-6 rounded-lg font-bold text-xs transition-all flex items-center gap-2">
-                        <span>previous</span>
+                        class="h-10 px-8 rounded-lg font-black text-sm transition-all shadow-lg flex items-center gap-2">
+                        <i class="pi pi-chevron-left text-[10px]"></i> <span>PREVIOUS</span>
                     </button>
-                    <span class="text-xs font-bold text-slate-500"> {{ displayNumber }} / {{ totalSkillQuestions
+                    <span class="text-sm font-black text-slate-500">{{ displayNumber }} / {{ totalSkillQuestions
                         }}</span>
                     <button @click="submitAnswer" :disabled="!isCurrentAnswerValid || questionSubmitted"
-                        class="h-10 px-8 bg-brand-primary text-white rounded-lg font-black text-xs hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                        confirm
+                        class="h-10 px-8 bg-brand-primary text-white rounded-lg font-black text-sm hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        <i class="pi pi-thumbs-up text-xs"></i>
+                        <span>CONFIRM</span>
                     </button>
 
                     <button @click="advanceQuestion" :disabled="!questionSubmitted || isSubmittingBatch"
-                        class="h-10 px-8 bg-emerald-600 text-white rounded-lg font-black text-xs hover:bg-emerald-500 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="h-10 px-8 bg-emerald-600 text-white rounded-lg font-black text-sm hover:bg-emerald-500 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span v-if="isSubmittingBatch" class="flex items-center gap-2">
-                            <i class="pi pi-spin pi-spinner text-[10px]"></i> saving...
+                            <i class="pi pi-spin pi-spinner text-[10px]"></i> Saving...
                         </span>
                         <template v-else>
-                            <span>next</span> <i class="pi pi-chevron-left text-[10px]"></i>
+                            <span>NEXT</span> <i class="pi pi-chevron-right text-[10px]"></i>
                         </template>
                     </button>
 
                     <!-- Timer -->
                     <div v-if="!isDemo && timerConfig && timerConfig.skillDuration > 0"
-                        :class="['flex items-center space-x-4 space-x-reverse px-4 py-1.5 rounded-lg border mr-4 transition-colors', timeLeftSeconds < 300 ? 'bg-rose-900/50 border-rose-500 text-rose-300 animate-pulse' : 'bg-slate-900/50 border-slate-700 text-white']">
-                        <i class="pi pi-clock text-xs"
-                            :class="timeLeftSeconds < 300 ? 'text-rose-400' : 'text-slate-400'"></i>
+                        :class="['h-10 flex items-center gap-3 px-5 rounded-lg border transition-colors', timeLeftSeconds < 300 ? 'bg-rose-900/50 border-rose-500 text-rose-300 animate-pulse' : 'bg-slate-900/50 border-slate-700 text-white']">
+                        <span class="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center shrink-0">
+                            <i class="pi pi-clock text-xs"
+                                :class="timeLeftSeconds < 300 ? 'text-rose-400' : 'text-slate-400'"></i>
+                        </span>
                         <span class="text-lg font-black tabular-nums tracking-tighter">{{ formattedTime }}</span>
                     </div>
                     <div
-                        class="flex items-center space-x-4 space-x-reverse px-4 py-1.5 rounded-lg border mr-4 transition-colors">
+                        class="flex items-center rounded-lg transition-colors">
                         <button @click="exitExam"
-                            class="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-rose-600/80 text-slate-300 hover:text-white rounded-lg transition-all text-xs font-bold border border-slate-600 hover:border-rose-500">
-                            <i class="pi pi-sign-out"></i>
-                            <span>Exit</span>
+                            class="h-10 flex items-center gap-3 px-6 bg-slate-700/50 hover:bg-rose-600/80 text-slate-300 hover:text-white rounded-lg transition-all text-sm font-black shadow-lg">
+                            <span>EXIT</span>
+                            <i class="pi pi-sign-out inline-block scale-x-[1]"></i>
                         </button>
                     </div>
 
@@ -851,14 +854,11 @@ onUnmounted(() => {
                                 class="text-lg font-black text-slate-900 leading-snug interactive-content-area rtl-support"
                                 v-html="cleanHtml(currentQ.content)" dir="auto">
                             </div>
-                            <h3 v-else class="text-base font-bold text-slate-800 leading-tight" dir="rtl">
-                                يرجى الإجابة على السؤال التالي:
-                            </h3>
+                           
 
                             <div class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
                                 <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto">
-                                    {{ currentQ.instructions || `يرجى مراجعة المواد المقدمة بعناية وتقديم إجابتك بناءً
-                                    عليها.`
+                                    {{ currentQ.instructions || 'Choose The Correct Answer'
                                     }}
                                 </p>
                             </div>
@@ -924,15 +924,15 @@ onUnmounted(() => {
                     <i class="pi pi-clock text-4xl text-rose-500 animate-pulse"></i>
                 </div>
                 <div class="space-y-2">
-                    <h2 class="text-3xl font-black text-slate-900 tracking-tight"> timeout! </h2>
+                    <h2 class="text-3xl font-black text-slate-900 tracking-tight"> TIMEOUT! </h2>
                     <p class="text-slate-500 font-bold leading-relaxed">The time allocated for this part of the
-                        assessment
+                        exam
                         has expired.
                         Your answers will be saved and you will be directed automatically.</p>
                 </div>
                 <button @click="handleTimeout"
                     class="w-full py-5 bg-brand-primary text-white rounded-2xl font-black text-lg hover:bg-brand-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-100">
-                    continue to results
+                    OK
                 </button>
             </div>
         </div>
@@ -947,18 +947,18 @@ onUnmounted(() => {
                     <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
                 </div>
                 <div class="space-y-2">
-                    <h2 class="text-3xl font-black text-slate-900 tracking-tight">Are you sure?</h2>
+                    <h2 class="text-3xl font-black text-slate-900 tracking-tight">ARE YOU SURE?</h2>
                     <p class="text-slate-500 font-bold leading-relaxed">Are you sure you want to exit? The exam will be
                         ended and your current progress will be saved and you will not be able to return.</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4 pt-2">
                     <button @click="showExitModal = false"
                         class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
-                        cancel
+                        CANCEL
                     </button>
                     <button @click="confirmExit"
                         class="py-4 bg-rose-600 text-white rounded-2xl font-black text-sm hover:bg-rose-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-rose-100">
-                        confirm exit
+                        CONFIRM EXIT
                     </button>
                 </div>
             </div>
