@@ -8,6 +8,7 @@ import FillBlankQuestion from './FillBlankQuestion.vue';
 import MatchingQuestion from './MatchingQuestion.vue';
 import OrderingQuestion from './OrderingQuestion.vue';
 import ShortAnswerQuestion from './ShortAnswerQuestion.vue';
+import TrueFalseQuestion from './TrueFalseQuestion.vue';
 import HighlightQuestion from './HighlightQuestion.vue';
 
 const props = defineProps({
@@ -35,7 +36,11 @@ const updateAnswer = (newAnswer) => {
 <template>
     <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 pt-2 space-y-2">
         <McqQuestion 
-            v-if="question.type === 'mcq' || question.type === 'true_false'" 
+            v-if="question.type === 'mcq'" 
+            :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
+
+        <TrueFalseQuestion 
+            v-else-if="question.type === 'true_false'" 
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <WritingQuestion 

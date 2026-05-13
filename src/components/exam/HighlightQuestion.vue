@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     question: {
@@ -23,34 +23,98 @@ const highlightAnswers = computed({
     set: (val) => emit('update:answer', { ...props.answer, highlight_answers: val })
 });
 
-const currentWords = computed(() => {
-    const text = props.question.content || "";
-    return text.match(/[\w'-]+|[^\w\s]/g) || [];
-});
+/**
+ * Recursively wraps text nodes in HTML with clickable spans.
+ */
+const wrapWordsInHtml = (html) => {
+    if (!html) return '';
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    const walk = (node) => {
+        if (node.nodeType === 3) { // Text node
+            const text = node.textContent;
+            const words = text.match(/[\u0600-\u06FF\w''-]+|[^\u0600-\u06FF\w\s]/gu) || [];
+            const fragment = document.createDocumentFragment();
+            
+            words.forEach(word => {
+                const span = document.createElement('span');
+                span.className = 'clickable-word';
+                span.dataset.word = word;
+                span.textContent = word;
+                
+                // Add reactive classes if selected
+                if (highlightAnswers.value.includes(word)) {
+                    span.classList.add('is-highlighted');
+                }
+                
+                fragment.appendChild(span);
+                fragment.appendChild(document.createTextNode(' '));
+            });
+            node.parentNode.replaceChild(fragment, node);
+        } else {
+            const children = Array.from(node.childNodes);
+            children.forEach(child => walk(child));
+        }
+    };
+    
+    walk(doc.body);
+    return doc.body.innerHTML;
+};
 
-const toggleHighlight = (word) => {
+const processedHtml = computed(() => wrapWordsInHtml(props.question.content));
+
+const handleContainerClick = (e) => {
     if (props.disabled) return;
-    const newAnswers = [...highlightAnswers.value];
-    const index = newAnswers.indexOf(word);
-    if (index === -1) newAnswers.push(word);
-    else newAnswers.splice(index, 1);
-    highlightAnswers.value = newAnswers;
+    const target = e.target.closest('.clickable-word');
+    if (target) {
+        const word = target.dataset.word;
+        const newAnswers = [...highlightAnswers.value];
+        const index = newAnswers.indexOf(word);
+        if (index === -1) newAnswers.push(word);
+        else newAnswers.splice(index, 1);
+        highlightAnswers.value = newAnswers;
+    }
 };
 </script>
 
 <template>
-    <div class="space-y-4">
-        <div class="bg-white p-8 rounded-3xl border border-slate-100 leading-[2.2] text-lg font-medium text-slate-700 shadow-sm rtl-support"
-            dir="auto">
-            <template v-for="(word, wIdx) in currentWords" :key="wIdx">
-                <span @click="toggleHighlight(word)"
-                    :disabled="disabled"
-                    class="px-1 py-0.5 rounded cursor-pointer transition-all border-b border-transparent hover:border-slate-300"
-                    :class="highlightAnswers.includes(word) ? 'bg-yellow-200 text-slate-900 border-yellow-400 font-bold shadow-md' : ''">
-                    {{ word }}
-                </span>
-                {{ ' ' }}
-            </template>
+    <div class="py-4 space-y-6">
+        <!-- Main Content Area with Premium Styling -->
+        <div class="bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden rtl-support highlight-container"
+            dir="auto"
+            @click="handleContainerClick"
+            v-html="processedHtml">
+        </div>
+
+        <!-- Tooltip / Hint -->
+        <div class="flex items-center justify-center gap-2 text-slate-400">
+            <i class="pi pi-highlighter text-[10px]"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest">انقر على الكلمات لتمييزها</span>
         </div>
     </div>
 </template>
+
+<style scoped>
+@reference "../../index.css";
+
+.highlight-container :deep(.clickable-word) {
+    @apply px-1.5 py-1 rounded-xl cursor-pointer transition-all duration-300 relative inline-block;
+    @apply hover:bg-slate-50 hover:text-slate-950;
+}
+
+.highlight-container :deep(.clickable-word.is-highlighted) {
+    @apply bg-yellow-200/80 text-yellow-950 font-black shadow-lg shadow-yellow-200/50 scale-105 z-10;
+}
+
+/* Ensure rich text styles are preserved */
+.highlight-container :deep(h1), 
+.highlight-container :deep(h2), 
+.highlight-container :deep(h3) {
+    @apply mb-4 font-black text-slate-800 leading-tight;
+}
+
+.highlight-container :deep(p) {
+    @apply mb-4 leading-relaxed;
+}
+</style>

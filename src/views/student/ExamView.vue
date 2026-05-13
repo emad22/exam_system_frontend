@@ -836,10 +836,6 @@ onUnmounted(() => {
                                 <span class="text-brand-primary">{{ audioCurrentTime }}</span>
                                 <span>{{ audioDuration }}</span>
                             </div>
-
-                            <p v-if="hasListened" class="text-[9px] text-emerald-600 font-bold mt-2 text-center"
-                                dir="rtl">✓ تم
-                                الاستماع للمقطع بالكامل</p>
                         </div>
 
                         <div class="flex-grow flex flex-col space-y-4 overflow-hidden">

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 
 const props = defineProps({
     question: {
@@ -24,40 +24,99 @@ const selectedWord = computed({
     set: (val) => emit('update:answer', { ...props.answer, selected_words: val ? [val] : [] })
 });
 
+const containerRef = ref(null);
+
 /**
- * Strip HTML tags and decode HTML entities to get plain text,
- * then split into individual words for the click-word interaction.
+ * Recursively wraps text nodes in HTML with clickable spans.
  */
-const stripHtml = (html) => {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
+const wrapWordsInHtml = (html) => {
+    if (!html) return '';
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    const walk = (node) => {
+        if (node.nodeType === 3) { // Text node
+            const text = node.textContent;
+            const words = text.match(/[\u0600-\u06FF\w''-]+|[^\u0600-\u06FF\w\s]/gu) || [];
+            const fragment = document.createDocumentFragment();
+            
+            words.forEach(word => {
+                const span = document.createElement('span');
+                span.className = 'clickable-word';
+                span.dataset.word = word;
+                span.textContent = word;
+                
+                // Add reactive classes if selected
+                if (selectedWord.value === word) {
+                    span.classList.add('is-selected');
+                }
+                
+                fragment.appendChild(span);
+                fragment.appendChild(document.createTextNode(' '));
+            });
+            node.parentNode.replaceChild(fragment, node);
+        } else {
+            // Need to copy children because we might replace them
+            const children = Array.from(node.childNodes);
+            children.forEach(child => walk(child));
+        }
+    };
+    
+    walk(doc.body);
+    return doc.body.innerHTML;
 };
 
-const currentWords = computed(() => {
-    const raw = props.question.content || '';
-    const plainText = stripHtml(raw);
-    return plainText.match(/[\u0600-\u06FF\w''-]+|[^\u0600-\u06FF\w\s]/gu)?.filter(w => w.trim()) || [];
-});
+const processedHtml = computed(() => wrapWordsInHtml(props.question.content));
 
-const toggleWord = (word) => {
+const handleContainerClick = (e) => {
     if (props.disabled) return;
-    // If same word clicked again → deselect; otherwise select the new word
-    selectedWord.value = selectedWord.value === word ? null : word;
+    const target = e.target.closest('.clickable-word');
+    if (target) {
+        const word = target.dataset.word;
+        selectedWord.value = selectedWord.value === word ? null : word;
+    }
 };
 </script>
 
 <template>
-    <div class="space-y-4">
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 flex flex-wrap gap-x-2 gap-y-3" dir="auto">
-            <button v-for="(word, wIdx) in currentWords" :key="wIdx"
-                @click="toggleWord(word)" :disabled="disabled"
-                class="px-2 py-1 rounded-md transition-all duration-200 font-medium text-lg border-b-2"
-                :class="selectedWord === word
-                    ? 'border-rose-500 text-rose-600 bg-rose-50 scale-105 shadow-sm'
-                    : 'border-transparent text-slate-700 hover:bg-slate-100 hover:border-slate-300'">
-                {{ word }}
-            </button>
+    <div class="py-4 space-y-6">
+        <!-- Main Content Area with Modern Typography -->
+        <div ref="containerRef" 
+            class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden rtl-support word-selection-container" 
+            dir="auto"
+            @click="handleContainerClick"
+            v-html="processedHtml">
+        </div>
+
+        <!-- Hint / Instructions (Subtle) -->
+        <div class="flex items-center justify-center gap-2 text-slate-400">
+            <i class="pi pi-info-circle text-[10px]"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest">انقر على الكلمة لاختيارها</span>
         </div>
     </div>
 </template>
+
+<style scoped>
+@reference "../../index.css";
+
+.word-selection-container :deep(.clickable-word) {
+    @apply px-1.5 py-0.5 rounded-lg cursor-pointer transition-all duration-300 font-bold inline-block;
+    @apply text-slate-700 hover:bg-slate-50 hover:text-slate-900;
+}
+
+.word-selection-container :deep(.clickable-word.is-selected) {
+    @apply text-rose-600 bg-rose-50 scale-110 shadow-md shadow-rose-200/50 z-10;
+    @apply border-b-2 border-rose-500;
+}
+
+/* Ensure rich text styles are preserved */
+.word-selection-container :deep(h1), 
+.word-selection-container :deep(h2), 
+.word-selection-container :deep(h3) {
+    @apply mb-4 font-black text-slate-800 leading-tight;
+}
+
+.word-selection-container :deep(p) {
+    @apply mb-4 leading-relaxed;
+}
+</style>

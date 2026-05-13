@@ -237,54 +237,54 @@ const moveOptionDown = (qIdx, optIdx) => {
 const handleTypeChange = (qIdx) => {
     const q = form.value.questions[qIdx];
     if (q.type === 'true_false') {
-        q.instructions = "Select True or False.";
+        q.instructions = "اختر صح أم خطأ.";
         q.options = [
             { option_text: 'True', is_correct: true },
             { option_text: 'False', is_correct: false }
         ];
     } else if (['writing', 'speaking', 'upload'].includes(q.type)) {
-        q.instructions = "Please write your response.";
+        q.instructions = "يرجى كتابة إجابتك.";
         q.options = [];
     } else if (q.type === 'short_answer') {
-        q.instructions = "Please write the answer.";
+        q.instructions = "يرجى كتابة الإجابة.";
         q.options = [{ option_text: '', is_correct: true }];
     } else if (q.type === 'drag_drop') {
-        q.instructions = "Drag the words into the correct boxes to complete the sentence.";
+        q.instructions = "اسحب الكلمات إلى المربعات الصحيحة لإكمال الجملة.";
         q.options = [
             { option_text: '', is_correct: true },
             { option_text: '', is_correct: true }
         ];
     } else if (q.type === 'fill_blank') {
-        q.instructions = "Fill in the blanks with the correct words.";
+        q.instructions = "املأ الفراغات بالكلمات الصحيحة.";
         q.options = [
             { option_text: '', is_correct: true }
         ];
     } else if (['word_selection', 'click_word', 'highlight'].includes(q.type)) {
-        q.instructions = q.type === 'highlight' ? "Highlight the correct segments in the text." : "Select the target words in the text.";
+        q.instructions = q.type === 'highlight' ? "قم بتمييز الأجزاء الصحيحة في النص." : "اختر الكلمات المطلوبة في النص.";
         q.options = [
             { option_text: '', is_correct: true }
         ];
     } else if (q.type === 'matching') {
-        q.instructions = "Match the items in the first column with the items in the second column.";
+        q.instructions = "قم بتوصيل العناصر في العمود الأول بما يناسبها في العمود الثاني.";
         q.options = [
             { option_text: 'Source 1 | Target 1', is_correct: true },
             { option_text: 'Source 2 | Target 2', is_correct: true }
         ];
     } else if (q.type === 'ordering') {
-        q.instructions = "Arrange the following items in the correct order.";
+        q.instructions = "قم بترتيب العناصر التالية بالترتيب الصحيح.";
         q.options = [
             { option_text: 'Item 1', is_correct: true },
             { option_text: 'Item 2', is_correct: true }
         ];
     } else if (q.type === 'listening') {
-        q.instructions = "Listen to the audio and answer the question.";
+        q.instructions = "استمع إلى المقطع الصوتي وأجب على السؤال.";
         q.options = [
             { option_text: '', is_correct: true },
             { option_text: '', is_correct: false }
         ];
     } else {
         if (q.options.length < 2) {
-            q.instructions = "Please select the correct option.";
+            q.instructions = "يرجى اختيار الإجابة الصحيحة.";
             q.options = [
                 { option_text: '', is_correct: true },
                 { option_text: '', is_correct: false }
@@ -377,8 +377,7 @@ onMounted(() => {
                         @click="router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions' : 'admin.questions' })" />
                     <div>
                         <h1 class="text-2xl font-black text-slate-800 tracking-tight">Create New Questions</h1>
-                        <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest mt-1">Add content and link
-                            properties</p>
+                        <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest mt-1">Add content and link properties</p>
                     </div>
                 </div>
                 <!-- Primary Action -->
@@ -455,7 +454,7 @@ onMounted(() => {
                                 class="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all duration-300 font-black text-xs uppercase tracking-wider">
                                 <i
                                     :class="[mode.icon, form.passage_mode === mode.id ? 'text-indigo-500' : 'text-slate-300']"></i>
-                                {{ mode.label }}
+                                {{ mode.id === 'none' ? 'Single Question' : mode.id === 'existing' ? 'Use Existing Material' : 'Create New Material' }}
                             </button>
                         </div>
 
@@ -671,81 +670,76 @@ onMounted(() => {
                                     placeholder="Type your formatted question here..." />
 
                                 <div v-if="q.type === 'drag_drop'"
-                                    class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                                    class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-right" dir="rtl">
                                     <p
                                         class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="pi pi-info-circle"></i> Drag & Drop Guide
+                                        <i class="pi pi-info-circle"></i> دليل السحب والإفلات
                                     </p>
                                     <p class="text-[11px] text-indigo-500 mt-1">
-                                        Use <b>...............</b> where you want a blank space. Each
-                                        <b>...............</b> will be
-                                        matched to one of the options below in order.
-                                        Example: "The <b>...............</b> is a <b>...............</b> animal."
+                                        استخدم <b>...............</b> في المكان الذي تريد فيه فراغاً. كل
+                                        <b>...............</b> سيتم
+                                        ربطه بإحدى الخيارات أدناه بالترتيب.
+                                        مثال: "تعتبر الـ <b>...............</b> من الـ <b>...............</b> الأليفة."
                                     </p>
                                 </div>
 
                                 <div v-if="q.type === 'word_selection' || q.type === 'click_word'"
-                                    class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                                    class="bg-amber-50 p-4 rounded-xl border border-amber-100 text-right" dir="rtl">
                                     <p
                                         class="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="pi pi-info-circle"></i> Word Selection Guide
+                                        <i class="pi pi-info-circle"></i> دليل اختيار الكلمات
                                     </p>
                                     <p class="text-[11px] text-amber-500 mt-1">
-                                        The system will automatically make the words you add in "Options" clickable.
-                                        Mark <b>Is Correct</b> for words that the student <b>should</b> click.
+                                        سيقوم النظام تلقائياً بجعل الكلمات التي تضيفها في "الخيارات" قابلة للنقر.
+                                        حدد <b>صح</b> للكلمات التي <b>يجب</b> على الطالب النقر عليها.
                                     </p>
                                 </div>
 
                                 <div v-if="q.type === 'fill_blank'"
-                                    class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-right" dir="rtl">
                                     <p
                                         class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="pi pi-info-circle"></i> Fill in the Blank Guide
+                                        <i class="pi pi-info-circle"></i> دليل ملء الفراغات
                                     </p>
                                     <p class="text-[11px] text-blue-500 mt-1">
-                                        Use <b>[input]</b> where you want a text box. Each <b>[input]</b> will be
-                                        checked against
-                                        the options below in order.
+                                        استخدم <b>...............</b> في المكان الذي تريد فيه مربع نص. كل <b>...............</b> سيتم فحصه مقابل الخيارات أدناه بالترتيب.<br><br>
+                                        <b>إجابات متعددة مقبولة:</b> إذا كانت الإجابة الصحيحة أكثر من كلمة، ضعها في نفس الخيار مفصولةً بـ <b>|</b><br>
+                                        مثال: <b>لم | لن</b> يعني أن كتابة أي منهما صحيحة.
                                     </p>
                                 </div>
 
                                 <div v-if="q.type === 'matching'"
-                                    class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                    class="bg-purple-50 p-4 rounded-xl border border-purple-100 text-right" dir="rtl">
                                     <p
                                         class="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="pi pi-info-circle"></i> Matching Guide
+                                        <i class="pi pi-info-circle"></i> دليل التوصيل (Matching)
                                     </p>
                                     <p class="text-[11px] text-purple-500 mt-1">
-                                        Add pairs using the pipe symbol. Example: <b>Term | Definition</b>.<br>
-                                        Each pair will be split automatically. To add a distractor (a target with no
-                                        matching
-                                        source), simply enter the text without the pipe symbol.
+                                        أضف الأزواج باستخدام علامة الأنبوب. مثال: <b>الكلمة | التعريف</b>.<br>
+                                        سيتم تقسيم كل زوج تلقائياً. لإضافة مشتت (إجابة ليس لها أصل)، ببساطة أدخل النص بدون علامة الأنبوب.
                                     </p>
                                 </div>
 
                                 <div v-if="q.type === 'ordering'"
-                                    class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-right" dir="rtl">
                                     <p
                                         class="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="pi pi-info-circle"></i> Ordering Guide
+                                        <i class="pi pi-info-circle"></i> دليل الترتيب (Ordering)
                                     </p>
                                     <p class="text-[11px] text-slate-500 mt-1">
-                                        Add items in the correct order. Use the <b>Sort Order</b> field to define the
-                                        sequence if
-                                        necessary, but typically the order in the list is used.
+                                        أضف العناصر بالترتيب الصحيح. استخدم حقل <b>Sort Order</b> لتحديد التسلسل إذا
+                                        لزم الأمر، ولكن عادة ما يتم استخدام الترتيب في القائمة.
                                     </p>
                                 </div>
 
                                 <div v-if="q.type === 'highlight'"
-                                    class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                                    class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-right" dir="rtl">
                                     <p
                                         class="text-[10px] font-black text-yellow-600 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="pi pi-info-circle"></i> Highlight Guide
+                                        <i class="pi pi-info-circle"></i> دليل تمييز النص (Highlight)
                                     </p>
                                     <p class="text-[11px] text-yellow-700 mt-1">
-                                        Add phrases or sentences as options. Mark <b>Is Correct</b> for those that
-                                        should be
-                                        highlighted by the student.
+                                        أضف عبارات أو جملاً كخيارات. حدد <b>صح</b> لتلك التي يجب على الطالب تمييزها.
                                     </p>
                                 </div>
                             </div>

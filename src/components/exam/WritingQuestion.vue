@@ -34,29 +34,50 @@ const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtual
 </script>
 
 <template>
-    <div class="space-y-3" dir="rtl">
-        <textarea v-model="textAnswer" :disabled="disabled"
-            class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm font-medium focus:border-brand-primary transition-all min-h-[180px] outline-none"
-            placeholder="اكتب إجابتك هنا..."></textarea>
-        <div class="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
-            <div class="flex items-center gap-4">
-                <span>عدد الكلمات: {{ wordCount }}</span>
-                <span>المطلوب: {{ question.min_words || 0 }} - {{ question.max_words || '∞' }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <button @click="toggleKeyboardLayout" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 text-slate-600 transition-colors">
-                    {{ keyboardLayout === 'arabic' ? 'English Keyboard' : 'لوحة مفاتيح عربية' }}
-                </button>
-                <button @click="showVirtualKeyboard = !showVirtualKeyboard" class="w-10 h-8 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-slate-200 transition-all" :title="showVirtualKeyboard ? 'Hide Keyboard' : 'Show Keyboard'">
-                    <svg viewBox="0 0 24 24" class="w-5 h-5 transition-colors" :class="showVirtualKeyboard ? 'text-brand-primary' : 'text-slate-400'" fill="currentColor">
-                        <path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
+    <div class="space-y-6 py-4" dir="rtl">
+        <!-- Writing Area with Premium Styling -->
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 relative overflow-hidden group">
+            
+            <!-- Glass Textarea -->
+            <textarea v-model="textAnswer" :disabled="disabled"
+                class="w-full bg-slate-50/50 border-2 border-slate-100 rounded-3xl p-8 text-xl font-medium focus:bg-indigo-50/30 focus:border-brand-primary transition-all min-h-[300px] outline-none shadow-inner leading-relaxed resize-none relative z-10"
+                placeholder="ابدأ الكتابة هنا..."></textarea>
+            
+            <!-- Floating Background Decoration -->
+            <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl group-focus-within:bg-brand-primary/10 transition-colors"></div>
 
-        <VirtualKeyboard v-if="showVirtualKeyboard && !disabled" 
-            v-model="textAnswer" 
-            :layout="keyboardLayout" />
+            <!-- Integrated Toolbar -->
+            <div class="mt-6 flex flex-wrap justify-between items-center gap-4 relative z-10">
+                <!-- Stats Badges -->
+                <div class="flex items-center gap-3">
+                    <div class="px-4 py-2 bg-slate-100 rounded-xl flex items-center gap-3">
+                        <i class="pi pi-align-right text-[10px] text-slate-400"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-600">الكلمات: {{ wordCount }}</span>
+                    </div>
+                    <div class="px-4 py-2 bg-indigo-50 rounded-xl flex items-center gap-3 border border-indigo-100/50">
+                        <i class="pi pi-flag text-[10px] text-brand-primary"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary">المستهدف: {{ question.min_words || 0 }} - {{ question.max_words || '∞' }}</span>
+                    </div>
+                </div>
+
+                <!-- Keyboard Controls -->
+                <div class="flex items-center gap-2">
+                    <button @click="toggleKeyboardLayout" class="h-10 px-6 bg-white border border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary hover:border-brand-primary shadow-sm transition-all active:scale-95">
+                        {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
+                    </button>
+                    <button @click="showVirtualKeyboard = !showVirtualKeyboard" 
+                        class="w-12 h-10 flex items-center justify-center bg-white border border-slate-100 rounded-xl shadow-sm hover:border-brand-primary transition-all group active:scale-95"
+                        :class="showVirtualKeyboard ? 'border-brand-primary text-brand-primary' : 'text-slate-400'">
+                        <i class="pi pi-keyboard text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Virtual Keyboard -->
+            <VirtualKeyboard v-if="showVirtualKeyboard && !disabled" 
+                v-model="textAnswer" 
+                :layout="keyboardLayout"
+                class="mt-8 animate-in slide-in-from-bottom-6 duration-500" />
+        </div>
     </div>
 </template>

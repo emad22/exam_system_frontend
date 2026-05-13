@@ -43,7 +43,7 @@ const onDrop = (event, slotIdx) => {
         const data = event.dataTransfer.getData('option');
         if (!data) return;
         const option = JSON.parse(data);
-        
+
         const newAnswers = [...dragDropAnswers.value];
         newAnswers[slotIdx] = option.option_text;
         dragDropAnswers.value = newAnswers;
@@ -61,13 +61,20 @@ const clearSlot = (slotIdx) => {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 leading-[2.4] text-base font-medium text-slate-700 interactive-content-area rtl-support"
+    <div class="space-y-8 py-4">
+        <!-- Main Content Area with Glassmorphism -->
+        <div class="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] border border-slate-100 leading-[2.8] text-lg font-medium text-slate-800 shadow-xl shadow-slate-200/50 relative overflow-hidden rtl-support"
             dir="auto">
+
+            <!-- Subtle Background Pattern -->
+            <div
+                class="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:20px_20px]">
+            </div>
+
             <template v-for="(part, pIdx) in parsedDragDropContent(question.content)" :key="pIdx">
-                <span v-html="part"></span>
-                <span v-if="pIdx < parsedDragDropContent(question.content).length - 1"
-                    @dragover.prevent @dragenter.prevent @drop="onDrop($event, pIdx)"
+                <span v-html="part" class="relative z-10"></span>
+                <span v-if="pIdx < parsedDragDropContent(question.content).length - 1" @dragover.prevent
+                    @dragenter.prevent @drop="onDrop($event, pIdx)"
                     class="inline-flex items-center justify-center min-w-[120px] h-9 mx-1 px-4 rounded-lg border-2 border-dashed transition-all relative top-1.5"
                     :class="dragDropAnswers[pIdx]
                         ? 'bg-indigo-50 border-brand-primary border-solid text-brand-primary font-black text-sm shadow-sm'
@@ -81,8 +88,7 @@ const clearSlot = (slotIdx) => {
             </template>
         </div>
         <div class="flex flex-wrap gap-2 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
-            <div v-for="opt in question.options" :key="opt.id" draggable="true"
-                @dragstart="onDragStart($event, opt)"
+            <div v-for="opt in question.options" :key="opt.id" draggable="true" @dragstart="onDragStart($event, opt)"
                 class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-600 cursor-grab hover:bg-brand-primary hover:text-white transition-all shadow-sm">
                 {{ opt.option_text }}
             </div>
