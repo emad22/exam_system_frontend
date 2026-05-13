@@ -214,6 +214,18 @@ const adminRoutes = [
     component: AdminReportShow
   },
   {
+    path: '/admin/grading',
+    name: 'admin.grading',
+    component: () => import('@/views/admin/Grading/index.vue'),
+    meta: { title: 'Manual Grading' }
+  },
+  {
+    path: '/admin/grading/:id',
+    name: 'admin.grading.show',
+    component: () => import('@/views/admin/Grading/Show.vue'),
+    meta: { title: 'Correction Desk' }
+  },
+  {
     path: '/admin/payments',
     name: 'admin.payments',
     component: AdminPayments

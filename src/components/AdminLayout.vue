@@ -18,6 +18,7 @@ const navigation = [
     { name: 'Levels', href: '/admin/levels', icon: 'pi pi-sort-amount-up' },
     { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
+    { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
     { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-award' },
     { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
     { name: 'Partner', href: '/admin/partners', icon: 'pi pi-briefcase' },
@@ -105,7 +106,7 @@ const filteredNavigation = computed(() => {
 
     if (isTeacher) {
         // Restricted list for Teachers
-        const teacherAllowed = ['Dashboard', 'Questions', 'Reports'];
+        const teacherAllowed = ['Dashboard', 'Questions', 'Reports', 'Writing & Speaking'];
         baseNav = navigation.filter(item => teacherAllowed.includes(item.name));
     }
 
