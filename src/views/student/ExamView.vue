@@ -675,7 +675,8 @@ onUnmounted(() => {
                         class="h-10 px-6 rounded-lg font-bold text-xs transition-all flex items-center gap-2">
                         <span>previous</span>
                     </button>
-                    <span class="text-xs font-bold text-slate-500"> {{ displayNumber }} / {{ totalSkillQuestions  }}</span>
+                    <span class="text-xs font-bold text-slate-500"> {{ displayNumber }} / {{ totalSkillQuestions
+                        }}</span>
                     <button @click="submitAnswer" :disabled="!isCurrentAnswerValid || questionSubmitted"
                         class="h-10 px-8 bg-brand-primary text-white rounded-lg font-black text-xs hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                         confirm
@@ -717,7 +718,8 @@ onUnmounted(() => {
             <div class="flex items-center space-x-3 space-x-reverse">
 
                 <div class="px-3 py-1 bg-slate-100 rounded-md border border-slate-200">
-                    <span class="text-xs font-black text-slate-600 uppercase tracking-wider">{{ currentLevel?.name }}</span>
+                    <span class="text-xs font-black text-slate-600 uppercase tracking-wider">{{ currentLevel?.name
+                        }}</span>
                 </div>
             </div>
         </div>
@@ -735,7 +737,9 @@ onUnmounted(() => {
                     </div>
                     <h3 class="text-xl font-black text-slate-900 tracking-tight mb-4 uppercase">System Notification</h3>
                     <p class="text-slate-600 text-base font-medium leading-relaxed mb-8">
-                        You did not meet the minimum score requirement. A second evaluation cycle with new content is about to begin...
+                        You did not meet the minimum score requirement. A second evaluation cycle with new content is
+                        about to
+                        begin...
                     </p>
                     <button @click="showRetryNotification = false"
                         class="w-full py-4 bg-slate-800 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-slate-700 transition-all">
@@ -753,7 +757,9 @@ onUnmounted(() => {
                         class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 text-3xl">
                         <i class="pi pi-check-circle"></i>
                     </div>
-                    <h3 class="text-3xl font-black text-slate-900 tracking-tight mb-4">Well done! You have completed the level</h3>
+                    <h3 class="text-3xl font-black text-slate-900 tracking-tight mb-4">Well done! You have completed the
+                        level
+                    </h3>
                     <p class="text-slate-600 text-lg font-medium leading-relaxed mb-10">
                         You are now ready to move to the next level: <br />
                         <span class="text-brand-primary font-black text-2xl mt-2 block">{{ nextLevelName }}</span>
@@ -858,7 +864,7 @@ onUnmounted(() => {
                             </div>
 
                             <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :question="currentQ"
-                                v-model:answer="answers[currentIndex]" :disabled="questionSubmitted" />
+                                v-model:answer="answers[currentIndex]" :disabled="false" />
                         </div>
 
                         <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
@@ -873,7 +879,7 @@ onUnmounted(() => {
                     <div class="flex items-center space-x-2 space-x-reverse mb-4 pb-2 border-b border-slate-100"
                         dir="rtl">
                         <i class="pi pi-file-edit text-slate-400"></i>
-                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">  </span>
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest"> </span>
                     </div>
 
                     <div class="flex-grow prose prose-slate max-w-none">
@@ -919,7 +925,8 @@ onUnmounted(() => {
                 </div>
                 <div class="space-y-2">
                     <h2 class="text-3xl font-black text-slate-900 tracking-tight"> timeout! </h2>
-                    <p class="text-slate-500 font-bold leading-relaxed">The time allocated for this part of the assessment
+                    <p class="text-slate-500 font-bold leading-relaxed">The time allocated for this part of the
+                        assessment
                         has expired.
                         Your answers will be saved and you will be directed automatically.</p>
                 </div>
@@ -997,7 +1004,8 @@ onUnmounted(() => {
                 <div class="space-y-2">
                     <!-- instruction in english lang -->
                     <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Security Alert</h2>
-                    <p class="text-slate-500 font-bold leading-relaxed">Please do not leave the exam page or switch tabs.
+                    <p class="text-slate-500 font-bold leading-relaxed">Please do not leave the exam page or switch
+                        tabs.
                         The exam will be automatically terminated if you try again.</p>
                     <div class="pt-2">
                         <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} of 3</p>
@@ -1023,7 +1031,9 @@ onUnmounted(() => {
                 </div>
                 <div class="space-y-2">
                     <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Inactivity Alert</h2>
-                    <p class="text-slate-500 font-bold leading-relaxed">You have been inactive for too long. Your session will be terminated in a few seconds.</p>
+                    <p class="text-slate-500 font-bold leading-relaxed">You have been inactive for too long. Your
+                        session will
+                        be terminated in a few seconds.</p>
                 </div>
             </div>
         </div>
@@ -1038,7 +1048,9 @@ onUnmounted(() => {
                 </div>
                 <div class="space-y-2">
                     <h2 class="text-3xl font-black text-rose-600 tracking-tight uppercase">Exam Terminated</h2>
-                    <p class="text-slate-700 font-bold leading-relaxed">Repeated cheating attempts detected (tab switching). The exam is now terminated.</p>
+                    <p class="text-slate-700 font-bold leading-relaxed">Repeated cheating attempts detected (tab
+                        switching). The
+                        exam is now terminated.</p>
                 </div>
                 <div class="pt-4">
                     <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
@@ -1046,7 +1058,9 @@ onUnmounted(() => {
                             style="animation: shrink 5s linear forwards;">
                         </div>
                     </div>
-                    <p class="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest">Redirecting to dashboard...</p>
+                    <p class="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest">Redirecting to
+                        dashboard...
+                    </p>
                 </div>
             </div>
         </div>

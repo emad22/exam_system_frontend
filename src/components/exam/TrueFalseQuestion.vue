@@ -41,10 +41,10 @@ const getOptionType = (opt) => {
             :class="[
                 selectedOptionId === opt.id
                     ? (getOptionType(opt) === 'true' 
-                        ? 'border-emerald-500 bg-emerald-50/50 ring-4 ring-emerald-500/10 scale-[1.02]' 
+                        ? 'border-emerald-500 bg-emerald-50/50 ring-4 ring-emerald-500/10 ' 
                         : getOptionType(opt) === 'false'
-                            ? 'border-rose-500 bg-rose-50/50 ring-4 ring-rose-500/10 scale-[1.02]'
-                            : 'border-brand-primary bg-indigo-50/50 ring-4 ring-indigo-500/10 scale-[1.02]')
+                            ? 'border-rose-500 bg-rose-50/50 ring-4 ring-rose-500/10 '
+                            : 'border-brand-primary bg-indigo-50/50 ring-4 ring-indigo-500/10 ')
                     : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50 bg-white shadow-sm'
             ]">
             
