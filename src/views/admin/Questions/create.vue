@@ -646,8 +646,9 @@ onMounted(() => {
                         <div class="space-y-4">
                             <!-- Mode Selector -->
                             <div class="flex items-center gap-3">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question
-                                    Content</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    {{ q.type === 'writing' ? 'Writing Task Prompt' : 'Question Content' }}
+                                </span>
                                 <div class="flex bg-slate-100 rounded-2xl p-1 gap-1">
                                     <button type="button"
                                         @click="q.content_mode = 'text'; q.q_media = null; q.q_media_preview = null"
@@ -668,6 +669,18 @@ onMounted(() => {
                                 <Editor v-model="q.content" editorStyle="height: 120px"
                                     class="rounded-[1.5rem] overflow-hidden border border-slate-100 bg-slate-50/50"
                                     placeholder="Type your formatted question here..." />
+
+                                <div v-if="q.type === 'writing'"
+                                    class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-right" dir="rtl">
+                                    <p
+                                        class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                                        <i class="pi pi-info-circle"></i> دليل المهمة الكتابية (Writing Task)
+                                    </p>
+                                    <p class="text-[11px] text-indigo-500 mt-1">
+                                        قم بكتابة نص المهمة أو السؤال بوضوح. سيتم عرض مربع نص للطالب للكتابة فيه.
+                                        يمكنك تحديد الحد الأدنى والأقصى للكلمات في قسم "المعايير" بالأسفل.
+                                    </p>
+                                </div>
 
                                 <div v-if="q.type === 'drag_drop'"
                                     class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-right" dir="rtl">
@@ -876,7 +889,7 @@ onMounted(() => {
                                                 <i class="pi pi-chevron-down text-[10px]"></i>
                                             </button>
                                             <button
-                                                v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && (q.type === 'click_word' ? q.options.length > 1 : q.options.length > 1)"
+                                                v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && q.options.length > 1"
                                                 @click="removeOption(qIdx, oIdx)"
                                                 class="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
                                                 <i class="pi pi-trash text-[10px]"></i>
@@ -888,49 +901,75 @@ onMounted(() => {
 
                             <!-- Points & Word Limits: Sidebar Style -->
                             <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'"
-                                class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
-                                <div class="flex items-center gap-3">
-                                    <i class="pi pi-calculator text-indigo-400"></i>
-                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring &
-                                        Parameters</label>
+                                class="flex flex-col space-y-8 bg-slate-50/80 p-8 md:p-10 rounded-[3rem] border border-slate-200/50 shadow-sm transition-all hover:shadow-md">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                            <i class="pi pi-calculator text-lg"></i>
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-black text-slate-800 uppercase tracking-wide block">Scoring & Parameters</label>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase">Define weight and constraints</span>
+                                        </div>
+                                    </div>
+                                    <div v-if="q.type === 'writing'" class="hidden md:flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100">
+                                        <i class="pi pi-info-circle text-indigo-400 text-xs"></i>
+                                        <span class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Writing Task Config</span>
+                                    </div>
                                 </div>
-                                <div class="grid grid-cols-1 gap-6">
-                                    <div class="flex flex-col">
-                                        <label
-                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort
-                                            Order</label>
+
+                                <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10' : 'grid grid-cols-1 gap-8'">
+                                    <!-- Sort Order -->
+                                    <div class="flex flex-col gap-3">
+                                        <div class="flex items-center gap-2 ml-1">
+                                            <i class="pi pi-sort-alt text-[10px] text-slate-400"></i>
+                                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Display Order</label>
+                                        </div>
                                         <InputNumber v-model="q.sort_order" :min="0" showButtons
-                                            buttonLayout="horizontal" class="w-full h-10"
-                                            inputClass="text-center font-black text-slate-600 bg-slate-50/50 border-none rounded-xl"
-                                            incrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-r-xl"
-                                            decrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-l-xl"
+                                            buttonLayout="horizontal" class="w-full h-12"
+                                            inputClass="text-center font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all"
+                                            incrementButtonClass="bg-slate-50 text-slate-400 border-none rounded-r-2xl"
+                                            decrementButtonClass="bg-slate-50 text-slate-400 border-none rounded-l-2xl"
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-                                    <div class="flex flex-col">
-                                        <label
-                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
+
+                                    <!-- Points -->
+                                    <div class="flex flex-col gap-3">
+                                        <div class="flex items-center gap-2 ml-1">
+                                            <i class="pi pi-star text-[10px] text-emerald-400"></i>
+                                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Question Points</label>
+                                        </div>
                                         <InputNumber v-model="q.points" :min="1" showButtons buttonLayout="horizontal"
-                                            class="w-full h-10"
-                                            inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-none rounded-xl"
-                                            incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-xl"
-                                            decrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-l-xl"
+                                            class="w-full h-12"
+                                            inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-2 border-emerald-100 rounded-2xl focus:border-emerald-400 transition-all"
+                                            incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-2xl"
+                                            decrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-l-2xl"
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-                                    <div v-if="q.type === 'writing'"
-                                        class="space-y-4 pt-4 border-t border-slate-200/50">
-                                        <div class="flex flex-col">
-                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase">Min
-                                                Words</label>
-                                            <InputNumber v-model="q.min_words" placeholder="0" class="w-full" />
+
+                                    <!-- Writing Specific: Min Words -->
+                                    <template v-if="q.type === 'writing'">
+                                        <div class="flex flex-col gap-3 animate-in fade-in slide-in-from-left-4">
+                                            <div class="flex items-center gap-2 ml-1">
+                                                <i class="pi pi-minus-circle text-[10px] text-orange-400"></i>
+                                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Minimum Word Count</label>
+                                            </div>
+                                            <InputNumber v-model="q.min_words" placeholder="e.g. 150" class="w-full h-12"
+                                                inputClass="font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl px-6 focus:border-orange-400 transition-all" />
                                         </div>
-                                        <div class="flex flex-col">
-                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase">Max
-                                                Words</label>
-                                            <InputNumber v-model="q.max_words" placeholder="200" class="w-full" />
+
+                                        <!-- Writing Specific: Max Words -->
+                                        <div class="flex flex-col gap-3 animate-in fade-in slide-in-from-left-8">
+                                            <div class="flex items-center gap-2 ml-1">
+                                                <i class="pi pi-plus-circle text-[10px] text-rose-400"></i>
+                                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Maximum Word Count</label>
+                                            </div>
+                                            <InputNumber v-model="q.max_words" placeholder="e.g. 250" class="w-full h-12"
+                                                inputClass="font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl px-6 focus:border-rose-400 transition-all" />
                                         </div>
-                                    </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>

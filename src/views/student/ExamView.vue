@@ -613,7 +613,7 @@ const handleBeforeUnload = () => {
 
 onMounted(async () => {
     const user = JSON.parse(sessionStorage.getItem('user'));
-    isDemo.value = user && ['demo', 'deom', 'staff'].includes(user.role?.toLowerCase());
+    isDemo.value = user && ['demo', 'staff'].includes(user.role?.toLowerCase());
     await fetchData();
 
     // Initialize Anti-Cheat
@@ -625,7 +625,7 @@ onMounted(async () => {
     document.addEventListener('mousemove', updateActivity);
     document.addEventListener('keydown', updateActivity);
     document.addEventListener('click', updateActivity);
-    inactivityInterval = setInterval(checkInactivity, 30000);
+    // inactivityInterval = setInterval(checkInactivity, 30000);
 });
 
 onUnmounted(() => {

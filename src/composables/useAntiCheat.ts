@@ -13,23 +13,14 @@ export function useAntiCheat(attemptId: any, options: { onFinalWarning: () => vo
             cheatWarnings.value++;
 
             try {
-                const res = await api.post(`/attempts/${attemptId.value}/warnings`);
-
-                if (res.data.should_terminate_skill) {
-                    showFinalCheatModal.value = true;
-                    options.onFinalWarning();
-                    return;
-                }
+                await api.post(`/attempts/${attemptId.value}/warnings`);
             } catch (err) {
                 console.error('Failed to log cheat warning', err);
             }
 
-            if (cheatWarnings.value >= 3) {
-                showFinalCheatModal.value = true;
-                options.onFinalWarning();
-            } else {
-                showCheatModal.value = true;
-            }
+            // We no longer terminate the skill automatically.
+            // Just show the cheat warning modal so the student knows it was recorded.
+            showCheatModal.value = true;
         }
     };
 
