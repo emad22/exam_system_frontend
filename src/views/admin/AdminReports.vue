@@ -16,7 +16,6 @@ const partners = ref([]);
 const selectedPartner = ref(null);
 const loading = ref(true);
 const search = ref('');
-let totalLevels =0;
 
 const skillMap = {
     'listening': 'Listening',
@@ -134,50 +133,6 @@ const getTotalScore = (attempt) => {
         }, 0);
 };
 
-// const getTotalLevels = (attempt) => {
-//     if (!attempt || !attempt.attempt_skills) return 0;
-    
-//     return attempt.attempt_skills
-//         .filter(skillResult => {
-//             const skillName = skillResult.skill?.name?.toLowerCase() || '';
-//             return (
-//                 skillName.includes('read') ||
-//                 skillName.includes('listen') ||
-//                 skillName.includes('struct')
-//             );
-//         })
-//         .reduce((sum, skillResult) => {
-//             return sum + (skillResult.skill?.levels_count || 1);
-//         }, 0);
-// };
-
-
-
-
-
-// const getTotalLevels = (attempt) => {
-//     if (!attempt || !attempt.skill_ids || !attempt.attempt_skills) return 0;
-
-//     const allowedSkillIds = attempt.skill_ids;
-
-//     return attempt.attempt_skills
-//         .filter(skillResult => {
-//             const skillId = skillResult.skill_id;
-//             const skillName = skillResult.skill?.name?.toLowerCase() || '';
-
-//             return (
-//                 allowedSkillIds.includes(skillId) &&
-//                 (
-//                     skillName.includes('read') ||
-//                     skillName.includes('listen') ||
-//                     skillName.includes('struct')
-//                 )
-//             );
-//         })
-//         .reduce((sum, skillResult) => {
-//             return sum + (skillResult.skill?.levels_count || 1);
-//         }, 0);
-// };
 
 onMounted(() => {
     fetchReports();

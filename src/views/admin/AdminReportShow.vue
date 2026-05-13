@@ -20,14 +20,6 @@ const selectedAttempt = ref(null);
 const loading = ref(true);
 const currentUser = ref(null);
 let totalLevels = 0;
-let calculated_score = 0;
-
-// const totalScore = computed(() => {
-//     if (!selectedAttempt.value || !selectedAttempt.value.attempt_skills) return 0;
-//     return selectedAttempt.value.attempt_skills.reduce((sum, skillResult) => {
-//         return sum + (getCalculatedSkillScore(skillResult) || 0);
-//     }, 0);
-// });
 
 
 const getTotalScore = (attempt) => {
