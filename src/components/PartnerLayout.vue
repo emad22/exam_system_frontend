@@ -65,12 +65,7 @@ const resolveUrl = (path) => {
         return isLocal ? 'http://localhost:8000/api/v1' : `${window.location.origin}/api/v1`;
     };
     const baseUrl = getBaseURL();
-    console.log("--------------------------------------baseUrl-------------------------------", baseUrl);
-
-
     const storageBase = baseUrl.split('/api')[0].replace(/\/$/, '') + '/storage';
-    console.log("--------------------------------------storageBase-------------------------------", storageBase);
-    console.log("--------------------------------------path-------------------------------", path);
     return `${storageBase}/${path.replace(/^storage\//, '').replace(/^\/+/, '')}`;
 };
 </script>

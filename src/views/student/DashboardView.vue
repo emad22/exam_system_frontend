@@ -142,7 +142,6 @@ const resolveUrl = (path) => {
 
 
 const qrUrl = computed(() => {
-    console.log("-------------student avatar -------------------------------", resolveUrl(student.value?.avatar))
     if (certificates.value.length === 0) return null;
     const cert = certificates.value[0];
     const verificationUrl = window.location.origin + '/verify-certificate/' + (cert.verification_code || cert.certificate_number);
