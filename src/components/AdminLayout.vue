@@ -39,7 +39,7 @@ const isMuted = ref(localStorage.getItem('admin_muted') === 'true');
 const toggleMute = () => {
     isMuted.value = !isMuted.value;
     localStorage.setItem('admin_muted', isMuted.value);
-    
+
     // Play a silent or short sound to 'unlock' the audio context on user interaction
     if (!isMuted.value) {
         notificationAudio.play().then(() => {
@@ -75,10 +75,10 @@ const goToReport = async (notif) => {
 
     const isTeacher = currentUser.value?.role === 'teacher';
     const routeName = isTeacher ? 'teacher.reports.show' : 'admin.reports.show';
-    
-    router.push({ 
-        name: routeName, 
-        params: { id: notif.data.attempt_id } 
+
+    router.push({
+        name: routeName,
+        params: { id: notif.data.attempt_id }
     });
     showNotifications.value = false;
 };
@@ -98,7 +98,7 @@ let intervalId = null;
 onMounted(async () => {
     try {
         await adminStore.fetchUser();
-        
+
         // Start polling for notifications only if user is authenticated
         fetchNotifications();
         intervalId = setInterval(fetchNotifications, 15000); // Every 15 seconds
@@ -178,16 +178,12 @@ const resolveUrl = (path) => {
         <!-- Sidebar -->
         <aside
             class="w-[280px] h-full bg-white border-r border-slate-200 shadow-xl flex flex-col hidden lg:flex relative z-20">
-            
+
             <!-- Top Section (Logo + Nav) -->
             <div class="flex-1 flex flex-col min-h-0">
                 <!-- Logo Section -->
                 <div class="h-24 flex items-center px-8 shrink-0 border-b border-slate-100 bg-slate-50/50">
-                    <img
-                        src="/logo.png"
-                        alt="Arab Academy"
-                        class="h-14 w-auto max-w-[190px] object-contain"
-                    />
+                    <img src="/logo.png" alt="Arab Academy" class="h-14 w-auto max-w-[190px] object-contain" />
                 </div>
 
                 <!-- Navigation -->
@@ -212,8 +208,7 @@ const resolveUrl = (path) => {
 
             <!-- User Profile / Bottom Section -->
             <div class="p-6 shrink-0 border-t border-slate-100 bg-slate-50/50">
-                <div
-                    @click="router.push('/profile')"
+                <div @click="router.push('/profile')"
                     class="bg-white rounded-2xl p-4 mb-4 group cursor-pointer hover:bg-slate-50 transition-colors duration-300 border border-slate-200 shadow-sm">
                     <div class="flex items-center space-x-3">
                         <div
@@ -263,33 +258,40 @@ const resolveUrl = (path) => {
 
                 <div class="flex items-center space-x-6">
                     <div class="hidden md:flex items-center space-x-3">
-                        <Button 
-                            @click="toggleMute" 
-                            :icon="isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'" 
-                            :severity="isMuted ? 'secondary' : 'primary'" 
-                            rounded text 
-                            v-tooltip.bottom="isMuted ? 'Unmute Notifications' : 'Mute Notifications'"
-                        />
+                        <Button @click="toggleMute" :icon="isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'"
+                            :severity="isMuted ? 'secondary' : 'primary'" rounded text
+                            v-tooltip.bottom="isMuted ? 'Unmute Notifications' : 'Mute Notifications'" />
                         <div class="relative">
-                            <Button @click.stop="toggleNotifications" icon="pi pi-bell" :severity="showNotifications ? 'primary' : 'secondary'" rounded text aria-label="Notifications" />
-                            <span v-if="notifications.length > 0" class="absolute top-1 right-1 w-4 h-4 bg-brand-accent text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
+                            <Button @click.stop="toggleNotifications" icon="pi pi-bell"
+                                :severity="showNotifications ? 'primary' : 'secondary'" rounded text
+                                aria-label="Notifications" />
+                            <span v-if="notifications.length > 0"
+                                class="absolute top-1 right-1 w-4 h-4 bg-brand-accent text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
                                 {{ notifications.length }}
                             </span>
 
                             <!-- Notifications Dropdown -->
-                            <div v-if="showNotifications" v-click-outside="() => showNotifications = false" class="absolute right-0 mt-3 w-80 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
-                                <div class="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Live Activity</h3>
-                                    <button @click="clearNotifications" v-if="notifications.length > 0" class="text-[10px] font-bold text-brand-primary hover:text-brand-accent transition-colors">Clear All</button>
+                            <div v-if="showNotifications" v-click-outside="() => showNotifications = false"
+                                class="absolute right-0 mt-3 w-80 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
+                                <div
+                                    class="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Live
+                                        Activity</h3>
+                                    <button @click="clearNotifications" v-if="notifications.length > 0"
+                                        class="text-[10px] font-bold text-brand-primary hover:text-brand-accent transition-colors">Clear
+                                        All</button>
                                 </div>
                                 <div class="max-h-[350px] overflow-y-auto no-scrollbar">
                                     <div v-if="notifications.length === 0" class="p-10 text-center">
-                                        <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <div
+                                            class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
                                             <i class="pi pi-bell-slash text-slate-300"></i>
                                         </div>
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All caught up!</p>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All
+                                            caught up!
+                                        </p>
                                     </div>
-                                    <div v-else v-for="notif in notifications" :key="notif.id" 
+                                    <div v-else v-for="notif in notifications" :key="notif.id"
                                         @click="goToReport(notif)"
                                         class="p-4 border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer group">
                                         <div class="flex items-start space-x-3">
@@ -303,8 +305,11 @@ const resolveUrl = (path) => {
                                                 ]"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <p class="text-[11px] font-black text-slate-800 leading-snug">{{ notif.data.message }}</p>
-                                                <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ new Date(notif.created_at).toLocaleTimeString() }}</p>
+                                                <p class="text-[11px] font-black text-slate-800 leading-snug">{{
+                                                    notif.data.message }}</p>
+                                                <p
+                                                    class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
+                                                    {{ new Date(notif.created_at).toLocaleTimeString() }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -313,30 +318,42 @@ const resolveUrl = (path) => {
                         </div>
                         <!-- User Profile Dropdown -->
                         <div class="relative">
-                            <div @click.stop="showUserMenu = !showUserMenu" class="flex items-center gap-2 bg-white/50 hover:bg-white p-1.5 pr-3 rounded-2xl border border-slate-100 cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md group">
-                                <div class="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center overflow-hidden border border-brand-primary/20">
-                                    <img v-if="currentUser?.avatar" :src="resolveUrl(currentUser.avatar)" class="w-full h-full object-cover" />
+                            <div @click.stop="showUserMenu = !showUserMenu"
+                                class="flex items-center gap-2 bg-white/50 hover:bg-white p-1.5 pr-3 rounded-2xl border border-slate-100 cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md group">
+                                <div
+                                    class="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center overflow-hidden border border-brand-primary/20">
+                                    <img v-if="currentUser?.avatar" :src="resolveUrl(currentUser.avatar)"
+                                        class="w-full h-full object-cover" />
                                     <i v-else class="pi pi-user text-brand-primary"></i>
                                 </div>
-                                <i class="pi pi-chevron-down text-[10px] text-slate-400 group-hover:text-brand-primary transition-transform duration-300" :class="{'rotate-180': showUserMenu}"></i>
+                                <i class="pi pi-chevron-down text-[10px] text-slate-400 group-hover:text-brand-primary transition-transform duration-300"
+                                    :class="{ 'rotate-180': showUserMenu }"></i>
                             </div>
 
                             <!-- Dropdown Menu -->
-                            <div v-if="showUserMenu" v-click-outside="() => showUserMenu = false" class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
+                            <div v-if="showUserMenu" v-click-outside="() => showUserMenu = false"
+                                class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
                                 <div class="p-4 border-b border-slate-50 bg-slate-50/50">
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Signed in as</p>
-                                    <p class="text-xs font-black text-slate-800 truncate">{{ currentUser?.name || currentUser?.username }}</p>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                        Signed in as
+                                    </p>
+                                    <p class="text-xs font-black text-slate-800 truncate">{{ currentUser?.name ||
+                                        currentUser?.username }}</p>
                                 </div>
                                 <div class="p-2">
-                                    <button @click="router.push('/profile'); showUserMenu = false" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-brand-primary/5 hover:text-brand-primary rounded-xl transition-all group">
-                                        <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-brand-primary/10">
+                                    <button @click="router.push('/profile'); showUserMenu = false"
+                                        class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-brand-primary/5 hover:text-brand-primary rounded-xl transition-all group">
+                                        <div
+                                            class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-brand-primary/10">
                                             <i class="pi pi-user-edit text-xs"></i>
                                         </div>
                                         Edit Profile
                                     </button>
                                     <div class="h-px bg-slate-50 my-1"></div>
-                                    <button @click="logout" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-50 rounded-xl transition-all group">
-                                        <div class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center group-hover:bg-rose-100">
+                                    <button @click="logout"
+                                        class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-50 rounded-xl transition-all group">
+                                        <div
+                                            class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center group-hover:bg-rose-100">
                                             <i class="pi pi-sign-out text-xs"></i>
                                         </div>
                                         Sign Out

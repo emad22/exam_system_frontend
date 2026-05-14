@@ -69,6 +69,7 @@ const fetchProfile = async () => {
 
 onMounted(fetchProfile);
 
+
 const onFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -126,10 +127,25 @@ const updateProfile = async () => {
 
 const resolveUrl = (path) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-    const storageBase = baseUrl.replace('/api/v1', '/storage').replace('/api', '/storage');
-    return `${storageBase}/${path.replace('storage/', '')}`;
+
+    if (/^https?:\/\//.test(path)) {
+        return path;
+    }
+
+    let baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+
+    if (!baseUrl) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+        baseUrl = isLocal
+            ? 'http://localhost:8000/api'
+            : `${window.location.origin}/api`;
+    }
+
+    const origin = new URL(baseUrl).origin;
+
+    return `${origin}/storage/${path.replace(/^storage\//, '').replace(/^\/+/, '')}`;
 };
 
 const initialRole = localStorage.getItem('role');

@@ -177,21 +177,42 @@ const getCorrectOptions = (question) => {
         .map(o => o.option_text);
 };
 
+const getMatchingPairs = (answer) => {
+    if (!answer || answer.question?.type !== 'matching') return [];
+    
+    const options = answer.question.options || [];
+    const correctPairs = options
+        .filter(o => o.option_text.includes('|'))
+        .map(o => {
+            const parts = o.option_text.split('|');
+            return {
+                id: o.id,
+                source: parts[0].trim(),
+                target: parts[1]?.trim()
+            };
+        });
+
+    let studentAnswers = {};
+    try {
+        const raw = answer.text_answer || '{}';
+        studentAnswers = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+        console.error('Failed to parse matching answer', e);
+    }
+
+    return correctPairs.map(pair => {
+        const studentTarget = studentAnswers[pair.id] || null;
+        const isCorrect = normalizeString(studentTarget) === normalizeString(pair.target);
+        return {
+            ...pair,
+            studentTarget,
+            isCorrect
+        };
+    });
+};
+
 const getStudentParts = (answer) => {
     if (!answer) return [];
-    if (answer.question?.type === 'matching') {
-        const matches = parseJson(answer.text_answer);
-        try {
-            const obj = JSON.parse(answer.text_answer);
-            if (typeof obj === 'object' && !Array.isArray(obj)) {
-                return Object.entries(obj).map(([id, target]) => {
-                    const opt = answer.question.options.find(o => o.id == id);
-                    const source = opt ? opt.option_text.split('|')[0].trim() : id;
-                    return `${source} → ${target}`;
-                });
-            }
-        } catch (e) { }
-    }
     return parseJson(answer.text_answer);
 };
 
@@ -233,10 +254,79 @@ const isPartCorrect = (answer, correctVal, pIdx) => {
 
 const resolveUrl = (path) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-    const storageBase = baseUrl.replace('/api', '/storage');
-    return `${storageBase}/${path.replace('storage/', '')}`;
+
+    if (/^https?:\/\//.test(path)) {
+        return path;
+    }
+
+    let baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+    if (!baseUrl) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+        baseUrl = isLocal
+            ? 'http://localhost:8000/api'
+            : `${window.location.origin}/api`;
+    }
+
+    const origin = new URL(baseUrl).origin;
+
+    return `${origin}/storage/${path.replace(/^storage\//, '').replace(/^\/+/, '')}`;
+};
+
+const exportSkillToPdf = (skillId) => {
+    const element = document.getElementById(`skill-report-${skillId}`);
+    if (!element) return;
+
+    // Create a hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    
+    // Copy all style sheets and style tags to the iframe
+    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(style => {
+        doc.head.appendChild(style.cloneNode(true));
+    });
+
+    // Add some print-specific fixes
+    const printStyle = doc.createElement('style');
+    printStyle.innerHTML = `
+        @page { margin: 15mm; }
+        body { background: white !important; font-family: sans-serif; padding: 20px; }
+        button, .pi-refresh, .pi-file-pdf { display: none !important; }
+        .bg-white { background-color: white !important; }
+        .shadow-sm, .shadow-xl, .shadow-2xl { box-shadow: none !important; border: 1px solid #f1f5f9 !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    `;
+    doc.head.appendChild(printStyle);
+
+    const studentName = `${selectedAttempt.value.student?.user?.first_name || 'Student'} ${selectedAttempt.value.student?.user?.last_name || ''}`;
+
+    // Set content
+    doc.body.innerHTML = `
+        <div style="margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px;">
+            <h1 style="font-size: 28px; font-weight: 900; color: #1e293b; margin: 0;">Exam Performance Report</h1>
+            <p style="font-size: 14px; color: #64748b; margin: 5px 0 0 0;">Candidate: ${studentName}</p>
+        </div>
+        ${element.innerHTML}
+    `;
+
+    // Give it a moment to load styles and images
+    setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        // Remove iframe after printing
+        setTimeout(() => {
+            document.body.removeChild(iframe);
+        }, 1000);
+    }, 800);
 };
 
 onMounted(fetchDetails);
@@ -341,7 +431,7 @@ onMounted(fetchDetails);
                         <TabPanel v-for="skillResult in sortedAttemptSkills" :key="skillResult.id"
                             :value="skillResult.skill_id.toString()">
 
-                            <div class="space-y-10">
+                            <div class="space-y-10" :id="'skill-report-' + skillResult.skill_id">
                                 <!-- Skill Summary Card -->
                                 <div
                                     class="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm space-y-8 relative overflow-hidden group">
@@ -389,21 +479,27 @@ onMounted(fetchDetails);
                                                         skillResult.finished_at) }}</p>
                                                 </div>
                                             </div>
-                                            <Button v-if="currentUser?.role === 'admin'" label="Reset Skill"
-                                                icon="pi pi-refresh" severity="danger" outlined size="small"
-                                                class="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl"
-                                                @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
-
-                                            <div class="text-right border-l border-slate-100 pl-6 ml-2">
-                                                <div class="text-3xl font-black text-emerald-600 italic">
-                                                    {{ getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) : 0 }}
-                                                    <span
-                                                        class="text-lg text-emerald-400">{{ '/' + ((skillResult.skill?.levels_count || 1) * 100) }}</span>
+                                                <div class="text-right border-l border-slate-100 pl-6 ml-2">
+                                                    <div class="text-3xl font-black text-emerald-600 italic">
+                                                        {{ getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) : 0 }}
+                                                        <span
+                                                            class="text-lg text-emerald-400">{{ '/' + ((skillResult.skill?.levels_count || 1) * 100) }}</span>
+                                                    </div>
+                                                    <p
+                                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                        Skill Score</p>
                                                 </div>
-                                                <p
-                                                    class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                    Skill Score</p>
-                                            </div>
+
+                                                <div class="flex flex-col gap-2 ml-6 pl-6 border-l border-slate-100">
+                                                    <Button v-if="currentUser?.role === 'admin'" label="Reset"
+                                                        icon="pi pi-refresh" severity="danger" outlined size="small"
+                                                        class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl"
+                                                        @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
+                                                    
+                                                    <Button label="Export PDF" icon="pi pi-file-pdf" severity="help" size="small"
+                                                        class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-indigo-600 border-none"
+                                                        @click="exportSkillToPdf(skillResult.skill_id)" />
+                                                </div>
 
                                             <div class="text-right border-l border-slate-100 pl-6 ml-2">
                                                 <div class="text-3xl font-black text-slate-800 italic">{{
@@ -507,7 +603,35 @@ onMounted(fetchDetails);
                                                     <!-- Comparison -->
                                                     <div class="grid grid-cols-1 gap-6 pt-6 border-t border-slate-50">
                                                         <!-- Multi-part Answer Layout (Drag-Drop, etc) -->
-                                                        <div v-if="['drag_drop', 'fill_blank', 'ordering', 'matching', 'word_selection', 'click_word', 'highlight'].includes(answer.question?.type)"
+                                                        <!-- Matching Answer Layout -->
+                                                        <div v-if="answer.question?.type === 'matching'" class="space-y-4">
+                                                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Matching Pairs Evaluation</p>
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                                <div v-for="pair in getMatchingPairs(answer)" :key="pair.id"
+                                                                    class="p-4 rounded-2xl border flex flex-col gap-2 transition-all"
+                                                                    :class="pair.isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'">
+                                                                    <div class="flex justify-between items-start">
+                                                                        <span class="text-[8px] font-black uppercase tracking-wider" :class="pair.isCorrect ? 'text-emerald-400' : 'text-rose-400'">
+                                                                            {{ pair.source }}
+                                                                        </span>
+                                                                        <i :class="pair.isCorrect ? 'pi pi-check-circle text-emerald-500' : 'pi pi-times-circle text-rose-500'"></i>
+                                                                    </div>
+                                                                    <div class="space-y-1">
+                                                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Student Matched:</p>
+                                                                        <p class="text-xs font-black" :class="pair.isCorrect ? 'text-emerald-700' : 'text-rose-700'">
+                                                                            {{ pair.studentTarget || '—' }}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div v-if="!pair.isCorrect" class="pt-1 border-t border-rose-100 mt-1">
+                                                                        <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-tighter">Correct Target:</p>
+                                                                        <p class="text-xs font-black text-emerald-700">{{ pair.target }}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Multi-part Answer Layout (Drag-Drop, Fill-Blank, Ordering, etc) -->
+                                                        <div v-else-if="['drag_drop', 'fill_blank', 'ordering', 'word_selection', 'click_word', 'highlight'].includes(answer.question?.type)"
                                                             class="space-y-4">
                                                             <p
                                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">

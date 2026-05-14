@@ -120,51 +120,32 @@ const logout = () => {
 
 const resolveUrl = (path) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-    const storageBase = baseUrl.replace('/api/v1', '/storage').replace('/api', '/storage');
-    return `${storageBase}/${path.replace('storage/', '')}`;
-};
 
-const showProfileModal = ref(false);
-const isUpdating = ref(false);
-const profileForm = ref({
-    password: '',
-    password_confirmation: '',
-    avatar: null
-});
-
-const onFileSelect = (event) => {
-    profileForm.value.avatar = event.target.files[0];
-};
-
-const updateProfile = async () => {
-    isUpdating.value = true;
-    try {
-        const formData = new FormData();
-        formData.append('_method', 'PATCH');
-        if (profileForm.value.avatar) {
-            formData.append('avatar', profileForm.value.avatar);
-        }
-        if (profileForm.value.password) {
-            formData.append('password', profileForm.value.password);
-            formData.append('password_confirmation', profileForm.value.password_confirmation);
-        }
-
-        await api.post('/profile', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-
-        alert('Profile updated successfully!');
-        showProfileModal.value = false;
-        profileForm.value = { password: '', password_confirmation: '', avatar: null };
-        fetchDashboard();
-    } catch (err) {
-        alert(err.response?.data?.message || 'Failed to update profile');
-    } finally {
-        isUpdating.value = false;
+    if (/^https?:\/\//.test(path)) {
+        return path;
     }
+
+    let baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+
+    if (!baseUrl) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        baseUrl = isLocal
+            ? 'http://localhost:8000/api'
+            : `${window.location.origin}/api`;
+    }
+
+    const origin = new URL(baseUrl).origin;
+
+
+    console.log("origin :",`${origin}/storage/${path.replace(/^storage\//, '').replace(/^\/+/, '')}`);
+
+    return `${origin}/storage/${path.replace(/^storage\//, '').replace(/^\/+/, '')}`;
 };
+
+
+
+
 const qrUrl = computed(() => {
     if (certificates.value.length === 0) return null;
     const cert = certificates.value[0];
@@ -322,8 +303,10 @@ const vClickOutside = {
                     class="bg-white rounded-[0.5rem] p-6 border-2 border-indigo-50 shadow-xl shadow-indigo-100/20 space-y-4 animate-in fade-in zoom-in duration-1000">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-1">Official Credentials</p>
-                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tight">Academic Certificate </h3>
+                            <p class="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-1">Official
+                                Credentials</p>
+                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tight">Academic Certificate
+                            </h3>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
                             <i class="pi pi-award"></i>
@@ -360,42 +343,51 @@ const vClickOutside = {
                 <!-- Section Header -->
                 <div class="p-8 border-b border-slate-100 flex items-center justify-between shrink-0">
                     <div>
-                        <p class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Student Hub</p>
-                        <h3 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Welcome back, {{ student?.first_name }}</h3>
+                        <p class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Student Hub
+                        </p>
+                        <h3 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Welcome back, {{
+                            student?.first_name }}</h3>
                     </div>
                 </div>
 
                 <!-- Main Hub Content -->
                 <div class="flex-grow flex items-center justify-center p-12">
                     <div class="max-w-md w-full text-center space-y-8 animate-in zoom-in duration-1000">
-                        <div class="w-32 h-32 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border border-slate-100 relative">
+                        <div
+                            class="w-32 h-32 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border border-slate-100 relative">
                             <i class="pi pi-compass text-4xl text-brand-primary animate-pulse"></i>
-                            <div class="absolute -right-2 -top-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
+                            <div
+                                class="absolute -right-2 -top-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
                                 <i class="pi pi-check text-[10px] text-white"></i>
                             </div>
                         </div>
-                        
+
                         <div class="space-y-3">
-                            <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Ready to Assess?</h2>
+                            <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Ready to Assess?
+                            </h2>
                             <p class="text-slate-400 font-bold text-xs uppercase tracking-widest leading-relaxed">
-                                You have pending skills to assess. Start your journey with the Arab Academy Proficiency Test today.
+                                You have pending skills to assess. Start your journey with the Arab Academy Proficiency
+                                Test today.
                             </p>
                         </div>
 
                         <button @click="router.push('/requirements')"
                             class="group relative w-full py-6 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl hover:bg-brand-primary hover:shadow-brand-primary/30 hover:-translate-y-1 transition-all duration-300">
                             <span class="flex items-center justify-center gap-3">
-                                Start New Assessment <i class="pi pi-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                                Start New Assessment <i
+                                    class="pi pi-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
                             </span>
                         </button>
 
                         <div class="pt-8 grid grid-cols-2 gap-4">
                             <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Last Activity</p>
+                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Last
+                                    Activity</p>
                                 <p class="text-[10px] font-black text-slate-700 uppercase">Today</p>
                             </div>
                             <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Global Rank</p>
+                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Global
+                                    Rank</p>
                                 <p class="text-[10px] font-black text-brand-accent uppercase">Candidate</p>
                             </div>
                         </div>
@@ -405,7 +397,7 @@ const vClickOutside = {
                 <!-- Footer Integration -->
                 <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between shrink-0">
                     <span class="text-[8px] font-black text-slate-300 tracking-[0.16em]">
-                     © Copyright 2012 – 2026 Arab Academy | All Rights Reserved
+                        © Copyright 2012 – 2026 Arab Academy | All Rights Reserved
                     </span>
                 </div>
             </div>
