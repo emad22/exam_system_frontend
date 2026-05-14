@@ -58,6 +58,9 @@ import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import AdminActivityLogs from '@/views/admin/ActivityLogs/index.vue'
 
+import PartnerDashboard from '@/views/partner/Dashboard.vue'
+import PartnerReports from '@/views/partner/Reports/index.vue'
+import PartnerReportShow from '@/views/partner/Reports/show.vue'
 
 const adminRoutes = [
   {
@@ -304,6 +307,27 @@ const teacherRoutes = adminRoutes.map(route => ({
   name: route.name ? (route.name === 'admin' ? 'teacher' : route.name.replace('admin.', 'teacher.')) : undefined
 }));
 
+const partnerRoutes = [
+  {
+    path: '/partner',
+    name: 'partner',
+    component: PartnerDashboard,
+    meta: { title: 'Partner Dashboard' }
+  },
+  {
+    path: '/partner/reports',
+    name: 'partner.reports',
+    component: PartnerReports,
+    meta: { title: 'Student Reports' }
+  },
+  {
+    path: '/partner/reports/:id/show',
+    name: 'partner.reports.show',
+    component: PartnerReportShow,
+    meta: { title: 'Report Details' }
+  }
+];
+
 const routes = [
   {
     path: '/',
@@ -382,7 +406,8 @@ const routes = [
     meta: { title: 'Exam Instructions' }
   },
   ...adminRoutes,
-  ...teacherRoutes
+  ...teacherRoutes,
+  ...partnerRoutes
 ]
 
 const router = createRouter({
@@ -405,13 +430,16 @@ router.beforeEach((to) => {
   if (to.path === '/login' && token) {
     if (role === 'teacher') return '/teacher';
     if (role === 'student') return '/dashboard';
+    if (role === 'partner') return '/partner';
     return '/admin';
   }
 
   // Administrative path protection
   if (to.path.startsWith('/admin')) {
     if (role !== 'admin' && role !== 'demo') {
-      return role === 'teacher' ? '/teacher' : '/dashboard';
+      if (role === 'teacher') return '/teacher';
+      if (role === 'partner') return '/partner';
+      return '/dashboard';
     }
   }
 
@@ -422,9 +450,18 @@ router.beforeEach((to) => {
     }
   }
 
+  // Partner path protection
+  if (to.path.startsWith('/partner')) {
+    if (role !== 'partner' && role !== 'admin' && role !== 'demo') {
+      return '/dashboard';
+    }
+  }
+
   // Student path protection (optional, but good for consistency)
-  if (to.path === '/dashboard' && (role === 'admin' || role === 'teacher')) {
-    return role === 'admin' ? '/admin' : '/teacher';
+  if (to.path === '/dashboard' && (role === 'admin' || role === 'teacher' || role === 'partner')) {
+    if (role === 'admin') return '/admin';
+    if (role === 'teacher') return '/teacher';
+    if (role === 'partner') return '/partner';
   }
   
   return true;

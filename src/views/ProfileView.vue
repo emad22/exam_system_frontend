@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import PartnerLayout from '@/components/PartnerLayout.vue';
 import AdminLayout from '@/components/AdminLayout.vue';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
@@ -132,14 +133,28 @@ const resolveUrl = (path) => {
 };
 
 const initialRole = sessionStorage.getItem('role');
+
 const isStudent = computed(() => {
     const role = user.value?.role || initialRole;
     return role === 'student';
 });
 
+const isPartner = computed(() => {
+    const role = user.value?.role || initialRole;
+    return role === 'partner';
+});
+
+const layoutComponent = computed(() => {
+    if (isStudent.value) return 'div';
+    if (isPartner.value) return PartnerLayout;
+    return AdminLayout;
+});
+
 const backToDashboard = () => {
     if (isStudent.value) {
         router.push('/dashboard');
+    } else if (isPartner.value) {
+        router.push('/partner');
     } else {
         router.push(user.value?.role === 'teacher' ? '/teacher' : '/admin');
     }
@@ -147,7 +162,7 @@ const backToDashboard = () => {
 </script>
 
 <template>
-    <component :is="isStudent ? 'div' : AdminLayout">
+    <component :is="layoutComponent">
         <div :class="[isStudent ? 'max-w-4xl mx-auto py-12 px-6' : 'mt-6 px-4']"
             class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
             <Toast />

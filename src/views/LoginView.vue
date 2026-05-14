@@ -27,10 +27,11 @@ const handleLogin = async () => {
         sessionStorage.setItem('role', res.data.role);
 
         if (res.data.role === 'admin') {
-
             router.push('/admin');
         } else if (res.data.role === 'teacher') {
             router.push('/teacher');
+        } else if (res.data.role === 'partner') {
+            router.push('/partner');
         } else {
             router.push('/requirements');
         }
