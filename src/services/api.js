@@ -10,7 +10,7 @@ const api = axios.create({
 
 // Interceptor for Auth token
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('token');
+  const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,9 +23,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear all stored credentials
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('role');
-      sessionStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('user');
       // Redirect to login if not already there
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';

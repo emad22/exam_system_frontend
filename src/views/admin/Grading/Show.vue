@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
+import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
@@ -23,10 +24,8 @@ const form = ref({
     points_awarded: 0,
     teacher_feedback: '',
     grading_details: {
-        grammar: 0,
-        vocabulary: 0,
-        coherence: 0,
-        task_achievement: 0
+        grammar: '',
+        vocabulary: ''
     }
 })
 
@@ -116,7 +115,7 @@ onMounted(() => {
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <!-- Left Column: Student Submission -->
-                <div class="lg:col-span-8 space-y-6">
+                <div class="lg:col-span-7 space-y-6">
                     <!-- Prompt Card -->
                     <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
                         <div class="relative z-10">
@@ -124,7 +123,7 @@ onMounted(() => {
                                 <i class="pi pi-info-circle text-brand-accent"></i>
                                 <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Question Prompt</span>
                             </div>
-                            <h2 class="text-xl font-black mb-4 leading-relaxed">{{ answer.question.instructions }}</h2>
+                            <!-- <h2 class="text-xl font-black mb-4 leading-relaxed" dir="rtl">{{ answer.question.instructions }}</h2> -->
                             <div v-if="answer.question.content" class="prose prose-invert max-w-none text-slate-300" v-html="answer.question.content"></div>
                         </div>
                         <i class="pi pi-pencil absolute -right-10 -bottom-10 text-[12rem] text-white/5"></i>
@@ -138,7 +137,7 @@ onMounted(() => {
                                     <i class="pi pi-user text-indigo-500"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-black text-slate-800">{{ answer.attempt?.student?.user?.name || 'Unknown Candidate' }}</h3>
+                                    <h3 class="text-lg font-black text-slate-800">{{ answer.attempt?.student?.user?.first_name + " " + answer.attempt?.student?.user?.last_name || 'Unknown Candidate' }}</h3>
                                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Candidate Submission</p>
                                 </div>
                             </div>
@@ -153,55 +152,42 @@ onMounted(() => {
                             </div>
                         </div>
 
-                        <div class="bg-slate-50/50 rounded-3xl p-8 min-h-[300px] relative border border-slate-100/50">
-                            <p class="text-slate-700 leading-relaxed text-lg whitespace-pre-wrap selection:bg-indigo-100">{{ answer.text_answer }}</p>
+                        <div class="bg-slate-50/50 rounded-3xl p-8 min-h-[300px] relative border border-slate-100/50 text-justify ">
+                            <p class="text-slate-700 leading-relaxed text-lg whitespace-pre-wrap selection:bg-indigo-100" dir="rtl">{{ answer.text_answer }}</p>
                         </div>
                     </div>
+                    <!-- AI Suggestion Section -->
+                    <!-- <div v-if="answer.question.type === 'writing'" class="bg-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-sparkles text-amber-400"></i>
+                                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">AI Grading Assistant</span>
+                                </div>
+                                <Button 
+                                    label="Generate Suggestion" 
+                                    icon="pi pi-bolt" 
+                                    :loading="aiLoading" 
+                                    @click="requestAiSuggestion"
+                                    class="bg-amber-500 hover:bg-amber-600 border-none text-xs font-black rounded-xl px-4 py-2"
+                                />
+                            </div>
+                            
+                            <div v-if="aiSuggestion" class="space-y-4 animate-in fade-in duration-500">
+                                <p class="text-sm font-medium text-indigo-100 leading-relaxed">{{ aiSuggestion.feedback }}</p>
+                                <div class="flex gap-4">
+                                    <Tag :value="'Suggested Score: ' + aiSuggestion.suggested_score" severity="warning" class="rounded-lg px-3 font-black text-[10px]" />
+                                </div>
+                                <p class="text-[10px] font-bold text-indigo-400">Note: AI suggestions are for guidance. Final grade is at the teacher's discretion.</p>
+                            </div>
+                            <Message v-if="aiError" severity="error" class="mt-4">{{ aiError }}</Message>
+                        </div>
+                        <i class="pi pi-sparkles absolute -right-10 -top-10 text-[12rem] text-white/5"></i>
+                    </div> -->
                 </div>
 
                 <!-- Right Column: Grading Controls -->
-                <div class="lg:col-span-4 space-y-6">
-
-                    <!-- AI Suggest Button Card -->
-                    <div v-if="answer.question.type === 'writing'"
-                        class="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[2rem] p-6 text-white shadow-2xl shadow-violet-200 relative overflow-hidden">
-                        <div class="relative z-10">
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="text-xl">✨</span>
-                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-violet-200">AI-Assisted Grading</p>
-                            </div>
-                            <p class="text-xs text-violet-200 font-medium mb-4 leading-relaxed">Let Gemini AI analyze this essay and suggest a score, detailed feedback, and rubric breakdown.</p>
-
-                            <!-- AI Error -->
-                            <div v-if="aiError" class="bg-red-500/20 border border-red-300/30 rounded-xl p-3 mb-4 text-xs text-red-200 font-medium">
-                                {{ aiError }}
-                            </div>
-
-                            <!-- AI Suggestion Result -->
-                            <div v-if="aiSuggestion && !aiLoading" class="bg-white/10 rounded-2xl p-4 mb-4 space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-black text-violet-200 uppercase tracking-wide">Suggested Score</span>
-                                    <span class="text-2xl font-black">{{ aiSuggestion.suggested_score }} / {{ answer.question.points }}</span>
-                                </div>
-                                <div v-if="aiSuggestion.strengths" class="text-xs text-emerald-300 font-medium">
-                                    <span class="font-black">✅ Strong:</span> {{ aiSuggestion.strengths }}
-                                </div>
-                                <div v-if="aiSuggestion.improvements" class="text-xs text-amber-300 font-medium">
-                                    <span class="font-black">💡 Improve:</span> {{ aiSuggestion.improvements }}
-                                </div>
-                                <p class="text-[9px] text-violet-300 font-bold uppercase tracking-widest pt-1">↓ Form updated with AI suggestions — review before saving</p>
-                            </div>
-
-                            <Button
-                                :label="aiLoading ? 'Analyzing...' : aiSuggestion ? 'Re-Analyze' : 'Get AI Suggestion'"
-                                :icon="aiLoading ? 'pi pi-spin pi-spinner' : 'pi pi-sparkles'"
-                                :loading="aiLoading"
-                                @click="requestAiSuggestion"
-                                class="w-full rounded-xl py-3 font-black bg-white/20 hover:bg-white/30 border border-white/20 text-white transition-all hover:scale-105 active:scale-95 text-xs" />
-                        </div>
-                        <i class="pi pi-sparkles absolute -right-6 -bottom-6 text-[8rem] text-white/5"></i>
-                    </div>
-
+                <div class="lg:col-span-5 space-y-6"> 
                     <!-- Grading Form Card -->
                     <div class="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 sticky top-32">
                         <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Assessment Score</h3>
@@ -239,17 +225,13 @@ onMounted(() => {
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
                                     <i class="pi pi-chart-bar"></i> Evaluation Rubric
                                 </p>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div v-for="(val, key) in form.grading_details" :key="key"
-                                        class="p-3 rounded-xl border text-center cursor-pointer transition-all"
-                                        :class="val > 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-100 hover:bg-indigo-50'"
-                                        @click="form.grading_details[key] = (form.grading_details[key] % 5) + 1">
-                                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-1">{{ key.replace('_', ' ') }}</p>
-                                        <div class="flex justify-center gap-0.5">
-                                            <i v-for="i in 5" :key="i" class="pi pi-star-fill text-[8px]"
-                                                :class="i <= val ? 'text-amber-400' : 'text-slate-200'"></i>
-                                        </div>
-                                        <p class="text-[8px] font-black text-indigo-400 mt-1">{{ val }}/5</p>
+                                <div class="grid grid-cols-1 gap-4">
+                                    <div v-for="(val, key) in form.grading_details" :key="key" 
+                                        class="flex flex-col p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all space-y-2">
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ key.replace('_', ' ') }}</label>
+                                        <InputText v-model="form.grading_details[key]" 
+                                            class="w-full font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:border-indigo-500 py-3 px-4"
+                                            :placeholder="'Enter ' + key + ' feedback...'" />
                                     </div>
                                 </div>
                             </div>

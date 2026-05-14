@@ -116,14 +116,14 @@ onMounted(() => {
                         </div>
                     </template>
 
-                    <Column field="attempt.student.user.name" header="Candidate" class="py-6">
+                    <Column field="attempt.student.user.first_name" header="Candidate" class="py-6">
                         <template #body="{ data }">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400 text-xs">
                                     {{ data.attempt?.student?.user?.name?.charAt(0) || '?' }}
                                 </div>
                                 <div>
-                                    <p class="font-black text-slate-800 text-sm">{{ data.attempt?.student?.user?.name || 'Unknown Candidate' }}</p>
+                                    <p class="font-black text-slate-800 text-sm">{{ data.attempt?.student?.user?.first_name + " " + data.attempt?.student?.user?.last_name || 'Unknown Candidate' }}</p>
                                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: #{{ data.attempt?.student?.id || 'N/A' }}</p>
                                 </div>
                             </div>

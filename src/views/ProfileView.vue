@@ -132,8 +132,12 @@ const resolveUrl = (path) => {
     return `${storageBase}/${path.replace('storage/', '')}`;
 };
 
+<<<<<<< HEAD
 const initialRole = sessionStorage.getItem('role');
 
+=======
+const initialRole = localStorage.getItem('role');
+>>>>>>> 805d405 (modify in grading/show&index by EmadR)
 const isStudent = computed(() => {
     const role = user.value?.role || initialRole;
     return role === 'student';

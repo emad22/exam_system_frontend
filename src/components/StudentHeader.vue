@@ -17,7 +17,7 @@ const fetchUser = async () => {
 };
 
 const logout = () => {
-    sessionStorage.clear();
+    localStorage.clear();
     router.push('/login');
 };
 

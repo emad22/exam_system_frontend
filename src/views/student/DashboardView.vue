@@ -114,7 +114,7 @@ const getSkillIcon = (name) => {
 };
 
 const logout = () => {
-    sessionStorage.clear();
+    localStorage.clear();
     router.push('/login');
 };
 

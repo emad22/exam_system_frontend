@@ -47,8 +47,8 @@ const handleRegister = async () => {
 
     try {
         const res = await api.post('/register', form);
-        sessionStorage.setItem('token', res.data.token);
-        sessionStorage.setItem('user', JSON.stringify(res.data.user));
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
         
         // Success Step
         step.value = 4;

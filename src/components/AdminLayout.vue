@@ -34,14 +34,30 @@ const notifications = computed(() => adminStore.notifications);
 const showNotifications = ref(false);
 const showUserMenu = ref(false);
 const notificationAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+const isMuted = ref(localStorage.getItem('admin_muted') === 'true');
+
+const toggleMute = () => {
+    isMuted.value = !isMuted.value;
+    localStorage.setItem('admin_muted', isMuted.value);
+    
+    // Play a silent or short sound to 'unlock' the audio context on user interaction
+    if (!isMuted.value) {
+        notificationAudio.play().then(() => {
+            notificationAudio.pause();
+            notificationAudio.currentTime = 0;
+        }).catch(e => console.warn('Audio unlock failed:', e));
+    }
+};
 
 const fetchNotifications = async () => {
     await adminStore.fetchNotifications();
 };
 
 watch(() => adminStore.notifications.length, (newCount, oldCount) => {
-    if (newCount > oldCount) {
-        notificationAudio.play().catch(e => console.warn('Audio playback was blocked or failed', e));
+    if (newCount > oldCount && !isMuted.value) {
+        notificationAudio.play().catch(e => {
+            console.warn('Audio playback was blocked by browser. Click the sound icon to enable.', e);
+        });
     }
 });
 
@@ -125,7 +141,7 @@ const isActive = (path) => {
 }
 
 const logout = () => {
-    sessionStorage.clear();
+    localStorage.clear();
     router.push('/login');
 }
 
@@ -246,7 +262,14 @@ const resolveUrl = (path) => {
                 </div>
 
                 <div class="flex items-center space-x-6">
-                    <div class="hidden md:flex space-x-3">
+                    <div class="hidden md:flex items-center space-x-3">
+                        <Button 
+                            @click="toggleMute" 
+                            :icon="isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'" 
+                            :severity="isMuted ? 'secondary' : 'primary'" 
+                            rounded text 
+                            v-tooltip.bottom="isMuted ? 'Unmute Notifications' : 'Mute Notifications'"
+                        />
                         <div class="relative">
                             <Button @click.stop="toggleNotifications" icon="pi pi-bell" :severity="showNotifications ? 'primary' : 'secondary'" rounded text aria-label="Notifications" />
                             <span v-if="notifications.length > 0" class="absolute top-1 right-1 w-4 h-4 bg-brand-accent text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
