@@ -47,7 +47,7 @@ const questionTypes = [
 const form = ref({
     skill_id: '',
     exam_id: '',
-    level_id: 5,
+    level_id: null,
     passage_mode: 'none',
     passage_id: '',
     passage_type: 'text',
@@ -298,11 +298,15 @@ const handleTypeChange = async (qIdx) => {
 
 const saveBatch = async () => {
     if (!form.value.exam_id) {
-        errorMsg.value = 'Please select an Exam first.';
+        showAlert('Please select an Exam first.', 'Validation Warning', 'warning');
         return;
     }
     if (!form.value.skill_id) {
-        errorMsg.value = 'Please select a Skill.';
+        showAlert('Please select a Skill.', 'Validation Warning', 'warning');
+        return;
+    }
+    if (!form.value.level_id) {
+        showAlert('Please select a Difficulty Level first.', 'Validation Warning', 'warning');
         return;
     }
 
@@ -354,11 +358,12 @@ const saveBatch = async () => {
         await api.post('/admin/questions', fd, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        showAlert('Question saved successfully!');
+        await showAlert('Question saved successfully!', 'Saved Successfully', 'success');
         const isTeacher = adminStore.user?.role === 'teacher';
         router.push({ name: isTeacher ? 'teacher.questions' : 'admin.questions' });
     } catch (err) {
-        errorMsg.value = err.response?.data?.message || 'Failed to save questions.';
+        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to save questions.';
+        showAlert(error, 'Error Saving Question', 'danger');
     } finally {
         isSubmitting.value = false;
     }
@@ -394,8 +399,7 @@ onMounted(() => {
             <Card class="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-slate-50/50">
                 <template #title>
                     <div class="flex items-center px-4 py-2 gap-4">
-                        <div
-                            class="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                        <div class="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
                             <i class="pi pi-cog text-xl"></i>
                         </div>
                         <span class="text-lg font-black text-slate-800">Exam & Skill Settings</span>
@@ -404,31 +408,37 @@ onMounted(() => {
                 <template #content>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
                         <div class="flex flex-col">
-                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Linked
-                                Exam (Required)</label>
+                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Linked Exam (Required)</label>
                             <Select v-model="form.exam_id" :options="exams" optionLabel="title" optionValue="id"
                                 placeholder="Select Exam"
                                 class="w-full rounded-2xl border-none shadow-sm h-14 flex items-center px-4 bg-white" />
                         </div>
                         <div class="flex flex-col">
-                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Target
-                                Skill (Required)</label>
+                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Target Skill (Required)</label>
                             <Select v-model="form.skill_id" :options="filteredSkills" optionLabel="name"
                                 optionValue="id" placeholder="Select Skill"
                                 class="w-full rounded-2xl border-none shadow-sm h-14 flex items-center px-4 bg-white"
                                 :disabled="!form.exam_id" :key="form.exam_id" />
                         </div>
-
                         <div class="flex flex-col">
-                            <label
-                                class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Difficulty
-                                Level ({{ form.level_id }})</label>
-                            <Slider v-model="form.level_id" :min="1" :max="currentSkillMaxLevel" :step="1"
-                                class="w-full mt-4" />
-                            <div
-                                class="flex justify-between text-[10px] text-slate-400 font-black mt-4 uppercase tracking-tighter">
-                                <span>Beginner</span>
-                                <span>Expert</span>
+                            <label class="text-xs font-black text-slate-500 mb-2 ml-2 uppercase tracking-wider">
+                                Difficulty Level <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{ form.level_id }})</span><span v-else class="text-rose-500 font-extrabold">(Required)</span>
+                            </label>
+                            <div class="flex flex-wrap gap-2 mt-2 ml-2">
+                                <button 
+                                    v-for="lvl in currentSkillMaxLevel" 
+                                    :key="lvl"
+                                    type="button"
+                                    @click="form.level_id = lvl"
+                                    :class="form.level_id === lvl ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200 border-indigo-500 scale-105' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/20'"
+                                    class="w-10 h-10 rounded-xl border font-black text-sm flex items-center justify-center transition-all duration-200 active:scale-95"
+                                >
+                                    {{ lvl }}
+                                </button>
+                            </div>
+                            <div class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
+                                <span>Beginner (Level 1)</span>
+                                <span>Expert (Level {{ currentSkillMaxLevel }})</span>
                             </div>
                         </div>
                     </div>

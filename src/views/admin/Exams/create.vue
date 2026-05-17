@@ -12,10 +12,12 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
+import { useModal } from '@/composables/useModal';
 
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
+const { showAlert, showConfirm } = useModal();
 
 const examId = ref(route.params.id || null);
 const availableSkills = ref([]);
@@ -139,12 +141,7 @@ watch(() => form.value.selectedSkills, (newSkills) => {
 const nextStep = () => {
     if (currentStep.value === 1) {
         if (!form.value.title?.trim() || !form.value.exam_category_id) {
-            toast.add({
-                severity: 'warn',
-                summary: 'Required Fields',
-                detail: 'Please provide an Exam Title and select a Category to proceed.',
-                life: 3000
-            });
+            showAlert('Please provide an Exam Title and select a Category to proceed.', 'Validation Warning', 'warning');
             return;
         }
     }
@@ -192,7 +189,7 @@ const openLevelManager = async (skill) => {
         const res = await api.get('/admin/levels', { params: { skill_id: skill.id } });
         editingLevels.value = res.data;
     } catch (err) {
-        toast.add({ severity: 'error', summary: 'Level Error', detail: 'Failed to query level matrix.' });
+        showAlert('Failed to query level matrix.', 'Level Error', 'error');
     }
 };
 
@@ -211,9 +208,9 @@ const saveLevels = async () => {
         const skillRes = await api.get('/admin/skills-with-levels');
         availableSkills.value = skillRes.data;
         showLevelModal.value = false;
-        toast.add({ severity: 'success', summary: 'Matrix Updated', detail: 'Cognitive tiers redistributed.' });
+        showAlert('Matrix Updated. Cognitive tiers redistributed.', 'Success', 'success');
     } catch (err) {
-        toast.add({ severity: 'error', summary: 'Sync Failure', detail: 'Failed to propagate levels.' });
+        showAlert('Failed to propagate levels.', 'Sync Failure', 'error');
     } finally { isSavingLevels.value = false; }
 };
 
@@ -349,8 +346,7 @@ const handleMediaUpload = async (event) => {
 };
 
 const handleAudioError = (e) => {
-    console.error('Modal audio error:', e);
-    toast.add({ severity: 'error', summary: 'Audio Error', detail: 'The attached audio protocol failed to initialize.', life: 3000 });
+    showAlert('The attached audio protocol failed to initialize.', 'Audio Error', 'error');
 };
 
 const openQuestionBuilder = (skillId, levelNum, isPassage = false) => {
@@ -450,11 +446,10 @@ const saveExam = async () => {
         if (isEditMode.value) await api.patch(`/admin/exams/${examId.value}`, payload);
         else await api.post('/admin/exams', payload);
 
-        toast.add({ severity: 'success', summary: 'Assessment Created', detail: 'The exam shell has been initialized successfully.' });
+        showAlert('The exam shell has been initialized successfully.', 'Assessment Created', 'success');
         router.push('/admin/exams');
     } catch (err) {
-        console.error('Final Save Error:', err);
-        errorMsg.value = err.response?.data?.message || 'Sequence Failure during deployment.';
+        showAlert('Sequence Failure during deployment.', 'Final Save Error', 'error');
     } finally { isSubmitting.value = false; }
 };
 </script>

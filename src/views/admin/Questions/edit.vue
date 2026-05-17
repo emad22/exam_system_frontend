@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -14,6 +15,8 @@ import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
 import Slider from 'primevue/slider';
 import Editor from 'primevue/editor';
+
+const { showAlert } = useModal();
 
 const router = useRouter();
 const route = useRoute();
@@ -47,7 +50,7 @@ const questionTypes = [
 const form = ref({
     skill_id: '',
     exam_id: '',
-    level_id: 5,
+    level_id: null,
     passage_mode: 'none', 
     passage_id: '',
     passage_type: 'text',
@@ -385,11 +388,15 @@ const handleTypeChange = (qIdx) => {
 
 const updateBatch = async () => {
     if (!form.value.exam_id) {
-        errorMsg.value = 'Exam selection is required.';
+        showAlert('Exam selection is required.', 'Validation Warning', 'warning');
         return;
     }
     if (!form.value.skill_id) {
-        errorMsg.value = 'Skill selection is required.';
+        showAlert('Skill selection is required.', 'Validation Warning', 'warning');
+        return;
+    }
+    if (!form.value.level_id) {
+        showAlert('Difficulty selection is required.', 'Validation Warning', 'warning');
         return;
     }
 
@@ -452,10 +459,12 @@ const updateBatch = async () => {
         await api.post(`/admin/questions/${questionId}`, fd, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
+        await showAlert('Question updated successfully!', 'Saved Successfully', 'success');
         const isTeacher = adminStore.user?.role === 'teacher';
         router.push({ name: isTeacher ? 'teacher.questions' : 'admin.questions' });
     } catch (err) {
-        errorMsg.value = err.response?.data?.message || 'Failed to update questions.';
+        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to update questions.';
+        showAlert(error, 'Error Saving Question', 'danger');
     } finally {
         isSubmitting.value = false;
     }
@@ -515,11 +524,24 @@ onMounted(() => {
                         </div>
                         
                         <div class="flex flex-col">
-                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Difficulty ({{ form.level_id }})</label>
-                            <Slider v-model="form.level_id" :min="1" :max="currentSkillMaxLevel" :step="1" class="w-full mt-4" />
-                            <div class="flex justify-between text-[10px] text-slate-400 font-black mt-4 uppercase tracking-tighter">
-                                <span>Beginner</span>
-                                <span>Expert</span>
+                            <label class="text-xs font-black text-slate-500 mb-2 ml-2 uppercase tracking-wider">
+                                Difficulty Level <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{ form.level_id }})</span><span v-else class="text-rose-500 font-extrabold">(Required)</span>
+                            </label>
+                            <div class="flex flex-wrap gap-2 mt-2 ml-2">
+                                <button 
+                                    v-for="lvl in currentSkillMaxLevel" 
+                                    :key="lvl"
+                                    type="button"
+                                    @click="form.level_id = lvl"
+                                    :class="form.level_id === lvl ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200 border-indigo-500 scale-105' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/20'"
+                                    class="w-10 h-10 rounded-xl border font-black text-sm flex items-center justify-center transition-all duration-200 active:scale-95"
+                                >
+                                    {{ lvl }}
+                                </button>
+                            </div>
+                            <div class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
+                                <span>Beginner (Level 1)</span>
+                                <span>Expert (Level {{ currentSkillMaxLevel }})</span>
                             </div>
                         </div>
                     </div>

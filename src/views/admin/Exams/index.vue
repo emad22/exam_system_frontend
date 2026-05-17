@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+import { useAdminStore } from '@/stores/admin';
 
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -52,7 +53,7 @@ const fetchExams = async () => {
         const res = await api.get('/admin/exams');
         exams.value = res.data;
     } catch (err) {
-        console.error('Failed to load exams', err);
+        showAlert('Failed to load exams', 'Error', 'error');
     } finally {
         loading.value = false;
     }
@@ -95,7 +96,7 @@ const openRules = async (exam) => {
             };
         });
     } catch (err) {
-        console.error('Failed to load exam rules', err);
+        showAlert('Failed to load exam rules', 'Error', 'error');
     }
 };
 
@@ -113,7 +114,7 @@ const saveRules = async () => {
         showRulesModal.value = false;
         fetchExams();
     } catch (err) {
-        console.error('Failed to save rules', err);
+        showAlert('Failed to save rules', 'Error', 'error');
     } finally {
         isSavingRules.value = false;
     }
@@ -133,7 +134,7 @@ const setDefaultExam = async (exam) => {
         await api.patch(`/admin/exams/${exam.id}/set-default`);
         fetchExams();
     } catch (err) {
-        console.error(err);
+        showAlert('Failed to set default exam', 'Error', 'error');
     }
 };
 
@@ -143,7 +144,7 @@ const deleteExam = async (id) => {
         await api.delete(`/admin/exams/${id}`);
         fetchExams();
     } catch (err) {
-        console.error(err);
+        showAlert('Failed to delete exam', 'Error', 'error');
     }
 };
 

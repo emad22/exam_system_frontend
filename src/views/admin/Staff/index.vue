@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 
+
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
@@ -41,7 +42,8 @@ const fetchData = async () => {
         const res = await api.get('/admin/staff');
         staff.value = res.data.data || res.data;
     } catch (err) {
-        console.error('Failed to load staff', err);
+        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to load staff.';
+        showAlert(error, 'Error', 'danger');
     } finally {
         loading.value = false;
     }
@@ -60,11 +62,11 @@ const deleteStaff = async (id) => {
     }
 };
 
-const getRoleSeverity = async (role) => {
+const getRoleSeverity = (role) => {
     return roles.find(r => r.value === role)?.severity || 'secondary';
 };
 
-const getRoleLabel = async (role) => {
+const getRoleLabel = (role) => {
     return roles.find(r => r.value === role)?.label || role;
 };
 

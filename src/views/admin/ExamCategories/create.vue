@@ -1,4 +1,5 @@
-﻿<script setup>
+<script setup>
+import { useModal } from '@/composables/useModal';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -9,6 +10,8 @@ import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
+
+const { showAlert } = useModal();
 
 const router = useRouter();
 const isSaving = ref(false);
@@ -22,7 +25,7 @@ const form = ref({
 
 const saveCategory = async () => {
     if (!form.value.name) {
-        errorMsg.value = 'Category name is required identity metadata.';
+        showAlert('Category name is required identity metadata.', 'Validation Warning', 'warning');
         return;
     }
     
@@ -30,10 +33,12 @@ const saveCategory = async () => {
     errorMsg.value = '';
     try {
         await api.post('/admin/exam-categories', form.value);
+        await showAlert('Category created successfully!', 'Saved Successfully', 'success');
         router.push('/admin/exam-categories');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to register category. Ensure the name is unique.';
+        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to register category. Ensure the name is unique.';
+        showAlert(error, 'Registration Failed', 'danger');
     } finally {
         isSaving.value = false;
     }
@@ -61,9 +66,7 @@ const saveCategory = async () => {
 
             <div class="max-w-5xl mx-auto">
                 <form @submit.prevent="saveCategory" class="space-y-8">
-                    <Message v-if="errorMsg" severity="error" :closable="false" class="mb-4 rounded-2xl">
-                        ERROR: {{ errorMsg }}
-                    </Message>
+
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <!-- Main Content: Identity -->

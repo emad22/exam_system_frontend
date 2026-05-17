@@ -1,4 +1,5 @@
-﻿<script setup>
+<script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -10,6 +11,8 @@ import ToggleSwitch from 'primevue/toggleswitch';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
+
+const { showAlert } = useModal();
 
 const router = useRouter();
 const route = useRoute();
@@ -47,7 +50,7 @@ const loadCategory = async () => {
 
 const updateCategory = async () => {
     if (!form.value.name) {
-        errorMsg.value = 'Category name is required identity metadata.';
+        showAlert('Category name is required identity metadata.', 'Validation Warning', 'warning');
         return;
     }
     
@@ -55,10 +58,12 @@ const updateCategory = async () => {
     errorMsg.value = '';
     try {
         await api.patch(`/admin/exam-categories/${categoryId}`, form.value);
+        await showAlert('Category updated successfully!', 'Saved Successfully', 'success');
         router.push('/admin/exam-categories');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to sync updates.';
+        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to sync updates.';
+        showAlert(error, 'Update Failed', 'danger');
     } finally {
         isSaving.value = false;
     }
@@ -93,9 +98,7 @@ onMounted(loadCategory);
 
             <div v-else class="max-w-5xl mx-auto">
                 <form @submit.prevent="updateCategory" class="space-y-8">
-                    <Message v-if="errorMsg" severity="error" :closable="false" class="mb-4 rounded-2xl">
-                        ERROR: {{ errorMsg }}
-                    </Message>
+
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <!-- Main Content: Identity -->

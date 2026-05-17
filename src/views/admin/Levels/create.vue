@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+import { useModal } from '@/composables/useModal';
 
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
@@ -17,7 +18,7 @@ const router = useRouter();
 
 const skills = ref([]);
 const isSaving = ref(false);
-const errorMsg = ref('');
+const { showAlert } = useModal();
 
 const form = ref({
     skill_id: null,
@@ -54,7 +55,8 @@ const saveLevel = async () => {
         router.push('/admin/levels');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to create level configuration.';
+        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to create level configuration.';
+        showAlert(error, 'Registration Failed', 'danger');
     } finally {
         isSaving.value = false;
     }
