@@ -133,6 +133,11 @@ const getCorrectOptions = (question) => {
             return `${parts[0].trim()} → ${parts[1]?.trim()}`;
         });
     }
+    if (question.type === 'ordering') {
+        return [...question.options]
+            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id)
+            .map(o => o.option_text);
+    }
     return question.options
         .filter(o => o.is_correct)
         .sort((a, b) => a.id - b.id)

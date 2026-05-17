@@ -464,7 +464,7 @@ router.beforeEach((to) => {
     if (role === 'teacher') return '/teacher';
     if (role === 'partner') return '/partner';
   }
-  
+    
   return true;
 });
 

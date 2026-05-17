@@ -50,7 +50,7 @@ const removeFromOrdering = (idx) => {
 <template>
     <div class="space-y-8 py-4">
         <!-- Target Area: Sentence Builder -->
-        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 min-h-[140px] flex flex-wrap gap-3 items-center justify-center relative overflow-hidden">
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 min-h-[140px] flex flex-wrap gap-3 items-center justify-center relative overflow-hidden" dir="rtl">
             
             <!-- Background Decoration -->
             <div class="absolute inset-0 bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.03]"></div>
@@ -68,7 +68,7 @@ const removeFromOrdering = (idx) => {
         </div>
 
         <!-- Source Area: Available Words -->
-        <div class="p-6 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 flex flex-wrap gap-3 justify-center">
+        <div class="p-6 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 flex flex-wrap gap-3 justify-center" dir="rtl">
             <button v-for="(word, wIdx) in currentAvailableWords" :key="wIdx"
                 @click="addToOrdering(word)" :disabled="disabled"
                 class="px-5 py-2.5 bg-white border border-slate-100 text-slate-600 font-bold rounded-xl text-base hover:border-brand-primary hover:text-brand-primary hover:shadow-xl hover:shadow-indigo-100 transition-all duration-300 shadow-sm active:scale-95">
