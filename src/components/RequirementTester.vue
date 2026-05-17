@@ -85,7 +85,7 @@ const audioChunks = ref([]);
 const recordedAudioUrl = ref(null);
 const isRecording = ref(false);
 const volumeLevel = ref(0);
-let audioContext, analyser, microphone, scriptProcessor;
+let audioContext, analyser, microphone, animationFrameId;
 
 const startMicTest = async () => {
     try {
@@ -96,16 +96,14 @@ const startMicTest = async () => {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
         microphone = audioContext.createMediaStreamSource(stream);
-        scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
 
         analyser.smoothingTimeConstant = 0.8;
         analyser.fftSize = 1024;
 
         microphone.connect(analyser);
-        analyser.connect(scriptProcessor);
-        scriptProcessor.connect(audioContext.destination);
 
-        scriptProcessor.onaudioprocess = () => {
+        const updateVolume = () => {
+            if (!isRecording.value) return;
             const array = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(array);
             let values = 0;
@@ -115,7 +113,9 @@ const startMicTest = async () => {
             }
             const average = values / length;
             volumeLevel.value = Math.min(100, Math.round(average * 2));
+            animationFrameId = requestAnimationFrame(updateVolume);
         };
+        animationFrameId = requestAnimationFrame(updateVolume);
 
         // Setup recorder
         mediaRecorder.value = new MediaRecorder(stream);
@@ -131,8 +131,10 @@ const startMicTest = async () => {
             
             // Cleanup stream
             stream.getTracks().forEach(track => track.stop());
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
             if (audioContext) {
-                scriptProcessor.disconnect();
                 analyser.disconnect();
                 microphone.disconnect();
                 audioContext.close();
@@ -231,6 +233,9 @@ onUnmounted(() => {
     stopCameraTest();
     if (mediaRecorder.value && isRecording.value) {
         mediaRecorder.value.stop();
+    }
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
     }
     if (audioContext && audioContext.state !== 'closed') {
          audioContext.close();

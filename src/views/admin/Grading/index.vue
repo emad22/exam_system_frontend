@@ -8,8 +8,6 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 
 const router = useRouter()
 const loading = ref(false)
@@ -66,11 +64,11 @@ onMounted(() => {
                     <p class="text-slate-500 font-medium mt-1">Review and grade Writing Tasks and Speaking submissions from students</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <IconField iconPosition="left">
-                        <InputIcon class="pi pi-search" />
+                    <div class="relative">
+                        <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
                         <InputText v-model="filters['global'].value" placeholder="Search candidates..." 
-                            class="rounded-2xl border-none bg-white shadow-sm px-10 h-12 w-64" />
-                    </IconField>
+                            class="rounded-2xl border-none bg-white shadow-sm pl-11 pr-4 h-12 w-64" />
+                    </div>
                     <Button icon="pi pi-refresh" rounded text @click="fetchPending" :loading="loading" />
                 </div>
             </div>
