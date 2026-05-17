@@ -1,6 +1,7 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
+import { authStorage } from '@/services/authStorage'
 import Button from 'primevue/button'
 import { useAdminStore } from '@/stores/admin'
 import { useMediaUrl } from '@/composables/useMediaUrl'
@@ -36,7 +37,7 @@ const isActive = (path) => {
 }
 
 const logout = () => {
-    sessionStorage.clear();
+    authStorage.clear();
     router.push('/login');
 }
 

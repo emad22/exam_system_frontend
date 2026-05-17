@@ -2,6 +2,7 @@
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import api from '@/services/api'
+import { authStorage } from '@/services/authStorage'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import { useAdminStore } from '@/stores/admin'
@@ -142,7 +143,7 @@ const isActive = (path) => {
 }
 
 const logout = () => {
-    localStorage.clear();
+    authStorage.clear();
     router.push('/login');
 }
 

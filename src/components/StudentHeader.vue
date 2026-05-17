@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { authStorage } from '@/services/authStorage';
 import { useMediaUrl } from '@/composables/useMediaUrl';
 
 
@@ -19,7 +20,7 @@ const fetchUser = async () => {
 };
 
 const logout = () => {
-    localStorage.clear();
+    authStorage.clear();
     router.push('/login');
 };
 

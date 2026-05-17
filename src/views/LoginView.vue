@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { authStorage } from '@/services/authStorage';
 
 const router = useRouter();
 const isLogin = ref(true);
@@ -23,8 +24,8 @@ const handleLogin = async () => {
             password: form.value.password
         });
 
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('role', res.data.role);
+        authStorage.setToken(res.data.token);
+        authStorage.setRole(res.data.role);
 
         if (res.data.role === 'admin') {
             router.push('/admin');

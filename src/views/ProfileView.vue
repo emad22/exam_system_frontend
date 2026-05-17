@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { authStorage } from '@/services/authStorage';
 import { useMediaUrl } from '@/composables/useMediaUrl';
 import PartnerLayout from '@/components/PartnerLayout.vue';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -12,6 +13,7 @@ import Select from 'primevue/select';
 import Password from 'primevue/password';
 import Message from 'primevue/message';
 import Toast from 'primevue/toast';
+import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
 
 const router = useRouter();
@@ -135,7 +137,7 @@ const updateProfile = async () => {
 
 const { resolveUrl } = useMediaUrl();
 
-const initialRole = localStorage.getItem('role');
+const initialRole = authStorage.getRole();
 const isStudent = computed(() => {
     const role = user.value?.role || initialRole;
     return role === 'student';

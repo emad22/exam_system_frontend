@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { authStorage } from '@/services/authStorage';
 
 const router = useRouter();
 const step = ref(1); // 1: Personal, 2: Academic, 3: Account
@@ -47,8 +48,8 @@ const handleRegister = async () => {
 
     try {
         const res = await api.post('/register', form);
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+        authStorage.setToken(res.data.token);
+        authStorage.setUser(res.data.user);
         
         // Success Step
         step.value = 4;

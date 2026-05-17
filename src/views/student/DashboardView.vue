@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { authStorage } from '@/services/authStorage';
 import { useMediaUrl } from '@/composables/useMediaUrl';
 
 import StudentHeader from '@/components/StudentHeader.vue';
@@ -116,7 +117,7 @@ const getSkillIcon = (name) => {
 };
 
 const logout = () => {
-    localStorage.clear();
+    authStorage.clear();
     router.push('/login');
 };
 

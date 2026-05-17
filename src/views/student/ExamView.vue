@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import api from '@/services/api';
+import { authStorage } from '@/services/authStorage';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import AudioRecorder from '@/components/AudioRecorder.vue';
@@ -80,7 +81,7 @@ const {
 const handleVisibilityChange = () => logCheatWarning(isStarting.value, showTimeoutModal.value);
 
 const startTimer = () => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = authStorage.getUser();
     const role = (user?.role || '').toLowerCase();
     isDemo.value = ['demo', 'staff'].includes(role);
     if (isDemo.value) return;
@@ -608,7 +609,7 @@ const handleBeforeUnload = () => {
 };
 
 onMounted(async () => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = authStorage.getUser();
     isDemo.value = user && ['demo', 'staff'].includes(user.role?.toLowerCase());
     await fetchData();
 

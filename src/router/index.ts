@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { authStorage } from '@/services/authStorage';
 
 
 import DashboardView from '@/views/student/DashboardView.vue'
@@ -419,8 +420,8 @@ router.beforeEach((to) => {
   const publicPages = ['/login', '/register'];
   const isPublicVerification = to.path.startsWith('/verify-certificate/');
   const authRequired = !publicPages.includes(to.path) && !isPublicVerification;
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const token = authStorage.getToken();
+  const role = authStorage.getRole();
 
   if (authRequired && !token) {
     return '/login';
