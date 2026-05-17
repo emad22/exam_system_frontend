@@ -1,9 +1,12 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
+
+const { showAlert, showConfirm } = useModal();
 
 const route = useRoute();
 const router = useRouter();
@@ -47,7 +50,7 @@ const loadData = async () => {
         };
     } catch (err) {
         console.error(err);
-        alert('Failed to load partner data');
+        showAlert('Failed to load partner data');
         router.push('/admin/partners');
     } finally {
         loading.value = false;
@@ -61,10 +64,10 @@ const savePartner = async () => {
     try {
         const payload = { ...editForm.value, is_active: editForm.value.is_active ? 1 : 0 };
         await api.patch(`/admin/partners/${partnerId}`, payload);
-        alert('Identity profile updated successfully.');
+        showAlert('Identity profile updated successfully.');
         router.push('/admin/partners');
     } catch (err) {
-        alert(err.response?.data?.message || 'Failed to update identity.');
+        showAlert(err.response?.data?.message || 'Failed to update identity.');
     } finally {
         isSaving.value = false;
     }

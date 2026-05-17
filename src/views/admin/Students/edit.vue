@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -13,6 +14,8 @@ import Card from 'primevue/card';
 import DatePicker from 'primevue/datepicker';
 import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
+
+const { showAlert, showConfirm } = useModal();
 
 const route = useRoute();
 const router = useRouter();
@@ -29,7 +32,7 @@ const partners = ref([]);
 const studentId = route.params.id;
 
 // Generate a random 6-character alphanumeric password suggestion
-const generatePassword = () => {
+const generatePassword = async () => {
     return Math.random().toString(36).slice(-6).toUpperCase();
 };
 
@@ -115,7 +118,7 @@ watch(() => editForm.value.package_id, (newVal) => {
 })
 
 // Helper to normalize skills for comparison (ID to Code if needed)
-const normalizeSkills = (skillList) => {
+const normalizeSkills = async (skillList) => {
     return (skillList || [])
         .map(s => {
             if (typeof s === 'number' || !isNaN(s)) {
@@ -128,7 +131,7 @@ const normalizeSkills = (skillList) => {
         .sort();
 };
 
-const reconcilePackageFromSkills = () => {
+const reconcilePackageFromSkills = async () => {
     if (packages.value.length === 0) return;
     
     const current = normalizeSkills(editForm.value.assigned_skills).join(',');
@@ -165,7 +168,7 @@ const saveStudent = async () => {
         if (!payload.password) delete payload.password;
         
         await api.patch(`/admin/students/${studentId}`, payload);
-        alert('Identity profile updated successfully.');
+        showAlert('Identity profile updated successfully.');
         router.push('/admin/students');
     } catch (err) {
         errorMsg.value = err.response?.data?.message || 'Failed to update identity.';

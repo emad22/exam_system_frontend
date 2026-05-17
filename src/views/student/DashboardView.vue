@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
@@ -11,6 +12,8 @@ import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const exams = ref([]);
@@ -61,7 +64,7 @@ const skillMap = {
     'speaking': 'Speaking'
 };
 
-const getSkillDisplayName = (name) => {
+const getSkillDisplayName = async (name) => {
     if (!name) return 'Unknown Skill';
     const lowerName = name.toLowerCase();
     const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
@@ -72,13 +75,13 @@ onMounted(fetchDashboard);
 
 const skills = () => exams.value?.[0]?.skills || [];
 
-const isSkillCompleted = (exam, skillId) => {
+const isSkillCompleted = async (exam, skillId) => {
     if (!exam || !exam.completed_skill_ids) return false;
     // Use String comparison to be 100% safe against type mismatches
     return exam.completed_skill_ids.some(id => String(id) === String(skillId));
 };
 
-const startSkill = (skillId) => {
+const startSkill = async (skillId) => {
     if (!exams.value[0]) return;
     if (!isDemo.value && isSkillCompleted(exams.value[0], skillId)) return;
 
@@ -94,18 +97,18 @@ const startSkill = (skillId) => {
 
 const resetDemoProgress = async () => {
     const examId = exams.value?.[0]?.id;
-    if (!examId || !confirm('Are you sure you want to reset all exam progress? This will delete all your answers and start you fresh. This action cannot be undone.')) return;
+    if (!examId || !(await showConfirm('Are you sure you want to reset all exam progress? This will delete all your answers and start you fresh. This action cannot be undone.'))) return;
     isLoading.value = true;
     try {
         await api.post(`/exams/${examId}/reset-demo`);
         await fetchDashboard();
     } catch (err) {
-        alert(err.response?.data?.error || 'Failed to reset progress.');
+        showAlert(err.response?.data?.error || 'Failed to reset progress.');
         isLoading.value = false;
     }
 };
 
-const getSkillIcon = (name) => {
+const getSkillIcon = async (name) => {
     name = name.toLowerCase();
     if (name.includes('listening')) return '/Listening02.png';
     if (name.includes('reading')) return '/Reading-1.png';
@@ -116,7 +119,7 @@ const getSkillIcon = (name) => {
 
 };
 
-const logout = () => {
+const logout = async () => {
     authStorage.clear();
     router.push('/login');
 };

@@ -32,6 +32,42 @@ const bulkFile = ref(null);
 const fileInput = ref(null);
 const isBulkSaving = ref(false);
 
+const modalConfig = ref({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    showCancel: false,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    onConfirm: null,
+    onCancel: null
+});
+
+const showModal = (options) => {
+    modalConfig.value = {
+        visible: true,
+        title: options.title || 'Notification',
+        message: options.message || '',
+        type: options.type || 'info',
+        showCancel: options.showCancel || false,
+        confirmText: options.confirmText || 'Yes',
+        cancelText: options.cancelText || 'Cancel',
+        onConfirm: options.onConfirm || null,
+        onCancel: options.onCancel || null
+    };
+};
+
+const handleModalConfirm = () => {
+    modalConfig.value.visible = false;
+    if (modalConfig.value.onConfirm) modalConfig.value.onConfirm();
+};
+
+const handleModalCancel = () => {
+    modalConfig.value.visible = false;
+    if (modalConfig.value.onCancel) modalConfig.value.onCancel();
+};
+
 const filteredStudents = computed(() => {
     if (!searchQuery.value) return students.value;
     const query = searchQuery.value.toLowerCase();
@@ -81,43 +117,82 @@ const openEdit = (student) => {
     router.push(`/admin/students/${student.id}/edit`);
 };
 
-const deleteStudent = async (student) => {
+const deleteStudent = (student) => {
     const fullName = `${student.user?.first_name} ${student.user?.last_name}`;
-    if (!confirm(`Are you sure you want to permanently delete student: ${fullName}? This will also delete their User account and all exam history.`)) return;
-
-    try {
-        await api.delete(`/admin/students/${student.id}`);
-        students.value = students.value.filter(s => s.id !== student.id);
-    } catch (err) {
-        alert('Failed to delete student.');
-    }
+    showModal({
+        title: 'Delete Student',
+        message: `Are you sure you want to permanently delete student: ${fullName}? This will also delete their User account and all exam history.`,
+        type: 'danger',
+        showCancel: true,
+        confirmText: 'Yes, Delete Permanently',
+        onConfirm: async () => {
+            try {
+                await api.delete(`/admin/students/${student.id}`);
+                students.value = students.value.filter(s => s.id !== student.id);
+            } catch (err) {
+                showModal({
+                    title: 'Error',
+                    message: 'Failed to delete student.',
+                    type: 'danger'
+                });
+            }
+        }
+    });
 };
 
-const resetProgress = async (student) => {
+const resetProgress = (student) => {
     const fullName = `${student.user?.first_name} ${student.user?.last_name}`;
-    if (!confirm(`CAUTION: Are you sure you want to reset all exam progress for ${fullName}? This will permanently delete their previous attempts and allow them to start fresh******.`)) return;
-
-    try {
-        await api.post(`/admin/students/${student.id}/reset`);
-        alert('Candidate progress has been successfully reset.');
-        fetchStudents();
-    } catch (err) {
-        alert(err.response?.data?.error || 'Failed to reset progress.');
-    }
+    showModal({
+        title: 'Reset Progress',
+        message: `CAUTION: Are you sure you want to reset all exam progress for ${fullName}? This will permanently delete their previous attempts and allow them to start fresh.`,
+        type: 'warning',
+        showCancel: true,
+        confirmText: 'Yes, Reset Progress',
+        onConfirm: async () => {
+            try {
+                await api.post(`/admin/students/${student.id}/reset`);
+                showModal({
+                    title: 'Success',
+                    message: 'Candidate progress has been successfully reset.',
+                    type: 'success',
+                    onConfirm: () => {
+                        fetchStudents();
+                    }
+                });
+            } catch (err) {
+                showModal({
+                    title: 'Error',
+                    message: err.response?.data?.error || 'Failed to reset progress.',
+                    type: 'danger'
+                });
+            }
+        }
+    });
 };
 
-const bulkDelete = async () => {
+const bulkDelete = () => {
     if (!selectedStudents.value.length) return;
-    if (!confirm(`Are you sure you want to delete ${selectedStudents.value.length} selected students? This action cannot be undone.`)) return;
-
-    try {
-        const ids = selectedStudents.value.map(s => s.id);
-        await api.post('/admin/students/bulk-delete', { ids });
-        students.value = students.value.filter(s => !ids.includes(s.id));
-        selectedStudents.value = [];
-    } catch (err) {
-        alert(err.response?.data?.message || 'Failed to bulk delete students.');
-    }
+    showModal({
+        title: 'Bulk Delete',
+        message: `Are you sure you want to delete ${selectedStudents.value.length} selected students? This action cannot be undone.`,
+        type: 'danger',
+        showCancel: true,
+        confirmText: 'Yes, Delete Selected',
+        onConfirm: async () => {
+            try {
+                const ids = selectedStudents.value.map(s => s.id);
+                await api.post('/admin/students/bulk-delete', { ids });
+                students.value = students.value.filter(s => !ids.includes(s.id));
+                selectedStudents.value = [];
+            } catch (err) {
+                showModal({
+                    title: 'Error',
+                    message: err.response?.data?.message || 'Failed to bulk delete students.',
+                    type: 'danger'
+                });
+            }
+        }
+    });
 };
 
 const handleFileUpload = (e) => {
@@ -135,7 +210,7 @@ const downloadExcelTemplate = async () => {
         link.click();
     } catch (err) {
         console.error('Download error:', err);
-        alert('Failed to download template.');
+        showModal({ title: 'Error', message: 'Failed to download template.', type: 'danger' });
     }
 };
 
@@ -151,7 +226,7 @@ const submitBulkSkills = async () => {
             showBulkSkillsModal.value = false;
             fetchStudents();
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to import file.');
+            showModal({ title: 'Error', message: err.response?.data?.message || 'Failed to import file.', type: 'danger' });
         } finally {
             isBulkSaving.value = false;
         }
@@ -168,7 +243,7 @@ const submitBulkSkills = async () => {
             showBulkSkillsModal.value = false;
             fetchStudents();
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to update skills.');
+            showModal({ title: 'Error', message: err.response?.data?.message || 'Failed to update skills.', type: 'danger' });
         } finally {
             isBulkSaving.value = false;
         }
@@ -375,6 +450,50 @@ onMounted(() => {
                     <Button :label="isBulkSaving ? 'SYNCING...' : 'COMMIT SYNC'" :loading="isBulkSaving"
                         class="bg-brand-primary border-none text-[10px] font-black uppercase tracking-widest px-8 shadow-lg shadow-rose-100"
                         @click="submitBulkSkills" />
+                </div>
+            </template>
+        </Dialog>
+
+        <!-- Custom Beautiful Modal -->
+        <Dialog v-model:visible="modalConfig.visible" modal :closable="false" :style="{ width: '450px' }" class="rounded-[2rem] overflow-hidden border-0 shadow-2xl z-50">
+            <template #header>
+                <div class="flex items-center gap-4 px-2 pt-2" :class="{
+                    'text-emerald-500': modalConfig.type === 'success',
+                    'text-rose-500': modalConfig.type === 'danger',
+                    'text-amber-500': modalConfig.type === 'warning',
+                    'text-indigo-500': modalConfig.type === 'info'
+                }">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm" :class="{
+                        'bg-emerald-50 border-emerald-100 text-emerald-600': modalConfig.type === 'success',
+                        'bg-rose-50 border-rose-100 text-rose-600': modalConfig.type === 'danger',
+                        'bg-amber-50 border-amber-100 text-amber-600': modalConfig.type === 'warning',
+                        'bg-indigo-50 border-indigo-100 text-indigo-600': modalConfig.type === 'info'
+                    }">
+                        <i class="text-2xl" :class="{
+                            'pi pi-check-circle': modalConfig.type === 'success',
+                            'pi pi-times-circle': modalConfig.type === 'danger',
+                            'pi pi-exclamation-triangle': modalConfig.type === 'warning',
+                            'pi pi-info-circle': modalConfig.type === 'info'
+                        }"></i>
+                    </div>
+                    <h3 class="font-black text-2xl tracking-tight text-slate-800">{{ modalConfig.title }}</h3>
+                </div>
+            </template>
+            <div class="px-2 py-4 text-slate-600 font-medium leading-relaxed text-base">
+                {{ modalConfig.message }}
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3 w-full px-2 pb-2 mt-4">
+                    <Button v-if="modalConfig.showCancel" :label="modalConfig.cancelText" text severity="secondary" @click="handleModalCancel" class="font-bold px-6 py-3 rounded-xl hover:bg-slate-100" />
+                    <Button :label="modalConfig.confirmText" @click="handleModalConfirm" 
+                        class="font-black px-6 py-3 rounded-xl border-none shadow-md hover:shadow-lg transition-all"
+                        :class="{
+                            'bg-emerald-500 hover:bg-emerald-600 text-white': modalConfig.type === 'success',
+                            'bg-rose-500 hover:bg-rose-600 text-white': modalConfig.type === 'danger',
+                            'bg-amber-500 hover:bg-amber-600 text-white': modalConfig.type === 'warning',
+                            'bg-indigo-500 hover:bg-indigo-600 text-white': modalConfig.type === 'info'
+                        }"
+                    />
                 </div>
             </template>
         </Dialog>

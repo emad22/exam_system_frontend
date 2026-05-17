@@ -1,8 +1,11 @@
 ﻿<script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
+
+const { showAlert, showConfirm } = useModal();
 
 const route = useRoute();
 const router = useRouter();
@@ -21,11 +24,11 @@ const loadData = async () => {
         ]);
         
         selectedPartner.value = partnerRes.data;
-       // alert(selectedPartner.note);
+       // showAlert(selectedPartner.note);
        
     } catch (err) {
         console.error(err);
-        alert('Failed to load partner data');
+        showAlert('Failed to load partner data');
         router.push('/admin/Partners');
     } finally {
         loading.value = false;

@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -8,6 +9,8 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import Select from 'primevue/select';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const adminStore = useAdminStore();
@@ -26,14 +29,14 @@ const skillMap = {
     'speaking': 'Speaking'
 };
 
-const getSkillDisplayName = (name) => {
+const getSkillDisplayName = async (name) => {
     if (!name) return 'Unknown Skill';
     const lowerName = name.toLowerCase();
     const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
     return matchedKey ? skillMap[matchedKey] : name;
 };
 
-const getSortedSkills = (skills) => {
+const getSortedSkills = async (skills) => {
     if (!skills) return [];
     const orderMap = {
         'Listening': 1,
@@ -73,7 +76,7 @@ const fetchPartners = async () => {
     }
 };
 
-const viewDetails = (id) => {
+const viewDetails = async (id) => {
     const isTeacher = adminStore.user?.role === 'teacher';
     const routeName = isTeacher ? 'teacher.reports.show' : 'admin.reports.show';
     
@@ -83,7 +86,7 @@ const viewDetails = (id) => {
     });
 };
 
-const filtered = () => {
+const filtered = async () => {
     let result = attempts.value;
 
     if (selectedPartner.value) {
@@ -101,24 +104,24 @@ const filtered = () => {
     return result;
 };
 
-const scoreColor = (score) => {
+const scoreColor = async (score) => {
     if (!score && score !== 0) return 'text-slate-400';
     if (score >= 80) return 'text-emerald-600';
     if (score >= 60) return 'text-amber-600';
     return 'text-rose-600';
 };
 
-const getCalculatedSkillScore = (skillResult) => {
+const getCalculatedSkillScore = async (skillResult) => {
     if (!skillResult || skillResult.score === null || skillResult.score === undefined) return null;
     const levelsCount = skillResult.skill?.levels_count || 1;
- //   alert('levelsCount****************** '+ levelsCount);
+ //   showAlert('levelsCount****************** '+ levelsCount);
     return Math.round(Number(skillResult.score) * levelsCount);
 };
 
 
-const getTotalScore = (attempt) => {
+const getTotalScore = async (attempt) => {
     if (!attempt || !attempt.attempt_skills) return 0;
-    // alert("************"+ attempt.skills_count);
+    // showAlert("************"+ attempt.skills_count);
     return attempt.attempt_skills
         .filter(skillResult => {
             const skillName = skillResult.skill?.name?.toLowerCase() || '';

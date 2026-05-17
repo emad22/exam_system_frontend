@@ -1,8 +1,11 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import { authStorage } from '@/services/authStorage';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const isLogin = ref(true);
@@ -49,7 +52,7 @@ const handleRegister = async () => {
     try {
         await api.post('/register', form.value);
         isLogin.value = true;
-        alert('Registration successful! Please login.');
+        showAlert('Registration successful! Please login.');
     } catch (err) {
         errorMsg.value = err.response?.data?.message || 'Registration failed.';
     } finally {

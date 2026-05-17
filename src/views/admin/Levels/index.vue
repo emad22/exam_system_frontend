@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -13,6 +14,8 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import { useToast } from 'primevue/usetoast';
+
+const { showAlert, showConfirm } = useModal();
 
 const route = useRoute();
 const router = useRouter();
@@ -47,7 +50,7 @@ const fetchData = async () => {
     }
 };
 
-const getSkill = (skillId) => {
+const getSkill = async (skillId) => {
     return skills.value.find(s => s.id === skillId) || { name: 'Unknown', icon: '🎯' };
 };
 
@@ -93,7 +96,7 @@ const groupedLevels = computed(() => {
 });
 
 const deleteLevel = async (id) => {
-    if (!confirm('Are you sure you want to delete this level globally?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this level globally?'))) return;
 
     try {
         await api.delete(`/admin/levels/${id}`);

@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -13,6 +14,8 @@ import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputNumber from 'primevue/inputnumber';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const exams = ref([]);
@@ -116,7 +119,7 @@ const saveRules = async () => {
     }
 };
 
-const getCategorySeverity = (category) => {
+const getCategorySeverity = async (category) => {
     if (!category) return 'secondary';
     const slug = (category.slug || '').toLowerCase();
     if (slug.includes('adult')) return 'info';
@@ -125,7 +128,7 @@ const getCategorySeverity = (category) => {
 }
 
 const setDefaultExam = async (exam) => {
-    if (!window.confirm(`Set "${exam.title}" as default for ${exam.category?.name || 'General'}?`)) return;
+    if (!(await showConfirm(`Set "${exam.title}" as default for ${exam.category?.name || 'General'}?`))) return;
     try {
         await api.patch(`/admin/exams/${exam.id}/set-default`);
         fetchExams();
@@ -135,7 +138,7 @@ const setDefaultExam = async (exam) => {
 };
 
 const deleteExam = async (id) => {
-    if (!window.confirm('IRREVERSIBLE ACTION: Delete this exam and all associated data?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this exam?'))) return;
     try {
         await api.delete(`/admin/exams/${id}`);
         fetchExams();

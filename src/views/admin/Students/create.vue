@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -12,10 +13,12 @@ import Card from 'primevue/card';
 import DatePicker from 'primevue/datepicker';
 import Message from 'primevue/message';
 
+const { showAlert, showConfirm } = useModal();
+
 const router = useRouter();
 
 // Generate a random 6-character alphanumeric password suggestion
-const generatePassword = () => {
+const generatePassword = async () => {
     return Math.random().toString(36).slice(-6).toUpperCase();
 };
 
@@ -79,7 +82,7 @@ const addStudent = async () => {
 
     try {
         await api.post('/admin/students', form.value);
-        alert('Student successfully registered!');
+        showAlert('Student successfully registered!');
         router.push('/admin/students');
     } catch (err) {
         console.error(err);

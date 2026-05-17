@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -12,6 +13,8 @@ import Card from 'primevue/card';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 import ProgressSpinner from 'primevue/progressspinner';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const toast = useToast();
@@ -43,7 +46,7 @@ const fetchCategories = async () => {
 };
 
 const deleteCategory = async (id) => {
-    if (!confirm('Are you sure you want to delete this category? This will fail if exams are linked to it.')) return;
+    if (!(await showConfirm('Are you sure you want to delete this category? This will fail if exams are linked to it.'))) return;
     
     try {
         await api.delete(`/admin/exam-categories/${id}`);

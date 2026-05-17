@@ -1,4 +1,5 @@
 ﻿<script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -12,6 +13,8 @@ import Card from 'primevue/card';
 import ProgressSpinner from 'primevue/progressspinner';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const toast = useToast();
@@ -44,7 +47,7 @@ const filteredRequirements = computed(() => {
 });
 
 const deleteRequirement = async (id) => {
-    if (!confirm('Are you sure you want to delete this requirement?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this requirement?'))) return;
     try {
         await api.delete(`/admin/system-requirements/${id}`);
         toast.add({ severity: 'success', summary: 'Deleted', detail: 'Requirement removed.' });

@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -13,6 +14,8 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
+
+const { showAlert, showConfirm } = useModal();
 
 const route = useRoute();
 const router = useRouter();
@@ -37,7 +40,7 @@ const loadData = async () => {
         skills.value = skillRes.data;
     } catch (err) {
         console.error(err);
-        alert('Failed to load student data');
+        showAlert('Failed to load student data');
         router.push('/admin/students');
     } finally {
         loading.value = false;
@@ -56,7 +59,7 @@ const levelMap = {
     9: 'Advanced High'
 };
 
-const getHighestLevel = (skillId) => {
+const getHighestLevel = async (skillId) => {
     const studentSkills = selectedStudent.value?.attempts?.flatMap(a => a.attempt_skills || []) || [];
     const skillAttempts = studentSkills.filter(s => s.skill_id === skillId);
     if (skillAttempts.length === 0) return 'Not Started';
@@ -98,7 +101,7 @@ const skillMastery = computed(() => {
     return Object.values(mastery);
 });
 
-const scoreColor = (score) => {
+const scoreColor = async (score) => {
     if (!score && score !== 0) return 'text-slate-400';
     if (score >= 80) return 'text-emerald-600';
     if (score >= 60) return 'text-amber-600';

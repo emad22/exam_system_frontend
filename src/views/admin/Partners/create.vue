@@ -1,9 +1,12 @@
 ﻿<script setup>
+import { useModal } from '@/composables/useModal';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 
@@ -38,7 +41,7 @@ const submit = async () => {
         if (err.response?.data?.errors) {
             errors.value = err.response.data.errors;
         } else {
-            alert('Failed to create partner');
+            showAlert('Failed to create partner');
         }
     } finally {
         loading.value = false;

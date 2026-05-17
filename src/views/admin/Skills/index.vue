@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -8,6 +9,8 @@ import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
 import Card from 'primevue/card';
+
+const { showAlert, showConfirm } = useModal();
 
 const skills = ref([]);
 const loading = ref(true);
@@ -24,7 +27,7 @@ const showEditModal = ref(false);
 const editingSkill = ref({ id: null, name: '', short_code: '' });
 const isSaving = ref(false);
 
-const openEditModal = (skill) => {
+const openEditModal = async (skill) => {
     editingSkill.value = { 
         id: skill.id, 
         name: skill.name,
@@ -44,7 +47,7 @@ const updateSkill = async () => {
         showEditModal.value = false;
         fetchSkills(); 
     } catch (err) {
-        alert(err.response?.data?.message || 'Failed to update skill.');
+        showAlert(err.response?.data?.message || 'Failed to update skill.');
     } finally {
         isSaving.value = false;
     }
@@ -63,12 +66,12 @@ const fetchSkills = async () => {
 };
 
 const deleteSkill = async (id) => {
-    if (!confirm('Are you sure you want to delete this skill? This will affect all bound questions.')) return;
+    if (!(await showConfirm('Are you sure you want to delete this skill? This will affect all bound questions.'))) return;
     try {
         await api.delete(`/admin/skills/${id}`);
         fetchSkills(); 
     } catch (err) {
-        alert(err.response?.data?.error || 'Failed to delete skill.');
+        showAlert(err.response?.data?.error || 'Failed to delete skill.');
     }
 };
 

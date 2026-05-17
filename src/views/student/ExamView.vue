@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import api from '@/services/api';
@@ -16,6 +17,8 @@ import { useExamTimer } from '@/composables/useExamTimer';
 import { useAntiCheat } from '@/composables/useAntiCheat';
 import { useAudioEngine } from '@/composables/useAudioEngine';
 import { useMediaUrl } from '@/composables/useMediaUrl';
+
+const { showAlert, showConfirm } = useModal();
 
 
 const route = useRoute();
@@ -60,7 +63,7 @@ const showVirtualKeyboard = ref(true);
 const timerConfig = ref(null);
 const lastActivityAt = ref(Date.now());
 
-const toggleKeyboardLayout = () => {
+const toggleKeyboardLayout = async () => {
     keyboardLayout.value = keyboardLayout.value === 'arabic' ? 'english' : 'arabic';
 };
 
@@ -80,7 +83,7 @@ const {
 
 const handleVisibilityChange = () => logCheatWarning(isStarting.value, showTimeoutModal.value);
 
-const startTimer = () => {
+const startTimer = async () => {
     const user = authStorage.getUser();
     const role = (user?.role || '').toLowerCase();
     isDemo.value = ['demo', 'staff'].includes(role);
@@ -96,7 +99,7 @@ const canStart = computed(() => {
     return mandatoryIds.every(id => checkedRequirements.value.includes(id));
 });
 
-const toggleRequirement = (req) => {
+const toggleRequirement = async (req) => {
     if (autoVerifiedIds.value.includes(req.id)) return;
 
     // If it has an interactive test, open the tester instead of just checking it
@@ -110,7 +113,7 @@ const toggleRequirement = (req) => {
     else checkedRequirements.value.splice(index, 1);
 };
 
-const handleTestPassed = (req) => {
+const handleTestPassed = async (req) => {
     if (!checkedRequirements.value.includes(req.id)) {
         checkedRequirements.value.push(req.id);
     }
@@ -156,7 +159,7 @@ const beginExam = async () => {
             // Update URL silently so refresh works
             router.replace(`/exam/${attemptId.value}`);
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to start session');
+            showAlert(err.response?.data?.error || 'Failed to start session');
             isLoading.value = false;
             return;
         }
@@ -179,7 +182,7 @@ const confirmExit = async () => {
     }
 };
 
-const exitExam = () => {
+const exitExam = async () => {
     showExitModal.value = true;
 };
 
@@ -189,14 +192,14 @@ onBeforeRouteLeave((to, from) => {
     isIntentionallyLeaving.value = true;
 });
 
-const prevQuestion = () => {
+const prevQuestion = async () => {
     if (currentIndex.value > 0) {
         isNavigatingBack.value = true;
         currentIndex.value--;
     }
 };
 
-const startNextLevel = () => {
+const startNextLevel = async () => {
     showLevelTransition.value = false;
     // Trigger audio playback now that the student is ready
     nextTick(() => {
@@ -333,7 +336,7 @@ const VALIDATORS = {
     word_selection: (ans) => ans.selected_words.length > 0,
 };
 
-const submitAnswer = () => {
+const submitAnswer = async () => {
     const ans = answers.value[currentIndex.value];
     const q = currentQ.value;
 
@@ -454,7 +457,7 @@ const submitCurrentBatch = async (isTimeout = false) => {
         if (isTimeout) {
             router.push('/skill-selection');
         } else {
-            alert('Data transmission error. Try again.');
+            showAlert('Data transmission error. Try again.');
         }
     } finally {
         isSubmittingBatch.value = false;
@@ -488,7 +491,7 @@ watch(() => answers.value[currentIndex.value], (newVal, oldVal) => {
     }
 }, { deep: true });
 
-const cleanHtml = (html) => {
+const cleanHtml = async (html) => {
     if (!html) return '';
     // Replace non-breaking spaces with normal spaces to allow wrapping
     return html.replace(/&nbsp;/g, ' ');
@@ -497,7 +500,7 @@ const cleanHtml = (html) => {
 const { resolveUrl } = useMediaUrl();
 
 
-const getSkillIcon = (name) => {
+const getSkillIcon = async (name) => {
     name = name?.toLowerCase() || '';
     if (name.includes('listening')) return '🎧';
     if (name.includes('reading')) return '📖';
@@ -589,12 +592,12 @@ const hasStimulusContent = computed(() => {
 });
 
 // --- INACTIVITY LOGIC ---
-const updateActivity = () => {
+const updateActivity = async () => {
     lastActivityAt.value = Date.now();
 };
 
 let inactivityInterval = null;
-const checkInactivity = () => {
+const checkInactivity = async () => {
     const inactiveSeconds = (Date.now() - lastActivityAt.value) / 1000;
     if (inactiveSeconds > 300) { // 5 minutes
         showInactivityModal.value = true;
@@ -604,7 +607,7 @@ const checkInactivity = () => {
     }
 };
 
-const handleBeforeUnload = () => {
+const handleBeforeUnload = async () => {
     isIntentionallyLeaving.value = true;
 };
 

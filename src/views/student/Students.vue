@@ -40,8 +40,11 @@
 </template>
 
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+
+const { showAlert, showConfirm } = useModal();
 
 const students = ref([])
 const showAddForm = ref(false)
@@ -69,20 +72,20 @@ const saveStudent = async () => {
     cancelForm()
 }
 
-const edit = (student) => {
+const edit = async (student) => {
     editStudent.value = student
     studentForm.value = { ...student }
     showAddForm.value = true
 }
 
 const remove = async (id) => {
-    if (confirm('Are you sure you want to delete this student?')) {
+    if (await showConfirm('Are you sure you want to delete this student?')) {
         await axios.delete(`/api/students/${id}`)
         fetchStudents()
     }
 }
 
-const cancelForm = () => {
+const cancelForm = async () => {
     showAddForm.value = false
     editStudent.value = null
     studentForm.value = { name: '', email: '' }

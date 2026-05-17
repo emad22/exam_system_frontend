@@ -1,6 +1,9 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onUnmounted } from 'vue';
 import Button from 'primevue/button';
+
+const { showAlert, showConfirm } = useModal();
 
 const props = defineProps({
     isMandatory: { type: Boolean, default: false }
@@ -46,11 +49,11 @@ const startRecording = async () => {
         }, 1000);
     } catch (err) {
         console.error('Microphone access denied:', err);
-        alert('Microphone access is required for this task. Please enable it in your browser settings.');
+        showAlert('Microphone access is required for this task. Please enable it in your browser settings.');
     }
 };
 
-const stopRecording = () => {
+const stopRecording = async () => {
     if (mediaRecorder.value && isRecording.value) {
         mediaRecorder.value.stop();
         isRecording.value = false;
@@ -59,7 +62,7 @@ const stopRecording = () => {
     }
 };
 
-const formatTime = (seconds) => {
+const formatTime = async (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;

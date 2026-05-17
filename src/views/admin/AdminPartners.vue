@@ -1,8 +1,11 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted } from 'vue';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import { useRouter } from 'vue-router';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const partners = ref([]);
@@ -24,19 +27,19 @@ const fetchPartners = async () => {
 
 
 const deletePartner = async (id) => {
-    if (!confirm('Are you sure you want to delete this partner?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this partner?'))) return;
     try {
         await api.delete(`/admin/partners/${id}`);
         partners.value = partners.value.filter(p => p.id !== id);
     } catch (err) {
-        alert('Failed to delete partner');
+        showAlert('Failed to delete partner');
     }
 };
 
 
 const toggleHold = async (partner) => {
     const action = partner.is_active ? 'hold' : 'unhold';
-    if (!confirm(`Are you sure you want to ${action} this partner?`)) return;
+    if (!(await showConfirm(`Are you sure you want to ${action} this partner?`))) return;
 
     try {
         await api.post(`/admin/partners/${partner.id}/${action}`);
@@ -44,10 +47,10 @@ const toggleHold = async (partner) => {
         // تحديث الـ frontend مباشرة
         partner.is_active = !partner.is_active;
 
-        alert(`Partner ${action}ed and all their students have been ${action === 'hold' ? 'deactivated' : 'reactivated'}.`);
+        showAlert(`Partner ${action}ed and all their students have been ${action === 'hold' ? 'deactivated' : 'reactivated'}.`);
     } catch (err) {
         console.error(err);
-        alert(`Failed to ${action} partner`);
+        showAlert(`Failed to ${action} partner`);
     }
 };
 

@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted } from 'vue';
 import api from '@/services/api';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -8,6 +9,8 @@ import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Checkbox from 'primevue/checkbox';
 import Message from 'primevue/message';
+
+const { showAlert, showConfirm } = useModal();
 
 const templates = ref([]);
 const isLoading = ref(false);
@@ -34,19 +37,19 @@ const fetchTemplates = async () => {
 
 onMounted(fetchTemplates);
 
-const openCreateModal = () => {
+const openCreateModal = async () => {
     isEditing.value = false;
     currentTemplate.value = { name: '', content_html: '', is_default: false, background_image: null };
     showModal.value = true;
 };
 
-const openEditModal = (template) => {
+const openEditModal = async (template) => {
     isEditing.value = true;
     currentTemplate.value = { ...template, is_default: !!template.is_default };
     showModal.value = true;
 };
 
-const handleFileUpload = (event) => {
+const handleFileUpload = async (event) => {
     currentTemplate.value.background_image = event.target.files[0];
 };
 
@@ -75,21 +78,21 @@ const saveTemplate = async () => {
         fetchTemplates();
     } catch (err) {
         console.error('Failed to save template', err);
-        alert('Failed to save template. Please check the form data.');
+        showAlert('Failed to save template. Please check the form data.');
     }
 };
 
 const deleteTemplate = async (id) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this template?'))) return;
     try {
         await api.delete(`/admin/certificate-templates/${id}`);
         fetchTemplates();
     } catch (err) {
-        alert('Failed to delete template.');
+        showAlert('Failed to delete template.');
     }
 };
 
-const downloadSamplePdf = (tpl) => {
+const downloadSamplePdf = async (tpl) => {
     api.get(`/admin/certificate-templates/${tpl.id}/preview`, { responseType: 'blob' })
         .then(res => {
             const blob = new Blob([res.data], { type: 'application/pdf' });
@@ -100,7 +103,7 @@ const downloadSamplePdf = (tpl) => {
         });
 };
 
-const generatePreviewHtml = () => {
+const generatePreviewHtml = async () => {
     const content = currentTemplate.value.content_html || '<div style="text-align: center; margin-top: 100px; color: #94a3b8;">Type HTML to start preview...</div>';
     
     // Sample data for preview

@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -10,6 +11,8 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Card from 'primevue/card';
 import ProgressSpinner from 'primevue/progressspinner';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const partners = ref([]);
@@ -41,25 +44,25 @@ const fetchPartners = async () => {
 };
 
 const deletePartner = async (id) => {
-    if (!confirm('Are you sure you want to delete this partner?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this partner?'))) return;
     try {
         await api.delete(`/admin/partners/${id}`);
         partners.value = partners.value.filter(p => p.id !== id);
     } catch (err) {
-        alert('Failed to delete partner');
+        showAlert('Failed to delete partner');
     }
 };
 
 const toggleHold = async (partner) => {
     const action = partner.user?.is_active ? 'hold' : 'unhold';
-    if (!confirm(`Are you sure you want to ${action} this partner?`)) return;
+    if (!(await showConfirm(`Are you sure you want to ${action} this partner?`))) return;
 
     try {
         await api.post(`/admin/partners/${partner.id}/${action}`);
         if (partner.user) partner.user.is_active = !partner.user.is_active;
     } catch (err) {
         console.error(err);
-        alert(`Failed to ${action} partner`);
+        showAlert(`Failed to ${action} partner`);
     }
 };
 

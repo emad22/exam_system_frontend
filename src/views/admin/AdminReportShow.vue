@@ -11,6 +11,7 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
+import Dialog from 'primevue/dialog';
 import { useMediaUrl } from '@/composables/useMediaUrl';
 
 const route = useRoute();
@@ -21,6 +22,42 @@ const selectedAttempt = ref(null);
 const loading = ref(true);
 const currentUser = ref(null);
 let totalLevels = 0;
+
+const modalConfig = ref({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    showCancel: false,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    onConfirm: null,
+    onCancel: null
+});
+
+const showModal = (options) => {
+    modalConfig.value = {
+        visible: true,
+        title: options.title || 'Notification',
+        message: options.message || '',
+        type: options.type || 'info',
+        showCancel: options.showCancel || false,
+        confirmText: options.confirmText || 'Yes',
+        cancelText: options.cancelText || 'Cancel',
+        onConfirm: options.onConfirm || null,
+        onCancel: options.onCancel || null
+    };
+};
+
+const handleModalConfirm = () => {
+    modalConfig.value.visible = false;
+    if (modalConfig.value.onConfirm) modalConfig.value.onConfirm();
+};
+
+const handleModalCancel = () => {
+    modalConfig.value.visible = false;
+    if (modalConfig.value.onCancel) modalConfig.value.onCancel();
+};
 
 
 const getTotalScore = (attempt) => {
@@ -61,30 +98,64 @@ const fetchDetails = async () => {
     }
 };
 
-const voidAttempt = async (id) => {
-    if (!confirm('Are you sure you want to void this attempt? The student will be able to retake the exam********.')) return;
-    //alert(selectedAttempt.value.student.user?.id);
-    try {
-        await api.post(`/admin/reports/${attemptId}/reset`);
-        alert('Attempt voided successfully.');
-        const isTeacher = currentUser.value?.role === 'teacher';
-        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
-    } catch (err) {
-        alert('Failed to void attempt in vue.');
-    }
+const voidAttempt = (id) => {
+    showModal({
+        title: 'Void Attempt',
+        message: 'Are you sure you want to void this attempt? The student will be able to retake the exam.',
+        type: 'warning',
+        showCancel: true,
+        confirmText: 'Yes, Void Attempt',
+        onConfirm: async () => {
+            try {
+                await api.post(`/admin/reports/${attemptId}/reset`);
+                showModal({
+                    title: 'Success',
+                    message: 'Attempt voided successfully.',
+                    type: 'success',
+                    onConfirm: () => {
+                        const isTeacher = currentUser.value?.role === 'teacher';
+                        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
+                    }
+                });
+            } catch (err) {
+                showModal({
+                    title: 'Error',
+                    message: 'Failed to void attempt.',
+                    type: 'danger'
+                });
+            }
+        }
+    });
 };
 
-const resetSkill = async (skillId, skillName) => {
-    if (!confirm(`Are you sure you want to reset the skill: ${skillName}? The student will need to retake this part.`)) return;
-
-    try {
-        await api.post(`/admin/reports/${attemptId}/skills/${skillId}/reset`);
-        alert('Skill Attempt voided successfully.');
-        const isTeacher = currentUser.value?.role === 'teacher';
-        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
-    } catch (err) {
-        alert('Failed to reset skill in vue.');
-    }
+const resetSkill = (skillId, skillName) => {
+    showModal({
+        title: 'Reset Skill',
+        message: `Are you sure you want to reset the skill: ${skillName}? The student will need to retake this part.`,
+        type: 'warning',
+        showCancel: true,
+        confirmText: 'Yes, Reset Skill',
+        onConfirm: async () => {
+            try {
+                await api.post(`/admin/reports/${attemptId}/skills/${skillId}/reset`);
+                showModal({
+                    title: 'Success',
+                    message: 'Skill Attempt voided successfully.',
+                    type: 'success',
+                    onConfirm: () => {
+                        const isTeacher = currentUser.value?.role === 'teacher';
+                        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
+                    }
+                });
+            } catch (err) {
+                showModal({
+                    title: 'Error',
+                    message: 'Failed to reset skill.',
+                    type: 'danger'
+                });
+            }
+        }
+    });
 };
 
 const formatTime = (dateStr) => {
@@ -616,8 +687,35 @@ onMounted(fetchDetails);
                                                             </div>
                                                         </div>
 
-                                                        <!-- Multi-part Answer Layout (Drag-Drop, Fill-Blank, Ordering, etc) -->
-                                                        <div v-else-if="['drag_drop', 'fill_blank', 'ordering', 'word_selection', 'click_word', 'highlight'].includes(answer.question?.type)"
+                                                        <!-- Ordering Answer Layout -->
+                                                        <div v-else-if="answer.question?.type === 'ordering'" class="space-y-4">
+                                                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Sentence Construction Evaluation</p>
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                <div class="p-6 rounded-3xl bg-slate-50 border border-slate-100 relative overflow-hidden">
+                                                                    <div class="absolute top-0 right-0 p-4 opacity-5 text-4xl">
+                                                                        <i class="pi pi-user"></i>
+                                                                    </div>
+                                                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3">Student Answer</p>
+                                                                    <div class="text-sm font-black flex items-center gap-2" :class="answer.is_correct ? 'text-emerald-700' : 'text-rose-700'">
+                                                                        <span dir="auto">{{ getStudentParts(answer).join(' ') || '—' }}</span>
+                                                                        <i v-if="answer.is_correct" class="pi pi-check-circle text-emerald-500"></i>
+                                                                        <i v-else class="pi pi-times-circle text-rose-500"></i>
+                                                                    </div>
+                                                                </div>
+                                                                <div v-if="!answer.is_correct" class="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 relative overflow-hidden">
+                                                                    <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl text-emerald-500">
+                                                                        <i class="pi pi-key"></i>
+                                                                    </div>
+                                                                    <p class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-3">Correct Answer</p>
+                                                                    <div class="text-sm font-black text-emerald-800" dir="auto">
+                                                                        {{ getCorrectOptions(answer.question).join(' ') }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Multi-part Answer Layout (Drag-Drop, Fill-Blank, etc) -->
+                                                        <div v-else-if="['drag_drop', 'fill_blank', 'word_selection', 'click_word', 'highlight'].includes(answer.question?.type)"
                                                             class="space-y-4">
                                                             <p
                                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
@@ -721,6 +819,50 @@ onMounted(fetchDetails);
                 </Tabs>
             </div>
         </div>
+
+        <!-- Custom Beautiful Modal -->
+        <Dialog v-model:visible="modalConfig.visible" modal :closable="false" :style="{ width: '450px' }" class="rounded-[2rem] overflow-hidden border-0 shadow-2xl">
+            <template #header>
+                <div class="flex items-center gap-4 px-2 pt-2" :class="{
+                    'text-emerald-500': modalConfig.type === 'success',
+                    'text-rose-500': modalConfig.type === 'danger',
+                    'text-amber-500': modalConfig.type === 'warning',
+                    'text-indigo-500': modalConfig.type === 'info'
+                }">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm" :class="{
+                        'bg-emerald-50 border-emerald-100 text-emerald-600': modalConfig.type === 'success',
+                        'bg-rose-50 border-rose-100 text-rose-600': modalConfig.type === 'danger',
+                        'bg-amber-50 border-amber-100 text-amber-600': modalConfig.type === 'warning',
+                        'bg-indigo-50 border-indigo-100 text-indigo-600': modalConfig.type === 'info'
+                    }">
+                        <i class="text-2xl" :class="{
+                            'pi pi-check-circle': modalConfig.type === 'success',
+                            'pi pi-times-circle': modalConfig.type === 'danger',
+                            'pi pi-exclamation-triangle': modalConfig.type === 'warning',
+                            'pi pi-info-circle': modalConfig.type === 'info'
+                        }"></i>
+                    </div>
+                    <h3 class="font-black text-2xl tracking-tight text-slate-800">{{ modalConfig.title }}</h3>
+                </div>
+            </template>
+            <div class="px-2 py-4 text-slate-600 font-medium leading-relaxed text-base">
+                {{ modalConfig.message }}
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-3 w-full px-2 pb-2 mt-4">
+                    <Button v-if="modalConfig.showCancel" :label="modalConfig.cancelText" text severity="secondary" @click="handleModalCancel" class="font-bold px-6 py-3 rounded-xl hover:bg-slate-100" />
+                    <Button :label="modalConfig.confirmText" @click="handleModalConfirm" 
+                        class="font-black px-6 py-3 rounded-xl border-none shadow-md hover:shadow-lg transition-all"
+                        :class="{
+                            'bg-emerald-500 hover:bg-emerald-600 text-white': modalConfig.type === 'success',
+                            'bg-rose-500 hover:bg-rose-600 text-white': modalConfig.type === 'danger',
+                            'bg-amber-500 hover:bg-amber-600 text-white': modalConfig.type === 'warning',
+                            'bg-indigo-500 hover:bg-indigo-600 text-white': modalConfig.type === 'info'
+                        }"
+                    />
+                </div>
+            </template>
+        </Dialog>
     </AdminLayout>
 </template>
 

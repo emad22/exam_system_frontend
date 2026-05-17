@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -12,6 +13,8 @@ import Card from 'primevue/card';
 import ProgressSpinner from 'primevue/progressspinner';
 import RadioButton from 'primevue/radiobutton';
 import Message from 'primevue/message';
+
+const { showAlert, showConfirm } = useModal();
 
 const route = useRoute();
 const router = useRouter();
@@ -77,7 +80,7 @@ const saveStaff = async () => {
         } else {
             await api.post('/admin/staff', form.value);
         }
-        alert(isEditing.value ? 'Identity updated successfully.' : 'Staff member registered.');
+        showAlert(isEditing.value ? 'Identity updated successfully.' : 'Staff member registered.');
         router.push('/admin/staff');
     } catch (err) {
         errorMsg.value = err.response?.data?.message || 'Failed to persist staff data.';

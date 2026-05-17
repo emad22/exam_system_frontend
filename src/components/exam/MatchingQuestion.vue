@@ -72,11 +72,11 @@ const currentMatchingRight = computed(() => {
             </div>
 
             <!-- Left Side: Source Items -->
-            <div class="space-y-4 relative z-10">
+            <div class="space-y-4 relative z-8">
                 <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-right px-2">القائمة الأولى</h4>
                 <button v-for="opt in currentMatchingLeft" :key="opt.id"
                     @click="toggleMatchSource(opt.id)" :disabled="disabled"
-                    class="w-full p-5 rounded-2xl border-2 transition-all duration-300 text-base font-bold text-slate-700 flex justify-between items-center group relative overflow-hidden"
+                    class="w-[90%] lg:w-[85%] mx-auto p-4 lg:p-5 rounded-2xl border-2 transition-all duration-300 text-base font-bold text-slate-600 flex justify-between items-center group relative overflow-hidden block"
                     :class="[
                         selectedMatchSource === opt.id 
                             ? 'border-brand-primary bg-indigo-50/50 shadow-xl shadow-indigo-100 scale-105 z-20' 
@@ -92,17 +92,17 @@ const currentMatchingRight = computed(() => {
                     <span class="text-right w-full" dir="auto">{{ opt.option_text }}</span>
                     
                     <!-- Selection Indicator -->
-                    <div v-if="selectedMatchSource === opt.id" class="w-2 h-8 bg-brand-primary absolute left-0 rounded-r-lg"></div>
+                    <div v-if="selectedMatchSource === opt.id" class="w-2 h-8 bg-brand-primary absolute left-10 rounded-r-lg"></div>
                 </button>
             </div>
 
             <!-- Right Side: Target Items -->
-            <div class="space-y-4 relative z-10">
+            <div class="space-y-4 relative z-8">
                 <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-right px-2">القائمة الثانية</h4>
                 <button v-for="opt in currentMatchingRight" :key="opt.id"
                     @click="completeMatch(opt.id)"
                     :disabled="disabled || !selectedMatchSource || isAlreadyMatched(opt.id)"
-                    class="w-full p-5 rounded-2xl border-2 transition-all duration-300 text-base font-bold text-slate-700 text-right group relative overflow-hidden"
+                    class="w-[90%] lg:w-[85%] mx-auto p-4 lg:p-5 rounded-2xl border-2 transition-all duration-300 text-base font-bold text-slate-600 text-right group relative overflow-hidden block"
                     :class="[
                         isAlreadyMatched(opt.id) 
                             ? 'bg-slate-50 border-slate-100 opacity-40 grayscale' 
@@ -111,7 +111,7 @@ const currentMatchingRight = computed(() => {
                                 : 'border-slate-100 bg-white shadow-sm')
                     ]">
                     
-                    <span dir="auto">{{ opt.option_text }}</span>
+                    <span dir="auto" class="block w-full">{{ opt.option_text }}</span>
 
                     <!-- Matched Indicator -->
                     <div v-if="isAlreadyMatched(opt.id)" class="absolute top-2 left-2 text-[10px] text-slate-400">

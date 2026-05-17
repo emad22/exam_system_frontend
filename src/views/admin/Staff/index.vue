@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed } from 'vue';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -10,6 +11,8 @@ import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
+
+const { showAlert, showConfirm } = useModal();
 
 const staff = ref([]);
 const loading = ref(true);
@@ -45,23 +48,23 @@ const fetchData = async () => {
 };
 
 const deleteStaff = async (id) => {
-    if (!confirm('Are you sure you want to revoke access for this identity?')) return;
+    if (!(await showConfirm('Are you sure you want to revoke access for this identity?'))) return;
     isDeleting.value = true;
     try {
         await api.delete(`/admin/staff/${id}`);
         fetchData();
     } catch (err) {
-        alert(err.response?.data?.error || 'Access revocation failed.');
+        showAlert(err.response?.data?.error || 'Access revocation failed.');
     } finally {
         isDeleting.value = false;
     }
 };
 
-const getRoleSeverity = (role) => {
+const getRoleSeverity = async (role) => {
     return roles.find(r => r.value === role)?.severity || 'secondary';
 };
 
-const getRoleLabel = (role) => {
+const getRoleLabel = async (role) => {
     return roles.find(r => r.value === role)?.label || role;
 };
 

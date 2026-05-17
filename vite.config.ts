@@ -17,4 +17,16 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'primevue': ['primevue', '@primevue/themes'],
+          'quill': ['quill'],
+          'vendor': ['vue', 'vue-router']
+        }
+      }
+    }
+  }
 })

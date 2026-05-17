@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -11,6 +12,8 @@ import Message from 'primevue/message';
 import FileUpload from 'primevue/fileupload';
 import Checkbox from 'primevue/checkbox';
 import ProgressSpinner from 'primevue/progressspinner';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const fileInput = ref(null);
@@ -48,14 +51,14 @@ onMounted(() => {
     fetchData()
 })
 
-const onFileSelect = (e) => {
+const onFileSelect = async (e) => {
     selectedFile.value = e.files ? e.files[0] : null;
     uploadErrors.value = [];
     successMsg.value = '';
     if (selectedFile.value) step.value = 1;
 };
 
-const removeFile = () => {
+const removeFile = async () => {
     selectedFile.value = null;
 };
 
@@ -95,7 +98,7 @@ const triggerUpload = async () => {
     }
 };
 
-const reset = () => {
+const reset = async () => {
     step.value = 1;
     selectedFile.value = null;
     uploadErrors.value = [];
@@ -140,7 +143,7 @@ const downloadTemplate = async () => {
         document.body.removeChild(link);
     } catch (err) {
         console.error('Template download failed', err);
-        alert('CRITICAL_TRANSFER_FAILURE: Could not retrieve the standardized template from the authority server.');
+        showAlert('CRITICAL_TRANSFER_FAILURE: Could not retrieve the standardized template from the authority server.');
     }
 };
 </script>

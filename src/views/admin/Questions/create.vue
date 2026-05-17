@@ -1,4 +1,5 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
@@ -13,6 +14,8 @@ import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
 import Slider from 'primevue/slider';
 import Editor from 'primevue/editor';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 const route = useRoute();
@@ -114,11 +117,11 @@ const createEmptyQuestion = () => ({
     ]
 });
 
-const addQuestion = () => {
+const addQuestion = async () => {
     form.value.questions.push(createEmptyQuestion());
 };
 
-const removeQuestion = (index) => {
+const removeQuestion = async (index) => {
     if (form.value.questions.length > 1) {
         form.value.questions.splice(index, 1);
     }
@@ -150,28 +153,28 @@ const loadInitialData = async () => {
     }
 };
 
-const handlePFileChange = (e) => {
+const handlePFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     form.value.p_media = file;
     pMediaPreview.value = { url: URL.createObjectURL(file), type: file.type };
 };
 
-const handlePAudioChange = (e) => {
+const handlePAudioChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     form.value.p_audio = file;
     form.value.p_audio_preview = { url: URL.createObjectURL(file), type: file.type };
 };
 
-const handlePImageChange = (e) => {
+const handlePImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     form.value.p_image = file;
     form.value.p_image_preview = { url: URL.createObjectURL(file), type: file.type };
 };
 
-const handleQFileChange = (e, index) => {
+const handleQFileChange = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
     form.value.questions[index].q_media = file;
@@ -182,29 +185,29 @@ const triggerQImage = (idx) => document.getElementById(`qImage_${idx}`)?.click()
 const triggerQAudio = (idx) => document.getElementById(`qAudio_${idx}`)?.click();
 const triggerQFile = (idx) => document.getElementById(`qFile_${idx}`)?.click();
 
-const handleQAudioChange = (e, index) => {
+const handleQAudioChange = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
     form.value.questions[index].q_audio = file;
     form.value.questions[index].q_audio_preview = { url: URL.createObjectURL(file), type: file.type };
 };
 
-const handleQImageChange = (e, index) => {
+const handleQImageChange = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
     form.value.questions[index].q_image = file;
     form.value.questions[index].q_image_preview = { url: URL.createObjectURL(file), type: file.type };
 };
 
-const addOption = (qIdx) => {
+const addOption = async (qIdx) => {
     form.value.questions[qIdx].options.push({ option_text: '', is_correct: false });
 };
-const removeOption = (qIdx, optIdx) => {
+const removeOption = async (qIdx, optIdx) => {
     if (form.value.questions[qIdx].options.length > 1) {
         form.value.questions[qIdx].options.splice(optIdx, 1);
     }
 };
-const setCorrect = (qIdx, optIdx) => {
+const setCorrect = async (qIdx, optIdx) => {
     const q = form.value.questions[qIdx];
 
     if (['mcq', 'true_false'].includes(q.type)) {
@@ -216,7 +219,7 @@ const setCorrect = (qIdx, optIdx) => {
     }
 };
 
-const moveOptionUp = (qIdx, optIdx) => {
+const moveOptionUp = async (qIdx, optIdx) => {
     if (optIdx > 0) {
         const options = form.value.questions[qIdx].options;
         const temp = options[optIdx];
@@ -225,7 +228,7 @@ const moveOptionUp = (qIdx, optIdx) => {
     }
 };
 
-const moveOptionDown = (qIdx, optIdx) => {
+const moveOptionDown = async (qIdx, optIdx) => {
     const options = form.value.questions[qIdx].options;
     if (optIdx < options.length - 1) {
         const temp = options[optIdx];
@@ -234,7 +237,7 @@ const moveOptionDown = (qIdx, optIdx) => {
     }
 };
 
-const handleTypeChange = (qIdx) => {
+const handleTypeChange = async (qIdx) => {
     const q = form.value.questions[qIdx];
     if (q.type === 'true_false') {
         q.instructions = "اختر صح أم خطأ.";
@@ -351,7 +354,7 @@ const saveBatch = async () => {
         await api.post('/admin/questions', fd, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        alert('Question saved successfully!');
+        showAlert('Question saved successfully!');
         const isTeacher = adminStore.user?.role === 'teacher';
         router.push({ name: isTeacher ? 'teacher.questions' : 'admin.questions' });
     } catch (err) {

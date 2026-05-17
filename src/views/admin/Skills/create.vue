@@ -1,9 +1,12 @@
 <script setup>
+import { useModal } from '@/composables/useModal';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
+
+const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
 
@@ -22,7 +25,7 @@ const addSkill = async () => {
     
     try {
         await api.post('/admin/skills', form.value);
-        alert('Module integrated successfully into the ecosystem!');
+        showAlert('Module integrated successfully into the ecosystem!');
         router.push('/admin/skills');
     } catch (err) {
         console.error(err);
