@@ -332,8 +332,10 @@ const isPartCorrect = (answer, correctVal, pIdx) => {
 const { resolveUrl } = useMediaUrl();
 
 const exportSkillToPdf = (skillId) => {
-    const element = document.getElementById(`skill-report-${skillId}`);
-    if (!element) return;
+    if (!selectedAttempt.value) return;
+    
+    const skillResult = selectedAttempt.value.attempt_skills.find(s => s.skill_id === skillId);
+    if (!skillResult) return;
 
     // Create a hidden iframe for printing
     const iframe = document.createElement('iframe');
@@ -346,44 +348,443 @@ const exportSkillToPdf = (skillId) => {
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow.document;
-    
-    // Copy all style sheets and style tags to the iframe
-    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(style => {
-        doc.head.appendChild(style.cloneNode(true));
-    });
 
-    // Add some print-specific fixes
-    const printStyle = doc.createElement('style');
-    printStyle.innerHTML = `
-        @page { margin: 15mm; }
-        body { background: white !important; font-family: sans-serif; padding: 20px; }
-        button, .pi-refresh, .pi-file-pdf { display: none !important; }
-        .bg-white { background-color: white !important; }
-        .shadow-sm, .shadow-xl, .shadow-2xl { box-shadow: none !important; border: 1px solid #f1f5f9 !important; }
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    `;
-    doc.head.appendChild(printStyle);
-
+    // Prepare parameters dynamically from Vue state
     const studentName = `${selectedAttempt.value.student?.user?.first_name || 'Student'} ${selectedAttempt.value.student?.user?.last_name || ''}`;
+    const studentCode = selectedAttempt.value.student?.student_code || 'N/A';
+    const finishedAt = selectedAttempt.value.finished_at ? new Date(selectedAttempt.value.finished_at).toLocaleString() : 'N/A';
+    const skillName = getSkillDisplayName(skillResult.skill?.name);
+    
+    // Get attempts level movement logs for this skill
+    const levelLogs = (selectedAttempt.value.attempt_levels || []).filter(l => l.skill_id === skillId);
+    
+    // Get answers related to this skill
+    const skillAnswers = (selectedAttempt.value.answers || []).filter(a => a.question?.skill_id === skillId);
 
-    // Set content
-    doc.body.innerHTML = `
-        <div style="margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px;">
-            <h1 style="font-size: 28px; font-weight: 900; color: #1e293b; margin: 0;">Exam Performance Report</h1>
-            <p style="font-size: 14px; color: #64748b; margin: 5px 0 0 0;">Candidate: ${studentName}</p>
-        </div>
-        ${element.innerHTML}
+    // Styling
+    const printStyle = `
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap');
+        
+        @page { 
+            size: A4 portrait; 
+            margin: 20mm 15mm 20mm 15mm; 
+        }
+        
+        body { 
+            background: white !important; 
+            color: #0f172a !important;
+            font-family: 'Outfit', system-ui, sans-serif !important; 
+            padding: 0 !important; 
+            margin: 0 !important;
+            line-height: 1.5;
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 18px;
+            margin-bottom: 25px;
+        }
+
+        .header-logo {
+            font-size: 22px;
+            font-weight: 900;
+            color: #1e1b4b;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+
+        .header-subtitle {
+            font-size: 9px;
+            font-weight: 700;
+            color: #4f46e5;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px 20px;
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.4;
+        }
+
+        .info-item strong {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+
+        .metric-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .metric-value.highlight {
+            color: #10b981;
+        }
+
+        /* Progression Timeline */
+        .section-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 15px;
+            border-left: 3px solid #4f46e5;
+            padding-left: 8px;
+            margin-top: 25px;
+        }
+
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+        }
+
+        .timeline-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timeline-level {
+            font-size: 9px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .timeline-score {
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .timeline-score.passed { color: #059669; }
+        .timeline-score.failed { color: #dc2626; }
+
+        .timeline-badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .timeline-badge.passed { background: #d1fae5; color: #065f46; }
+        .timeline-badge.failed { background: #fee2e2; color: #991b1b; }
+
+        /* Report Table Styling */
+        .report-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-top: 15px !important;
+            font-size: 11px !important;
+        }
+
+        .report-table th {
+            background-color: #1e1b4b !important;
+            color: white !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            padding: 12px 10px !important;
+            border: 1px solid #1e1b4b !important;
+            font-size: 9px !important;
+        }
+
+        .report-table td {
+            padding: 10px 12px !important;
+            border: 1px solid #e2e8f0 !important;
+            vertical-align: top !important;
+            color: #334155 !important;
+            line-height: 1.4 !important;
+        }
+
+        .report-table tr:nth-child(even) {
+            background-color: #f8fafc !important;
+        }
+
+        .report-table tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+
+        .qa-content-table {
+            font-size: 11px !important;
+            font-weight: 500 !important;
+            color: #334155 !important;
+            line-height: 1.5 !important;
+        }
+
+        .qa-content-table p {
+            margin: 0 0 6px 0 !important;
+        }
+        
+        .qa-content-table p:last-child {
+            margin: 0 !important;
+        }
+
+        .qa-type-tag {
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            display: inline-block;
+        }
+
+        /* Specific styles for lists inside cells */
+        .cell-pair-list {
+            margin: 0 !important;
+            padding: 0 !important;
+            list-style: none !important;
+        }
+        
+        .cell-pair-item {
+            margin-bottom: 4px !important;
+            font-size: 10px !important;
+            line-height: 1.3 !important;
+        }
+        
+        .cell-pair-item:last-child {
+            margin-bottom: 0 !important;
+        }
     `;
 
-    // Give it a moment to load styles and images
+    // 1. Metrics Card Calculations
+    const calculatedScore = getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) : 0;
+    const maxScore = (skillResult.skill?.levels_count || 1) * 100;
+    const durationStr = calculateDuration(skillResult.started_at, skillResult.finished_at);
+    const warnings = skillResult.cheat_warnings || 0;
+    
+    let metricsHtml = `
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Assessment Domain</div>
+                <div class="metric-value" style="color: #4f46e5;">${skillName}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Domain Score</div>
+                <div class="metric-value highlight">${calculatedScore} <span style="font-size: 11px; color: #64748b; font-weight: 400;">/ ${maxScore}</span></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Peak Tier Reached</div>
+                <div class="metric-value">Level ${skillResult.max_level_reached || 1}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Integrity Warnings</div>
+                <div class="metric-value" style="color: ${warnings > 0 ? '#dc2626' : '#10b981'};">${warnings}</div>
+            </div>
+        </div>
+    `;
+
+    // 2. Build Timeline Progression History
+    let timelineHtml = '';
+    if (levelLogs.length > 0) {
+        timelineHtml = `
+            <div class="section-title">Tier Progression History</div>
+            <div class="timeline-grid">
+        `;
+        levelLogs.forEach(log => {
+            const isPass = log.status === 'passed';
+            timelineHtml += `
+                <div class="timeline-card">
+                    <div>
+                        <div class="timeline-level">Level ${log.level_number}</div>
+                        <div class="timeline-score ${isPass ? 'passed' : 'failed'}">${log.score}%</div>
+                    </div>
+                    <div class="timeline-badge ${isPass ? 'passed' : 'failed'}">
+                        ${isPass ? '✓' : '✗'}
+                    </div>
+                </div>
+            `;
+        });
+        timelineHtml += `</div>`;
+    }
+
+    // 3. Build Detailed Q&A Response Log Table
+    let qaHtml = `
+        <div class="section-title">Detailed Response Log & Performance Analysis</div>
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%; text-align: center;">No.</th>
+                    <th style="width: 12%;">Type</th>
+                    <th style="width: 43%;">Question</th>
+                    <th style="width: 17%;">Candidate Answer</th>
+                    <th style="width: 17%;">Correct Answer</th>
+                    <th style="width: 6%; text-align: center;">Score</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    skillAnswers.forEach((ans, idx) => {
+        const isCorrect = ans.is_correct;
+        const qType = ans.question?.type || 'Standard';
+        
+        // Clean HTML tags and entities in question text
+        let qContent = ans.question?.content || '';
+        qContent = qContent.replace(/&nbsp;/g, ' ').trim();
+
+        let studentAnsCell = '';
+        let correctAnsCell = '';
+
+        // Generate custom HTML elements based on Question type
+        if (qType === 'matching') {
+            const pairs = getMatchingPairs(ans);
+            let sPairs = [];
+            let cPairs = [];
+            pairs.forEach(pair => {
+                const color = pair.isCorrect ? '#059669' : '#dc2626';
+                sPairs.push(`
+                    <li class="cell-pair-item" style="color: ${color};">
+                        <strong>${pair.source}</strong> ➔ ${pair.studentTarget || '—'}
+                    </li>
+                `);
+                cPairs.push(`
+                    <li class="cell-pair-item" style="color: #059669;">
+                        <strong>${pair.source}</strong> ➔ ${pair.target}
+                    </li>
+                `);
+            });
+            studentAnsCell = `<ul class="cell-pair-list">${sPairs.join('')}</ul>`;
+            correctAnsCell = `<ul class="cell-pair-list">${cPairs.join('')}</ul>`;
+        } else if (qType === 'ordering') {
+            const studentParts = getStudentParts(ans);
+            const correctOptions = getCorrectOptions(ans.question);
+            const color = isCorrect ? '#059669' : '#dc2626';
+            studentAnsCell = `<div style="color: ${color}; font-weight: 600; line-height: 1.4;">${studentParts.join(' ➔ ') || '—'}</div>`;
+            correctAnsCell = `<div style="color: #059669; font-weight: 600; line-height: 1.4;">${correctOptions.join(' ➔ ')}</div>`;
+        } else {
+            // Standard questions (MCQ, Fill Blanks, Highlights, etc.)
+            let studentAnswerDisplay = '';
+            let correctAnswerDisplay = '';
+            
+            if (qType === 'fill_blank') {
+                const parts = getStudentParts(ans);
+                studentAnswerDisplay = parts.length > 0 ? parts.join(', ') : '—';
+                correctAnswerDisplay = getCorrectOptions(ans.question).join(', ');
+            } else if (['word_selection', 'click_word', 'highlight'].includes(qType)) {
+                const parts = getStudentParts(ans);
+                studentAnswerDisplay = parts.length > 0 ? parts.join(', ') : '—';
+                correctAnswerDisplay = getCorrectOptions(ans.question).join(', ');
+            } else if (qType === 'speaking') {
+                studentAnswerDisplay = 'Audio Answer Submitted';
+                correctAnswerDisplay = 'N/A';
+            } else {
+                studentAnswerDisplay = ans.text_answer || (ans.option?.option_text) || '—';
+                const correctOpt = getCorrectOptions(ans.question);
+                correctAnswerDisplay = correctOpt.length > 0 ? correctOpt.join(', ') : '—';
+            }
+
+            const color = isCorrect ? '#059669' : '#dc2626';
+            studentAnsCell = `<span style="color: ${color}; font-weight: 600;">${studentAnswerDisplay}</span>`;
+            correctAnsCell = `<span style="color: #059669; font-weight: 600;">${correctAnswerDisplay}</span>`;
+        }
+
+        qaHtml += `
+            <tr>
+                <td style="text-align: center; font-weight: 800;">${idx + 1}</td>
+                <td><span class="qa-type-tag">${qType}</span></td>
+                <td><div class="qa-content-table">${qContent}</div></td>
+                <td>${studentAnsCell}</td>
+                <td>${correctAnsCell}</td>
+                <td style="text-align: center; font-weight: 800; color: ${isCorrect ? '#059669' : '#dc2626'}; font-style: italic;">
+                    ${isCorrect ? `+${ans.points_awarded || 10}` : '0'}
+                </td>
+            </tr>
+        `;
+    });
+    
+    qaHtml += `
+            </tbody>
+        </table>
+    `;
+
+    // 4. Construct complete DOM body inside iframe
+    doc.body.innerHTML = `
+        <style>${printStyle}</style>
+        <div style="padding: 0 10px;">
+            <!-- Premium Header Banner -->
+            <div class="header-container">
+                <div>
+                    <div class="header-logo">Performance Insights Profile</div>
+                    <div class="header-subtitle">Official Assessment Metrics Report</div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item"><strong>Candidate Name:</strong> ${studentName}</div>
+                    <div class="info-item" style="text-align: right;"><strong>Student ID:</strong> ${studentCode}</div>
+                    <div class="info-item"><strong>Evaluation Date:</strong> ${finishedAt}</div>
+                    <div class="info-item" style="text-align: right;"><strong>Total Time Spent:</strong> ${durationStr}</div>
+                </div>
+            </div>
+            
+            <!-- Metrics Cards -->
+            ${metricsHtml}
+            
+            <!-- Timeline Cards -->
+            ${timelineHtml}
+            
+            <!-- Response Log Table -->
+            ${qaHtml}
+        </div>
+    `;
+
+    // Give it a moment to render fonts cleanly, then open print dialogue
     setTimeout(() => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
-        // Remove iframe after printing
         setTimeout(() => {
             document.body.removeChild(iframe);
         }, 1000);
-    }, 800);
+    }, 1200);
 };
 
 onMounted(fetchDetails);
@@ -547,16 +948,7 @@ onMounted(fetchDetails);
                                                         Skill Score</p>
                                                 </div>
 
-                                                <div class="flex flex-col gap-2 ml-6 pl-6 border-l border-slate-100">
-                                                    <Button v-if="currentUser?.role === 'admin'" label="Reset"
-                                                        icon="pi pi-refresh" severity="danger" outlined size="small"
-                                                        class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl"
-                                                        @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
-                                                    
-                                                    <Button label="Export PDF" icon="pi pi-file-pdf" severity="help" size="small"
-                                                        class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-indigo-600 border-none"
-                                                        @click="exportSkillToPdf(skillResult.skill_id)" />
-                                                </div>
+                                                
 
                                             <div class="text-right border-l border-slate-100 pl-6 ml-2">
                                                 <div class="text-3xl font-black text-slate-800 italic">{{
@@ -573,6 +965,16 @@ onMounted(fetchDetails);
                                                 <p
                                                     class="text-[9px] font-black text-rose-400 uppercase tracking-widest">
                                                     Skill Warnings</p>
+                                            </div>
+                                            <div class="flex items-center gap-2 ml-6 pl-6 border-l border-slate-100">
+                                                    <Button v-if="currentUser?.role === 'admin'" label=""
+                                                        icon="pi pi-refresh" severity="danger" outlined size="small"
+                                                        class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl"
+                                                        @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
+                                                    
+                                                    <Button label="" icon="pi pi-file-pdf" severity="help" size="small"
+                                                        class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-indigo-600 border-none"
+                                                        @click="exportSkillToPdf(skillResult.skill_id)" />
                                             </div>
                                         </div>
                                     </div>

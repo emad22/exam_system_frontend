@@ -30,6 +30,8 @@ const isSubmitting = ref(false);
 const loading = ref(true);
 const errorMsg = ref('');
 
+const passageShowHtml = ref(false);
+
 const questionTypes = [
     { label: 'Multiple Choice (MCQ)', value: 'mcq', icon: 'pi-check-square' },
     { label: 'True / False', value: 'true_false', icon: 'pi-verified' },
@@ -98,6 +100,7 @@ const pMediaPreview = ref(null);
 
 const createEmptyQuestion = () => ({
     type: 'mcq',
+    content_mode: 'text',
     content: '',
     instructions: '',
     points: 1,
@@ -110,6 +113,7 @@ const createEmptyQuestion = () => ({
     q_audio_preview: null,
     q_image: null,
     q_image_preview: null,
+    showHtml: false,
     options: [
         { option_text: '', is_correct: true },
         { option_text: '', is_correct: false }
@@ -193,6 +197,7 @@ const loadInitialData = async () => {
                 q_audio_preview: sq.audio_url ? { url: sq.audio_url, type: 'audio' } : null,
                 q_image: null,
                 q_image_preview: sq.image_url ? { url: sq.image_url, type: 'image' } : null,
+                showHtml: false,
                 options: (sq.options || []).map(o => ({
                     option_text: o.option_text,
                     is_correct: !!o.is_correct
@@ -216,6 +221,7 @@ const loadInitialData = async () => {
                 q_audio_preview: q.audio_url ? { url: q.audio_url, type: 'audio' } : null,
                 q_image: null,
                 q_image_preview: q.image_url ? { url: q.image_url, type: 'image' } : null,
+                showHtml: false,
                 options: (q.options || []).map(o => ({
                     option_text: o.option_text,
                     is_correct: !!o.is_correct
@@ -473,6 +479,40 @@ const updateBatch = async () => {
 onMounted(() => {
     loadInitialData();
 });
+
+
+const editorModules = {
+    toolbar: {
+        container: [
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ color: [] }, { background: [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ align: [] }],
+            ['link', 'image', 'video'],
+            [{ script: 'sub' }, { script: 'super' }],
+            [{ indent: '-1' }, { indent: '+1' }],
+            [{ direction: 'rtl' }],
+            ['clean']
+        ],
+
+        handlers: {
+            'code-block': function () {
+                const quill = this.quill
+                const range = quill.getSelection()
+
+                if (!range) return
+
+                const formats = quill.getFormat(range)
+
+                quill.format(
+                    'code-block',
+                    !formats['code-block']
+                )
+            }
+        }
+    }
+}
 </script>
 
 <template>
@@ -590,13 +630,40 @@ onMounted(() => {
                                 </div>
                             </div>
 
-                            <!-- Text Content: Rich Editor -->
+                            <!-- Text Content: Rich Editor / HTML Source Switcher -->
                             <div class="flex flex-col">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Main Content / Passage Text</label>
-                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Type the reading text that questions will be based on</p>
-                                <Editor v-model="form.passage_content" editorStyle="height: 200px" 
-                                    class="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50/50"
-                                    placeholder="Enter formatted reading text here..." />
+                                <div class="flex items-center justify-between mb-3 ml-1">
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Main Content / Passage Text</label>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Type the reading text that questions will be based on</p>
+                                    </div>
+                                    <!-- Mode Switcher -->
+                                    <div class="flex bg-slate-100 rounded-2xl p-1 gap-1 border border-slate-200/40">
+                                        <button type="button" @click="passageShowHtml = false"
+                                            :class="!passageShowHtml ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-2">
+                                            <i class="pi pi-align-left text-xs"></i> Visual
+                                        </button>
+                                        <button type="button" @click="passageShowHtml = true"
+                                            :class="passageShowHtml ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-2">
+                                            <i class="pi pi-code text-xs"></i> Source Code
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="!passageShowHtml">
+                                    <Editor v-model="form.passage_content" 
+                                        editorStyle="height: 200px"
+                                        :modules="editorModules"
+                                        class="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50/50"
+                                        placeholder="Enter formatted reading text here..." />
+                                </div>
+                                <div v-else>
+                                    <textarea v-model="form.passage_content" 
+                                        rows="8"
+                                        class="w-full rounded-3xl p-6 font-mono text-sm border-2 border-slate-200/80 bg-slate-900 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-600"
+                                        placeholder="Write your raw HTML here (e.g. <b>Hello</b> World)..."></textarea>
+                                </div>
                             </div>
 
                             <!-- Media Attachments -->
@@ -712,11 +779,36 @@ onMounted(() => {
                                 </div>
                             </div>
 
-                            <!-- Text Mode: Rich Editor -->
+                            <!-- Text Mode: Rich Editor / HTML Source Switcher -->
                             <div v-if="q.content_mode === 'text'" class="space-y-2">
-                                <Editor v-model="q.content" editorStyle="height: 120px" 
-                                    class="rounded-[1.5rem] overflow-hidden border border-slate-100 bg-slate-50/50"
-                                    placeholder="Type your formatted question here..." />
+                                <div class="flex justify-end mb-2">
+                                    <!-- Mode Switcher for Question -->
+                                    <div class="flex bg-slate-100 rounded-xl p-0.5 gap-0.5 border border-slate-200/40">
+                                        <button type="button" @click="q.showHtml = false"
+                                            :class="!q.showHtml ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                            <i class="pi pi-align-left text-[9px]"></i> Visual
+                                        </button>
+                                        <button type="button" @click="q.showHtml = true"
+                                            :class="q.showHtml ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                            <i class="pi pi-code text-[9px]"></i> Source Code
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="!q.showHtml">
+                                    <Editor v-model="q.content" 
+                                        editorStyle="height: 120px" 
+                                        :modules="editorModules"
+                                        class="rounded-[1.5rem] overflow-hidden border border-slate-100 bg-slate-50/50"
+                                        placeholder="Type your formatted question here..." />
+                                </div>
+                                <div v-else>
+                                    <textarea v-model="q.content" 
+                                        rows="5"
+                                        class="w-full rounded-[1.5rem] p-4 font-mono text-xs border-2 border-slate-200/80 bg-slate-900 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-600"
+                                        placeholder="Write raw HTML code for the question here..."></textarea>
+                                </div>
 
                                 <div v-if="q.type === 'drag_drop'" class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
                                     <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
@@ -947,6 +1039,41 @@ onMounted(() => {
 </template>
 
 <style scoped>
+
+
+:deep(.p-select) {
+    border: none;
+    background: white;
+}
+
+
+
+:deep(.p-inputnumber-input) {
+    font-weight: 900;
+    text-align: center;
+    border-radius: 1rem;
+}
+
+.ql-toolbar {
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    background: #fff;
+    padding: 12px;
+}
+
+.ql-snow .ql-editor pre.ql-syntax {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 16px;
+    border-radius: 16px;
+    overflow-x: auto;
+    font-size: 14px;
+}
+
+:deep(.p-editor-toolbar) {
+    display: none !important;
+}
+
 :deep(.p-select) {
     border: none;
     background: white;
