@@ -53,7 +53,7 @@ const form = ref({
     skill_id: '',
     exam_id: '',
     level_id: null,
-    passage_mode: 'none', 
+    passage_mode: 'none',
     passage_id: '',
     passage_type: 'text',
     passage_title: '',
@@ -71,7 +71,7 @@ const form = ref({
 const filteredSkills = computed(() => {
     const exam = exams.value.find(e => e.id === form.value.exam_id);
     if (!exam || !exam.skills) return [];
-    
+
     // Map the exam skills to include levels_count from the master skills list
     return exam.skills.map(examSkill => {
         const masterSkill = skills.value.find(s => s.id === examSkill.id);
@@ -229,7 +229,7 @@ const loadInitialData = async () => {
             }];
         }
 
-       Object.assign(form.value, updatedForm); 
+        Object.assign(form.value, updatedForm);
 
         loading.value = false;
     } catch (err) {
@@ -496,21 +496,6 @@ const editorModules = {
             ['clean']
         ],
 
-        handlers: {
-            'code-block': function () {
-                const quill = this.quill
-                const range = quill.getSelection()
-
-                if (!range) return
-
-                const formats = quill.getFormat(range)
-
-                quill.format(
-                    'code-block',
-                    !formats['code-block']
-                )
-            }
-        }
     }
 }
 </script>
@@ -524,17 +509,20 @@ const editorModules = {
 
         <div v-else class="space-y-8 pb-32 mt-6 px-4 md:px-12 animate-in fade-in duration-500">
             <!-- Header -->
-            <div class="flex items-center justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+            <div
+                class="flex items-center justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
                 <div class="flex items-center gap-6">
-                    <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions' : 'admin.questions' })" />
+                    <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded
+                        @click="router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions' : 'admin.questions' })" />
                     <div>
                         <h1 class="text-2xl font-black text-slate-800 tracking-tight">Edit Batch Questions</h1>
-                        <p class="text-xs font-bold text-orange-500 uppercase tracking-widest mt-1">Sync content across shared context</p>
+                        <p class="text-xs font-bold text-orange-500 uppercase tracking-widest mt-1">Sync content across
+                            shared context</p>
                     </div>
                 </div>
                 <!-- Primary Action -->
-                <Button label="Update All Changes" icon="pi pi-check-circle" :loading="isSubmitting" @click="updateBatch" 
-                    class="rounded-2xl px-10 py-3 font-black shadow-lg" severity="warning" />
+                <Button label="Update All Changes" icon="pi pi-check-circle" :loading="isSubmitting"
+                    @click="updateBatch" class="rounded-2xl px-10 py-3 font-black shadow-lg" severity="warning" />
             </div>
 
             <Message v-if="errorMsg" severity="error" :closable="false" class="rounded-2xl">{{ errorMsg }}</Message>
@@ -543,7 +531,8 @@ const editorModules = {
             <Card class="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-slate-50/50">
                 <template #title>
                     <div class="flex items-center px-4 py-2 gap-4">
-                        <div class="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                        <div
+                            class="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
                             <i class="pi pi-cog text-xl"></i>
                         </div>
                         <span class="text-lg font-black text-slate-800">Global Settings</span>
@@ -552,34 +541,37 @@ const editorModules = {
                 <template #content>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
                         <div class="flex flex-col">
-                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Linked Exam</label>
+                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Linked
+                                Exam</label>
                             <Select v-model="form.exam_id" :options="exams" optionLabel="title" optionValue="id"
-                                placeholder="Select Exam" class="w-full rounded-2xl border-none shadow-sm h-14 flex items-center px-4 bg-white" />
+                                placeholder="Select Exam"
+                                class="w-full rounded-2xl border-none shadow-sm h-14 flex items-center px-4 bg-white" />
                         </div>
                         <div class="flex flex-col">
-                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Target Skill (Required)</label>
-                            <Select v-model="form.skill_id" :options="filteredSkills" optionLabel="name" optionValue="id"
-                                placeholder="Select Skill" class="w-full rounded-2xl border-none shadow-sm h-14 flex items-center px-4 bg-white" 
+                            <label class="text-xs font-black text-slate-500 mb-3 ml-2 uppercase tracking-wider">Target
+                                Skill (Required)</label>
+                            <Select v-model="form.skill_id" :options="filteredSkills" optionLabel="name"
+                                optionValue="id" placeholder="Select Skill"
+                                class="w-full rounded-2xl border-none shadow-sm h-14 flex items-center px-4 bg-white"
                                 :disabled="!form.exam_id" :key="form.exam_id" />
                         </div>
-                        
+
                         <div class="flex flex-col">
                             <label class="text-xs font-black text-slate-500 mb-2 ml-2 uppercase tracking-wider">
-                                Difficulty Level <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{ form.level_id }})</span><span v-else class="text-rose-500 font-extrabold">(Required)</span>
+                                Difficulty Level <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{
+                                    form.level_id }})</span><span v-else
+                                    class="text-rose-500 font-extrabold">(Required)</span>
                             </label>
                             <div class="flex flex-wrap gap-2 mt-2 ml-2">
-                                <button 
-                                    v-for="lvl in currentSkillMaxLevel" 
-                                    :key="lvl"
-                                    type="button"
+                                <button v-for="lvl in currentSkillMaxLevel" :key="lvl" type="button"
                                     @click="form.level_id = lvl"
                                     :class="form.level_id === lvl ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200 border-indigo-500 scale-105' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/20'"
-                                    class="w-10 h-10 rounded-xl border font-black text-sm flex items-center justify-center transition-all duration-200 active:scale-95"
-                                >
+                                    class="w-10 h-10 rounded-xl border font-black text-sm flex items-center justify-center transition-all duration-200 active:scale-95">
                                     {{ lvl }}
                                 </button>
                             </div>
-                            <div class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
+                            <div
+                                class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
                                 <span>Beginner (Level 1)</span>
                                 <span>Expert (Level {{ currentSkillMaxLevel }})</span>
                             </div>
@@ -592,7 +584,8 @@ const editorModules = {
             <Card class="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-slate-50/50">
                 <template #title>
                     <div class="flex items-center px-4 py-2 gap-4">
-                        <div class="w-10 h-10 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                        <div
+                            class="w-10 h-10 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
                             <i class="pi pi-book text-xl"></i>
                         </div>
                         <span class="text-lg font-black text-slate-800">Reading Material / Shared Context</span>
@@ -614,19 +607,27 @@ const editorModules = {
                         </div>
 
                         <!-- Integrated Material Editor -->
-                        <div v-if="form.passage_mode !== 'none'" class="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-50 space-y-8 animate-in zoom-in-95 duration-400">
-                            
+                        <div v-if="form.passage_mode !== 'none'"
+                            class="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-50 space-y-8 animate-in zoom-in-95 duration-400">
+
                             <!-- Header Info -->
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                                 <div class="md:col-span-8 flex flex-col">
-                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Title of the Material / Text</label>
-                                    <InputText v-model="form.passage_title" placeholder="e.g. Reading Comprehension: The Solar System..." class="w-full rounded-2xl h-14 bg-slate-50/50 border-none px-6 font-bold text-slate-800" />
+                                    <label
+                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Title
+                                        of the Material / Text</label>
+                                    <InputText v-model="form.passage_title"
+                                        placeholder="e.g. Reading Comprehension: The Solar System..."
+                                        class="w-full rounded-2xl h-14 bg-slate-50/50 border-none px-6 font-bold text-slate-800" />
                                 </div>
                                 <div class="md:col-span-4 flex flex-col">
-                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Material Type</label>
+                                    <label
+                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Material
+                                        Type</label>
                                     <Select v-model="form.passage_type"
                                         :options="[{ label: 'Reading Text', value: 'text' }, { label: 'Image-based', value: 'image' }, { label: 'Audio-based', value: 'audio' }, { label: 'Video-based', value: 'video' }]"
-                                        optionLabel="label" optionValue="value" class="w-full rounded-2xl h-14 bg-slate-50/50 border-none px-4" />
+                                        optionLabel="label" optionValue="value"
+                                        class="w-full rounded-2xl h-14 bg-slate-50/50 border-none px-4" />
                                 </div>
                             </div>
 
@@ -634,8 +635,11 @@ const editorModules = {
                             <div class="flex flex-col">
                                 <div class="flex items-center justify-between mb-3 ml-1">
                                     <div>
-                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Main Content / Passage Text</label>
-                                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Type the reading text that questions will be based on</p>
+                                        <label
+                                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Main
+                                            Content / Passage Text</label>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Type
+                                            the reading text that questions will be based on</p>
                                     </div>
                                     <!-- Mode Switcher -->
                                     <div class="flex bg-slate-100 rounded-2xl p-1 gap-1 border border-slate-200/40">
@@ -652,61 +656,78 @@ const editorModules = {
                                     </div>
                                 </div>
                                 <div v-if="!passageShowHtml">
-                                    <Editor v-model="form.passage_content" 
-                                        editorStyle="height: 200px"
+                                    <Editor v-model="form.passage_content" editorStyle="height: 300px"
                                         :modules="editorModules"
                                         class="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50/50"
                                         placeholder="Enter formatted reading text here..." />
                                 </div>
                                 <div v-else>
-                                    <textarea v-model="form.passage_content" 
-                                        rows="8"
-                                        class="w-full rounded-3xl p-6 font-mono text-sm border-2 border-slate-200/80 bg-slate-900 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-600"
+                                    <textarea v-model="form.passage_content" rows="8"
+                                        class="w-full rounded-3xl p-6 font-mono text-sm border-2 border-slate-200/80 bg-white text-slate-900 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-400"
                                         placeholder="Write your raw HTML here (e.g. <b>Hello</b> World)..."></textarea>
                                 </div>
                             </div>
 
                             <!-- Media Attachments -->
                             <div class="space-y-4">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Media Assets</label>
+                                <label
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Media
+                                    Assets</label>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    
+
                                     <!-- Image Part -->
-                                    <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all" 
-                                         :class="form.p_image_preview ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
-                                        <div v-if="!form.p_image_preview" @click="$refs.pImgInput.click()" class="flex items-center gap-4 cursor-pointer py-2">
-                                            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                                    <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all"
+                                        :class="form.p_image_preview ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
+                                        <div v-if="!form.p_image_preview" @click="$refs.pImgInput.click()"
+                                            class="flex items-center gap-4 cursor-pointer py-2">
+                                            <div
+                                                class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400">
                                                 <i class="pi pi-image text-xl"></i>
                                             </div>
-                                            <span class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach Image</span>
+                                            <span
+                                                class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach
+                                                Image</span>
                                         </div>
                                         <div v-else class="flex items-center justify-between">
                                             <div class="flex items-center gap-4">
-                                                <img :src="form.p_image_preview.url" class="w-16 h-16 rounded-xl object-cover shadow-sm" />
-                                                <span class="text-xs font-black text-emerald-600 uppercase tracking-widest">Image Linked</span>
+                                                <img :src="form.p_image_preview.url"
+                                                    class="w-16 h-16 rounded-xl object-cover shadow-sm" />
+                                                <span
+                                                    class="text-xs font-black text-emerald-600 uppercase tracking-widest">Image
+                                                    Linked</span>
                                             </div>
-                                            <Button icon="pi pi-trash" text severity="danger" size="small" @click="form.p_image = null; form.p_image_preview = null" />
+                                            <Button icon="pi pi-trash" text severity="danger" size="small"
+                                                @click="form.p_image = null; form.p_image_preview = null" />
                                         </div>
-                                        <input type="file" ref="pImgInput" class="hidden" @change="handlePImageChange" accept="image/*" />
+                                        <input type="file" ref="pImgInput" class="hidden" @change="handlePImageChange"
+                                            accept="image/*" />
                                     </div>
 
                                     <!-- Audio Part -->
                                     <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all"
-                                         :class="form.p_audio_preview ? 'border-indigo-200 bg-indigo-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
-                                        <div v-if="!form.p_audio_preview" @click="$refs.pAudInput.click()" class="flex items-center gap-4 cursor-pointer py-2">
-                                            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                                        :class="form.p_audio_preview ? 'border-indigo-200 bg-indigo-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
+                                        <div v-if="!form.p_audio_preview" @click="$refs.pAudInput.click()"
+                                            class="flex items-center gap-4 cursor-pointer py-2">
+                                            <div
+                                                class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400">
                                                 <i class="pi pi-volume-up text-xl"></i>
                                             </div>
-                                            <span class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach Audio</span>
+                                            <span
+                                                class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach
+                                                Audio</span>
                                         </div>
                                         <div v-else class="flex flex-col gap-3">
                                             <div class="flex items-center justify-between">
-                                                <span class="text-xs font-black text-indigo-600 uppercase tracking-widest">Audio Linked</span>
-                                                <Button icon="pi pi-trash" text severity="danger" size="small" @click="form.p_audio = null; form.p_audio_preview = null" />
+                                                <span
+                                                    class="text-xs font-black text-indigo-600 uppercase tracking-widest">Audio
+                                                    Linked</span>
+                                                <Button icon="pi pi-trash" text severity="danger" size="small"
+                                                    @click="form.p_audio = null; form.p_audio_preview = null" />
                                             </div>
                                             <audio :src="form.p_audio_preview.url" controls class="h-8 w-full"></audio>
                                         </div>
-                                        <input type="file" ref="pAudInput" class="hidden" @change="handlePAudioChange" accept="audio/*" />
+                                        <input type="file" ref="pAudInput" class="hidden" @change="handlePAudioChange"
+                                            accept="audio/*" />
                                     </div>
                                 </div>
                             </div>
@@ -714,10 +735,16 @@ const editorModules = {
                             <!-- Misc -->
                             <div class="pt-4 flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity">
                                 <i class="pi pi-info-circle text-slate-400"></i>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Need to attach other files?</p>
-                                <button type="button" @click="$refs.pFileInput.click()" class="text-[9px] font-black text-indigo-500 uppercase tracking-widest underline decoration-dotted">Click here</button>
-                                <input type="file" ref="pFileInput" class="hidden" @change="handlePFileChange" accept="video/*" />
-                                <span v-if="pMediaPreview" class="text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded ml-auto">FILE ATTACHED</span>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Need to attach
+                                    other files?</p>
+                                <button type="button" @click="$refs.pFileInput.click()"
+                                    class="text-[9px] font-black text-indigo-500 uppercase tracking-widest underline decoration-dotted">Click
+                                    here</button>
+                                <input type="file" ref="pFileInput" class="hidden" @change="handlePFileChange"
+                                    accept="video/*" />
+                                <span v-if="pMediaPreview"
+                                    class="text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded ml-auto">FILE
+                                    ATTACHED</span>
                             </div>
                         </div>
                     </div>
@@ -726,37 +753,45 @@ const editorModules = {
 
             <!-- 3. Question List -->
             <div class="space-y-6">
-                <div class="flex items-center justify-between bg-white px-8 py-5 rounded-[2rem] shadow-sm border border-slate-50">
+                <div
+                    class="flex items-center justify-between bg-white px-8 py-5 rounded-[2rem] shadow-sm border border-slate-50">
                     <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                        <div
+                            class="w-10 h-10 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
                             <i class="pi pi-list text-xl"></i>
                         </div>
                         <span class="text-lg font-black text-slate-800">Questions in this Context</span>
                     </div>
                 </div>
 
-                <div v-for="(q, qIdx) in form.questions" :key="qIdx" 
+                <div v-for="(q, qIdx) in form.questions" :key="qIdx"
                     class="group relative bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 rounded-[2.5rem] p-8 md:p-12 animate-in slide-in-from-bottom-4">
-                    
-                    <div class="absolute -left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-2 border-slate-50 text-emerald-600 rounded-2xl flex items-center justify-center font-black shadow-xl group-hover:bg-emerald-500 group-hover:text-white transition-all z-10">
+
+                    <div
+                        class="absolute -left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-2 border-slate-50 text-emerald-600 rounded-2xl flex items-center justify-center font-black shadow-xl group-hover:bg-emerald-500 group-hover:text-white transition-all z-10">
                         {{ qIdx + 1 }}
                     </div>
 
-                    <button v-if="form.questions.length > 1" @click="removeQuestion(qIdx)" 
+                    <button v-if="form.questions.length > 1" @click="removeQuestion(qIdx)"
                         class="absolute -right-3 -top-3 w-10 h-10 bg-white border border-slate-100 text-rose-500 rounded-full shadow-lg opacity-0 group-hover:opacity-100 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center z-10">
                         <i class="pi pi-times text-xs"></i>
                     </button>
 
                     <div class="space-y-10">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                             <div class="flex flex-col">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Type</label>
-                                <Select v-model="q.type" @change="handleTypeChange(qIdx)"
-                                    :options="questionTypes" optionLabel="label" optionValue="value" class="w-full rounded-2xl bg-slate-50/50 border-none px-4 h-14 flex items-center" />
+                            <div class="flex flex-col">
+                                <label
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Type</label>
+                                <Select v-model="q.type" @change="handleTypeChange(qIdx)" :options="questionTypes"
+                                    optionLabel="label" optionValue="value"
+                                    class="w-full rounded-2xl bg-slate-50/50 border-none px-4 h-14 flex items-center" />
                             </div>
                             <div class="flex flex-col">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Instructions</label>
-                                <InputText v-model="q.instructions" placeholder="e.g. Choose the correct answer based on the text, audio or image attached" class="w-full rounded-2xl bg-slate-50/50 border-none px-6 h-14 font-bold" />
+                                <label
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Instructions</label>
+                                <InputText v-model="q.instructions"
+                                    placeholder="e.g. Choose the correct answer based on the text, audio or image attached"
+                                    class="w-full rounded-2xl bg-slate-50/50 border-none px-6 h-14 font-bold" />
                             </div>
                         </div>
 
@@ -764,9 +799,11 @@ const editorModules = {
                         <div class="space-y-4">
                             <!-- Mode Selector -->
                             <div class="flex items-center gap-3">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question Content</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question
+                                    Content</span>
                                 <div class="flex bg-slate-100 rounded-2xl p-1 gap-1">
-                                    <button type="button" @click="q.content_mode = 'text'; q.q_media = null; q.q_media_preview = null"
+                                    <button type="button"
+                                        @click="q.content_mode = 'text'; q.q_media = null; q.q_media_preview = null"
                                         :class="q.content_mode === 'text' ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'"
                                         class="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-2">
                                         <i class="pi pi-align-left text-xs"></i> Text
@@ -797,73 +834,92 @@ const editorModules = {
                                     </div>
                                 </div>
                                 <div v-if="!q.showHtml">
-                                    <Editor v-model="q.content" 
-                                        editorStyle="height: 120px" 
-                                        :modules="editorModules"
+                                    <Editor v-model="q.content" editorStyle="height: 300px" :modules="editorModules"
                                         class="rounded-[1.5rem] overflow-hidden border border-slate-100 bg-slate-50/50"
                                         placeholder="Type your formatted question here..." />
                                 </div>
                                 <div v-else>
-                                    <textarea v-model="q.content" 
-                                        rows="5"
-                                        class="w-full rounded-[1.5rem] p-4 font-mono text-xs border-2 border-slate-200/80 bg-slate-900 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-600"
+                                    <textarea v-model="q.content" rows="5"
+                                        class="w-full rounded-[1.5rem] p-4 font-mono text-xs border-2 border-slate-200/80 bg-white text-slate-900 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-400"
                                         placeholder="Write raw HTML code for the question here..."></textarea>
                                 </div>
 
-                                <div v-if="q.type === 'drag_drop'" class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                                    <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'drag_drop'"
+                                    class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                                    <p
+                                        class="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Drag & Drop Guide
                                     </p>
                                     <p class="text-[11px] text-indigo-500 mt-1">
-                                        Use <b>...............</b> where you want a blank space. Each <b>...............</b> will be matched to one of the options below in order.
+                                        Use <b>...............</b> where you want a blank space. Each
+                                        <b>...............</b> will be
+                                        matched to one of the options below in order.
                                         Example: "The <b>...............</b> is a <b>...............</b> animal."
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'word_selection' || q.type === 'click_word'" class="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                                    <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'word_selection' || q.type === 'click_word'"
+                                    class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                                    <p
+                                        class="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Word Selection Guide
                                     </p>
                                     <p class="text-[11px] text-amber-500 mt-1">
-                                        The system will automatically make the words you add in "Options" clickable. 
+                                        The system will automatically make the words you add in "Options" clickable.
                                         Mark <b>Is Correct</b> for words that the student <b>should</b> click.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'fill_blank'" class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'fill_blank'"
+                                    class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <p
+                                        class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Fill in the Blank Guide
                                     </p>
                                     <p class="text-[11px] text-blue-500 mt-1">
-                                        Use <b>[input]</b> where you want a text box. Each <b>[input]</b> will be checked against the options below in order.
+                                        Use <b>[input]</b> where you want a text box. Each <b>[input]</b> will be
+                                        checked against
+                                        the options below in order.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'matching'" class="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                                    <p class="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'matching'"
+                                    class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                    <p
+                                        class="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Matching Guide
                                     </p>
                                     <p class="text-[11px] text-purple-500 mt-1">
                                         Add pairs using the pipe symbol. Example: <b>Term | Definition</b>.<br>
-                                        Each pair will be split automatically. To add a distractor (a target with no matching source), simply enter the text without the pipe symbol.
+                                        Each pair will be split automatically. To add a distractor (a target with no
+                                        matching
+                                        source), simply enter the text without the pipe symbol.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'ordering'" class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                    <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'ordering'"
+                                    class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <p
+                                        class="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Ordering Guide
                                     </p>
                                     <p class="text-[11px] text-slate-500 mt-1">
-                                        Add items in the correct order. Use the <b>Sort Order</b> field to define the sequence if necessary, but typically the order in the list is used.
+                                        Add items in the correct order. Use the <b>Sort Order</b> field to define the
+                                        sequence if
+                                        necessary, but typically the order in the list is used.
                                     </p>
                                 </div>
 
-                                <div v-if="q.type === 'highlight'" class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                                    <p class="text-[10px] font-black text-yellow-600 uppercase tracking-widest flex items-center gap-2">
+                                <div v-if="q.type === 'highlight'"
+                                    class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                                    <p
+                                        class="text-[10px] font-black text-yellow-600 uppercase tracking-widest flex items-center gap-2">
                                         <i class="pi pi-info-circle"></i> Highlight Guide
                                     </p>
                                     <p class="text-[11px] text-yellow-700 mt-1">
-                                        Add phrases or sentences as options. Mark <b>Is Correct</b> for those that should be highlighted by the student.
+                                        Add phrases or sentences as options. Mark <b>Is Correct</b> for those that
+                                        should be
+                                        highlighted by the student.
                                     </p>
                                 </div>
                             </div>
@@ -873,25 +929,29 @@ const editorModules = {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <!-- Image Upload -->
                                     <div class="flex flex-col gap-3">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Image Attachment</label>
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Image
+                                            Attachment</label>
                                         <div class="flex gap-4 items-center">
                                             <div @click="triggerQImage(qIdx)"
                                                 class="w-32 h-32 border-2 border-dashed rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer transition-all group shrink-0"
                                                 :class="q.q_image_preview ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50'">
                                                 <input type="file" :id="`qImage_${qIdx}`" class="hidden"
-                                                    @change="(e) => handleQImageChange(e, qIdx)"
-                                                    accept="image/*" />
+                                                    @change="(e) => handleQImageChange(e, qIdx)" accept="image/*" />
                                                 <i v-if="!q.q_image_preview"
                                                     class="pi pi-image text-2xl text-slate-300 group-hover:text-indigo-400 mb-1"></i>
                                                 <i v-else class="pi pi-check-circle text-2xl text-emerald-500 mb-1"></i>
-                                                <span class="text-[8px] font-black uppercase tracking-widest text-center px-2"
+                                                <span
+                                                    class="text-[8px] font-black uppercase tracking-widest text-center px-2"
                                                     :class="q.q_image_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-indigo-500'">
                                                     {{ q.q_image_preview ? 'Image Attached' : 'Select Image' }}
                                                 </span>
                                             </div>
                                             <div v-if="q.q_image_preview" class="relative group/preview">
-                                                <img :src="q.q_image_preview.url" class="w-32 h-32 rounded-[1.5rem] object-cover shadow-sm border border-slate-100" />
-                                                <button @click="q.q_image = null; q.q_image_preview = null" class="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover/preview:opacity-100 transition-all">
+                                                <img :src="q.q_image_preview.url"
+                                                    class="w-32 h-32 rounded-[1.5rem] object-cover shadow-sm border border-slate-100" />
+                                                <button @click="q.q_image = null; q.q_image_preview = null"
+                                                    class="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover/preview:opacity-100 transition-all">
                                                     <i class="pi pi-times text-[10px]"></i>
                                                 </button>
                                             </div>
@@ -900,14 +960,15 @@ const editorModules = {
 
                                     <!-- Audio Upload -->
                                     <div class="flex flex-col gap-3">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Audio Attachment</label>
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Audio
+                                            Attachment</label>
                                         <div class="flex flex-col gap-4">
                                             <div @click="triggerQAudio(qIdx)"
                                                 class="w-full h-20 border-2 border-dashed rounded-[1.5rem] flex items-center justify-center gap-4 cursor-pointer transition-all group"
                                                 :class="q.q_audio_preview ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50'">
                                                 <input type="file" :id="`qAudio_${qIdx}`" class="hidden"
-                                                    @change="(e) => handleQAudioChange(e, qIdx)"
-                                                    accept="audio/*" />
+                                                    @change="(e) => handleQAudioChange(e, qIdx)" accept="audio/*" />
                                                 <i v-if="!q.q_audio_preview"
                                                     class="pi pi-volume-up text-2xl text-slate-300 group-hover:text-indigo-400"></i>
                                                 <i v-else class="pi pi-check-circle text-2xl text-emerald-500"></i>
@@ -916,82 +977,111 @@ const editorModules = {
                                                     {{ q.q_audio_preview ? 'Audio Clip Added' : 'Select Audio File' }}
                                                 </span>
                                             </div>
-                                            <div v-if="q.q_audio_preview" class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                            <div v-if="q.q_audio_preview"
+                                                class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                                 <audio :src="q.q_audio_preview.url" controls class="h-8 grow"></audio>
-                                                <button @click="q.q_audio = null; q.q_audio_preview = null" class="w-8 h-8 text-rose-500 hover:bg-rose-50 rounded-xl transition-all flex items-center justify-center">
+                                                <button @click="q.q_audio = null; q.q_audio_preview = null"
+                                                    class="w-8 h-8 text-rose-500 hover:bg-rose-50 rounded-xl transition-all flex items-center justify-center">
                                                     <i class="pi pi-trash"></i>
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- Other Media (Fallback) -->
                                     <div class="md:col-span-2 pt-4 border-t border-slate-50">
-                                         <div class="flex items-center gap-4">
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Other Media (Video/Misc)</label>
+                                        <div class="flex items-center gap-4">
+                                            <label
+                                                class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Other
+                                                Media (Video/Misc)</label>
                                             <div class="grow h-[1px] bg-slate-50"></div>
-                                            <Button icon="pi pi-plus" label="Add Video/Other" text class="text-[9px] font-black" @click="triggerQFile(qIdx)" />
-                                            <input type="file" :id="`qFile_${qIdx}`" class="hidden" @change="(e) => handleQFileChange(e, qIdx)" accept="video/*" />
-                                         </div>
-                                         <div v-if="q.q_media_preview" class="mt-4 p-4 bg-slate-50 rounded-2xl flex items-center gap-4">
-                                            <video v-if="q.q_media_preview.url?.match(/\.(mp4|webm)$/i) || q.q_media_preview.type?.startsWith('video/')" :src="q.q_media_preview.url" controls class="max-h-24 rounded-xl"></video>
-                                            <span v-else class="text-xs font-bold text-slate-600">File: {{ q.q_media_preview.type }}</span>
-                                            <button @click="q.q_media = null; q.q_media_preview = null" class="text-rose-500 font-black text-[10px] uppercase">Remove</button>
-                                         </div>
+                                            <Button icon="pi pi-plus" label="Add Video/Other" text
+                                                class="text-[9px] font-black" @click="triggerQFile(qIdx)" />
+                                            <input type="file" :id="`qFile_${qIdx}`" class="hidden"
+                                                @change="(e) => handleQFileChange(e, qIdx)" accept="video/*" />
+                                        </div>
+                                        <div v-if="q.q_media_preview"
+                                            class="mt-4 p-4 bg-slate-50 rounded-2xl flex items-center gap-4">
+                                            <video
+                                                v-if="q.q_media_preview.url?.match(/\.(mp4|webm)$/i) || q.q_media_preview.type?.startsWith('video/')"
+                                                :src="q.q_media_preview.url" controls
+                                                class="max-h-24 rounded-xl"></video>
+                                            <span v-else class="text-xs font-bold text-slate-600">File: {{
+                                                q.q_media_preview.type
+                                                }}</span>
+                                            <button @click="q.q_media = null; q.q_media_preview = null"
+                                                class="text-rose-500 font-black text-[10px] uppercase">Remove</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                             <!-- Options Section: Enlarged -->
-                             <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)" class="lg:col-span-8 space-y-6">
+                            <!-- Options Section: Enlarged -->
+                            <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)"
+                                class="lg:col-span-8 space-y-6">
                                 <div class="flex items-center justify-between">
-                                    <label class="text-xs font-black text-indigo-500 ml-2 uppercase tracking-wide">Options Matrix</label>
-                                    <Button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type)" icon="pi pi-plus" label="Add Option" text rounded @click="addOption(qIdx)" class="text-[10px] font-black text-emerald-600" />
+                                    <label
+                                        class="text-xs font-black text-indigo-500 ml-2 uppercase tracking-wide">Options
+                                        Matrix</label>
+                                    <Button
+                                        v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type)"
+                                        icon="pi pi-plus" label="Add Option" text rounded @click="addOption(qIdx)"
+                                        class="text-[10px] font-black text-emerald-600" />
                                 </div>
                                 <div class="space-y-4">
-                                    <div v-for="(opt, oIdx) in q.options" :key="oIdx" 
+                                    <div v-for="(opt, oIdx) in q.options" :key="oIdx"
                                         class="flex items-center gap-6 p-5 rounded-[2rem] border-2 transition-all bg-white"
                                         :class="opt.is_correct ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-50 shadow-sm'">
                                         <div class="flex flex-col items-center gap-1 shrink-0">
-                                            <span class="text-[9px] font-black text-slate-400 uppercase">#{{ oIdx + 1 }}</span>
-                                            <button v-if="q.type !== 'short_answer'" type="button" @click="setCorrect(qIdx, oIdx)" 
+                                            <span class="text-[9px] font-black text-slate-400 uppercase">#{{ oIdx + 1
+                                                }}</span>
+                                            <button v-if="q.type !== 'short_answer'" type="button"
+                                                @click="setCorrect(qIdx, oIdx)"
                                                 class="w-12 h-12 rounded-2xl border-2 flex items-center justify-center transition-all"
                                                 :class="opt.is_correct ? 'bg-emerald-500 border-emerald-600 text-white shadow-md' : 'bg-white border-slate-200 text-transparent'">
                                                 <i class="pi pi-check text-sm font-black"></i>
                                             </button>
                                         </div>
-                                        <InputText v-model="opt.option_text" :disabled="q.type === 'true_false'" class="w-full border-none bg-transparent font-black text-slate-800 text-lg py-2 focus:ring-0" />
+                                        <InputText v-model="opt.option_text" :disabled="q.type === 'true_false'"
+                                            class="w-full border-none bg-transparent font-black text-slate-800 text-lg py-2 focus:ring-0" />
                                         <div class="flex items-center gap-1 shrink-0">
                                             <button v-if="oIdx > 0" type="button" @click="moveOptionUp(qIdx, oIdx)"
                                                 class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                 <i class="pi pi-chevron-up text-[10px]"></i>
                                             </button>
-                                            <button v-if="oIdx < q.options.length - 1" type="button" @click="moveOptionDown(qIdx, oIdx)"
+                                            <button v-if="oIdx < q.options.length - 1" type="button"
+                                                @click="moveOptionDown(qIdx, oIdx)"
                                                 class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                 <i class="pi pi-chevron-down text-[10px]"></i>
                                             </button>
-                                            <button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && (q.type === 'click_word' ? q.options.length > 1 : q.options.length > 1)" @click="removeOption(qIdx, oIdx)" class="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
+                                            <button
+                                                v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && (q.type === 'click_word' ? q.options.length > 1 : q.options.length > 1)"
+                                                @click="removeOption(qIdx, oIdx)"
+                                                class="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
                                                 <i class="pi pi-trash text-[10px]"></i>
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
- 
-                             <!-- Parameters: Sidebar -->
-                             <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'" class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
+
+                            <!-- Parameters: Sidebar -->
+                            <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'"
+                                class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
                                 <div class="flex items-center gap-3">
                                     <i class="pi pi-calculator text-indigo-400"></i>
-                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring & Parameters</label>
+                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring &
+                                        Parameters</label>
                                 </div>
                                 <div class="grid grid-cols-1 gap-6 mt-4">
                                     <div class="flex flex-col">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort Order</label>
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort
+                                            Order</label>
                                         <InputNumber v-model="q.sort_order" :min="0" showButtons
-                                            buttonLayout="horizontal"
-                                            class="w-full h-10"
+                                            buttonLayout="horizontal" class="w-full h-10"
                                             inputClass="text-center font-black text-slate-600 bg-slate-50/50 border-none rounded-xl"
                                             incrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-r-xl"
                                             decrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-l-xl"
@@ -999,9 +1089,9 @@ const editorModules = {
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
                                     <div class="flex flex-col">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
-                                        <InputNumber v-model="q.points" :min="1" showButtons
-                                            buttonLayout="horizontal"
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
+                                        <InputNumber v-model="q.points" :min="1" showButtons buttonLayout="horizontal"
                                             class="w-full h-10"
                                             inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-none rounded-xl"
                                             incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-xl"
@@ -1009,13 +1099,18 @@ const editorModules = {
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-                                    <div v-if="q.type === 'writing'" class="space-y-4 pt-4 border-t border-slate-200/50">
-                                         <div class="flex flex-col">
-                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Min Words</label>
+                                    <div v-if="q.type === 'writing'"
+                                        class="space-y-4 pt-4 border-t border-slate-200/50">
+                                        <div class="flex flex-col">
+                                            <label
+                                                class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Min
+                                                Words</label>
                                             <InputNumber v-model="q.min_words" placeholder="0" class="w-full" />
                                         </div>
-                                         <div class="flex flex-col">
-                                            <label class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Max Words</label>
+                                        <div class="flex flex-col">
+                                            <label
+                                                class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Max
+                                                Words</label>
                                             <InputNumber v-model="q.max_words" placeholder="200" class="w-full" />
                                         </div>
                                     </div>
@@ -1031,7 +1126,8 @@ const editorModules = {
 
             <!-- Footer Action -->
             <div class="flex justify-center pt-10 border-t border-slate-100">
-                <Button type="button" :loading="isSubmitting" label="Save All Changes" icon="pi pi-cloud-upload" size="large" @click="updateBatch" 
+                <Button type="button" :loading="isSubmitting" label="Save All Changes" icon="pi pi-cloud-upload"
+                    size="large" @click="updateBatch"
                     class="rounded-[2rem] px-24 py-6 font-black text-xl bg-orange-600 border-none hover:bg-orange-700 shadow-2xl transition-all hover:scale-105 active:scale-95" />
             </div>
         </div>
@@ -1039,8 +1135,6 @@ const editorModules = {
 </template>
 
 <style scoped>
-
-
 :deep(.p-select) {
     border: none;
     background: white;
@@ -1067,10 +1161,11 @@ const editorModules = {
     padding: 16px;
     border-radius: 16px;
     overflow-x: auto;
-    font-size: 14px;
+    
 }
 
-:deep(.p-editor-toolbar) {
+
+:deep(.p-editor-toolbar){
     display: none !important;
 }
 
@@ -1078,6 +1173,7 @@ const editorModules = {
     border: none;
     background: white;
 }
+
 :deep(.p-inputnumber-input) {
     font-weight: 900;
     text-align: center;

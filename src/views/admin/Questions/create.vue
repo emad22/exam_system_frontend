@@ -391,22 +391,6 @@ const editorModules = {
             [{ direction: 'rtl' }],
             ['clean']
         ],
-
-        handlers: {
-            'code-block': function () {
-                const quill = this.quill
-                const range = quill.getSelection()
-
-                if (!range) return
-
-                const formats = quill.getFormat(range)
-
-                quill.format(
-                    'code-block',
-                    !formats['code-block']
-                )
-            }
-        }
     }
 }
 </script>
@@ -566,7 +550,7 @@ const editorModules = {
                                     </div>
                                 </div>
                                 <div v-if="!passageShowHtml">
-                                    <Editor v-model="form.passage_content" editorStyle="height: 200px"
+                                    <Editor v-model="form.passage_content" editorStyle="height: 300px"
                                         :modules="editorModules"
                                         class="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50/50"
                                         placeholder="Enter formatted reading text here..." />
@@ -574,7 +558,7 @@ const editorModules = {
                                 <div v-else>
                                     <textarea v-model="form.passage_content" 
                                         rows="8"
-                                        class="w-full rounded-3xl p-6 font-mono text-sm border-2 border-slate-200/80 bg-slate-900 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-600"
+                                        class="w-full rounded-3xl p-6 font-mono text-sm border-2 border-slate-200/80 bg-white text-slate-900 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-400"
                                         placeholder="Write your raw HTML here (e.g. <b>Hello</b> World)..."></textarea>
                                 </div>
                             </div>
@@ -758,14 +742,14 @@ const editorModules = {
                                     </div>
                                 </div>
                                 <div v-if="!q.showHtml">
-                                    <Editor v-model="q.content" editorStyle="height: 120px"
+                                    <Editor v-model="q.content" editorStyle="height: 300px"
                                         class="rounded-[1.5rem] overflow-hidden border border-slate-100 bg-slate-50/50"
                                         :modules="editorModules" placeholder="Type your formatted question here..." />
                                 </div>
                                 <div v-else>
                                     <textarea v-model="q.content" 
                                         rows="5"
-                                        class="w-full rounded-[1.5rem] p-4 font-mono text-xs border-2 border-slate-200/80 bg-slate-900 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-600"
+                                        class="w-full rounded-[1.5rem] p-4 font-mono text-xs border-2 border-slate-200/80 bg-white text-slate-900 focus:outline-none focus:border-indigo-500 transition-all shadow-inner placeholder-slate-400"
                                         placeholder="Write raw HTML code for the question here..."></textarea>
                                 </div>
 
@@ -1125,7 +1109,7 @@ const editorModules = {
     background: white;
 }
 
-.p-editor-toolbar{
+:deep(.p-editor-toolbar){
     display: none !important;
 }
 
@@ -1145,7 +1129,7 @@ const editorModules = {
 
 .ql-container {
     border: none !important;
-    font-size: 15px;
+    
 }
 
 
