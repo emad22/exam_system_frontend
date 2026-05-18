@@ -29,14 +29,14 @@ const skillMap = {
     'speaking': 'Speaking'
 };
 
-const getSkillDisplayName = async (name) => {
+const getSkillDisplayName = (name) => {
     if (!name) return 'Unknown Skill';
     const lowerName = name.toLowerCase();
     const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
     return matchedKey ? skillMap[matchedKey] : name;
 };
 
-const getSortedSkills = async (skills) => {
+const getSortedSkills = (skills) => {
     if (!skills) return [];
     const orderMap = {
         'Listening': 1,
@@ -86,7 +86,7 @@ const viewDetails = async (id) => {
     });
 };
 
-const filtered = async () => {
+const filtered = () => {
     let result = attempts.value;
 
     if (selectedPartner.value) {
@@ -104,14 +104,14 @@ const filtered = async () => {
     return result;
 };
 
-const scoreColor = async (score) => {
+const scoreColor = (score) => {
     if (!score && score !== 0) return 'text-slate-400';
     if (score >= 80) return 'text-emerald-600';
     if (score >= 60) return 'text-amber-600';
     return 'text-rose-600';
 };
 
-const getCalculatedSkillScore = async (skillResult) => {
+const getCalculatedSkillScore = (skillResult) => {
     if (!skillResult || skillResult.score === null || skillResult.score === undefined) return null;
     const levelsCount = skillResult.skill?.levels_count || 1;
  //   showAlert('levelsCount****************** '+ levelsCount);
@@ -119,7 +119,7 @@ const getCalculatedSkillScore = async (skillResult) => {
 };
 
 
-const getTotalScore = async (attempt) => {
+const getTotalScore = (attempt) => {
     if (!attempt || !attempt.attempt_skills) return 0;
     // showAlert("************"+ attempt.skills_count);
     return attempt.attempt_skills
