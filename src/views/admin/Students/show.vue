@@ -101,11 +101,25 @@ const skillMastery = computed(() => {
     return Object.values(mastery);
 });
 
-const scoreColor = async (score) => {
+const scoreColor = (score) => {
     if (!score && score !== 0) return 'text-slate-400';
     if (score >= 80) return 'text-emerald-600';
     if (score >= 60) return 'text-amber-600';
     return 'text-rose-600';
+};
+
+const getSkillName = (skillId) => {
+    if (!skillId) return '';
+    const clean = String(skillId).toUpperCase().trim();
+    const found = skills.value.find(s => {
+        const sCode = String(s.short_code).toUpperCase().trim();
+        return sCode === clean || 
+               (clean === 'WRITT' && sCode === 'WRIT') ||
+               (clean === 'WRIT' && sCode === 'WRITT') ||
+               (clean === 'SPEK' && sCode === 'SPEAK') ||
+               (clean === 'SPEAK' && sCode === 'SPEK');
+    });
+    return found ? found.name : skillId;
 };
 
 onMounted(() => {
@@ -276,7 +290,7 @@ onMounted(() => {
                                                 Enabled Modalities</p>
                                             <div class="flex flex-wrap gap-2">
                                                 <Tag v-for="skillId in selectedStudent.assigned_skills" :key="skillId"
-                                                    :value="skills.find(s => s.id === skillId)?.name || skillId"
+                                                    :value="getSkillName(skillId)"
                                                     severity="secondary"
                                                     class="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg" />
                                             </div>

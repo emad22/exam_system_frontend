@@ -54,7 +54,7 @@ const skillMap = {
 
 const getSkillDisplayName = (name) => {
     if (!name) return 'Skill Assessment';
-    const lowerName = name.toLowerCase();
+    const lowerName = name.toLowerCase().replace('writting', 'writing');
     const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
     return matchedKey ? skillMap[matchedKey] : name;
 };
@@ -194,28 +194,27 @@ const SKILL_SPECIFIC_INSTRUCTIONS = {
             'Click the <strong>Start the Test</strong> button only at the scheduled test time; otherwise, the test will be marked as <strong>Taken.</strong>'
         ]
     },
-    speaking: {
+        speaking: {
         title: 'Speaking',
         icon: '/Speaking-02.png',
         rules: [
             {
                title: 'Test Description',
-                description: 'This test measures you ability to write in Modern Standard Arabic.<br><br>You may not take this test until you have completed the previous parts of the Arabic Language Proficiency Test; namely, the Listening, Reading Comprehension and Structure sections.',
+                description: 'This test measures your ability to speak in Modern Standard Arabic.<br><br>You will be presented with a speaking prompt or topic. You will need to speak clearly and record your voice response directly using your microphone.',
                 icon: '/Speaking-02.png'
             },
-            //{
-              //  title: 'Steady Delivery',
-               // description: 'Speak clearly and at a moderate pace. Do not rush your response.',
-                //icon: '/Speaking-02.png'
-            //},
-            //{
-              //  title: 'Recording Limits',
-                //description: 'Watch the timer. Your response must be completed before the recording ends.',
-                //icon: '/Speaking-02.png'
-            //}
+            {
+                title: 'Microphone Setup',
+                description: 'Ensure your microphone is connected, active, and you have granted browser recording permissions.',
+                icon: '/Speaking-02.png'
+            }
         ],
         tips: [
-            'Contact info@arabacademy.com to schedule the test'
+            'The Speaking Part measures your ability to communicate orally in Modern Standard Arabic.',
+            'Read or listen to the speaking topic/prompt carefully before starting your recording.',
+            'Ensure you are in a quiet room so your voice is recorded clearly without background noise.',
+            'Speak at a natural, steady pace and express your thoughts as completely as possible.',
+            'You can listen to your recorded answer before submitting to make sure the audio is clear.'
         ]
     },
     default: {
@@ -248,7 +247,7 @@ const SKILL_SPECIFIC_INSTRUCTIONS = {
 
 const getSkillSpecificInstructions = (name) => {
     if (!name) return SKILL_SPECIFIC_INSTRUCTIONS.default;
-    const lowerName = name.toLowerCase();
+    const lowerName = name.toLowerCase().replace('writting', 'writing');
     const matchedKey = Object.keys(SKILL_SPECIFIC_INSTRUCTIONS).find(key => lowerName.includes(key));
     return matchedKey ? SKILL_SPECIFIC_INSTRUCTIONS[matchedKey] : SKILL_SPECIFIC_INSTRUCTIONS.default;
 };

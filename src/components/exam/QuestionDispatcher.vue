@@ -36,7 +36,7 @@ const updateAnswer = (newAnswer) => {
 <template>
     <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 pt-2 space-y-2">
         <McqQuestion 
-            v-if="question.type === 'mcq'" 
+            v-if="question.type === 'mcq' || question.type === 'listening'" 
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
 
         <TrueFalseQuestion 

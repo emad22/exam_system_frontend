@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
+import { useMediaUrl } from '@/composables/useMediaUrl'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import InputText from 'primevue/inputtext'
@@ -10,6 +11,8 @@ import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
+
+const { resolveUrl } = useMediaUrl()
 
 const route = useRoute()
 const router = useRouter()
@@ -57,6 +60,11 @@ const submitGrade = async () => {
 const wordCount = computed(() => {
     if (!answer.value?.text_answer) return 0
     return answer.value.text_answer.trim().split(/\s+/).length
+})
+
+const mediaUrl = computed(() => {
+    if (!answer.value?.media_answer) return null
+    return resolveUrl(answer.value.media_answer)
 })
 
 const wordCountStatus = computed(() => {
@@ -143,17 +151,26 @@ onMounted(() => {
                             </div>
                             <div class="text-right">
                                 <div class="flex items-center gap-2" :class="{'text-rose-500': wordCountStatus !== 'ok', 'text-emerald-500': wordCountStatus === 'ok'}">
-                                    <span class="text-2xl font-black">{{ wordCount }}</span>
-                                    <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Words</span>
+                                    <span v-if="answer.question.type !== 'speaking'" class="text-2xl font-black">{{ wordCount }}</span>
+                                    <span v-if="answer.question.type !== 'speaking'" class="text-[10px] font-black uppercase tracking-widest opacity-60">Words</span>
                                 </div>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase">
+                                <p v-if="answer.question.type !== 'speaking'" class="text-[10px] font-bold text-slate-400 uppercase">
                                     Target: {{ answer.question.min_words }}-{{ answer.question.max_words }}
                                 </p>
                             </div>
                         </div>
 
-                        <div class="bg-slate-50/50 rounded-3xl p-8 min-h-[300px] relative border border-slate-100/50 text-justify ">
-                            <p class="text-slate-700 leading-relaxed text-lg whitespace-pre-wrap selection:bg-indigo-100" dir="rtl">{{ answer.text_answer }}</p>
+                        <div class="bg-slate-50/50 rounded-3xl p-8 min-h-[300px] relative border border-slate-100/50 text-justify flex flex-col justify-center">
+                            <p v-if="answer.text_answer" class="text-slate-700 leading-relaxed text-lg whitespace-pre-wrap selection:bg-indigo-100" dir="rtl">{{ answer.text_answer }}</p>
+                            
+                            <div v-if="mediaUrl" class="w-full space-y-4 mt-6 p-6 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Recorded Answer</span>
+                                <audio :src="mediaUrl" controls class="w-full max-w-md h-12"></audio>
+                            </div>
+
+                            <div v-if="!answer.text_answer && !mediaUrl" class="text-center text-slate-400 italic">
+                                No answer provided by the candidate.
+                            </div>
                         </div>
                     </div>
                     <!-- AI Suggestion Section -->

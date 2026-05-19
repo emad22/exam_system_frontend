@@ -31,13 +31,13 @@ const skillMap = {
 
 const getSkillDisplayName = (name) => {
     if (!name) return 'Unknown Skill';
-    const lowerName = name.toLowerCase();
+    const lowerName = name.toLowerCase().replace('writting', 'writing');
     const matchedKey = Object.keys(skillMap).find(key => lowerName.includes(key));
     return matchedKey ? skillMap[matchedKey] : name;
 };
 
 const getSkillIcon = (name) => {
-    name = name.toLowerCase();
+    name = name.toLowerCase().replace('writting', 'writing');
     if (name.includes('listening')) return '/Listening02.png';
     if (name.includes('reading')) return '/Reading-1.png';
     if (name.includes('writing')) return '/Writing-01.png';

@@ -371,21 +371,36 @@ const saveCurrentAnswerDraft = async () => {
     if (!ans) return;
 
     try {
-        const payload = {
-            question_id: ans.question_id,
-            option_id: ans.option_id,
-            text_answer: ans.text_answer,
+        const formData = new FormData();
+        formData.append('question_id', ans.question_id);
+        
+        if (ans.option_id) formData.append('option_id', ans.option_id);
+        if (ans.text_answer) formData.append('text_answer', ans.text_answer);
+        if (ans.recorded_file) formData.append('audio_file', ans.recorded_file, 'voice.webm');
+
+        const arrayFields = {
             selected_words: ans.selected_words,
             drag_drop_answers: ans.drag_drop_answers,
             fill_blank_answers: ans.fill_blank_answers,
             ordering_answers: ans.ordering_answers,
-            highlight_answers: ans.highlight_answers,
-            matching_answers: ans.matching_answers
+            highlight_answers: ans.highlight_answers
         };
 
-        // Note: We don't send files (audio) here to keep it lightweight. 
-        // Audio is still sent via the final submitBatch.
-        await api.post(`/attempts/${attemptId.value}/save-answer`, payload);
+        Object.entries(arrayFields).forEach(([fieldName, value]) => {
+            if (value && Array.isArray(value) && value.length > 0) {
+                value.forEach((val, vIdx) => {
+                    formData.append(`${fieldName}[${vIdx}]`, val || '');
+                });
+            }
+        });
+
+        if (ans.matching_answers && Object.keys(ans.matching_answers).length > 0) {
+            formData.append('matching_answers', JSON.stringify(ans.matching_answers));
+        }
+
+        await api.post(`/attempts/${attemptId.value}/save-answer`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
     } catch (err) {
         console.warn('Failed to save answer draft', err);
     }
@@ -469,6 +484,16 @@ const handleTimeout = async () => {
 };
 
 const currentQ = computed(() => questions.value[currentIndex.value] || null);
+const displayInstructions = computed(() => {
+    if (!currentQ.value) return '';
+    let inst = currentQ.value.instructions || '';
+    if (currentQ.value.type === 'speaking') {
+        if (!inst || inst.includes('كتابة') || inst.includes('Choose The Correct Answer')) {
+            return 'يرجى تسجيل إجابتك شفهياً بالنقر على الميكروفون.';
+        }
+    }
+    return inst || 'Choose The Correct Answer';
+});
 const displayNumber = computed(() => globalOffset.value + currentIndex.value + 1);
 const wordCount = computed(() => (answers.value[currentIndex.value]?.text_answer || '').trim().split(/\s+/).filter(w => w).length);
 
@@ -504,7 +529,7 @@ const getSkillIcon = async (name) => {
     name = name?.toLowerCase() || '';
     if (name.includes('listening')) return '🎧';
     if (name.includes('reading')) return '📖';
-    if (name.includes('writing')) return '✍️';
+    if (name.includes('writing') || name.includes('writting')) return '✍️';
     if (name.includes('speaking')) return '🗣️';
     return '🎯';
 };
@@ -676,7 +701,7 @@ onUnmounted(() => {
                         <i class="pi pi-chevron-left text-[10px]"></i> <span>PREVIOUS</span>
                     </button>
                     <span class="text-sm font-black text-slate-500">{{ displayNumber }} / {{ totalSkillQuestions
-                        }}</span>
+                    }}</span>
                     <button @click="submitAnswer" :disabled="!isCurrentAnswerValid || questionSubmitted"
                         class="h-10 px-8 bg-brand-primary text-white rounded-lg font-black text-sm hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                         <i class="pi pi-thumbs-up text-xs"></i>
@@ -702,8 +727,7 @@ onUnmounted(() => {
                         </span>
                         <span class="text-lg font-black tabular-nums tracking-tighter">{{ formattedTime }}</span>
                     </div>
-                    <div
-                        class="flex items-center rounded-lg transition-colors">
+                    <div class="flex items-center rounded-lg transition-colors">
                         <button @click="exitExam"
                             class="h-10 flex items-center gap-3 px-6 bg-slate-700/50 hover:bg-rose-600/80 text-slate-300 hover:text-white rounded-lg transition-all text-sm font-black shadow-lg">
                             <span>EXIT</span>
@@ -722,7 +746,7 @@ onUnmounted(() => {
 
                 <div class="px-3 py-1 bg-slate-100 rounded-md border border-slate-200">
                     <span class="text-xs font-black text-slate-600 uppercase tracking-wider">{{ currentLevel?.name
-                        }}</span>
+                    }}</span>
                 </div>
             </div>
         </div>
@@ -850,16 +874,15 @@ onUnmounted(() => {
                         </div>
 
                         <div class="flex-grow flex flex-col space-y-4 overflow-hidden">
-                            <div v-if="currentQ.content && !['fill_blank', 'drag_drop', 'word_selection', 'click_word', 'highlight', 'matching', 'ordering'].includes(currentQ.type)"
+                            <div v-if="currentQ.content && !['speaking', 'fill_blank', 'drag_drop', 'word_selection', 'click_word', 'highlight', 'matching', 'ordering'].includes(currentQ.type)"
                                 class="text-lg font-black text-slate-900 leading-snug interactive-content-area rtl-support"
                                 v-html="cleanHtml(currentQ.content)" dir="auto">
                             </div>
-                           
+
 
                             <div class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
                                 <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto">
-                                    {{ currentQ.instructions || 'Choose The Correct Answer'
-                                    }}
+                                    {{ displayInstructions }}
                                 </p>
                             </div>
 
