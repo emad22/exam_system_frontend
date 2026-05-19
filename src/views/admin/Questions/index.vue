@@ -245,7 +245,15 @@ onMounted(fetchData);
             <Column header="Question Content" style="min-width: 400px">
               <template #body="{ data }">
                 <div class="flex items-center gap-4 py-2">
-                  <div v-if="data.image_url" class="w-12 h-12 rounded-xl overflow-hidden border border-slate-100 shrink-0">
+                  <div v-if="data.image_url" 
+                       class="rounded-xl overflow-hidden border border-slate-100 shrink-0"
+                       :class="{'w-12 h-12': !data.image_width && !data.image_height}"
+                       :style="data.image_width || data.image_height ? {
+                           width: data.image_width ? `${data.image_width}px` : 'auto',
+                           height: data.image_height ? `${data.image_height}px` : 'auto',
+                           maxWidth: '100%',
+                           maxHeight: '300px'
+                       } : {}">
                     <img :src="resolveUrl(data.image_url)" class="w-full h-full object-cover" />
                   </div>
                   <div class="min-w-0">

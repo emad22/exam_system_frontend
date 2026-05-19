@@ -14,6 +14,7 @@ import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
 import Slider from 'primevue/slider';
 import Editor from 'primevue/editor';
+import ImageResizeUploader from '@/components/ImageResizeUploader.vue';
 
 const { showAlert, showConfirm } = useModal();
 
@@ -62,6 +63,8 @@ const form = ref({
     p_audio_preview: null,
     p_image: null,
     p_image_preview: null,
+    p_image_width: null,
+    p_image_height: null,
     questions: []
 });
 
@@ -113,6 +116,8 @@ const createEmptyQuestion = () => ({
     q_audio_preview: null,
     q_image: null,
     q_image_preview: null,
+    q_image_width: null,
+    q_image_height: null,
     showHtml: false,
     options: [
         { option_text: '', is_correct: true },
@@ -334,6 +339,8 @@ const saveBatch = async () => {
             if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
             if (form.value.p_audio) fd.append('p_audio_file', form.value.p_audio);
             if (form.value.p_image) fd.append('p_image_file', form.value.p_image);
+            if (form.value.p_image_width) fd.append('p_image_width', form.value.p_image_width);
+            if (form.value.p_image_height) fd.append('p_image_height', form.value.p_image_height);
         }
 
         // Clean questions data for JSON stringify (exclude File objects and proxies)
@@ -345,6 +352,8 @@ const saveBatch = async () => {
             sort_order: q.sort_order,
             min_words: q.min_words,
             max_words: q.max_words,
+            image_width: q.q_image_width || null,
+            image_height: q.q_image_height || null,
             options: q.options.map(opt => ({
                 option_text: opt.option_text,
                 is_correct: opt.is_correct
@@ -571,37 +580,15 @@ const editorModules = {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                                     <!-- Image Part -->
-                                    <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all"
-                                        :class="form.p_image_preview ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
-                                        <div v-if="!form.p_image_preview" @click="$refs.pImgInput.click()"
-                                            class="flex items-center gap-4 cursor-pointer py-2">
-                                            <div
-                                                class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-brand-primary transition-colors">
-                                                <i class="pi pi-image text-xl"></i>
-                                            </div>
-                                            <div class="flex flex-col">
-                                                <span
-                                                    class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach
-                                                    Illustration</span>
-                                                <span
-                                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">JPG,
-                                                    PNG, GIF up to 5MB</span>
-                                            </div>
-                                        </div>
-                                        <div v-else class="flex items-center justify-between">
-                                            <div class="flex items-center gap-4">
-                                                <img :src="form.p_image_preview.url"
-                                                    class="w-16 h-16 rounded-xl object-cover shadow-sm" />
-                                                <span
-                                                    class="text-xs font-black text-emerald-600 uppercase tracking-widest">Image
-                                                    Linked</span>
-                                            </div>
-                                            <Button icon="pi pi-trash" text severity="danger" size="small"
-                                                @click="form.p_image = null; form.p_image_preview = null" />
-                                        </div>
-                                        <input type="file" ref="pImgInput" class="hidden" @change="handlePImageChange"
-                                            accept="image/*" />
-                                    </div>
+                                    <ImageResizeUploader
+                                        v-model="form.p_image"
+                                        v-model:width="form.p_image_width"
+                                        v-model:height="form.p_image_height"
+                                        :initialUrl="form.p_image_preview?.url"
+                                        label="Attach Image"
+                                        icon="pi-image"
+                                        @clear="form.p_image = null; form.p_image_preview = null; form.p_image_width = null; form.p_image_height = null;"
+                                    />
 
                                     <!-- Audio Part -->
                                     <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all"
@@ -854,30 +841,15 @@ const editorModules = {
                                         <label
                                             class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Image
                                             Attachment</label>
-                                        <div class="flex gap-4 items-center">
-                                            <div @click="triggerQImage(qIdx)"
-                                                class="w-32 h-32 border-2 border-dashed rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer transition-all group"
-                                                :class="q.q_image_preview ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50'">
-                                                <input type="file" :id="`qImage_${qIdx}`" class="hidden"
-                                                    @change="(e) => handleQImageChange(e, qIdx)" accept="image/*" />
-                                                <i v-if="!q.q_image_preview"
-                                                    class="pi pi-image text-2xl text-slate-300 group-hover:text-indigo-400 mb-1"></i>
-                                                <i v-else class="pi pi-check-circle text-2xl text-emerald-500 mb-1"></i>
-                                                <span
-                                                    class="text-[8px] font-black uppercase tracking-widest text-center px-2"
-                                                    :class="q.q_image_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-indigo-500'">
-                                                    {{ q.q_image_preview ? 'Image Added' : 'Select Image' }}
-                                                </span>
-                                            </div>
-                                            <div v-if="q.q_image_preview" class="relative group/preview">
-                                                <img :src="q.q_image_preview.url"
-                                                    class="w-32 h-32 rounded-[1.5rem] object-cover shadow-sm border border-slate-100" />
-                                                <button @click="q.q_image = null; q.q_image_preview = null"
-                                                    class="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover/preview:opacity-100 transition-all">
-                                                    <i class="pi pi-times text-[10px]"></i>
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <ImageResizeUploader
+                                            v-model="q.q_image"
+                                            v-model:width="q.q_image_width"
+                                            v-model:height="q.q_image_height"
+                                            :initialUrl="q.q_image_preview?.url"
+                                            label="Select Image"
+                                            icon="pi-image"
+                                            @clear="q.q_image = null; q.q_image_preview = null; q.q_image_width = null; q.q_image_height = null;"
+                                        />
                                     </div>
 
                                     <!-- Audio Upload -->

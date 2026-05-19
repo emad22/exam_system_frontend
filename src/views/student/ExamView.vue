@@ -912,9 +912,14 @@ onUnmounted(() => {
                             <h3 v-if="currentQ.passage.title"
                                 class="text-xl font-black text-slate-900 tracking-tight leading-tight" dir="auto">{{
                                     currentQ.passage.title }}</h3>
-                            <div v-if="currentQ.passage.image_url || currentQ.passage.image_path" class="w-full mb-4">
+                            <div v-if="currentQ.passage.image_url || currentQ.passage.image_path" class="w-full mb-4 flex justify-center">
                                 <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
-                                    class="w-full h-auto rounded-xl shadow-md border border-slate-100" />
+                                    class="rounded-xl shadow-md border border-slate-100"
+                                    :class="!currentQ.passage.image_width && !currentQ.passage.image_height ? 'w-full h-auto' : 'max-w-full'"
+                                    :style="currentQ.passage.image_width || currentQ.passage.image_height ? {
+                                        width: currentQ.passage.image_width ? `${currentQ.passage.image_width}px` : 'auto',
+                                        height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'
+                                    } : {}" />
                             </div>
                             <div v-if="currentQ.passage.content"
                                 class="text-lg text-slate-700 leading-relaxed font-serif text-justify ql-content rtl-support"
@@ -931,7 +936,12 @@ onUnmounted(() => {
                         <!-- 3. Question Image -->
                         <div v-if="currentQ.image_url || currentQ.image_path" class="w-full flex justify-center py-4">
                             <img :src="resolveUrl(currentQ.image_url || currentQ.image_path)"
-                                class="max-w-full h-auto rounded-xl shadow-lg border border-white" />
+                                class="rounded-xl shadow-lg border border-white"
+                                :class="!currentQ.image_width && !currentQ.image_height ? 'max-w-full h-auto' : 'max-w-full'"
+                                :style="currentQ.image_width || currentQ.image_height ? {
+                                    width: currentQ.image_width ? `${currentQ.image_width}px` : 'auto',
+                                    height: currentQ.image_height ? `${currentQ.image_height}px` : 'auto'
+                                } : {}" />
                         </div>
                     </div>
                 </div>
