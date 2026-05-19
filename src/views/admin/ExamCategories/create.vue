@@ -25,7 +25,7 @@ const form = ref({
 
 const saveCategory = async () => {
     if (!form.value.name) {
-        showAlert('Category name is required identity metadata.', 'Validation Warning', 'warning');
+        showAlert('Category name is required.', 'Validation Warning', 'warning');
         return;
     }
     
@@ -37,7 +37,7 @@ const saveCategory = async () => {
         router.push('/admin/exam-categories');
     } catch (err) {
         console.error(err);
-        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to register category. Ensure the name is unique.';
+        const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to create category. Ensure the name is unique.';
         showAlert(error, 'Registration Failed', 'danger');
     } finally {
         isSaving.value = false;
@@ -54,13 +54,13 @@ const saveCategory = async () => {
                 <div class="flex items-center space-x-6">
                     <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/exam-categories')" />
                     <div>
-                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Register tier</h1>
-                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Classification provisioning</p>
+                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Create Category</h1>
+                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Add a new category</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-2 bg-rose-50 px-4 py-2 rounded-2xl border border-indigo-100">
                     <div class="w-2 h-2 bg-brand-primary rounded-full animate-pulse"></div>
-                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Structural Management</span>
+                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Category Creation</span>
                 </div>
             </div>
 
@@ -78,18 +78,18 @@ const saveCategory = async () => {
                                             <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                 <i class="pi pi-tag text-xs"></i>
                                             </div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Classification Identity</h3>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Category Details</h3>
                                         </div>
 
                                         <div class="flex flex-col space-y-2">
-                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Functional Name</label>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Category Name</label>
                                             <InputText v-model="form.name" required class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-black uppercase" placeholder="e.g. ADULT_ADVANCED" />
-                                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1 italic">This identifier is used across system registries.</p>
+                                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1 italic">The public name for this exam category.</p>
                                         </div>
 
                                         <div class="flex flex-col space-y-2">
-                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Strategic Description</label>
-                                            <Textarea v-model="form.description" rows="5" class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-medium leading-relaxed" placeholder="Define the educational objectives for this tier..." />
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Description</label>
+                                            <Textarea v-model="form.description" rows="5" class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-medium leading-relaxed" placeholder="Enter a description for this category..." />
                                         </div>
                                     </div>
                                 </template>
@@ -105,13 +105,13 @@ const saveCategory = async () => {
                                             <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                 <i class="pi pi-cog text-xs"></i>
                                             </div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Deployment</h3>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Settings</h3>
                                         </div>
 
                                         <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group transition-all duration-300 hover:bg-white hover:border-indigo-100">
                                             <div class="space-y-0.5">
-                                                <p class="text-[11px] font-black text-slate-800 uppercase tracking-tight">Active Status</p>
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Enable enrollment</p>
+                                                <p class="text-[11px] font-black text-slate-800 uppercase tracking-tight">Status</p>
+                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Active</p>
                                             </div>
                                             <ToggleSwitch v-model="form.is_active" />
                                         </div>
@@ -120,7 +120,7 @@ const saveCategory = async () => {
                             </Card>
 
                             <div class="pt-4">
-                                <Button type="submit" :label="isSaving ? 'Processing...' : 'Complete Registration'" icon="pi pi-check" :loading="isSaving" class="w-full py-6 rounded-3xl shadow-lg shadow-rose-100 text-[10px] font-black tracking-widest uppercase transition-all hover:-translate-y-1" />
+                                <Button type="submit" :label="isSaving ? 'Saving...' : 'Save Category'" icon="pi pi-check" :loading="isSaving" class="w-full py-6 rounded-3xl shadow-lg shadow-rose-100 text-[10px] font-black tracking-widest uppercase transition-all hover:-translate-y-1" />
                             </div>
                         </div>
                     </div>

@@ -15,7 +15,6 @@ import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
 import Slider from 'primevue/slider';
 import Editor from 'primevue/editor';
-import ImageResizeUploader from '@/components/ImageResizeUploader.vue';
 
 const { showAlert } = useModal();
 
@@ -66,8 +65,6 @@ const form = ref({
     p_audio_preview: null,
     p_image: null,
     p_image_preview: null,
-    p_image_width: null,
-    p_image_height: null,
     questions: []
 });
 
@@ -143,8 +140,6 @@ const createEmptyQuestion = () => ({
     q_audio_preview: null,
     q_image: null,
     q_image_preview: null,
-    q_image_width: null,
-    q_image_height: null,
     showHtml: false,
     options: [
         { option_text: '', is_correct: true },
@@ -211,8 +206,6 @@ const loadInitialData = async () => {
             }
             if (q.passage.image_url) {
                 updatedForm.p_image_preview = { url: q.passage.image_url, type: 'image' };
-                updatedForm.p_image_width = q.passage.image_width || null;
-                updatedForm.p_image_height = q.passage.image_height || null;
             }
 
             updatedForm.questions = q.passage.questions.map(sq => ({
@@ -231,8 +224,6 @@ const loadInitialData = async () => {
                 q_audio_preview: sq.audio_url ? { url: sq.audio_url, type: 'audio' } : null,
                 q_image: null,
                 q_image_preview: sq.image_url ? { url: sq.image_url, type: 'image' } : null,
-                q_image_width: sq.image_width || null,
-                q_image_height: sq.image_height || null,
                 showHtml: false,
                 options: (sq.options || []).map(o => ({
                     option_text: o.option_text,
@@ -257,8 +248,6 @@ const loadInitialData = async () => {
                 q_audio_preview: q.audio_url ? { url: q.audio_url, type: 'audio' } : null,
                 q_image: null,
                 q_image_preview: q.image_url ? { url: q.image_url, type: 'image' } : null,
-                q_image_width: q.image_width || null,
-                q_image_height: q.image_height || null,
                 showHtml: false,
                 options: (q.options || []).map(o => ({
                     option_text: o.option_text,
@@ -476,8 +465,6 @@ const updateBatch = async () => {
             if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
             if (form.value.p_audio) fd.append('p_audio_file', form.value.p_audio);
             if (form.value.p_image) fd.append('p_image_file', form.value.p_image);
-            if (form.value.p_image_width) fd.append('p_image_width', form.value.p_image_width);
-            if (form.value.p_image_height) fd.append('p_image_height', form.value.p_image_height);
         } else if (form.value.passage_mode === 'new') {
             fd.append('passage_type', form.value.passage_type);
             fd.append('passage_title', form.value.passage_title || '');
@@ -487,8 +474,6 @@ const updateBatch = async () => {
             if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
             if (form.value.p_audio) fd.append('p_audio_file', form.value.p_audio);
             if (form.value.p_image) fd.append('p_image_file', form.value.p_image);
-            if (form.value.p_image_width) fd.append('p_image_width', form.value.p_image_width);
-            if (form.value.p_image_height) fd.append('p_image_height', form.value.p_image_height);
         }
 
         // Clean questions data for JSON stringify (exclude File objects and proxies)
@@ -501,8 +486,6 @@ const updateBatch = async () => {
             sort_order: q.sort_order,
             min_words: q.min_words,
             max_words: q.max_words,
-            image_width: q.q_image_width || null,
-            image_height: q.q_image_height || null,
             options: q.options.map(opt => ({
                 option_text: opt.option_text,
                 is_correct: opt.is_correct
@@ -758,15 +741,32 @@ const editorModules = {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                                     <!-- Image Part -->
-                                    <ImageResizeUploader
-                                        v-model="form.p_image"
-                                        v-model:width="form.p_image_width"
-                                        v-model:height="form.p_image_height"
-                                        :initialUrl="form.p_image_preview?.url"
-                                        label="Attach Image"
-                                        icon="pi-image"
-                                        @clear="form.p_image = null; form.p_image_preview = null; form.p_image_width = null; form.p_image_height = null;"
-                                    />
+                                    <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all"
+                                        :class="form.p_image_preview ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30 hover:border-brand-primary'">
+                                        <div v-if="!form.p_image_preview" @click="$refs.pImgInput.click()"
+                                            class="flex items-center gap-4 cursor-pointer py-2">
+                                            <div
+                                                class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                                                <i class="pi pi-image text-xl"></i>
+                                            </div>
+                                            <span
+                                                class="text-xs font-black text-slate-600 uppercase tracking-wide">Attach
+                                                Image</span>
+                                        </div>
+                                        <div v-else class="flex items-center justify-between">
+                                            <div class="flex items-center gap-4">
+                                                <img :src="form.p_image_preview.url"
+                                                    class="w-16 h-16 rounded-xl object-cover shadow-sm" />
+                                                <span
+                                                    class="text-xs font-black text-emerald-600 uppercase tracking-widest">Image
+                                                    Linked</span>
+                                            </div>
+                                            <Button icon="pi pi-trash" text severity="danger" size="small"
+                                                @click="form.p_image = null; form.p_image_preview = null" />
+                                        </div>
+                                        <input type="file" ref="pImgInput" class="hidden" @change="handlePImageChange"
+                                            accept="image/*" />
+                                    </div>
 
                                     <!-- Audio Part -->
                                     <div class="relative group border-2 border-dashed rounded-3xl p-4 transition-all"
@@ -997,15 +997,30 @@ const editorModules = {
                                         <label
                                             class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Image
                                             Attachment</label>
-                                        <ImageResizeUploader
-                                            v-model="q.q_image"
-                                            v-model:width="q.q_image_width"
-                                            v-model:height="q.q_image_height"
-                                            :initialUrl="q.q_image_preview?.url"
-                                            label="Select Image"
-                                            icon="pi-image"
-                                            @clear="q.q_image = null; q.q_image_preview = null; q.q_image_width = null; q.q_image_height = null;"
-                                        />
+                                        <div class="flex gap-4 items-center">
+                                            <div @click="triggerQImage(qIdx)"
+                                                class="w-32 h-32 border-2 border-dashed rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer transition-all group shrink-0"
+                                                :class="q.q_image_preview ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50'">
+                                                <input type="file" :id="`qImage_${qIdx}`" class="hidden"
+                                                    @change="(e) => handleQImageChange(e, qIdx)" accept="image/*" />
+                                                <i v-if="!q.q_image_preview"
+                                                    class="pi pi-image text-2xl text-slate-300 group-hover:text-indigo-400 mb-1"></i>
+                                                <i v-else class="pi pi-check-circle text-2xl text-emerald-500 mb-1"></i>
+                                                <span
+                                                    class="text-[8px] font-black uppercase tracking-widest text-center px-2"
+                                                    :class="q.q_image_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-indigo-500'">
+                                                    {{ q.q_image_preview ? 'Image Attached' : 'Select Image' }}
+                                                </span>
+                                            </div>
+                                            <div v-if="q.q_image_preview" class="relative group/preview">
+                                                <img :src="q.q_image_preview.url"
+                                                    class="w-32 h-32 rounded-[1.5rem] object-cover shadow-sm border border-slate-100" />
+                                                <button @click="q.q_image = null; q.q_image_preview = null"
+                                                    class="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover/preview:opacity-100 transition-all">
+                                                    <i class="pi pi-times text-[10px]"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Audio Upload -->
@@ -1120,68 +1135,50 @@ const editorModules = {
                             <!-- Parameters: Sidebar -->
                             <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'"
                                 class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
-                                            <i class="pi pi-calculator text-lg"></i>
-                                        </div>
-                                        <div>
-                                            <label class="text-sm font-black text-slate-800 uppercase tracking-wide block">Scoring & Parameters</label>
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase">Define weight and constraints</span>
-                                        </div>
-                                    </div>
+                                <div class="flex items-center gap-3">
+                                    <i class="pi pi-calculator text-indigo-400"></i>
+                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring &
+                                        Parameters</label>
                                 </div>
-
-                                <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10' : 'grid grid-cols-1 gap-8 mt-4'">
-                                    <!-- Sort Order -->
-                                    <div class="flex flex-col gap-3">
-                                        <div class="flex items-center gap-2 ml-1">
-                                            <i class="pi pi-sort-alt text-[10px] text-slate-400"></i>
-                                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Display Order</label>
-                                        </div>
+                                <div class="grid grid-cols-1 gap-6 mt-4">
+                                    <div class="flex flex-col">
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort
+                                            Order</label>
                                         <InputNumber v-model="q.sort_order" :min="0" showButtons
-                                            buttonLayout="horizontal" class="w-full h-12"
-                                            inputClass="text-center font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all"
-                                            incrementButtonClass="bg-slate-50 text-slate-400 border-none rounded-r-2xl"
-                                            decrementButtonClass="bg-slate-50 text-slate-400 border-none rounded-l-2xl"
+                                            buttonLayout="horizontal" class="w-full h-10"
+                                            inputClass="text-center font-black text-slate-600 bg-slate-50/50 border-none rounded-xl"
+                                            incrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-r-xl"
+                                            decrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-l-xl"
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-
-                                    <!-- Points -->
-                                    <div class="flex flex-col gap-3">
-                                        <div class="flex items-center gap-2 ml-1">
-                                            <i class="pi pi-star text-[10px] text-emerald-400"></i>
-                                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Question Points</label>
-                                        </div>
+                                    <div class="flex flex-col">
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
                                         <InputNumber v-model="q.points" :min="1" showButtons buttonLayout="horizontal"
-                                            class="w-full h-12"
-                                            inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-2 border-emerald-100 rounded-2xl focus:border-emerald-400 transition-all"
-                                            incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-2xl"
-                                            decrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-l-2xl"
+                                            class="w-full h-10"
+                                            inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-none rounded-xl"
+                                            incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-xl"
+                                            decrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-l-xl"
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-
-                                    <!-- Writing Specific: Min & Max Words -->
-                                    <template v-if="q.type === 'writing'">
-                                        <div class="flex flex-col gap-3">
-                                            <div class="flex items-center gap-2 ml-1">
-                                                <i class="pi pi-minus-circle text-[10px] text-orange-400"></i>
-                                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Min Words</label>
-                                            </div>
-                                            <InputNumber v-model="q.min_words" placeholder="e.g. 150" class="w-full h-12"
-                                                inputClass="font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl px-6 focus:border-orange-400 transition-all" />
+                                    <div v-if="q.type === 'writing'"
+                                        class="space-y-4 pt-4 border-t border-slate-200/50">
+                                        <div class="flex flex-col">
+                                            <label
+                                                class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Min
+                                                Words</label>
+                                            <InputNumber v-model="q.min_words" placeholder="0" class="w-full" />
                                         </div>
-                                        <div class="flex flex-col gap-3">
-                                            <div class="flex items-center gap-2 ml-1">
-                                                <i class="pi pi-plus-circle text-[10px] text-rose-400"></i>
-                                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Max Words</label>
-                                            </div>
-                                            <InputNumber v-model="q.max_words" placeholder="e.g. 250" class="w-full h-12"
-                                                inputClass="font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl px-6 focus:border-rose-400 transition-all" />
+                                        <div class="flex flex-col">
+                                            <label
+                                                class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Max
+                                                Words</label>
+                                            <InputNumber v-model="q.max_words" placeholder="200" class="w-full" />
                                         </div>
-                                    </template>
+                                    </div>
                                 </div>
                             </div>
                         </div>

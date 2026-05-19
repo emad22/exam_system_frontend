@@ -451,10 +451,10 @@ const saveExam = async () => {
         if (isEditMode.value) await api.patch(`/admin/exams/${examId.value}`, payload);
         else await api.post('/admin/exams', payload);
 
-        showAlert('The exam shell has been initialized successfully.', 'Assessment Created', 'success');
+        showAlert('Exam created successfully.', 'Exam Created', 'success');
         router.push('/admin/exams');
     } catch (err) {
-        showAlert('Sequence Failure during deployment.', 'Final Save Error', 'error');
+        showAlert('Failed to save exam.', 'Save Error', 'error');
     } finally { isSubmitting.value = false; }
 };
 </script>
@@ -464,11 +464,11 @@ const saveExam = async () => {
         <div v-if="isLoading" class="flex flex-col items-center justify-center py-40">
             <div class="w-16 h-16 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin mb-8">
             </div>
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Calibrating Constructor...</p>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Loading...</p>
         </div>
 
         <div v-else
-            class="animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-24 mt-8 px-4 md:px-16 max-w-7xl mx-auto">
+            class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4">
             <!-- Unified Header Section -->
             <div
                 class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 space-y-8 md:space-y-0 bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
@@ -482,9 +482,9 @@ const saveExam = async () => {
                         <div>
                             <h1
                                 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">
-                                {{ isEditMode ? 'Modify Assessment' : 'Initialize Exam' }}</h1>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Phase
-                                {{ currentStep }} of 3: Protocol Construction</p>
+                                {{ isEditMode ? 'Edit Exam' : 'Create Exam' }}</h1>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Step
+                                {{ currentStep }} of 3: Setup</p>
                         </div>
                     </div>
                 </div>
@@ -514,39 +514,43 @@ const saveExam = async () => {
 
             <!-- STEP 1: IDENTITY -->
             <div v-if="currentStep === 1" class="space-y-10 animate-in fade-in zoom-in-95 duration-700">
-                <div class="max-w-3xl mx-auto">
+                <div class="max-w-5xl mx-auto">
                     <div
                         class="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.03)] space-y-12">
                         <div class="space-y-4">
-                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Logical Identity</h3>
+                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Exam Details</h3>
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                                Specify the administrative title and audience category for this assessment.</p>
+                                Enter the title and category for the exam.</p>
                         </div>
-                        <div class="space-y-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="space-y-3">
-                                <label
-                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Logical
-                                    Designation (Title)</label>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exam Title</label>
                                 <div class="relative">
                                     <i class="pi pi-pencil absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"></i>
                                     <input v-model="form.title" type="text"
                                         class="w-full bg-slate-50 border border-slate-100 p-6 pl-16 rounded-[1.5rem] text-sm font-bold uppercase tracking-tight focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all"
-                                        placeholder="E.G. ALPH_CORE_2024">
+                                        placeholder="Enter Exam Title">
                                 </div>
                             </div>
                             <div class="space-y-3">
-                                <label
-                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Audience
-                                    Class (Category)</label>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exam Category</label>
                                 <div class="relative">
                                     <i class="pi pi-users absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"></i>
                                     <select v-model="form.exam_category_id"
                                         class="w-full bg-slate-50 border border-slate-100 p-6 pl-16 rounded-[1.5rem] text-xs font-black uppercase tracking-widest focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all cursor-pointer appearance-none">
-                                        <option :value="null" disabled>Select Evaluation Segment</option>
-                                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}
-                                        </option>
+                                        <option :value="null" disabled>Select Category</option>
+                                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                                     </select>
                                     <i class="pi pi-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2 space-y-3">
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Description (Optional)</label>
+                                <div class="relative">
+                                    <i class="pi pi-align-left absolute left-6 top-6 text-slate-300"></i>
+                                    <textarea v-model="form.description" rows="3"
+                                        class="w-full bg-slate-50 border border-slate-100 p-6 pl-16 rounded-[1.5rem] text-sm font-bold tracking-tight focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all"
+                                        placeholder="Enter a brief description for this exam"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -566,23 +570,22 @@ const saveExam = async () => {
                 </div>
 
                 <div class="text-center space-y-6 relative z-10">
-                    <h2 class="text-4xl font-black text-slate-800 uppercase tracking-tighter">Cognitive Modules</h2>
+                    <h2 class="text-4xl font-black text-slate-800 uppercase tracking-tighter">Exam Subjects</h2>
                     <p
                         class="text-[12px] font-bold text-slate-400 uppercase tracking-[0.3em] max-w-xl mx-auto leading-relaxed">
-                        Select the strategic domains to be synchronized for this assessment sequence.
+                        Select the subjects to be included in this exam.
                     </p>
                     <div class="flex justify-center mt-8">
                         <div
                             class="bg-white/50 backdrop-blur-md px-6 py-2 rounded-2xl border border-slate-100 flex items-center space-x-4 shadow-sm">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active
-                                Sequence:</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Subjects:</span>
                             <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{
-                                form.selectedSkills.length }} Modules Synchronized</span>
+                                form.selectedSkills.length }} Subjects Selected</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="max-w-2xl mx-auto space-y-4 relative z-10 pb-12">
+                <div class="max-w-5xl mx-auto space-y-4 relative z-10 pb-12">
                     <div v-for="skill in availableSkills" :key="skill.id"
                         class="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-slate-200 transition-all shadow-sm group">
                         
@@ -596,7 +599,7 @@ const saveExam = async () => {
 
                             <div @click="toggleSkill(skill.id)" class="cursor-pointer space-y-0.5">
                                 <h4 class="text-sm font-black text-slate-800 tracking-tight uppercase">{{ skill.name }}</h4>
-                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{{ skill.short_code || 'MODALITY' }}</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{{ skill.short_code || 'SUBJECT' }}</p>
                             </div>
                         </div>
 
@@ -605,7 +608,7 @@ const saveExam = async () => {
                             class="flex items-center space-x-4 bg-slate-50/50 px-4 py-3 rounded-2xl border border-slate-100 animate-in slide-in-from-right-4 duration-500">
                             <!-- Duration -->
                             <div class="flex flex-col">
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Time Limit</span>
+                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Duration</span>
                                 <div class="flex items-center space-x-3">
                                     <button @click.stop="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))"
                                         class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg transition-all">
@@ -634,7 +637,7 @@ const saveExam = async () => {
                         </div>
 
                         <div v-else class="pr-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Click to Synchronize</span>
+                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Click to Select</span>
                         </div>
                     </div>
                 </div>
@@ -647,26 +650,26 @@ const saveExam = async () => {
                         class="w-24 h-24 bg-emerald-50 text-emerald-600 flex items-center justify-center rounded-[2.5rem] mx-auto mb-10 text-4xl shadow-sm border border-emerald-100">
                         <i class="pi pi-check-circle"></i>
                     </div>
-                    <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Deployment Ready</h2>
+                    <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Ready to Save</h2>
                     <p
                         class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] max-w-lg mx-auto leading-relaxed">
-                        The exam shell is ready for initialization. You can add questions from the item bank after saving.</p>
+                        The exam details are ready. You can manage questions after saving.</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div class="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
                         <h4
                             class="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-6">
-                            Final Metadata Summary</h4>
+                            Exam Summary</h4>
                         <div class="space-y-6">
                             <div class="flex justify-between items-center bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                <span class="text-[10px] font-black text-slate-400 uppercase">Assessment Title</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase">Exam Title</span>
                                 <span class="text-xs font-black text-slate-700 truncate max-w-[200px] uppercase">{{
                                     form.title }}</span>
                             </div>
                             
                             <div class="space-y-4">
-                                <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Active Modalities</h5>
+                                <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Selected Subjects</h5>
                                 <div class="grid grid-cols-1 gap-3">
                                     <div v-for="selected in form.selectedSkills" :key="selected.skill_id"
                                         class="flex justify-between items-center bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
@@ -690,12 +693,11 @@ const saveExam = async () => {
 
                     <div
                         class="bg-slate-800 p-12 rounded-[4rem] text-white flex flex-col justify-center text-center space-y-10 shadow-2xl shadow-slate-900/10">
-                        <p class="text-[10px] font-black text-rose-400 uppercase tracking-[0.3em]">Execution Phase</p>
-                        <Button :label="isSubmitting ? 'PERSISTING DATA...' : 'INITIALIZE PROTOCOL ➜'"
+                        <p class="text-[10px] font-black text-rose-400 uppercase tracking-[0.3em]">Save Exam</p>
+                        <Button :label="isSubmitting ? 'SAVING...' : 'SAVE EXAM ➜'"
                             :loading="isSubmitting" @click="saveExam"
                             class="bg-white border-none text-slate-900 font-black text-[11px] py-10 rounded-[2.5rem] shadow-2xl hover:bg-brand-accent hover:text-white transition-all transform hover:-translate-y-2 uppercase tracking-[0.2em]" />
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest opacity-60">This action
-                            will propagate the exam to all administrative endpoints</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest opacity-60">This will save the exam and allow you to manage questions</p>
                     </div>
                 </div>
             </div>
@@ -705,14 +707,14 @@ const saveExam = async () => {
                 <button v-if="currentStep > 1" @click="prevStep"
                     class="flex items-center space-x-3 text-slate-400 hover:text-slate-800 transition-colors group">
                     <i class="pi pi-angle-left text-xl group-hover:-translate-x-1 transition-transform"></i>
-                    <span class="text-[10px] font-black uppercase tracking-widest">Return to Phase {{ currentStep - 1
+                    <span class="text-[10px] font-black uppercase tracking-widest">Back to Step {{ currentStep - 1
                         }}</span>
                 </button>
                 <div v-else></div>
 
                 <button v-if="currentStep < 3" @click="nextStep"
                     class="bg-brand-primary text-white px-12 py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-100 flex items-center space-x-4 transition-all hover:-translate-y-1 hover:shadow-brand-primary/10">
-                    <span>Advance Sequence</span>
+                    <span>Next Step</span>
                     <i class="pi pi-angle-right text-xl"></i>
                 </button>
             </div>

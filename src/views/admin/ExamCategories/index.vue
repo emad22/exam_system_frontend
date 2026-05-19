@@ -69,17 +69,17 @@ onMounted(fetchCategories);
             <!-- Standardized Header -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6 md:space-y-0">
                 <div>
-                    <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Assessment Tiers</h1>
-                    <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Classification and Lifecycle Management</p>
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Exam Categories</h1>
+                    <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Manage your exam categories</p>
                 </div>
-                <Button label="Register Category" icon="pi pi-plus" 
+                <Button label="Create Category" icon="pi pi-plus" 
                     class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-[10px] font-black tracking-widest uppercase transition-all hover:-translate-y-1" 
                     @click="router.push('/admin/exam-categories/create')" />
             </div>
 
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Classification Registry...</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Loading Categories...</p>
             </div>
 
             <!-- Registry Table Card -->
@@ -97,7 +97,7 @@ onMounted(fetchCategories);
                             </div>
                         </template>
 
-                        <Column header="Institutional Entity" style="min-width: 280px">
+                        <Column header="Category Name" style="min-width: 280px">
                             <template #body="{ data }">
                                 <div class="flex items-center space-x-6 py-2">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-50 text-brand-primary flex items-center justify-center font-black text-lg border border-slate-100 shadow-sm group-hover:bg-brand-primary group-hover:text-white transition-all">
@@ -108,28 +108,28 @@ onMounted(fetchCategories);
                                             {{ data.name }}
                                         </div>
                                         <div class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] italic opacity-80">
-                                            Ref: {{ data.slug }} • Registry ID: {{ data.id }}
+                                            Slug: {{ data.slug }} • ID: {{ data.id }}
                                         </div>
                                     </div>
                                 </div>
                             </template>
                         </Column>
 
-                        <Column header="Institutional Narrative" style="min-width: 350px">
+                        <Column header="Description" style="min-width: 350px">
                             <template #body="{ data }">
                                 <p class="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-2">
-                                    {{ data.description || 'No descriptive narrative has been assigned to this classification tier.' }}
+                                    {{ data.description || 'No description available.' }}
                                 </p>
                             </template>
                         </Column>
 
-                        <Column header="Logic Density" style="width: 140px" class="text-center">
+                        <Column header="Linked Exams" style="width: 140px" class="text-center">
                             <template #body="{ data }">
-                                <Tag :value="data.exams_count + ' ACTIVE MATRICES'" class="text-[9px] font-black uppercase tracking-widest bg-rose-50 text-brand-primary border border-brand-primary/5 px-4 py-1.5 rounded-xl shadow-sm" />
+                                <Tag :value="data.exams_count + ' EXAMS'" class="text-[9px] font-black uppercase tracking-widest bg-rose-50 text-brand-primary border border-brand-primary/5 px-4 py-1.5 rounded-xl shadow-sm" />
                             </template>
                         </Column>
 
-                        <Column header="Operational Status" style="width: 140px" class="text-center">
+                        <Column header="Status" style="width: 140px" class="text-center">
                             <template #body="{ data }">
                                 <Tag :value="data.is_active ? 'ENABLED' : 'ARCHIVED'" 
                                      :severity="data.is_active ? 'success' : 'secondary'" 
@@ -147,7 +147,7 @@ onMounted(fetchCategories);
                         </Column>
 
                         <template #empty>
-                            <div class="p-16 text-center text-slate-300 font-bold uppercase tracking-widest text-xs italic">No classification discovery data in operational registry.</div>
+                            <div class="p-16 text-center text-slate-300 font-bold uppercase tracking-widest text-xs italic">No exam categories found.</div>
                         </template>
                     </DataTable>
                 </template>

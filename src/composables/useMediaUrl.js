@@ -56,7 +56,8 @@ export function useMediaUrl() {
             // إصلاح الروابط الغلط
             return path
                 .replace('/public/storage/', '/storage/')
-                .replace('/api/public/storage/', '/api/storage/');
+                .replace('/api/public/storage/', '/api/storage/')
+                .replace('alpt.arabacademy.com/storage/', 'alpt.arabacademy.com/api/storage/');
         }
 
         // relative path
