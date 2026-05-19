@@ -89,6 +89,33 @@ const currentSkillMaxLevel = computed(() => {
     return selectedSkill && selectedSkill.levels_count > 0 ? selectedSkill.levels_count : 9;
 });
 
+// Writing & Speaking skills — detected by short_code OR skill name
+const isProductiveSkill = computed(() => {
+    if (!form.value.skill_id) return false;
+    const skill = filteredSkills.value.find(s => s.id === form.value.skill_id)
+        || skills.value.find(s => s.id === form.value.skill_id);
+    if (!skill) return false;
+    const code = (skill.short_code || '').toUpperCase();
+    const name = (skill.name || '').toLowerCase();
+    // Match common short_codes OR check if name contains writing/speaking
+    return ['W', 'S', 'WR', 'SP', 'WRIT', 'SPEAK', 'WRITING', 'SPEAKING'].includes(code)
+        || name.includes('writ') || name.includes('speak');
+});
+
+const selectedSkillMaxPoints = computed(() => {
+    const skill = filteredSkills.value.find(s => s.id === form.value.skill_id);
+    return skill?.pivot?.max_points ?? 0;
+});
+
+const currentTotalPoints = computed(() =>
+    form.value.questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0)
+);
+
+const remainingPointsBudget = computed(() => {
+    if (!selectedSkillMaxPoints.value || !isProductiveSkill.value) return null;
+    return selectedSkillMaxPoints.value - currentTotalPoints.value;
+});
+
 watch(() => form.value.exam_id, (newVal) => {
     if (newVal) {
         const isValid = filteredSkills.value.some(s => s.id === form.value.skill_id);
@@ -313,8 +340,18 @@ const saveBatch = async () => {
         showAlert('Please select a Skill.', 'Validation Warning', 'warning');
         return;
     }
-    if (!form.value.level_id) {
+    // Level is not required for writing/speaking skills
+    if (!form.value.level_id && !isProductiveSkill.value) {
         showAlert('Please select a Difficulty Level first.', 'Validation Warning', 'warning');
+        return;
+    }
+
+    // Points budget check for productive skills
+    if (isProductiveSkill.value && selectedSkillMaxPoints.value > 0 && remainingPointsBudget.value < 0) {
+        showAlert(
+            `Total question points (${currentTotalPoints.value}) exceed the skill cap of ${selectedSkillMaxPoints.value} pts.`,
+            'Points Limit Exceeded', 'danger'
+        );
         return;
     }
 
@@ -325,7 +362,7 @@ const saveBatch = async () => {
         const fd = new FormData();
         fd.append('skill_id', form.value.skill_id);
         fd.append('exam_id', form.value.exam_id);
-        fd.append('level_id', form.value.level_id);
+        if (form.value.level_id) fd.append('level_id', form.value.level_id);
         fd.append('passage_mode', form.value.passage_mode);
 
         if (form.value.passage_mode === 'existing') {
@@ -454,11 +491,12 @@ const editorModules = {
                                 class="w-full rounded-2xl border-none shadow-sm h-14 flex items-center px-4 bg-white"
                                 :disabled="!form.exam_id" :key="form.exam_id" />
                         </div>
-                        <div class="flex flex-col">
+                        <!-- Level Selector — hidden for writing/speaking skills -->
+                        <div v-if="!isProductiveSkill" class="flex flex-col">
                             <label class="text-xs font-black text-slate-500 mb-2 ml-2 uppercase tracking-wider">
-                                Difficulty Level <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{
-                                    form.level_id }})</span><span v-else
-                                    class="text-rose-500 font-extrabold">(Required)</span>
+                                Difficulty Level
+                                <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{ form.level_id }})</span>
+                                <span v-else class="text-rose-500 font-extrabold">(Required)</span>
                             </label>
                             <div class="flex flex-wrap gap-2 mt-2 ml-2">
                                 <button v-for="lvl in currentSkillMaxLevel" :key="lvl" type="button"
@@ -468,13 +506,42 @@ const editorModules = {
                                     {{ lvl }}
                                 </button>
                             </div>
-                            <div
-                                class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
+                            <div class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
                                 <span>Beginner (Level 1)</span>
                                 <span>Expert (Level {{ currentSkillMaxLevel }})</span>
                             </div>
                         </div>
+
+                        <!-- Points Budget Panel — writing/speaking skills only -->
+                        <div v-if="isProductiveSkill && form.skill_id" class="flex flex-col justify-center">
+                            <label class="text-xs font-black text-slate-500 mb-2 ml-2 uppercase tracking-wider">
+                                Points Budget
+                            </label>
+                            <div v-if="selectedSkillMaxPoints > 0"
+                                class="rounded-2xl p-4 border-2 flex items-center justify-between transition-colors"
+                                :class="remainingPointsBudget < 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'">
+                                <div>
+                                    <p class="text-[10px] font-black uppercase tracking-widest"
+                                        :class="remainingPointsBudget < 0 ? 'text-rose-500' : 'text-emerald-600'">
+                                        {{ remainingPointsBudget < 0 ? '⚠️ Over Budget' : '✅ Remaining' }}
+                                    </p>
+                                    <p class="text-2xl font-black mt-1"
+                                        :class="remainingPointsBudget < 0 ? 'text-rose-600' : 'text-emerald-700'">
+                                        {{ remainingPointsBudget }} <span class="text-sm font-bold">pts</span>
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-black text-slate-400 uppercase">Skill Cap</p>
+                                    <p class="text-lg font-black text-slate-600">{{ selectedSkillMaxPoints }} pts</p>
+                                </div>
+                            </div>
+                            <div v-else class="rounded-2xl p-4 bg-amber-50 border-2 border-amber-200">
+                                <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest">⚠️ No Cap Set</p>
+                                <p class="text-xs text-amber-500 mt-1">No max points limit configured for this skill in this exam.</p>
+                            </div>
+                        </div>
                     </div>
+
                 </template>
             </Card>
 

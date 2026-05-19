@@ -224,7 +224,7 @@ const adminRoutes = [
     meta: { title: 'Manual Grading' }
   },
   {
-    path: '/admin/grading/:id',
+    path: '/admin/grading/attempt/:id',
     name: 'admin.grading.show',
     component: () => import('@/views/admin/Grading/Show.vue'),
     meta: { title: 'Correction Desk' }

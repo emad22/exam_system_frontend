@@ -91,6 +91,33 @@ const currentSkillMaxLevel = computed(() => {
     return selectedSkill && selectedSkill.levels_count > 0 ? selectedSkill.levels_count : 9;
 });
 
+// Writing & Speaking skills — detected by short_code OR skill name
+const isProductiveSkill = computed(() => {
+    if (!form.value.skill_id) return false;
+    const skill = filteredSkills.value.find(s => s.id === form.value.skill_id)
+        || skills.value.find(s => s.id === form.value.skill_id);
+    if (!skill) return false;
+    const code = (skill.short_code || '').toUpperCase();
+    const name = (skill.name || '').toLowerCase();
+    return ['W', 'S', 'WR', 'SP', 'WRIT', 'SPEAK', 'WRITING', 'SPEAKING'].includes(code)
+        || name.includes('writ') || name.includes('speak');
+});
+
+const selectedSkillMaxPoints = computed(() => {
+    const skill = filteredSkills.value.find(s => s.id === form.value.skill_id);
+    return skill?.pivot?.max_points ?? 0;
+});
+
+const currentTotalPoints = computed(() =>
+    form.value.questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0)
+);
+
+const remainingPointsBudget = computed(() => {
+    if (!selectedSkillMaxPoints.value || !isProductiveSkill.value) return null;
+    return selectedSkillMaxPoints.value - currentTotalPoints.value;
+});
+
+
 watch(() => form.value.exam_id, (newVal, oldVal) => {
     if (oldVal && newVal !== oldVal) {
         const isValid = filteredSkills.value.some(s => s.id === form.value.skill_id);
@@ -412,8 +439,18 @@ const updateBatch = async () => {
         showAlert('Skill selection is required.', 'Validation Warning', 'warning');
         return;
     }
-    if (!form.value.level_id) {
+    // Level not required for writing/speaking skills
+    if (!form.value.level_id && !isProductiveSkill.value) {
         showAlert('Difficulty selection is required.', 'Validation Warning', 'warning');
+        return;
+    }
+
+    // Points budget check for productive skills
+    if (isProductiveSkill.value && selectedSkillMaxPoints.value > 0 && remainingPointsBudget.value < 0) {
+        showAlert(
+            `Total question points (${currentTotalPoints.value}) exceed the skill cap of ${selectedSkillMaxPoints.value} pts.`,
+            'Points Limit Exceeded', 'danger'
+        );
         return;
     }
 
@@ -425,7 +462,7 @@ const updateBatch = async () => {
         fd.append('_method', 'PATCH');
         fd.append('skill_id', form.value.skill_id);
         fd.append('exam_id', form.value.exam_id);
-        fd.append('level_id', form.value.level_id);
+        if (form.value.level_id) fd.append('level_id', form.value.level_id);
         fd.append('passage_mode', form.value.passage_mode);
 
         if (form.value.passage_mode === 'existing') {
@@ -573,11 +610,12 @@ const editorModules = {
                                 :disabled="!form.exam_id" :key="form.exam_id" />
                         </div>
 
-                        <div class="flex flex-col">
+                        <!-- Level Selector — hidden for writing/speaking skills -->
+                        <div v-if="!isProductiveSkill" class="flex flex-col">
                             <label class="text-xs font-black text-slate-500 mb-2 ml-2 uppercase tracking-wider">
-                                Difficulty Level <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{
-                                    form.level_id }})</span><span v-else
-                                    class="text-rose-500 font-extrabold">(Required)</span>
+                                Difficulty Level
+                                <span v-if="form.level_id" class="text-indigo-500 font-extrabold">({{ form.level_id }})</span>
+                                <span v-else class="text-rose-500 font-extrabold">(Required)</span>
                             </label>
                             <div class="flex flex-wrap gap-2 mt-2 ml-2">
                                 <button v-for="lvl in currentSkillMaxLevel" :key="lvl" type="button"
@@ -587,13 +625,40 @@ const editorModules = {
                                     {{ lvl }}
                                 </button>
                             </div>
-                            <div
-                                class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
+                            <div class="flex justify-between text-[9px] text-slate-400 font-black mt-3 ml-2 uppercase tracking-widest">
                                 <span>Beginner (Level 1)</span>
                                 <span>Expert (Level {{ currentSkillMaxLevel }})</span>
                             </div>
                         </div>
+
+                        <!-- Points Budget — writing/speaking skills only -->
+                        <div v-if="isProductiveSkill && form.skill_id" class="flex flex-col justify-center">
+                            <label class="text-xs font-black text-slate-500 mb-2 ml-2 uppercase tracking-wider">Points Budget</label>
+                            <div v-if="selectedSkillMaxPoints > 0"
+                                class="rounded-2xl p-4 border-2 flex items-center justify-between transition-colors"
+                                :class="remainingPointsBudget < 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'">
+                                <div>
+                                    <p class="text-[10px] font-black uppercase tracking-widest"
+                                        :class="remainingPointsBudget < 0 ? 'text-rose-500' : 'text-emerald-600'">
+                                        {{ remainingPointsBudget < 0 ? '⚠️ Over Budget' : '✅ Remaining' }}
+                                    </p>
+                                    <p class="text-2xl font-black mt-1"
+                                        :class="remainingPointsBudget < 0 ? 'text-rose-600' : 'text-emerald-700'">
+                                        {{ remainingPointsBudget }} <span class="text-sm font-bold">pts</span>
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-black text-slate-400 uppercase">Skill Cap</p>
+                                    <p class="text-lg font-black text-slate-600">{{ selectedSkillMaxPoints }} pts</p>
+                                </div>
+                            </div>
+                            <div v-else class="rounded-2xl p-4 bg-amber-50 border-2 border-amber-200">
+                                <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest">⚠️ No Cap Set</p>
+                                <p class="text-xs text-amber-500 mt-1">No max points limit configured for this skill in this exam.</p>
+                            </div>
+                        </div>
                     </div>
+
                 </template>
             </Card>
 
@@ -1055,50 +1120,68 @@ const editorModules = {
                             <!-- Parameters: Sidebar -->
                             <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'lg:col-span-12' : 'lg:col-span-4'"
                                 class="flex flex-col space-y-6 bg-slate-50/80 p-8 rounded-[2.5rem] border border-slate-100/50 self-start">
-                                <div class="flex items-center gap-3">
-                                    <i class="pi pi-calculator text-indigo-400"></i>
-                                    <label class="text-xs font-black text-slate-600 uppercase tracking-wide">Scoring &
-                                        Parameters</label>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                            <i class="pi pi-calculator text-lg"></i>
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-black text-slate-800 uppercase tracking-wide block">Scoring & Parameters</label>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase">Define weight and constraints</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="grid grid-cols-1 gap-6 mt-4">
-                                    <div class="flex flex-col">
-                                        <label
-                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Sort
-                                            Order</label>
+
+                                <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10' : 'grid grid-cols-1 gap-8 mt-4'">
+                                    <!-- Sort Order -->
+                                    <div class="flex flex-col gap-3">
+                                        <div class="flex items-center gap-2 ml-1">
+                                            <i class="pi pi-sort-alt text-[10px] text-slate-400"></i>
+                                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Display Order</label>
+                                        </div>
                                         <InputNumber v-model="q.sort_order" :min="0" showButtons
-                                            buttonLayout="horizontal" class="w-full h-10"
-                                            inputClass="text-center font-black text-slate-600 bg-slate-50/50 border-none rounded-xl"
-                                            incrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-r-xl"
-                                            decrementButtonClass="bg-slate-100/50 text-slate-400 border-none rounded-l-xl"
+                                            buttonLayout="horizontal" class="w-full h-12"
+                                            inputClass="text-center font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all"
+                                            incrementButtonClass="bg-slate-50 text-slate-400 border-none rounded-r-2xl"
+                                            decrementButtonClass="bg-slate-50 text-slate-400 border-none rounded-l-2xl"
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-                                    <div class="flex flex-col">
-                                        <label
-                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Points</label>
+
+                                    <!-- Points -->
+                                    <div class="flex flex-col gap-3">
+                                        <div class="flex items-center gap-2 ml-1">
+                                            <i class="pi pi-star text-[10px] text-emerald-400"></i>
+                                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Question Points</label>
+                                        </div>
                                         <InputNumber v-model="q.points" :min="1" showButtons buttonLayout="horizontal"
-                                            class="w-full h-10"
-                                            inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-none rounded-xl"
-                                            incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-xl"
-                                            decrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-l-xl"
+                                            class="w-full h-12"
+                                            inputClass="text-center font-black text-emerald-600 bg-emerald-50/30 border-2 border-emerald-100 rounded-2xl focus:border-emerald-400 transition-all"
+                                            incrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-r-2xl"
+                                            decrementButtonClass="bg-emerald-50 text-emerald-400 border-none rounded-l-2xl"
                                             incrementButtonIcon="pi pi-plus text-[8px]"
                                             decrementButtonIcon="pi pi-minus text-[8px]" />
                                     </div>
-                                    <div v-if="q.type === 'writing'"
-                                        class="space-y-4 pt-4 border-t border-slate-200/50">
-                                        <div class="flex flex-col">
-                                            <label
-                                                class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Min
-                                                Words</label>
-                                            <InputNumber v-model="q.min_words" placeholder="0" class="w-full" />
+
+                                    <!-- Writing Specific: Min & Max Words -->
+                                    <template v-if="q.type === 'writing'">
+                                        <div class="flex flex-col gap-3">
+                                            <div class="flex items-center gap-2 ml-1">
+                                                <i class="pi pi-minus-circle text-[10px] text-orange-400"></i>
+                                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Min Words</label>
+                                            </div>
+                                            <InputNumber v-model="q.min_words" placeholder="e.g. 150" class="w-full h-12"
+                                                inputClass="font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl px-6 focus:border-orange-400 transition-all" />
                                         </div>
-                                        <div class="flex flex-col">
-                                            <label
-                                                class="text-[10px] font-black text-slate-400 mb-2 ml-1 uppercase tracking-widest">Max
-                                                Words</label>
-                                            <InputNumber v-model="q.max_words" placeholder="200" class="w-full" />
+                                        <div class="flex flex-col gap-3">
+                                            <div class="flex items-center gap-2 ml-1">
+                                                <i class="pi pi-plus-circle text-[10px] text-rose-400"></i>
+                                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Max Words</label>
+                                            </div>
+                                            <InputNumber v-model="q.max_words" placeholder="e.g. 250" class="w-full h-12"
+                                                inputClass="font-black text-slate-700 bg-white border-2 border-slate-100 rounded-2xl px-6 focus:border-rose-400 transition-all" />
                                         </div>
-                                    </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>

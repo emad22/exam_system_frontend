@@ -83,6 +83,7 @@ onMounted(async () => {
                         skill_id: skill.id,
                         duration: skill.pivot.duration,
                         is_optional: !!skill.pivot.is_optional,
+                        max_points: skill.pivot.max_points || 0,
                         rules: (exam.question_rules || []).filter(r => r.skill_id === skill.id).map(r => ({
                             level_id: r.level_id,
                             quantity: r.quantity,
@@ -152,7 +153,7 @@ const prevStep = () => { if (currentStep.value > 1) currentStep.value--; };
 const toggleSkill = (skillId) => {
     const idx = form.value.selectedSkills.findIndex(s => s.skill_id === skillId);
     if (idx === -1) {
-        form.value.selectedSkills.push({ skill_id: skillId, duration: 30, is_optional: false });
+        form.value.selectedSkills.push({ skill_id: skillId, duration: 30, is_optional: false, max_points: 0 });
     } else {
         form.value.selectedSkills.splice(idx, 1);
     }
@@ -179,7 +180,10 @@ const isSavingLevels = ref(false);
 const isLeveledSkill = (skill) => {
     if (!skill) return false;
     const code = (skill.short_code || '').toUpperCase();
-    return !['W', 'S'].includes(code);
+    const name = (skill.name || '').toLowerCase();
+    const isProductive = ['W', 'S', 'WR', 'SP', 'WRIT', 'SPEAK', 'WRITING', 'SPEAKING'].includes(code)
+        || name.includes('writ') || name.includes('speak');
+    return !isProductive;
 };
 
 const openLevelManager = async (skill) => {
@@ -431,7 +435,8 @@ const saveExam = async () => {
         const skills = form.value.selectedSkills.map(s => ({
             skill_id: s.skill_id,
             duration: s.duration,
-            is_optional: s.is_optional
+            is_optional: s.is_optional,
+            max_points: s.max_points || 0,
         }));
 
         const payload = {
@@ -595,22 +600,35 @@ const saveExam = async () => {
                             </div>
                         </div>
 
-                        <!-- Compact Duration Control -->
-                        <div v-if="isSkillSelected(skill.id)" 
-                            class="flex items-center space-x-6 bg-slate-50/50 px-6 py-3 rounded-2xl border border-slate-100 animate-in slide-in-from-right-4 duration-500">
+                        <!-- Compact Duration + Max Points Control -->
+                        <div v-if="isSkillSelected(skill.id)"
+                            class="flex items-center space-x-4 bg-slate-50/50 px-4 py-3 rounded-2xl border border-slate-100 animate-in slide-in-from-right-4 duration-500">
+                            <!-- Duration -->
                             <div class="flex flex-col">
                                 <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Time Limit</span>
-                                <div class="flex items-center space-x-4">
-                                    <button @click.stop="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))" 
+                                <div class="flex items-center space-x-3">
+                                    <button @click.stop="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))"
                                         class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg transition-all">
                                         <i class="pi pi-minus text-[8px]"></i>
                                     </button>
                                     <span class="text-xs font-black text-slate-900 w-8 text-center tabular-nums">{{ getSkillDuration(skill.id) }}</span>
-                                    <button @click.stop="setSkillDuration(skill.id, Math.min(120, getSkillDuration(skill.id) + 5))" 
+                                    <button @click.stop="setSkillDuration(skill.id, Math.min(120, getSkillDuration(skill.id) + 5))"
                                         class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg transition-all">
                                         <i class="pi pi-plus text-[8px]"></i>
                                     </button>
                                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">min</span>
+                                </div>
+                            </div>
+
+                            <!-- Max Points — only for W/S skills -->
+                            <div v-if="!isLeveledSkill(skill)" class="flex flex-col border-l border-slate-200 pl-4">
+                                <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Max Points</span>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" min="0" step="50"
+                                        :value="form.selectedSkills.find(s => s.skill_id === skill.id)?.max_points || 0"
+                                        @input="e => { const s = form.selectedSkills.find(x => x.skill_id === skill.id); if(s) s.max_points = parseInt(e.target.value) || 0; }"
+                                        class="w-20 h-7 text-center text-sm font-black text-indigo-600 bg-white border-2 border-indigo-100 rounded-xl focus:border-indigo-400 outline-none transition-all" />
+                                    <span class="text-[8px] font-black text-slate-400 uppercase">pts</span>
                                 </div>
                             </div>
                         </div>
@@ -650,13 +668,20 @@ const saveExam = async () => {
                             <div class="space-y-4">
                                 <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Active Modalities</h5>
                                 <div class="grid grid-cols-1 gap-3">
-                                    <div v-for="selected in form.selectedSkills" :key="selected.skill_id" 
+                                    <div v-for="selected in form.selectedSkills" :key="selected.skill_id"
                                         class="flex justify-between items-center bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
                                         <div class="flex items-center space-x-3">
                                             <span class="text-lg">{{ availableSkills.find(s => s.id === selected.skill_id)?.icon }}</span>
                                             <span class="text-[11px] font-black text-slate-700 uppercase">{{ availableSkills.find(s => s.id === selected.skill_id)?.name }}</span>
                                         </div>
-                                        <span class="text-[10px] font-black text-brand-primary bg-white px-3 py-1 rounded-lg shadow-sm border border-brand-primary/10">{{ selected.duration }}m</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[10px] font-black text-brand-primary bg-white px-3 py-1 rounded-lg shadow-sm border border-brand-primary/10">{{ selected.duration }}m</span>
+                                            <!-- Max Points badge — Writing/Speaking only -->
+                                            <span v-if="!isLeveledSkill(availableSkills.find(s => s.id === selected.skill_id))"
+                                                class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg shadow-sm border border-indigo-100">
+                                                {{ selected.max_points || 0 }} pts cap
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

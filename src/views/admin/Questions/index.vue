@@ -56,16 +56,17 @@ const questionTypeMeta = {
     word_selection: { label: 'Word Select', severity: 'info',     icon: 'pi-cursor-click', color: 'bg-sky-500' },
 };
 
-const deleteItem = (id) => {
-    showConfirm('Delete this question? This action cannot be undone.', 'Delete Question', async () => {
+const deleteItem = async (id) => {
+    const confirmed = await showConfirm('Delete this question? This action cannot be undone.', 'Delete Question', 'danger');
+    if (confirmed) {
         try {
             await api.delete(`/admin/questions/${id}`);
             fetchData();
+            showAlert('Question deleted successfully.', 'Success', 'success');
         } catch (err) {
             showAlert('Failed to delete question.', 'Error', 'error');
         }
-    });
-    
+    }
 };
 
 const fetchData = async () => {
