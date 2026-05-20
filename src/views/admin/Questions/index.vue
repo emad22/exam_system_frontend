@@ -18,7 +18,6 @@ import ProgressSpinner from 'primevue/progressspinner';
 import Textarea from 'primevue/textarea';
 import Tooltip from 'primevue/tooltip';
 
-
 const vTooltip = Tooltip;
 const questions = ref([]);
 const { showAlert, showConfirm } = useModal();
@@ -39,32 +38,216 @@ const instructionsAudioFile = ref(null);
 const isSavingInst = ref(false);
 const skillsWithLevels = ref([]);
 
+const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
 
+const toggleLang = () => {
+    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
+    localStorage.setItem('dashboard_lang', currentLang.value);
+};
+
+// View Mode State
+const viewMode = ref(localStorage.getItem('questions_view_mode') || 'table');
+const setViewMode = (mode) => {
+    viewMode.value = mode;
+    localStorage.setItem('questions_view_mode', mode);
+};
+
+const t = {
+    ar: {
+        loading: "جاري تحميل بنك الأسئلة الشامل...",
+        title: "بنك الأسئلة الشامل",
+        subtitle: "تصميم وإدارة عناصر الأسئلة الإدراكية والتكيفية، وتوزيعها عبر المستويات والمهارات المختلفة",
+        createBtn: "سؤال جديد",
+        levelGuides: "أدلة المستويات",
+        placeholderSearch: "البحث بنص السؤال أو الكلمات المفتاحية...",
+        colId: "#",
+        colQuestionContent: "نص السؤال ومحتواه",
+        colType: "نوع السؤال",
+        colLevel: "المستوى",
+        colSkill: "المهارة",
+        colPoints: "النقاط",
+        colAuthorship: "المنشئ والمحرر",
+        colActions: "إجراءات",
+        emptyTelemetry: "لا توجد أسئلة مسجلة مطابقة لمعايير البحث الحالية...",
+        confirmDelete: "حذف هذا السؤال؟ لا يمكن التراجع عن هذا الإجراء لاحقاً.",
+        deleted: "تم الحذف",
+        questionRemoved: "تم حذف السؤال بنجاح من بنك الأسئلة.",
+        error: "خطأ",
+        failedDelete: "فشل حذف السؤال.",
+        cognitiveAssets: "عنصر معرفي مدار",
+        allExams: "جميع الاختبارات",
+        allSkills: "كل المهارات",
+        allTypes: "جميع الأنواع",
+        allLevels: "جميع المستويات",
+        examFilter: "الاختبار",
+        skillFilter: "المهارة",
+        typeFilter: "النوع",
+        levelFilter: "المستوى",
+        resetFilters: "إعادة ضبط الفلاتر",
+        zeroResults: "لم يتم العثور على نتائج",
+        adjustFilters: "يرجى تعديل معايير البحث أو التصفية للتضييق والوصول لما تريد",
+        clearParams: "تصفية الفلاتر والبحث",
+        system: "النظام",
+        lastEditedBy: "آخر تعديل بواسطة",
+        noTextContent: "لا يوجد محتوى نصي",
+        levelGuidesTitle: "أدلة مستويات القياس",
+        levelGuidesSubtitle: "تخصيص الإرشادات والنصوص والملفات الصوتية التوجيهية لكل مستوى تكيفي",
+        textualGuidance: "التوجيه والنصوص الإرشادية للطلاب",
+        textualGuidancePlaceholder: "اكتب هنا الإرشادات التي تظهر للطلاب عند دخول هذا المستوى التكيفي...",
+        audioNarration: "التوجيه الصوتي / الملفات الصوتية المرفقة",
+        noAudio: "لا يتوفر ملف توجيه صوتي مسجل حالياً للمستوى.",
+        uploadAudio: "رفع ملف صوتي",
+        changeAudio: "تغيير الملف الصوتي",
+        audioSelected: "تم تحديد ملف صوتي جديد للرفع:",
+        appliedChangesMsg: "تطبيق التغييرات فورياً على جميع الطلاب المسجلين في هذا المستوى.",
+        discard: "إلغاء وتجاهل",
+        pushChanges: "حفظ وتطبيق التغييرات",
+        
+        // Redesign labels
+        statsTitle: "نظرة عامة على البيانات",
+        statsTotalQuestions: "إجمالي بنك الأسئلة",
+        statsMcqCount: "أسئلة الاختيار من متعدد",
+        statsInteractiveCount: "الأسئلة الشفهية/التعبيرية",
+        statsAvgPoints: "متوسط نقاط الصعوبة",
+        viewTable: "عرض جدول",
+        viewGrid: "عرض كروت",
+        questionDetail: "تفاصيل السؤال",
+        passageAssoc: "النص المرتبط",
+        notSpecified: "غير محدد",
+        pointsLabel: "نقاط",
+        createdByLabel: "أنشئ بواسطة",
+        updatedByLabel: "عدل بواسطة",
+        activeTier: "المستوى النشط",
+        selectLevelPrompt: "يرجى اختيار مستوى من القائمة لتعديله",
+        searchLabel: "بحث",
+    },
+    en: {
+        loading: "Accessing Matrix Repository...",
+        title: "Comprehensive Question Bank",
+        subtitle: "Manage adaptive exam items, multi-tier prompts, and cognitive assets across domains.",
+        createBtn: "Add New Question",
+        // levelGuides: "Level Guides",
+        placeholderSearch: "Search by content or keywords...",
+        colId: "#",
+        colQuestionContent: "Question Content",
+        colType: "Type",
+        colLevel: "Level",
+        colSkill: "Skill",
+        colPoints: "Points",
+        colAuthorship: "Authorship",
+        colActions: "Actions",
+        emptyTelemetry: "No matching questions discovered in current registry filter.",
+        confirmDelete: "Delete this question? This action cannot be undone.",
+        deleted: "Success",
+        questionRemoved: "Question deleted successfully.",
+        error: "Error",
+        failedDelete: "Failed to delete question.",
+        cognitiveAssets: "Cognitive Assets Managed",
+        allExams: "All Exams",
+        allSkills: "All Skills",
+        allTypes: "All Types",
+        allLevels: "All Levels",
+        examFilter: "Exam",
+        skillFilter: "Skill",
+        typeFilter: "Type",
+        levelFilter: "Level",
+        resetFilters: "Reset Filters",
+        zeroResults: "Zero Results Found",
+        adjustFilters: "Adjust your filters to refine the search",
+        clearParams: "Clear All Parameters",
+        system: "System",
+        lastEditedBy: "Last edited by",
+        noTextContent: "No text content",
+        // levelGuidesTitle: "Master Level Guides",
+        levelGuidesSubtitle: "Configure cognitive tier instructions and media",
+        textualGuidance: "Textual Guidance",
+        textualGuidancePlaceholder: "Provide clear instructions for students entering this difficulty tier...",
+        audioNarration: "Audio Narration",
+        noAudio: "No audio instruction currently set.",
+        uploadAudio: "Upload Audio",
+        changeAudio: "Change File",
+        audioSelected: "New file selected:",
+        appliedChangesMsg: "Changes will be applied immediately to all students in this level.",
+        discard: "Discard",
+        pushChanges: "Push Changes",
+        
+        // Redesign labels
+        statsTitle: "Core Telemetry Overview",
+        statsTotalQuestions: "Total Bank Size",
+        statsMcqCount: "Multiple Choice Items",
+        statsInteractiveCount: "Speaking & Writing Tasks",
+        statsAvgPoints: "Average Difficulty Points",
+        viewTable: "Table Mode",
+        viewGrid: "Card Grid Mode",
+        questionDetail: "Question Detail",
+        passageAssoc: "Passage Context",
+        notSpecified: "N/A",
+        createdByLabel: "Created by",
+        updatedByLabel: "Updated by",
+        activeTier: "Active Difficulty Tier",
+        selectLevelPrompt: "Please select a difficulty level to configure",
+        searchLabel: "Search",
+    }
+};
 
 const questionTypeMeta = {
-    mcq:          { label: 'MCQ',          severity: 'info',      icon: 'pi-check-square', color: 'bg-blue-500' },
-    true_false:   { label: 'True / False', severity: 'warn',      icon: 'pi-verified',     color: 'bg-orange-500' },
-    short_answer: { label: 'Short Answer', severity: 'success',   icon: 'pi-pencil',       color: 'bg-emerald-500' },
-    writing:      { label: 'Writing',      severity: 'contrast',  icon: 'pi-file-edit',    color: 'bg-slate-700' },
-    speaking:     { label: 'Speaking',     severity: 'danger',    icon: 'pi-microphone',   color: 'bg-rose-500' },
-    upload:       { label: 'Upload',       severity: 'secondary', icon: 'pi-upload',       color: 'bg-purple-500' },
-    drag_drop:    { label: 'Drag & Drop',  severity: 'info',      icon: 'pi-arrows-alt',   color: 'bg-cyan-500' },
-    fill_blank:   { label: 'Fill Blanks',  severity: 'warn',      icon: 'pi-minus',        color: 'bg-amber-500' },
-    matching:     { label: 'Matching',     severity: 'success',   icon: 'pi-list',         color: 'bg-teal-500' },
-    ordering:     { label: 'Ordering',     severity: 'help',      icon: 'pi-sort-numeric-down', color: 'bg-indigo-500' },
-    highlight:    { label: 'Highlight',    severity: 'warn',      icon: 'pi-sun',          color: 'bg-yellow-500' },
-    word_selection: { label: 'Word Select', severity: 'info',     icon: 'pi-cursor-click', color: 'bg-sky-500' },
+    mcq:            { severity: 'info',      icon: 'pi pi-check-square',    color: 'bg-blue-500 text-white',      borderColor: 'border-blue-200 bg-blue-50/50 text-blue-600' },
+    true_false:     { severity: 'warn',      icon: 'pi pi-verified',        color: 'bg-orange-500 text-white',    borderColor: 'border-orange-200 bg-orange-50/50 text-orange-600' },
+    short_answer:   { severity: 'success',   icon: 'pi pi-pencil',          color: 'bg-emerald-500 text-white',   borderColor: 'border-emerald-200 bg-emerald-50/50 text-emerald-600' },
+    writing:        { severity: 'contrast',  icon: 'pi pi-file-edit',       color: 'bg-slate-700 text-white',     borderColor: 'border-slate-200 bg-slate-100 text-slate-700' },
+    speaking:       { severity: 'danger',    icon: 'pi pi-microphone',      color: 'bg-rose-500 text-white',      borderColor: 'border-rose-200 bg-rose-50/50 text-rose-600' },
+    upload:         { severity: 'secondary', icon: 'pi pi-upload',          color: 'bg-purple-500 text-white',    borderColor: 'border-purple-200 bg-purple-50/50 text-purple-600' },
+    drag_drop:      { severity: 'info',      icon: 'pi pi-arrows-alt',      color: 'bg-cyan-500 text-white',      borderColor: 'border-cyan-200 bg-cyan-50/50 text-cyan-600' },
+    fill_blank:     { severity: 'warn',      icon: 'pi pi-minus',           color: 'bg-amber-500 text-white',     borderColor: 'border-amber-200 bg-amber-50/50 text-amber-600' },
+    matching:       { severity: 'success',   icon: 'pi pi-list',            color: 'bg-teal-500 text-white',      borderColor: 'border-teal-200 bg-teal-50/50 text-teal-600' },
+    ordering:       { severity: 'help',      icon: 'pi pi-sort-numeric-down', color: 'bg-indigo-500 text-white',   borderColor: 'border-indigo-200 bg-indigo-50/50 text-indigo-600' },
+    highlight:      { severity: 'warn',      icon: 'pi pi-sun',             color: 'bg-yellow-500 text-slate-800',borderColor: 'border-yellow-200 bg-yellow-50/50 text-yellow-700' },
+    word_selection: { severity: 'info',      icon: 'pi pi-cursor-click',    color: 'bg-sky-500 text-white',       borderColor: 'border-sky-200 bg-sky-50/50 text-sky-600' },
+};
+
+const getQuestionTypeLabel = (type) => {
+    const labels = {
+        ar: {
+            mcq: 'اختيار من متعدد',
+            true_false: 'صح / خطأ',
+            short_answer: 'إجابة قصيرة',
+            writing: 'كتابة تعبيرية',
+            speaking: 'محادثة ونطق',
+            upload: 'رفع ملفات',
+            drag_drop: 'سحب وإفلات',
+            fill_blank: 'ملء فراغات',
+            matching: 'توصيل / مطابقة',
+            ordering: 'إعادة ترتيب',
+            highlight: 'تحديد الكلمات',
+            word_selection: 'اختيار كلمات'
+        },
+        en: {
+            mcq: 'MCQ',
+            true_false: 'True / False',
+            short_answer: 'Short Answer',
+            writing: 'Writing',
+            speaking: 'Speaking',
+            upload: 'Upload',
+            drag_drop: 'Drag & Drop',
+            fill_blank: 'Fill Blanks',
+            matching: 'Matching',
+            ordering: 'Ordering',
+            highlight: 'Highlight',
+            word_selection: 'Word Select'
+        }
+    };
+    return labels[currentLang.value]?.[type] || type;
 };
 
 const deleteItem = async (id) => {
-    const confirmed = await showConfirm('Delete this question? This action cannot be undone.', 'Delete Question', 'danger');
+    const confirmed = await showConfirm(t[currentLang.value].confirmDelete, t[currentLang.value].deleted, 'danger');
     if (confirmed) {
         try {
             await api.delete(`/admin/questions/${id}`);
             fetchData();
-            showAlert('Question deleted successfully.', 'Success', 'success');
+            showAlert(t[currentLang.value].questionRemoved, t[currentLang.value].deleted, 'success');
         } catch (err) {
-            showAlert('Failed to delete question.', 'Error', 'error');
+            showAlert(t[currentLang.value].failedDelete, t[currentLang.value].error, 'error');
         }
     }
 };
@@ -73,12 +256,11 @@ const fetchData = async () => {
     loading.value = true;
     try {
         const params = {};
-        if (filterSkill.value) params.skill_id = filterSkill.value;
         if (filterExam.value) params.exam_id = filterExam.value;
         if (filterLevel.value) params.level_id = filterLevel.value;
 
         const [qRes, sRes, eRes, slRes] = await Promise.all([
-            api.get('/admin/questions', { params }),
+            api.get('/admin/questions', { params }), // Load all skills globally for reactive counters
             api.get('/admin/skills'),
             api.get('/admin/exams'),
             api.get('/admin/skills-with-levels').catch(() => ({ data: [] }))
@@ -88,7 +270,7 @@ const fetchData = async () => {
         exams.value = eRes.data;
         skillsWithLevels.value = slRes.data;
     } catch (err) {
-       showAlert('Failed to load', 'Error', 'error');
+       showAlert(t[currentLang.value].loadingError || 'Failed to load data', t[currentLang.value].error, 'error');
     } finally {
         loading.value = false;
     }
@@ -128,10 +310,10 @@ const saveInstructions = async () => {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         fetchData();
-        showAlert('Instructions saved!', 'Success', 'success');
+        showAlert(t[currentLang.value].appliedChangesMsg || 'Instructions saved!', t[currentLang.value].deleted, 'success');
     } catch (err) {
         console.error('Save failed', err);
-        showAlert('Failed to save instructions.', 'Error', 'error');
+        showAlert(t[currentLang.value].failedSaveInstructions || 'Failed to save instructions.', t[currentLang.value].error, 'error');
     } finally {
         isSavingInst.value = false;
     }
@@ -139,8 +321,20 @@ const saveInstructions = async () => {
 
 const { resolveUrl } = useMediaUrl();
 
+// Dynamic counter for skill tab question counts
+const getSkillQuestionCount = (skillId) => {
+    if (!skillId) return questions.value.length;
+    return questions.value.filter(q => q.skill_id === skillId || q.skill?.id === skillId).length;
+};
+
 const filteredQuestions = computed(() => {
     let filtered = questions.value;
+    
+    // Client-side dynamic skill filter pivot
+    if (filterSkill.value) {
+        filtered = filtered.filter(q => q.skill_id === filterSkill.value || q.skill?.id === filterSkill.value);
+    }
+    
     if (filterType.value)  filtered = filtered.filter(q => q.type === filterType.value);
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase();
@@ -161,7 +355,25 @@ const filteredQuestions = computed(() => {
     });
 });
 
-watch([filterSkill, filterExam, filterLevel], () => {
+// Dynamic stats derived from the global question set
+const stats = computed(() => {
+    const total = questions.value.length;
+    const byType = {};
+    
+    
+    const mcqCount = byType['mcq'] || 0;
+    const speakingCount = byType['speaking'] || 0;
+    const writingCount = byType['writing'] || 0;
+    
+    return {
+        total,
+        mcqCount,
+        interactiveCount: speakingCount + writingCount,
+
+    };
+});
+
+watch([filterExam, filterLevel], () => {
     fetchData();
 });
 
@@ -170,307 +382,385 @@ onMounted(fetchData);
 
 <template>
   <AdminLayout>
-    <div class="min-h-screen bg-slate-50/50 pb-24">
-      <!-- Title & Filters Section (Sticky) -->
-      <div class="sticky top-[-40px] z-[100] bg-white border-b border-slate-200 shadow-lg shadow-slate-200/20 -mx-10 px-10 pt-16 pb-8 mb-10 transition-all duration-300">
-        <div class="max-w-[1600px] mx-auto space-y-8">
-          <!-- Header: Title + Actions -->
-          <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-5">
-              <div class="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-100 ring-4 ring-indigo-50">
-                <i class="pi pi-database text-white text-2xl"></i>
-              </div>
-              <div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-none uppercase">Question Bank</h1>
-                <p class="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-[0.3em] flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                  {{ filteredQuestions.length }} Cognitive Assets Managed
-                </p>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-3">
-              <Button label="Level Guides" icon="pi pi-book" severity="secondary" text @click="openInstructions" class="font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 px-6 py-4 rounded-xl" />
-              <Button label="Add New Question" icon="pi pi-plus" raised @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.create' : 'admin.questions.create' })" class="font-black text-[10px] uppercase tracking-widest px-10 h-14 shadow-2xl shadow-indigo-200 rounded-2xl" />
-            </div>
-          </div>
-
-          <!-- Filter Bar -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-50 p-3 rounded-[2rem] border border-slate-100 shadow-inner">
-            <div class="lg:col-span-4 relative group">
-              <i class="pi pi-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"></i>
-              <InputText v-model="searchQuery" placeholder="Search by content or keywords..." 
-                class="w-full pl-12 h-12 rounded-[1.5rem] bg-white border-transparent shadow-sm focus:border-indigo-500/20 transition-all font-bold text-xs" />
-            </div>
-
-            <div class="lg:col-span-8 flex flex-wrap items-center justify-end gap-3">
-              <Select v-model="filterExam" :options="[{title:'All Exams', id:null}, ...exams]" optionLabel="title" optionValue="id" placeholder="Exam" class="h-12 rounded-xl border-transparent shadow-sm min-w-[160px] text-[10px] font-black uppercase" />
-              <Select v-model="filterSkill" :options="[{name:'All Skills', id:null}, ...skills]" optionLabel="name" optionValue="id" placeholder="Skill" class="h-12 rounded-xl border-transparent shadow-sm min-w-[140px] text-[10px] font-black uppercase" />
-              <Select v-model="filterType" :options="[{label:'All Types', value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label:v.label, value:k}))]" optionLabel="label" optionValue="value" placeholder="Type" class="h-12 rounded-xl border-transparent shadow-sm min-w-[140px] text-[10px] font-black uppercase" />
-              <Select v-model="filterLevel" :options="[{label:'All Levels', value:null}, ...Array.from({length:10}, (_,i)=>({label:`Level ${i+1}`, value:i+1}))]" optionLabel="label" optionValue="value" placeholder="Level" class="h-12 rounded-xl border-transparent shadow-sm min-w-[120px] text-[10px] font-black uppercase" />
-              
-              <Button v-if="searchQuery || filterSkill || filterExam || filterLevel || filterType" 
-                icon="pi pi-filter-slash" severity="danger" rounded outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" 
-                v-tooltip.top="'Reset Filters'" class="h-12 w-12" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="max-w-[1600px] mx-auto px-6">
-        
-        <!-- Loading State -->
-        <div v-if="loading" class="flex flex-col items-center justify-center py-40">
-          <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
-          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-6">Accessing Matrix Repository...</p>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else-if="filteredQuestions.length === 0" class="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-dashed border-slate-200 gap-6">
-          <div class="w-24 h-24 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
-            <i class="pi pi-search text-5xl"></i>
-          </div>
-          <div class="text-center">
-            <h3 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Zero Results Found</h3>
-            <p class="text-slate-400 font-bold mt-2 uppercase text-[10px] tracking-widest">Adjust your filters to refine the search</p>
-          </div>
-          <Button label="Clear All Parameters" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" class="rounded-2xl font-black text-[10px] uppercase tracking-widest px-8" />
-        </div>
-
-        <!-- Content View (Table Only) -->
-        <div v-else class="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative z-0">
-          <DataTable :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm" responsiveLayout="scroll">
-            <Column header="#" style="width: 70px">
-              <template #body="{ data }"><span class="text-[10px] font-black text-slate-400">#{{ data.id }}</span></template>
-            </Column>
-            <Column header="Question Content" style="min-width: 400px">
-              <template #body="{ data }">
-                <div class="flex items-center gap-4 py-2">
-                  <div v-if="data.image_url" 
-                       class="rounded-xl overflow-hidden border border-slate-100 shrink-0"
-                       :class="{'w-12 h-12': !data.image_width && !data.image_height}"
-                       :style="data.image_width || data.image_height ? {
-                           width: data.image_width ? `${data.image_width}px` : 'auto',
-                           height: data.image_height ? `${data.image_height}px` : 'auto',
-                           maxWidth: '100%',
-                           maxHeight: '300px'
-                       } : {}">
-                    <img :src="resolveUrl(data.image_url)" class="w-full h-full object-cover" />
-                  </div>
-                  <div class="min-w-0">
-                    <div class="text-sm font-bold text-slate-700 truncate max-w-[350px]" v-html="data.content || '<span class=\'italic text-slate-300\'>No text content</span>'"></div>
-                    <div v-if="data.passage" class="flex items-center gap-1.5 mt-1">
-                      <i class="pi pi-book text-[9px] text-indigo-400"></i>
-                      <span class="text-[10px] font-bold text-slate-400 truncate">{{ data.passage.title }}</span>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </Column>
-            <Column header="Type">
-              <template #body="{ data }">
-                <Tag :value="questionTypeMeta[data.type]?.label" :severity="questionTypeMeta[data.type]?.severity" class="text-[9px] font-black uppercase rounded-lg px-2" />
-              </template>
-            </Column>
-            <Column header="Level">
-              <template #body="{ data }">
-                <span class="text-xs font-black text-slate-600">L{{ data.level?.level_number || data.level_id }}</span>
-              </template>
-            </Column>
-            <Column header="Skill">
-              <template #body="{ data }">
-                <span class="text-xs font-bold text-slate-500 uppercase">{{ data.skill?.name }}</span>
-              </template>
-            </Column>
-            <Column header="Points" class="text-center">
-              <template #body="{ data }">
-                <span class="text-sm font-black text-indigo-600">{{ data.points }}</span>
-              </template>
-            </Column>
-            <Column header="Authorship" style="width: 150px">
-              <template #body="{ data }">
-                <div class="flex flex-col gap-1">
-                  <div v-if="data.creator" class="flex items-center gap-1.5">
-                    <i class="pi pi-user text-[9px] text-slate-400"></i>
-                    <span class="text-[10px] font-bold text-slate-600 truncate max-w-[120px]" v-tooltip.top="`${data.creator.first_name} ${data.creator.last_name}`">
-                      {{ data.creator.first_name }} {{ data.creator.last_name }}
-                    </span>
-                  </div>
-                  <div v-if="data.updater && data.updated_by !== data.created_by" class="flex items-center gap-1.5 opacity-70">
-                    <i class="pi pi-pencil text-[9px] text-slate-400"></i>
-                    <span class="text-[10px] font-medium text-slate-500 truncate max-w-[120px]" v-tooltip.top="`Last edited by ${data.updater.first_name}`">
-                      {{ data.updater.first_name }}
-                    </span>
-                  </div>
-                  <span v-if="!data.creator" class="text-[9px] font-bold text-slate-300 italic">System</span>
-                </div>
-              </template>
-            </Column>
-            <Column style="width: 100px" class="text-right">
-              <template #body="{ data }">
-                <div class="flex justify-end gap-1">
-                  <Button icon="pi pi-pencil" severity="secondary" text size="small" @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.edit' : 'admin.questions.edit', params: { id: data.id } })" />
-                  <Button icon="pi pi-trash" severity="danger" text size="small" @click="deleteItem(data.id)" />
-                </div>
-              </template>
-            </Column>
-          </DataTable>
-        </div>
-      </div>
-
-      <!-- Level Instructions Modal (Refined) -->
-      <Dialog v-model:visible="showInstructionsModal" :style="{ width: '85vw' }" maximizable modal class="rounded-[3rem] overflow-hidden">
-        <template #header>
-          <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-              <i class="pi pi-book text-lg"></i>
-            </div>
-            <div>
-              <h3 class="text-xl font-black text-slate-800">Master Level Guides</h3>
-              <p class="text-xs font-bold text-slate-400 mt-0.5">Configure cognitive tier instructions and media</p>
-            </div>
-          </div>
-        </template>
-
-        <div class="flex flex-col lg:flex-row gap-8 py-6 h-full min-h-[60vh]">
-          <!-- Skill Navigation -->
-          <div class="w-full lg:w-80 bg-slate-50 rounded-3xl p-6 space-y-8 overflow-y-auto max-h-[70vh] border border-slate-100">
-            <div v-for="skill in skillsWithLevels" :key="skill.id" class="space-y-4">
-              <div class="flex items-center gap-2">
-                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>
-                <span class="text-xs font-black text-slate-800 uppercase tracking-widest">{{ skill.name }}</span>
-              </div>
-              <div class="grid grid-cols-4 gap-2">
-                <button v-for="level in skill.levels" :key="level.id"
-                  @click="selectedSkillForInst = skill; selectLevel(level)"
-                  :class="selectedLevelForInst?.id === level.id
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 ring-2 ring-indigo-600 ring-offset-2'
-                    : 'bg-white text-slate-400 hover:bg-white hover:text-indigo-600 hover:shadow-md border border-slate-100'"
-                  class="aspect-square rounded-xl flex items-center justify-center font-black text-[10px] transition-all duration-300">
-                  L{{ level.level_number }}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Configuration Editor -->
-          <div class="flex-1 space-y-8">
-            <div v-if="selectedLevelForInst" class="animate-in fade-in slide-in-from-right-4 duration-500">
-              <div class="flex items-center gap-3 mb-8 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
-                <span class="px-3 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase">Tier Active</span>
-                <h4 class="text-lg font-black text-indigo-900 uppercase tracking-tight">
-                  {{ selectedSkillForInst?.name }} <span class="mx-2 text-indigo-300">/</span> Level {{ selectedLevelForInst.level_number }}
-                </h4>
-              </div>
-
-              <div class="grid grid-cols-1 gap-8">
-                <div class="space-y-3">
-                  <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Textual Guidance</label>
-                  <Textarea v-model="instructionsText" autoResize rows="6"
-                    placeholder="Provide clear instructions for students entering this difficulty tier..."
-                    class="w-full rounded-[2rem] border-slate-200 bg-white p-8 text-sm font-semibold shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all leading-relaxed" />
-                </div>
-
-                <div class="space-y-3">
-                  <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Audio Narration</label>
-                  <div class="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-6">
-                    <div v-if="selectedLevelForInst.instructions_audio_url" class="flex-1 w-full bg-slate-50 p-4 rounded-2xl flex items-center gap-4 border border-slate-100">
-                      <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                        <i class="pi pi-volume-up"></i>
-                      </div>
-                      <audio :src="resolveUrl(selectedLevelForInst.instructions_audio_url)" controls class="h-8 flex-1"></audio>
-                    </div>
-                    <div v-else class="flex-1 text-center py-4 text-slate-300 italic text-sm">
-                      No audio instruction currently set.
-                    </div>
-                    <div class="shrink-0">
-                      <label class="relative cursor-pointer group">
-                        <input type="file" @change="handleAudioUpload" accept="audio/*" class="hidden" />
-                        <div class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                          <i class="pi pi-upload mr-2"></i> {{ instructionsAudioFile ? 'Change File' : 'Upload Audio' }}
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                  <p v-if="instructionsAudioFile" class="text-[10px] font-bold text-emerald-600 ml-4">
-                    <i class="pi pi-check-circle mr-1"></i> New file selected: {{ instructionsAudioFile.name }}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div v-else class="flex flex-col items-center justify-center h-full bg-slate-50 rounded-[3rem] border border-dashed border-slate-200 p-12">
-              <i class="pi pi-arrow-left text-4xl text-slate-200 mb-4"></i>
-              <p class="text-slate-400 font-black text-sm uppercase tracking-widest">Select a Level to Edit</p>
-            </div>
-          </div>
-        </div>
-
-        <template #footer>
-          <div class="flex justify-end items-center gap-4 p-4 border-t border-slate-100 mt-4">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-auto ml-4" v-if="selectedLevelForInst">
-              Changes will be applied immediately to all students in this level.
-            </span>
-            <Button label="Discard" severity="secondary" text @click="showInstructionsModal = false" class="font-bold text-sm" />
-            <Button label="Push Changes" icon="pi pi-cloud-upload" :loading="isSavingInst" :disabled="!selectedLevelForInst"
-              @click="saveInstructions" class="font-bold px-10 h-12 rounded-2xl shadow-xl shadow-indigo-100" />
-          </div>
-        </template>
-      </Dialog>
+    <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
       
+      <!-- Loading Indicator -->
+      <div v-if="loading && questions.length === 0" class="flex flex-col items-center justify-center py-32 space-y-4">
+          <ProgressSpinner />
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+      </div>
 
+      <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
+          
+          <!-- Premium Standardized Header Card -->
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100/80 shadow-md space-y-6 md:space-y-0 relative overflow-hidden group">
+              <div class="absolute right-0 top-0 w-64 h-64 bg-brand-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-brand-primary/10 transition-all duration-1000"></div>
+              <div class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/50 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000"></div>
+              
+              <div class="relative z-10 space-y-2">
+                   <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
+                       {{ t[currentLang].title }}
+                   </h1>
+                   <p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-[0.2em] flex items-center gap-2">
+                     <span class="w-2.5 h-2.5 bg-brand-primary rounded-full animate-ping"></span>
+                     <span>{{ filteredQuestions.length }} {{ t[currentLang].cognitiveAssets }}</span>
+                   </p>
+              </div>
+              
+              <div class="flex flex-wrap items-center gap-4 relative z-10">
+                   <!-- Language Selector Toggle -->
+                   <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs cursor-pointer active:scale-95">
+                       <i class="pi pi-globe text-brand-primary"></i>
+                       <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
+                   </button>
+                   
+
+                   <Button :label="t[currentLang].createBtn" icon="pi pi-plus" 
+                           class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 cursor-pointer"
+                           @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.create' : 'admin.questions.create' })" />
+              </div>
+          </div>
+          <!-- Dynamic Premium Skill Tabs Bar -->
+          <div class="flex items-center gap-3 overflow-x-auto pb-3 pt-1 scrollbar-none" :class="{ 'space-x-reverse': currentLang === 'ar' }">
+              <!-- "All Skills" Tab -->
+              <button @click="filterSkill = null"
+                      :class="filterSkill === null 
+                          ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-brand-primary shadow-lg shadow-rose-100/70 scale-102 font-black' 
+                          : 'bg-white text-slate-500 hover:text-slate-800 hover:border-slate-300 border border-slate-100/80 shadow-2xs'"
+                      class="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer shrink-0 border select-none active:scale-95">
+                  <i class="pi pi-th-large text-[10px]"></i>
+                  <span>{{ t[currentLang].allSkills }}</span>
+                  <span :class="filterSkill === null ? 'bg-white text-brand-primary font-black' : 'bg-slate-100 text-slate-600 font-bold'"
+                        class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-lg text-[9px] min-w-[20px] transition-colors">
+                      {{ getSkillQuestionCount(null) }}
+                  </span>
+              </button>
+
+              <!-- Individual Skill Tabs -->
+              <button v-for="skill in skills" :key="skill.id" 
+                      @click="filterSkill = skill.id"
+                      :class="filterSkill === skill.id 
+                          ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-brand-primary shadow-lg shadow-rose-100/70 scale-102 font-black' 
+                          : 'bg-white text-slate-500 hover:text-slate-800 hover:border-slate-300 border border-slate-100/80 shadow-2xs'"
+                      class="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer shrink-0 border select-none active:scale-95">
+                  <i class="pi pi-tag text-[10px]"></i>
+                  <span>{{ skill.name }}</span>
+                  <span :class="filterSkill === skill.id ? 'bg-white text-brand-primary font-black' : 'bg-slate-100 text-slate-600 font-bold'"
+                        class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-lg text-[9px] min-w-[20px] transition-colors">
+                      {{ getSkillQuestionCount(skill.id) }}
+                  </span>
+              </button>
+          </div>
+
+          <!-- Premium Filter & View Mode Control Bar -->
+          <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md flex flex-col xl:flex-row justify-between items-center gap-6">
+              
+              <!-- Left side: Search & View Mode Switcher -->
+              <div class="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+                  <!-- Search -->
+                  <div class="relative w-full sm:w-[280px]">
+                      <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 text-xs" />
+                      <InputText v-model="searchQuery" :placeholder="t[currentLang].placeholderSearch"
+                          class="w-full pl-11 pr-4 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:border-brand-primary focus:bg-white text-xs font-bold shadow-sm transition-all h-11" />
+                  </div>
+                  
+                  <!-- View Mode segmented selector -->
+                  <div class="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 w-full sm:w-auto shrink-0">
+                      <button @click="setViewMode('table')" 
+                              :class="viewMode === 'table' ? 'bg-white text-brand-primary shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 font-bold'"
+                              class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs uppercase tracking-wide transition-all duration-300 cursor-pointer active:scale-95">
+                          <i class="pi pi-table"></i>
+                          <span>{{ t[currentLang].viewTable }}</span>
+                      </button>
+                      <button @click="setViewMode('grid')" 
+                              :class="viewMode === 'grid' ? 'bg-white text-brand-primary shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 font-bold'"
+                              class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs uppercase tracking-wide transition-all duration-300 cursor-pointer active:scale-95">
+                          <i class="pi pi-th-large"></i>
+                          <span>{{ t[currentLang].viewGrid }}</span>
+                      </button>
+                  </div>
+              </div>
+
+              <!-- Right side: Dropdown filter menus (Skill Filter removed to avoid redundancy) -->
+              <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
+                  <Select v-model="filterExam" :options="[{title: t[currentLang].allExams, id:null}, ...exams]" optionLabel="title" optionValue="id" :placeholder="t[currentLang].examFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
+                  <Select v-model="filterType" :options="[{label: t[currentLang].allTypes, value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label: getQuestionTypeLabel(k), value:k}))]" optionLabel="label" optionValue="value" :placeholder="t[currentLang].typeFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
+                  <Select v-model="filterLevel" :options="[{label: t[currentLang].allLevels, value:null}, ...Array.from({length:10}, (_,i)=>({label:`${currentLang === 'ar' ? 'المستوى' : 'Level'} ${i+1}`, value:i+1}))]" optionLabel="label" optionValue="value" :placeholder="t[currentLang].levelFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[120px] focus:border-brand-primary transition-all flex items-center" />
+                  
+                  <Button v-if="searchQuery || filterExam || filterLevel || filterType" 
+                          icon="pi pi-filter-slash" severity="danger" rounded outlined 
+                          @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" 
+                          v-tooltip.top="t[currentLang].resetFilters" class="h-11 w-11 shrink-0 cursor-pointer hover:bg-rose-50 hover:border-rose-400" />
+              </div>
+          </div>
+
+          <!-- Empty State -->
+          <div v-if="filteredQuestions.length === 0" class="flex flex-col items-center justify-center py-24 bg-white rounded-[2rem] border border-slate-100 shadow-md gap-6 animate-in fade-in duration-500">
+              <div class="w-20 h-20 rounded-[2rem] bg-slate-50 flex items-center justify-center text-slate-300 border border-slate-100 text-3xl">
+                  <i class="pi pi-search"></i>
+              </div>
+              <div class="text-center space-y-2">
+                  <h3 class="text-xl font-black text-slate-800 tracking-tight leading-tight">{{ t[currentLang].zeroResults }}</h3>
+                  <p class="text-xs font-bold text-slate-400 max-w-sm leading-relaxed">{{ t[currentLang].adjustFilters }}</p>
+              </div>
+              <Button :label="t[currentLang].clearParams" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" class="rounded-2xl font-black text-xs px-8 py-3 cursor-pointer border-slate-200 hover:border-brand-primary hover:text-brand-primary transition-all" />
+          </div>
+
+          <!-- Content View Mode Selector -->
+          <div v-else class="animate-in fade-in zoom-in-95 duration-500">
+              
+              <!-- 1. COMPACT TABLE VIEW -->
+              <div v-if="viewMode === 'table'" class="bg-white rounded-[2rem] border border-slate-100 shadow-md overflow-hidden">
+                  <DataTable :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                    
+                    <Column :header="t[currentLang].colId" style="width: 70px">
+                      <template #body="{ data }">
+                          <span class="text-[11px] font-mono font-black text-slate-400">#{{ data.id }}</span>
+                      </template>
+                    </Column>
+
+                    <Column :header="t[currentLang].colQuestionContent" style="min-width: 420px">
+                      <template #body="{ data }">
+                        <div class="flex items-center gap-4 py-2.5" :class="{ 'space-x-reverse': currentLang === 'ar' }">
+                          
+                          <!-- Dynamic Framed Image Preview with hover scale -->
+                          <div v-if="data.image_url" 
+                               class="rounded-[1.25rem] overflow-hidden border border-slate-100 shadow-sm shrink-0 hover:shadow-md transition-shadow relative bg-slate-50"
+                               :class="{'w-14 h-14': !data.image_width && !data.image_height}"
+                               :style="data.image_width || data.image_height ? {
+                                   width: data.image_width ? `${data.image_width}px` : 'auto',
+                                   height: data.image_height ? `${data.image_height}px` : 'auto',
+                                   maxWidth: '120px',
+                                   maxHeight: '120px'
+                               } : {}">
+                            <img :src="resolveUrl(data.image_url)" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
+                          </div>
+
+                          <div class="min-w-0 flex-1">
+                            <!-- Truncated HTML Preview with fine typography -->
+                            <div class="text-xs font-black text-slate-700 truncate max-w-[400px] leading-relaxed ql-content" v-html="data.content || `<span class='italic text-slate-300'>${t[currentLang].noTextContent}</span>`"></div>
+                            
+                            <!-- Attached Passage Pill -->
+                            <div v-if="data.passage" class="inline-flex items-center gap-2 mt-1.5 bg-brand-primary/5 hover:bg-brand-primary/10 border border-brand-primary/10 rounded-lg px-2.5 py-0.5 transition-colors">
+                              <i class="pi pi-book text-[9px] text-brand-primary"></i>
+                              <span class="text-[9px] font-black text-brand-primary truncate max-w-[200px]">{{ data.passage.title }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </template>
+                    </Column>
+
+                    <Column :header="t[currentLang].colType" style="width: 140px">
+                      <template #body="{ data }">
+                        <!-- Redesigned pill with custom icons -->
+                        <span :class="questionTypeMeta[data.type]?.borderColor" class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase rounded-xl px-3 py-1 border shadow-xs">
+                          <i :class="questionTypeMeta[data.type]?.icon" class="text-[10px]"></i>
+                          <span>{{ getQuestionTypeLabel(data.type) }}</span>
+                        </span>
+                      </template>
+                    </Column>
+
+                    <Column :header="t[currentLang].colLevel" style="width: 80px">
+                      <template #body="{ data }">
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 text-xs font-black text-slate-700 shadow-xs">
+                            L{{ data.level?.level_number || data.level_id }}
+                        </span>
+                      </template>
+                    </Column>
+
+                    <Column :header="t[currentLang].colSkill" style="width: 130px">
+                      <template #body="{ data }">
+                        <span class="text-xs font-extrabold text-slate-500 uppercase bg-slate-50 border border-slate-100/50 rounded-lg px-2 py-0.5">{{ data.skill?.name }}</span>
+                      </template>
+                    </Column>
+
+                    <Column :header="t[currentLang].colPoints" class="text-center" style="width: 80px">
+                      <template #body="{ data }">
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-brand-primary/5 text-xs font-black text-brand-primary border border-brand-primary/10">
+                            {{ data.points }}
+                        </span>
+                      </template>
+                    </Column>
+
+                    <Column :header="t[currentLang].colAuthorship" style="width: 160px">
+                      <template #body="{ data }">
+                        <div class="flex flex-col gap-1 text-[10px]">
+                          <div v-if="data.creator" class="flex items-center gap-2">
+                            <!-- Initials Avatar -->
+                            <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 border border-white shadow-xs flex items-center justify-center font-bold uppercase text-[9px] shrink-0">
+                                {{ data.creator.first_name[0] }}
+                            </div>
+                            <span class="font-extrabold text-slate-600 truncate max-w-[110px]" v-tooltip.top="`${data.creator.first_name} ${data.creator.last_name}`">
+                              {{ data.creator.first_name }} {{ data.creator.last_name }}
+                            </span>
+                          </div>
+                          
+                          <div v-if="data.updater && data.updated_by !== data.created_by" class="flex items-center gap-2 opacity-70">
+                            <i class="pi pi-pencil text-[9px] text-slate-400 shrink-0"></i>
+                            <span class="font-bold text-slate-500 truncate max-w-[110px]" v-tooltip.top="`${t[currentLang].lastEditedBy} ${data.updater.first_name}`">
+                              {{ data.updater.first_name }}
+                            </span>
+                          </div>
+                          
+                          <span v-if="!data.creator" class="text-[9px] font-black text-slate-300 italic">{{ t[currentLang].system }}</span>
+                        </div>
+                      </template>
+                    </Column>
+
+                    <Column :header="t[currentLang].colActions" style="width: 130px" class="text-right">
+                      <template #body="{ data }">
+                        <div class="flex justify-end gap-1.5">
+                          <Button icon="pi pi-pencil" rounded severity="warning" outlined size="small"
+                                  class="h-9 w-9 border-amber-200 bg-amber-50/20 text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 cursor-pointer transition-all duration-300"
+                                  @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.edit' : 'admin.questions.edit', params: { id: data.id } })" />
+                          
+                          <Button icon="pi pi-trash" rounded severity="danger" outlined size="small"
+                                  class="h-9 w-9 border-rose-200 bg-rose-50/20 text-rose-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-all duration-300"
+                                  @click="deleteItem(data.id)" />
+                        </div>
+                      </template>
+                    </Column>
+                  </DataTable>
+              </div>
+
+              <!-- 2. CREATIVE GRID CARD VIEW -->
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div v-for="data in filteredQuestions" :key="data.id" 
+                       class="relative bg-white rounded-[2rem] border border-slate-100 hover:border-brand-primary/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group">
+                      
+                      <!-- Top Color Border Band based on question type severity -->
+                      <div class="absolute top-0 left-0 right-0 h-1.5" :class="questionTypeMeta[data.type]?.color || 'bg-slate-300'"></div>
+                      
+                      <!-- Card Header -->
+                      <div class="flex items-center justify-between p-6 pb-3 border-b border-slate-50" :class="{ 'flex-row-reverse': currentLang === 'ar' }">
+                          <!-- Level difficulty badge -->
+                          <span class="inline-flex items-center gap-1 bg-brand-primary/5 text-brand-primary border border-brand-primary/10 rounded-xl px-3 py-1 text-xs font-black">
+                            <span class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
+                            <span>{{ t[currentLang].levelFilter }} {{ data.level?.level_number || data.level_id }}</span>
+                          </span>
+
+                          <!-- Custom question type status badge -->
+                          <span :class="questionTypeMeta[data.type]?.borderColor" class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase rounded-xl px-2.5 py-1 border shadow-2xs">
+                            <i :class="questionTypeMeta[data.type]?.icon" class="text-[9px]"></i>
+                            <span>{{ getQuestionTypeLabel(data.type) }}</span>
+                          </span>
+                      </div>
+
+                      <!-- Card Body -->
+                      <div class="p-6 space-y-4 flex-1">
+                          <!-- Question Content Rich-text box with multi-line clamping -->
+                          <div class="text-xs font-bold text-slate-700 leading-relaxed ql-content line-clamp-3 min-h-[4.5rem]" 
+                               v-html="data.content || `<span class='italic text-slate-300'>${t[currentLang].noTextContent}</span>`">
+                          </div>
+
+                          <!-- Associated Passage -->
+                          <div v-if="data.passage" class="flex items-center gap-2.5 bg-brand-primary/5 border border-brand-primary/10 p-3 rounded-2xl" :class="{ 'space-x-reverse': currentLang === 'ar' }">
+                              <div class="w-8 h-8 rounded-xl bg-white border border-brand-primary/10 flex items-center justify-center shrink-0">
+                                  <i class="pi pi-book text-xs text-brand-primary"></i>
+                              </div>
+                              <div class="min-w-0">
+                                  <div class="text-[9px] font-black text-brand-primary/80 uppercase tracking-widest">{{ t[currentLang].passageAssoc }}</div>
+                                  <div class="text-[11px] font-extrabold text-slate-600 truncate max-w-[200px] mt-0.5">{{ data.passage.title }}</div>
+                              </div>
+                          </div>
+
+                          <!-- Meta Tags (Skill) -->
+                          <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-400 bg-slate-50 p-2.5 rounded-xl border border-slate-100/50">
+                              <span>{{ t[currentLang].skillFilter }}</span>
+                              <span class="text-xs font-black text-slate-600 uppercase">{{ data.skill?.name || t[currentLang].notSpecified }}</span>
+                          </div>
+
+                          <!-- Question Image (If Uploaded) with hover zoom zoom effect -->
+                          <div v-if="data.image_url" class="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 relative aspect-video shadow-2xs">
+                              <img :src="resolveUrl(data.image_url)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          </div>
+                      </div>
+
+                      <!-- Card Footer -->
+                      <div class="border-t border-slate-100 bg-slate-50/50 p-6 pt-4 flex items-center justify-between gap-4" :class="{ 'flex-row-reverse': currentLang === 'ar' }">
+                          
+                          <!-- Achievement Points Badge -->
+                          <div class="inline-flex items-center gap-1.5 bg-brand-primary/5 text-brand-primary px-3.5 py-2 rounded-2xl border border-brand-primary/10 shrink-0">
+                              <i class="pi pi-bolt text-xs animate-bounce"></i>
+                              <span class="text-xs font-black">{{ data.points }} <span class="text-[9px] uppercase font-bold">{{ currentLang === 'ar' ? 'نقاط' : 'Pts' }}</span></span>
+                          </div>
+
+                          <!-- Author Attribution Profile -->
+                          <div v-if="data.creator" class="flex items-center gap-2 min-w-0">
+                              <!-- Avatar Circle -->
+                              <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-600 border-2 border-white shadow-sm flex items-center justify-center font-black uppercase text-[10px] shrink-0">
+                                  {{ data.creator.first_name[0] }}
+                              </div>
+                              <div class="min-w-0 text-[10px] font-bold leading-tight">
+                                  <div class="text-slate-700 truncate max-w-[80px]" v-tooltip.top="`${data.creator.first_name} ${data.creator.last_name}`">{{ data.creator.first_name }}</div>
+                                  <div class="text-slate-400 font-bold text-[8px] mt-0.5 uppercase tracking-wide">{{ currentLang === 'ar' ? 'المنشئ' : 'Creator' }}</div>
+                              </div>
+                          </div>
+                          <span v-else class="text-[9px] font-black text-slate-300 italic">{{ t[currentLang].system }}</span>
+
+                          <!-- Custom Action Hub -->
+                          <div class="flex items-center gap-1 shrink-0 ml-auto" :class="{ 'mr-auto ml-0': currentLang === 'ar' }">
+                              <Button icon="pi pi-pencil" rounded severity="warning" outlined size="small"
+                                      class="h-9 w-9 border-amber-200/80 bg-white text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 cursor-pointer transition-all duration-300"
+                                      @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.edit' : 'admin.questions.edit', params: { id: data.id } })" />
+                              
+                              <Button icon="pi pi-trash" rounded severity="danger" outlined size="small"
+                                      class="h-9 w-9 border-rose-200/80 bg-white text-rose-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-all duration-300"
+                                      @click="deleteItem(data.id)" />
+                          </div>
+
+                      </div>
+
+                  </div>
+              </div>
+
+          </div>
+      </div>
+
+      
+      
     </div>
   </AdminLayout>
 </template>
 
 <style scoped>
-.prose-slate :deep(p) { margin: 0; }
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
 
-/* Custom Scrollbar for better aesthetics */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f8fafc; }
-::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-
-:deep(.p-datatable-thead > tr > th) {
-    background: #F8FAFC;
-    border-bottom: 2px solid #F1F5F9;
-    padding: 1.25rem;
-    color: #94A3B8;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
+.arabic-theme {
+    font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
 }
 
-:deep(.p-datatable-tbody > tr) {
-    border-bottom: 1px solid #F1F5F9;
-    transition: all 0.3s ease;
+.animate-in {
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:deep(.p-datatable-thead > tr > th) {
+    background: #fbfcfe;
+    border-bottom: 2px solid #f1f5f9;
+    padding: 1.25rem 1rem;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.arabic-theme :deep(.p-datatable-thead > tr > th) {
+    text-align: right !important;
+}
+.arabic-theme :deep(.p-datatable-tbody > tr > td) {
+    text-align: right !important;
 }
 
 :deep(.p-datatable-tbody > tr:hover) {
-    background: #F8FAFC;
+    background: #fbfcfe;
 }
 
-:deep(.p-datatable-tbody > tr > td) {
-    padding: 1rem 1.25rem;
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
 }
-
-/* Animations */
-.animate-in {
-  animation-duration: 0.5s;
-  animation-fill-mode: both;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-in { animation-name: fadeIn; }
-
-.ql-editor-preview {
-  max-height: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.scrollbar-none {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
 </style>

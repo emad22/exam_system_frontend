@@ -10,13 +10,11 @@ import Textarea from 'primevue/textarea';
 import Dialog from 'primevue/dialog';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Toast from 'primevue/toast';
-import { useToast } from 'primevue/usetoast';
 import { useModal } from '@/composables/useModal';
 
 const router = useRouter();
 const route = useRoute();
-const toast = useToast();
+
 const { showAlert, showConfirm } = useModal();
 
 const examId = ref(route.params.id || null);
@@ -26,6 +24,95 @@ const categories = ref([]);
 const currentStep = ref(1); // 1: Identity, 2: Skills, 3: Finalize
 const activeSkillTab = ref(null);
 
+const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
+
+// Translation Dictionary
+const t = {
+    ar: {
+        activeSystem: "نظام إعداد الاختبارات النشط",
+        createExam: "إنشاء اختبار جديد",
+        editExam: "تعديل الاختبار",
+        stepText: "الخطوة {step} من 3: {stepName}",
+        stepNames: {
+            1: "إعدادات الهوية",
+            2: "تحديد المهارات",
+            3: "المراجعة والحفظ"
+        },
+        sequenceError: "خطأ في التسلسل والتهيئة الأساسية:",
+        examDetails: "تفاصيل وهوية الاختبار",
+        examDetailsDesc: "أدخل عنوان الاختبار والتصنيف العام المناسب لإعداد المعايير.",
+        examTitleLabel: "عنوان الاختبار الأكاديمي",
+        enterExamTitle: "أدخل عنوان الاختبار...",
+        examCategoryLabel: "تصنيف الاختبار",
+        selectCategory: "اختر تصنيف الاختبار...",
+        descriptionLabel: "الوصف التفصيلي للاختبار (اختياري)",
+        enterDescription: "أدخل وصفاً أو ملاحظات توضيحية لهذا الاختبار الأكاديمي",
+        examSubjects: "المهارات والموضوعات المشمولة",
+        examSubjectsDesc: "حدد المهارات والمواد المطلوب إدراجها لقياس أداء المرشحين.",
+        selectedSubjects: "الموضوعات النشطة:",
+        subjectsCountSelected: "مهارات محددة بالباقة",
+        clickToSelect: "انقر للتحديد وتعديل المعايير",
+        duration: "المدة الزمنية",
+        minutes: "دقيقة",
+        maxPoints: "الحد الأقصى للنقاط",
+        ptsCap: "نقطة كحد أقصى",
+        readyToSave: "تأكيد وحفظ بنية الاختبار",
+        readyToSaveDesc: "تم إعداد البنية الأساسية بنجاح، يمكنك إدارة وبناء الأسئلة التفصيلية فور الحفظ.",
+        examSummary: "ملخص هيكل الاختبار",
+        saveExam: "حفظ وتأكيد الاختبار",
+        saving: "جاري الحفظ والتهيئة...",
+        saveBtnText: "حفظ وتأكيد الاختبار ➜",
+        saveBtnTextEdit: "تحديث وتأكيد التعديلات ➜",
+        saveDesc: "سيقوم هذا بحفظ اختبارك والعودة لإدارة الاختبارات للبدء ببناء بنك الأسئلة والمهام.",
+        backToStep: "العودة للخطوة",
+        nextStep: "الخطوة التالية",
+        validationWarning: "يرجى إدخال عنوان الاختبار وتحديد التصنيف المناسب للمتابعة.",
+        validationTitle: "تنبيه التحقق",
+        successMsg: "تم حفظ الاختبار وتأكيد البنية بنجاح!"
+    },
+    en: {
+        activeSystem: "Active Exam Configurator",
+        createExam: "Create Exam",
+        editExam: "Edit Exam",
+        stepText: "Step {step} of 3: {stepName}",
+        stepNames: {
+            1: "Identity Settings",
+            2: "Skills Alignment",
+            3: "Review & Save"
+        },
+        sequenceError: "Sequence Error & Initialization failure:",
+        examDetails: "Exam Details & Identity",
+        examDetailsDesc: "Enter the title and category for the exam setup.",
+        examTitleLabel: "Academic Exam Title",
+        enterExamTitle: "Enter Exam Title...",
+        examCategoryLabel: "Exam Category",
+        selectCategory: "Select Exam Category...",
+        descriptionLabel: "Detailed Exam Description (Optional)",
+        enterDescription: "Enter a brief descriptive note for this academic exam",
+        examSubjects: "Included Skills & Subjects",
+        examSubjectsDesc: "Select the subjects to be included in this assessment package.",
+        selectedSubjects: "Active Subjects:",
+        subjectsCountSelected: "Skills Selected",
+        clickToSelect: "Click to Select & Config",
+        duration: "Duration",
+        minutes: "min",
+        maxPoints: "Max Points",
+        ptsCap: "pts cap",
+        readyToSave: "Commit & Save Exam Structure",
+        readyToSaveDesc: "The general exam structure has been provisioned. You can manage questions right after saving.",
+        examSummary: "Exam Structure Summary",
+        saveExam: "Save Exam Details",
+        saving: "Saving configuration...",
+        saveBtnText: "SAVE EXAM DETAILS ➜",
+        saveBtnTextEdit: "UPDATE EXAM DETAILS ➜",
+        saveDesc: "This will commit the exam and return you to the dashboard directory to manage question papers.",
+        backToStep: "Back to Step",
+        nextStep: "Next Step",
+        validationWarning: "Please provide an Exam Title and select a Category to proceed.",
+        validationTitle: "Validation Warning",
+        successMsg: "Exam saved successfully!"
+    }
+};
 
 const form = ref({
     title: '',
@@ -78,6 +165,7 @@ onMounted(async () => {
                 language_id: exam.language_id,
                 exam_category_id: exam.exam_category_id,
                 passing_score: exam.passing_score ?? 60,
+                is_adaptive: false,
                 selectedSkills: exam.skills.map(skill => {
                     return {
                         skill_id: skill.id,
@@ -120,8 +208,8 @@ onMounted(async () => {
             }
         }
     } catch (err) {
-        console.error('Core loading failure:', err);
         errorMsg.value = 'Failed to synchronize with administrative services.';
+        showAlert(currentLang.value === 'ar' ? 'خطأ' : 'Error', errorMsg.value);
     } finally {
         isLoading.value = false;
         if (form.value.selectedSkills.length > 0) {
@@ -138,11 +226,10 @@ watch(() => form.value.selectedSkills, (newSkills) => {
     }
 }, { deep: true });
 
-
 const nextStep = () => {
     if (currentStep.value === 1) {
         if (!form.value.title?.trim() || !form.value.exam_category_id) {
-            showAlert('Please provide an Exam Title and select a Category to proceed.', 'Validation Warning', 'warning');
+            showAlert(t[currentLang.value].validationWarning, t[currentLang.value].validationTitle, 'warning');
             return;
         }
     }
@@ -245,7 +332,6 @@ const filteredBankQuestions = computed(() => {
     return filtered;
 });
 
-
 const openBankSelector = async (skillId, levelNum) => {
     activeSkillForQuestions.value = skillId;
     activeLevelForQuestions.value = levelNum;
@@ -257,7 +343,6 @@ const openBankSelector = async (skillId, levelNum) => {
         bankQuestions.value = res.data.data;
     } finally { bankLoading.value = false; }
 };
-
 
 const isAlreadyAdded = (qId) => {
     const list = localQuestions.value[activeSkillForQuestions.value]?.[activeLevelForQuestions.value] || [];
@@ -451,7 +536,7 @@ const saveExam = async () => {
         if (isEditMode.value) await api.patch(`/admin/exams/${examId.value}`, payload);
         else await api.post('/admin/exams', payload);
 
-        showAlert('Exam created successfully.', 'Exam Created', 'success');
+        showAlert(t[currentLang.value].successMsg, currentLang.value === 'ar' ? 'تمت العملية' : 'Success', 'success');
         router.push('/admin/exams');
     } catch (err) {
         showAlert('Failed to save exam.', 'Save Error', 'error');
@@ -461,300 +546,288 @@ const saveExam = async () => {
 
 <template>
     <AdminLayout>
-        <div v-if="isLoading" class="flex flex-col items-center justify-center py-40">
-            <div class="w-16 h-16 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin mb-8">
+        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+            
+            <div v-if="isLoading" class="flex flex-col items-center justify-center py-40">
+                <div class="w-16 h-16 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin mb-8"></div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Loading...</p>
             </div>
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Loading...</p>
-        </div>
 
-        <div v-else
-            class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4">
-            <!-- Unified Header Section -->
-            <div
-                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 space-y-8 md:space-y-0 bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
-                <div class="absolute -right-16 -top-16 w-48 h-48 bg-rose-50/50 rounded-full blur-3xl"></div>
-                <div class="relative z-10">
-                    <div class="flex items-center space-x-6">
-                        <button @click="router.push('/admin/exams')"
-                            class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-800 hover:text-white transition-all transform hover:-translate-x-1 shadow-sm">
-                            <i class="pi pi-arrow-left"></i>
-                        </button>
+            <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-20 mt-6 px-4">
+                
+                <!-- Unified Premium Header Card -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 w-64 h-64 bg-rose-50/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-rose-100/30 transition-all duration-1000"></div>
+                    <div class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000"></div>
+                    
+                    <div class="relative z-10 flex items-center gap-6">
+                        <Button :icon="currentLang === 'ar' ? 'pi pi-arrow-right' : 'pi pi-arrow-left'" severity="secondary" outlined rounded @click="router.push('/admin/exams')" class="w-12 h-12 flex items-center justify-center border border-slate-200 hover:border-slate-300 shadow-sm bg-white" />
                         <div>
-                            <h1
-                                class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">
-                                {{ isEditMode ? 'Edit Exam' : 'Create Exam' }}</h1>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Step
-                                {{ currentStep }} of 3: Setup</p>
+                            <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
+                                <i class="pi pi-sparkles text-brand-accent animate-pulse"></i>
+                                <span>{{ t[currentLang].activeSystem }}</span>
+                            </div>
+                            <h1 class="text-2xl font-black text-slate-800 tracking-tight leading-tight mt-1">
+                                {{ isEditMode ? t[currentLang].editExam : t[currentLang].createExam }}
+                            </h1>
+                            <p class="text-xs font-bold text-slate-400 mt-0.5">
+                                {{ t[currentLang].stepText.replace('{step}', currentStep).replace('{stepName}', t[currentLang].stepNames[currentStep]) }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step Tracker capsules -->
+                    <div class="flex items-center space-x-2 bg-slate-50/50 px-5 py-3.5 rounded-2xl border border-slate-100 relative z-10 rtl:space-x-reverse">
+                        <div v-for="s in 3" :key="s" class="flex items-center">
+                            <div :class="currentStep === s ? 'bg-brand-primary text-white shadow-lg shadow-rose-100 scale-110' : (currentStep > s ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300')"
+                                class="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black transition-all duration-500">
+                                <i v-if="currentStep > s" class="pi pi-check text-[8px]"></i>
+                                <span v-else>{{ s }}</span>
+                            </div>
+                            <div v-if="s < 3" class="w-8 h-1 bg-slate-100 mx-1.5 rounded-full overflow-hidden">
+                                <div :class="currentStep > s ? 'w-full' : 'w-0'" class="h-full bg-emerald-400 transition-all duration-700"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div
-                    class="hidden lg:flex items-center space-x-2 bg-slate-50/50 px-6 py-4 rounded-[1.8rem] border border-slate-100 relative z-10">
-                    <div v-for="s in 3" :key="s" class="flex items-center">
-                        <div :class="currentStep === s ? 'bg-brand-primary text-white shadow-lg shadow-rose-100' : (currentStep > s ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300')"
-                            class="w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black transition-all duration-500">
-                            <i v-if="currentStep > s" class="pi pi-check text-[10px]"></i>
-                            <span v-else>{{ s }}</span>
-                        </div>
-                        <div v-if="s < 3" class="w-10 h-1 bg-slate-100 mx-1 rounded-full">
-                            <div :class="currentStep > s ? 'w-full' : 'w-0'"
-                                class="h-full bg-emerald-400 transition-all duration-700"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="errorMsg"
-                class="mb-10 p-6 bg-rose-50 border border-rose-100 text-rose-500 text-[11px] font-black uppercase tracking-widest rounded-3xl flex items-center space-x-4">
-                <span
-                    class="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center -rotate-12 select-none">!</span>
-                <span>Sequence Error: {{ errorMsg }}</span>
-            </div>
-
-            <!-- STEP 1: IDENTITY -->
-            <div v-if="currentStep === 1" class="space-y-10 animate-in fade-in zoom-in-95 duration-700">
-                <div class="max-w-5xl mx-auto">
-                    <div
-                        class="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.03)] space-y-12">
-                        <div class="space-y-4">
-                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Exam Details</h3>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                                Enter the title and category for the exam.</p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="space-y-3">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exam Title</label>
-                                <div class="relative">
-                                    <i class="pi pi-pencil absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                                    <input v-model="form.title" type="text"
-                                        class="w-full bg-slate-50 border border-slate-100 p-6 pl-16 rounded-[1.5rem] text-sm font-bold uppercase tracking-tight focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all"
-                                        placeholder="Enter Exam Title">
-                                </div>
-                            </div>
-                            <div class="space-y-3">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exam Category</label>
-                                <div class="relative">
-                                    <i class="pi pi-users absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                                    <select v-model="form.exam_category_id"
-                                        class="w-full bg-slate-50 border border-slate-100 p-6 pl-16 rounded-[1.5rem] text-xs font-black uppercase tracking-widest focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all cursor-pointer appearance-none">
-                                        <option :value="null" disabled>Select Category</option>
-                                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                                    </select>
-                                    <i class="pi pi-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"></i>
-                                </div>
-                            </div>
-                            <div class="md:col-span-2 space-y-3">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Description (Optional)</label>
-                                <div class="relative">
-                                    <i class="pi pi-align-left absolute left-6 top-6 text-slate-300"></i>
-                                    <textarea v-model="form.description" rows="3"
-                                        class="w-full bg-slate-50 border border-slate-100 p-6 pl-16 rounded-[1.5rem] text-sm font-bold tracking-tight focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all"
-                                        placeholder="Enter a brief description for this exam"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 2: SKILLS SELECTION -->
-            <div v-if="currentStep === 2"
-                class="relative space-y-16 animate-in fade-in slide-in-from-right-12 duration-700">
-                <!-- Decorative Background Elements -->
-                <div
-                    class="absolute -top-24 -left-24 w-96 h-96 bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none">
-                </div>
-                <div
-                    class="absolute -bottom-24 -right-24 w-96 h-96 bg-brand-accent/5 rounded-full blur-[120px] pointer-events-none">
+                <div v-if="errorMsg" class="p-6 bg-rose-50 border border-rose-100 text-rose-500 text-xs font-black rounded-[1.5rem] flex items-center gap-4">
+                    <span class="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center select-none font-bold">!</span>
+                    <span>{{ t[currentLang].sequenceError }} {{ errorMsg }}</span>
                 </div>
 
-                <div class="text-center space-y-6 relative z-10">
-                    <h2 class="text-4xl font-black text-slate-800 uppercase tracking-tighter">Exam Subjects</h2>
-                    <p
-                        class="text-[12px] font-bold text-slate-400 uppercase tracking-[0.3em] max-w-xl mx-auto leading-relaxed">
-                        Select the subjects to be included in this exam.
-                    </p>
-                    <div class="flex justify-center mt-8">
-                        <div
-                            class="bg-white/50 backdrop-blur-md px-6 py-2 rounded-2xl border border-slate-100 flex items-center space-x-4 shadow-sm">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Subjects:</span>
-                            <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{
-                                form.selectedSkills.length }} Subjects Selected</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="max-w-5xl mx-auto space-y-4 relative z-10 pb-12">
-                    <div v-for="skill in availableSkills" :key="skill.id"
-                        class="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-slate-200 transition-all shadow-sm group">
-                        
-                        <div class="flex items-center space-x-6">
-                            <!-- Custom Checkbox -->
-                            <div @click="toggleSkill(skill.id)" 
-                                class="w-8 h-8 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all duration-300"
-                                :class="isSkillSelected(skill.id) ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 group-hover:border-slate-300'">
-                                <i v-if="isSkillSelected(skill.id)" class="pi pi-check text-[10px] font-black"></i>
-                            </div>
-
-                            <div @click="toggleSkill(skill.id)" class="cursor-pointer space-y-0.5">
-                                <h4 class="text-sm font-black text-slate-800 tracking-tight uppercase">{{ skill.name }}</h4>
-                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{{ skill.short_code || 'SUBJECT' }}</p>
-                            </div>
-                        </div>
-
-                        <!-- Compact Duration + Max Points Control -->
-                        <div v-if="isSkillSelected(skill.id)"
-                            class="flex items-center space-x-4 bg-slate-50/50 px-4 py-3 rounded-2xl border border-slate-100 animate-in slide-in-from-right-4 duration-500">
-                            <!-- Duration -->
-                            <div class="flex flex-col">
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Duration</span>
-                                <div class="flex items-center space-x-3">
-                                    <button @click.stop="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))"
-                                        class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg transition-all">
-                                        <i class="pi pi-minus text-[8px]"></i>
-                                    </button>
-                                    <span class="text-xs font-black text-slate-900 w-8 text-center tabular-nums">{{ getSkillDuration(skill.id) }}</span>
-                                    <button @click.stop="setSkillDuration(skill.id, Math.min(120, getSkillDuration(skill.id) + 5))"
-                                        class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg transition-all">
-                                        <i class="pi pi-plus text-[8px]"></i>
-                                    </button>
-                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">min</span>
-                                </div>
-                            </div>
-
-                            <!-- Max Points — only for W/S skills -->
-                            <div v-if="!isLeveledSkill(skill)" class="flex flex-col border-l border-slate-200 pl-4">
-                                <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Max Points</span>
-                                <div class="flex items-center gap-2">
-                                    <input type="number" min="0" step="50"
-                                        :value="form.selectedSkills.find(s => s.skill_id === skill.id)?.max_points || 0"
-                                        @input="e => { const s = form.selectedSkills.find(x => x.skill_id === skill.id); if(s) s.max_points = parseInt(e.target.value) || 0; }"
-                                        class="w-20 h-7 text-center text-sm font-black text-indigo-600 bg-white border-2 border-indigo-100 rounded-xl focus:border-indigo-400 outline-none transition-all" />
-                                    <span class="text-[8px] font-black text-slate-400 uppercase">pts</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div v-else class="pr-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Click to Select</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 3: FINALIZE -->
-            <div v-if="currentStep === 3" class="space-y-16 animate-in fade-in zoom-in-95 duration-700">
-                <div class="text-center space-y-6">
-                    <div
-                        class="w-24 h-24 bg-emerald-50 text-emerald-600 flex items-center justify-center rounded-[2.5rem] mx-auto mb-10 text-4xl shadow-sm border border-emerald-100">
-                        <i class="pi pi-check-circle"></i>
-                    </div>
-                    <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Ready to Save</h2>
-                    <p
-                        class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] max-w-lg mx-auto leading-relaxed">
-                        The exam details are ready. You can manage questions after saving.</p>
-                </div>
-
-                <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div class="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
-                        <h4
-                            class="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-6">
-                            Exam Summary</h4>
-                        <div class="space-y-6">
-                            <div class="flex justify-between items-center bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                <span class="text-[10px] font-black text-slate-400 uppercase">Exam Title</span>
-                                <span class="text-xs font-black text-slate-700 truncate max-w-[200px] uppercase">{{
-                                    form.title }}</span>
-                            </div>
-                            
-                            <div class="space-y-4">
-                                <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Selected Subjects</h5>
-                                <div class="grid grid-cols-1 gap-3">
-                                    <div v-for="selected in form.selectedSkills" :key="selected.skill_id"
-                                        class="flex justify-between items-center bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
-                                        <div class="flex items-center space-x-3">
-                                            <span class="text-lg">{{ availableSkills.find(s => s.id === selected.skill_id)?.icon }}</span>
-                                            <span class="text-[11px] font-black text-slate-700 uppercase">{{ availableSkills.find(s => s.id === selected.skill_id)?.name }}</span>
+                <form @submit.prevent class="max-w-5xl mx-auto">
+                    
+                    <!-- STEP 1: IDENTITY -->
+                    <div v-if="currentStep === 1" class="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                        <Card class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden bg-white">
+                            <template #content>
+                                <div class="p-8 md:p-10 space-y-8">
+                                    <div class="flex items-center gap-3 pb-4 border-b border-slate-50">
+                                        <div class="w-9 h-9 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-rose-200">
+                                            <i class="pi pi-file text-sm"></i>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[10px] font-black text-brand-primary bg-white px-3 py-1 rounded-lg shadow-sm border border-brand-primary/10">{{ selected.duration }}m</span>
-                                            <!-- Max Points badge — Writing/Speaking only -->
-                                            <span v-if="!isLeveledSkill(availableSkills.find(s => s.id === selected.skill_id))"
-                                                class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg shadow-sm border border-indigo-100">
-                                                {{ selected.max_points || 0 }} pts cap
-                                            </span>
+                                        <div>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider leading-none">{{ t[currentLang].examDetails }}</h3>
+                                            <p class="text-[10px] font-bold text-slate-400 mt-1">{{ t[currentLang].examDetailsDesc }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <!-- Title input -->
+                                        <div class="flex flex-col space-y-1.5">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].examTitleLabel }}</label>
+                                            <div class="relative">
+                                                <i :class="[currentLang === 'ar' ? 'right-4' : 'left-4', 'pi pi-pencil absolute top-1/2 -translate-y-1/2 text-slate-300']"></i>
+                                                <InputText v-model="form.title" type="text"
+                                                    :class="[currentLang === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4', 'w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm font-bold uppercase tracking-tight']"
+                                                    :placeholder="t[currentLang].enterExamTitle" />
+                                            </div>
+                                        </div>
+
+                                        <!-- Category select -->
+                                        <div class="flex flex-col space-y-1.5">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].examCategoryLabel }}</label>
+                                            <div class="relative">
+                                                <i :class="[currentLang === 'ar' ? 'right-4' : 'left-4', 'pi pi-users absolute top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none']"></i>
+                                                <select v-model="form.exam_category_id"
+                                                    :class="[currentLang === 'ar' ? 'pr-12 pl-10' : 'pl-12 pr-10', 'w-full bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-xs font-black uppercase tracking-wider focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all cursor-pointer appearance-none shadow-sm']">
+                                                    <option :value="null" disabled>{{ t[currentLang].selectCategory }}</option>
+                                                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                                                </select>
+                                                <i :class="[currentLang === 'ar' ? 'left-4' : 'right-4', 'pi pi-chevron-down absolute top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none']"></i>
+                                            </div>
+                                        </div>
+
+                                        <!-- Description textarea -->
+                                        <div class="md:col-span-2 flex flex-col space-y-1.5">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].descriptionLabel }}</label>
+                                            <div class="relative">
+                                                <i :class="[currentLang === 'ar' ? 'right-4' : 'left-4', 'pi pi-align-left absolute top-5 text-slate-300']"></i>
+                                                <textarea v-model="form.description" rows="3"
+                                                    :class="[currentLang === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4', 'w-full bg-slate-50 border border-slate-100 p-4.5 rounded-xl text-sm font-bold tracking-tight focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all shadow-sm']"
+                                                    :placeholder="t[currentLang].enterDescription"></textarea>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                            </template>
+                        </Card>
+                    </div>
+
+                    <!-- STEP 2: SKILLS SELECTION -->
+                    <div v-if="currentStep === 2" class="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                        <div class="text-center space-y-2 py-4">
+                            <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">{{ t[currentLang].examSubjects }}</h2>
+                            <p class="text-xs font-bold text-slate-400 max-w-xl mx-auto leading-relaxed">{{ t[currentLang].examSubjectsDesc }}</p>
+                            
+                            <div class="flex justify-center pt-2">
+                                <div class="bg-white/70 backdrop-blur-md px-5 py-2 rounded-xl border border-slate-100 flex items-center gap-3 shadow-sm">
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ t[currentLang].selectedSubjects }}</span>
+                                    <span class="text-[9px] font-black text-brand-primary uppercase bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100/60 shadow-inner">
+                                        {{ form.selectedSkills.length }} {{ t[currentLang].subjectsCountSelected }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Subjects Listing Matrix -->
+                        <div class="space-y-3">
+                            <div v-for="skill in availableSkills" :key="skill.id"
+                                class="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-rose-200 transition-all shadow-sm group hover:-translate-y-0.5 duration-300 gap-4">
+                                
+                                <div class="flex items-center gap-4">
+                                    <!-- Custom Checkbox -->
+                                    <div @click="toggleSkill(skill.id)" 
+                                        class="w-7 h-7 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all duration-300 shrink-0"
+                                        :class="isSkillSelected(skill.id) ? 'bg-slate-900 border-slate-900 text-white shadow-md' : 'bg-white border-slate-100 group-hover:border-slate-300'">
+                                        <i v-if="isSkillSelected(skill.id)" class="pi pi-check text-[9px] font-black"></i>
+                                    </div>
+
+                                    <div @click="toggleSkill(skill.id)" class="cursor-pointer">
+                                        <h4 class="text-sm font-black text-slate-800 tracking-tight uppercase leading-tight">{{ skill.name }}</h4>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{{ skill.short_code || 'SUBJECT' }}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Compact Duration + Max Points Control -->
+                                <div v-if="isSkillSelected(skill.id)"
+                                    class="flex items-center gap-6 bg-slate-50/50 px-4 py-3 rounded-2xl border border-slate-100/70 animate-in slide-in-from-bottom-2 duration-300 self-start md:self-auto w-full md:w-auto overflow-hidden">
+                                    
+                                    <!-- Duration -->
+                                    <div class="flex flex-col">
+                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{{ t[currentLang].duration }}</span>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" @click.stop="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))"
+                                                class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-950 hover:bg-white rounded-md border border-transparent hover:border-slate-100 transition-all shadow-sm">
+                                                <i class="pi pi-minus text-[7px] font-black"></i>
+                                            </button>
+                                            <span class="text-xs font-black text-slate-900 w-8 text-center tabular-nums leading-none">{{ getSkillDuration(skill.id) }}</span>
+                                            <button type="button" @click.stop="setSkillDuration(skill.id, Math.min(120, getSkillDuration(skill.id) + 5))"
+                                                class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-950 hover:bg-white rounded-md border border-transparent hover:border-slate-100 transition-all shadow-sm">
+                                                <i class="pi pi-plus text-[7px] font-black"></i>
+                                            </button>
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].minutes }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Max Points — only for non-leveled (Writing/Speaking) skills -->
+                                    <div v-if="!isLeveledSkill(skill)" class="flex flex-col border-l border-slate-150 pl-4 pr-4 border-r-0 rtl:border-l-0 rtl:border-r rtl:pl-0 rtl:pr-4">
+                                        <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">{{ t[currentLang].maxPoints }}</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <input type="number" min="0" step="10"
+                                                :value="form.selectedSkills.find(s => s.skill_id === skill.id)?.max_points || 0"
+                                                @input="e => { const s = form.selectedSkills.find(x => x.skill_id === skill.id); if(s) s.max_points = parseInt(e.target.value) || 0; }"
+                                                class="w-16 h-6.5 text-center text-xs font-black text-indigo-600 bg-white border-2 border-indigo-50 rounded-xl focus:border-indigo-300 outline-none transition-all" />
+                                            <span class="text-[8px] font-black text-slate-400 uppercase">{{ t[currentLang].ptsCap }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-else class="hidden md:block pr-4 pl-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ t[currentLang].clickToSelect }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div
-                        class="bg-slate-800 p-12 rounded-[4rem] text-white flex flex-col justify-center text-center space-y-10 shadow-2xl shadow-slate-900/10">
-                        <p class="text-[10px] font-black text-rose-400 uppercase tracking-[0.3em]">Save Exam</p>
-                        <Button :label="isSubmitting ? 'SAVING...' : 'SAVE EXAM ➜'"
-                            :loading="isSubmitting" @click="saveExam"
-                            class="bg-white border-none text-slate-900 font-black text-[11px] py-10 rounded-[2.5rem] shadow-2xl hover:bg-brand-accent hover:text-white transition-all transform hover:-translate-y-2 uppercase tracking-[0.2em]" />
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest opacity-60">This will save the exam and allow you to manage questions</p>
+                    <!-- STEP 3: FINALIZE -->
+                    <div v-if="currentStep === 3" class="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                        <div class="text-center space-y-3 py-4">
+                            <div class="w-16 h-16 bg-emerald-50 text-emerald-600 flex items-center justify-center rounded-2xl mx-auto mb-4 text-2xl shadow-sm border border-emerald-100">
+                                <i class="pi pi-check-circle animate-bounce"></i>
+                            </div>
+                            <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">{{ t[currentLang].readyToSave }}</h2>
+                            <p class="text-xs font-bold text-slate-400 max-w-md mx-auto leading-relaxed">{{ t[currentLang].readyToSaveDesc }}</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Summary list -->
+                            <Card class="border border-slate-100 shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
+                                <template #content>
+                                    <div class="p-8 space-y-6">
+                                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-4">
+                                            {{ t[currentLang].examSummary }}
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100/50">
+                                                <span class="text-[9px] font-black text-slate-400 uppercase">{{ t[currentLang].examTitleLabel }}</span>
+                                                <span class="text-xs font-black text-slate-700 truncate max-w-[220px] uppercase">{{ form.title }}</span>
+                                            </div>
+                                            
+                                            <div class="space-y-2">
+                                                <h5 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].selectedSubjects }}</h5>
+                                                <div class="grid grid-cols-1 gap-2">
+                                                    <div v-for="selected in form.selectedSkills" :key="selected.skill_id"
+                                                        class="flex justify-between items-center bg-rose-50/10 p-3.5 rounded-xl border border-rose-100/40">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-xs font-black text-slate-700 uppercase">{{ availableSkills.find(s => s.id === selected.skill_id)?.name }}</span>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <span class="text-[8px] font-black text-brand-primary bg-white px-2 py-0.5 rounded border border-rose-100 shadow-sm">{{ selected.duration }}{{ t[currentLang].minutes }}</span>
+                                                            <span v-if="!isLeveledSkill(availableSkills.find(s => s.id === selected.skill_id))"
+                                                                class="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                                                                {{ selected.max_points || 0 }} {{ t[currentLang].ptsCap }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </Card>
+
+                            <!-- Save Call to Action Card -->
+                            <Card class="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-slate-900 text-white relative flex flex-col justify-center min-h-[300px]">
+                                <div class="absolute right-0 top-0 w-48 h-48 bg-brand-primary/10 rounded-full blur-3xl"></div>
+                                <template #content>
+                                    <div class="p-8 md:p-10 space-y-6 text-center relative z-10 flex flex-col justify-between h-full">
+                                        <div class="space-y-1">
+                                            <p class="text-[9px] font-black text-rose-300 uppercase tracking-[0.3em]">{{ t[currentLang].saveExam }}</p>
+                                            <p class="text-[10px] font-bold text-slate-400 max-w-xs mx-auto leading-relaxed">{{ t[currentLang].saveDesc }}</p>
+                                        </div>
+                                        
+                                        <Button :label="isSubmitting ? t[currentLang].saving : (isEditMode ? t[currentLang].saveBtnTextEdit : t[currentLang].saveBtnText)"
+                                            :loading="isSubmitting" @click="saveExam"
+                                            class="w-full bg-white border-none text-slate-900 font-black text-xs py-5.5 rounded-2xl shadow-xl hover:bg-brand-primary hover:text-white transition-all transform hover:-translate-y-1 uppercase tracking-wider" />
+                                    </div>
+                                </template>
+                            </Card>
+                        </div>
                     </div>
-                </div>
+
+                    <!-- Guided Navigation Footer -->
+                    <div class="mt-16 flex items-center justify-between border-t border-slate-100/80 pt-10">
+                        <button type="button" v-if="currentStep > 1" @click="prevStep"
+                            class="flex items-center gap-2.5 text-slate-400 hover:text-slate-950 transition-colors group">
+                            <i :class="[currentLang === 'ar' ? 'pi-angle-right group-hover:translate-x-1' : 'pi-angle-left group-hover:-translate-x-1', 'pi text-lg transition-transform']"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest">{{ t[currentLang].backToStep }} {{ currentStep - 1 }}</span>
+                        </button>
+                        <div v-else></div>
+
+                        <button type="button" v-if="currentStep < 3" @click="nextStep"
+                            class="bg-brand-primary text-white px-10 py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-100 flex items-center gap-3.5 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brand-primary/10">
+                            <span>{{ t[currentLang].nextStep }}</span>
+                            <i :class="[currentLang === 'ar' ? 'pi-angle-left' : 'pi-angle-right', 'pi text-lg']"></i>
+                        </button>
+                    </div>
+
+                </form>
             </div>
-
-            <!-- Guided Navigation Footer -->
-            <div class="mt-24 flex items-center justify-between border-t border-slate-100 pt-16">
-                <button v-if="currentStep > 1" @click="prevStep"
-                    class="flex items-center space-x-3 text-slate-400 hover:text-slate-800 transition-colors group">
-                    <i class="pi pi-angle-left text-xl group-hover:-translate-x-1 transition-transform"></i>
-                    <span class="text-[10px] font-black uppercase tracking-widest">Back to Step {{ currentStep - 1
-                        }}</span>
-                </button>
-                <div v-else></div>
-
-                <button v-if="currentStep < 3" @click="nextStep"
-                    class="bg-brand-primary text-white px-12 py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-100 flex items-center space-x-4 transition-all hover:-translate-y-1 hover:shadow-brand-primary/10">
-                    <span>Next Step</span>
-                    <i class="pi pi-angle-right text-xl"></i>
-                </button>
-            </div>
-
-            <Toast />
         </div>
     </AdminLayout>
 </template>
 
 <style scoped>
-:deep(.p-datatable-thead > tr > th) {
-    background: transparent;
-    color: #94a3b8;
-    font-size: 8px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    padding: 1.5rem 1rem;
-    border-bottom: 2px solid #f1f5f9;
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+
+.arabic-theme {
+    font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
 }
 
-:deep(.p-datatable-tbody > tr > td) {
-    padding: 1.5rem 1rem;
-    border-bottom: 1px solid #f8fafc;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-
-@keyframes slide-in-top {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+:deep(.p-card-body) {
+    padding: 0;
 }
 
 .animate-in {

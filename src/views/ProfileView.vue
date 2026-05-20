@@ -11,13 +11,17 @@ import Card from 'primevue/card';
 import DatePicker from 'primevue/datepicker';
 import Select from 'primevue/select';
 import Password from 'primevue/password';
-import Message from 'primevue/message';
-import Toast from 'primevue/toast';
+
+
 import InputText from 'primevue/inputtext';
-import { useToast } from 'primevue/usetoast';
+
+import { useModal } from '@/composables/useModal';
+
+const { showAlert } = useModal();
+
 
 const router = useRouter();
-const toast = useToast();
+
 
 const user = ref(null);
 const isLoading = ref(true);
@@ -113,7 +117,7 @@ const updateProfile = async () => {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Profile updated successfully', life: 3000 });
+        showAlert('Success', 'Profile updated successfully');
         setTimeout(() => {
             if (isStudent.value) {
                 window.location.href = '/dashboard';
@@ -129,7 +133,8 @@ const updateProfile = async () => {
     } catch (err) {
         console.error(err);
         errorMsg.value = err.response?.data?.message || 'Failed to update profile.';
-        toast.add({ severity: 'error', summary: 'Error', detail: errorMsg.value, life: 5000 });
+        
+        showAlert('Error', errorMsg.value);
     } finally {
         isSubmitting.value = false;
     }
@@ -169,8 +174,6 @@ const backToDashboard = () => {
     <component :is="layoutComponent">
         <div :class="[isStudent ? 'max-w-4xl mx-auto py-12 px-6' : 'mt-6 px-4']"
             class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-            <Toast />
-
             <!-- Header -->
             <div class="flex items-center justify-between bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                 <div class="flex items-center space-x-6">

@@ -30,6 +30,7 @@ import AdminQuestionEdit from '@/views/admin/Questions/edit.vue'
 
 import AdminSkills from '@/views/admin/Skills/index.vue'
 import AdminSkillCreate from '@/views/admin/Skills/create.vue'
+import AdminSkillEdit from '@/views/admin/Skills/edit.vue'
 
 import AdminReports from '@/views/admin/AdminReports.vue'
 import AdminReportShow from '@/views/admin/AdminReportShow.vue'
@@ -186,6 +187,11 @@ const adminRoutes = [
     path: '/admin/skills/create',
     name: 'admin.skills.create',
     component: AdminSkillCreate
+  },
+  {
+    path: '/admin/skills/:id/edit',
+    name: 'admin.skills.edit',
+    component: AdminSkillEdit
   },
   {
     path: '/admin/levels',

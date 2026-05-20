@@ -14,20 +14,20 @@ const adminStore = useAdminStore()
 
 const navigation = [
     { name: 'Dashboard', href: '/admin', icon: 'pi pi-home' },
-    { name: 'Exams', href: '/admin/exams', icon: 'pi pi-file-edit' },
     { name: 'Exam Categories', href: '/admin/exam-categories', icon: 'pi pi-tags' },
-    { name: 'Questions', href: '/admin/questions', icon: 'pi pi-list' },
+    { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
     { name: 'Levels', href: '/admin/levels', icon: 'pi pi-sort-amount-up' },
+    { name: 'Exams', href: '/admin/exams', icon: 'pi pi-file-edit' },
+    { name: 'Questions', href: '/admin/questions', icon: 'pi pi-list' },
+    { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
     { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
-    { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
     { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-award' },
-    { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
     { name: 'Partner', href: '/admin/partners', icon: 'pi pi-briefcase' },
     { name: 'Skill Packages', href: '/admin/packages', icon: 'pi pi-box' },
-    { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
     { name: 'Payments', href: '/admin/payments', icon: 'pi pi-credit-card' },
     { name: 'Staff & Roles', href: '/admin/staff', icon: 'pi pi-shield' },
+    { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
     { name: 'Activity Logs', href: '/admin/activity-logs', icon: 'pi pi-history' },
 ]
 
