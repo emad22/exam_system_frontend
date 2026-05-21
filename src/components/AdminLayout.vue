@@ -22,7 +22,7 @@ const navigation = [
     { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
     { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
-    { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-award' },
+    { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-folder-open' },
     { name: 'Partner', href: '/admin/partners', icon: 'pi pi-briefcase' },
     { name: 'Skill Packages', href: '/admin/packages', icon: 'pi pi-box' },
     { name: 'Payments', href: '/admin/payments', icon: 'pi pi-credit-card' },

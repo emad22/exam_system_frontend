@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, onUnmounted } from 'vue';
 import Keyboard from 'simple-keyboard';
 import 'simple-keyboard/build/css/index.css';
+import { useVirtualKeyboard } from '@/composables/useVirtualKeyboard';
 
 const props = defineProps({
   modelValue: {
@@ -22,6 +23,8 @@ const emit = defineEmits(['update:modelValue', 'change', 'keypress']);
 
 const keyboard = ref(null);
 const keyboardRef = ref(null);
+
+const { triggerKeyPress, onKeyPressCallback } = useVirtualKeyboard();
 
 const layouts = {
   english: {
@@ -64,12 +67,17 @@ onMounted(() => {
   try {
     keyboard.value = new KeyboardConstructor(keyboardRef.value, {
       onChange: (input) => {
-        emit('update:modelValue', input);
-        emit('change', input);
+        if (!onKeyPressCallback.value) {
+          emit('update:modelValue', input);
+          emit('change', input);
+        }
       },
       onKeyPress: (button) => {
         handleKeyPress(button);
         emit('keypress', button);
+        if (onKeyPressCallback.value) {
+          triggerKeyPress(button);
+        }
       },
       layout: layouts[props.layout],
       display: {
@@ -82,7 +90,9 @@ onMounted(() => {
       }
     });
 
-    keyboard.value.setInput(props.modelValue);
+    if (!onKeyPressCallback.value) {
+      keyboard.value.setInput(props.modelValue);
+    }
 
   } catch (err) {
     
@@ -100,7 +110,7 @@ const handleKeyPress = (button) => {
 };
 
 watch(() => props.modelValue, (newVal) => {
-  if (keyboard.value && newVal !== keyboard.value.getInput()) {
+  if (!onKeyPressCallback.value && keyboard.value && newVal !== keyboard.value.getInput()) {
     keyboard.value.setInput(newVal);
   }
 });

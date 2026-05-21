@@ -4,9 +4,6 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import api from '@/services/api';
 import { authStorage } from '@/services/authStorage';
-import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
-import AudioRecorder from '@/components/AudioRecorder.vue';
 import RequirementTester from '@/components/RequirementTester.vue';
 import StudentHeader from '@/components/StudentHeader.vue';
 import VirtualKeyboard from '@/components/VirtualKeyboard.vue';
@@ -17,8 +14,27 @@ import { useExamTimer } from '@/composables/useExamTimer';
 import { useAntiCheat } from '@/composables/useAntiCheat';
 import { useAudioEngine } from '@/composables/useAudioEngine';
 import { useMediaUrl } from '@/composables/useMediaUrl';
+import { useVirtualKeyboard } from '@/composables/useVirtualKeyboard';
 
-const { showAlert, showConfirm } = useModal();
+// Constants
+const QUESTION_TYPES_WITHOUT_OPTIONS = ['speaking', 'fill_blank', 'drag_drop', 'word_selection', 'click_word', 'highlight', 'matching', 'ordering', 'writing', 'short_answer'];
+const STIMULUS_QUESTION_TYPES = ['writing', 'short_answer'];
+const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
+const TIMER_WARNING_THRESHOLD = 300;
+
+const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
+const { showAlert } = useModal();
 
 
 const route = useRoute();
@@ -42,43 +58,45 @@ const isLoading = ref(true);
 const isStarting = ref(false);
 const isSubmittingBatch = ref(false);
 const questionSubmitted = ref(false);
-const isRetryAttempt = ref(false);
 const showRetryNotification = ref(false);
 const errorMsg = ref('');
 const checkedRequirements = ref([]);
-const autoVerifiedIds = ref([]);
 const hasListened = ref(false);
 const isDemo = ref(false);
 const showLevelTransition = ref(false);
 const nextLevelName = ref('');
 const showTimeoutModal = ref(false);
 const lastAudioUrl = ref('');
+const inactivityTimer = ref(null);
+const cheatAttempts = ref([]);
 // Modals managed locally or by composables
 const showExitModal = ref(false);
 const showConfirmAnswerModal = ref(false);
 const showInactivityModal = ref(false);
 const activeTesterReq = ref(null);
-const keyboardLayout = ref('arabic');
-const showVirtualKeyboard = ref(true);
+const { keyboardLayout, showVirtualKeyboard } = useVirtualKeyboard();
 const timerConfig = ref(null);
 const lastActivityAt = ref(Date.now());
 
-const toggleKeyboardLayout = async () => {
-    keyboardLayout.value = keyboardLayout.value === 'arabic' ? 'english' : 'arabic';
-};
 
-const focusedInputIndex = ref(0);
 
 // Use Composables
 const { timeLeftSeconds, formattedTime, isTimeLow, startTimer: initTimer, stopTimer } = useExamTimer();
 const {
     cheatWarnings, showCheatModal, showFinalCheatModal, isIntentionallyLeaving,
     handleVisibilityChange: logCheatWarning, setupAntiCheat, destroyAntiCheat
-} = useAntiCheat(attemptId, { onFinalWarning: () => handleTimeout() });
+} = useAntiCheat(attemptId, { onFinalWarning: () => {
+    // Log cheat attempt instead of terminating
+    cheatAttempts.value.push({
+        timestamp: new Date().toISOString(),
+        type: 'tab_switching',
+        warning_count: cheatWarnings.value
+    });
+} });
 
 const {
     audioRef, isAudioPlaying, audioProgress, audioCurrentTime, audioDuration, autoplayFailed,
-    syncAudioState, updateAudioProgress, toggleAudioManual, onAudioError, playStimulusAudio
+    updateAudioProgress, toggleAudioManual
 } = useAudioEngine();
 
 const handleVisibilityChange = () => logCheatWarning(isStarting.value, showTimeoutModal.value);
@@ -100,9 +118,6 @@ const canStart = computed(() => {
 });
 
 const toggleRequirement = async (req) => {
-    if (autoVerifiedIds.value.includes(req.id)) return;
-
-    // If it has an interactive test, open the tester instead of just checking it
     if (req.test_type && req.test_type !== 'none' && !checkedRequirements.value.includes(req.id)) {
         activeTesterReq.value = req;
         return;
@@ -221,10 +236,12 @@ const fetchNextBatch = async () => {
     if (audioRef.value) {
         audioRef.value.pause();
         audioRef.value.currentTime = 0;
+        audioRef.value.src = '';
     }
     isAudioPlaying.value = false;
+    lastAudioUrl.value = '';
 
-    questions.value = []; // Safety clear
+    questions.value = [];
     try {
         const res = await api.get(`/attempts/${attemptId.value}/next-batch`);
         if (res.data.questions?.length > 0) {
@@ -316,7 +333,10 @@ const fetchNextBatch = async () => {
         if (audioRef.value) {
             audioRef.value.pause();
             audioRef.value.currentTime = 0;
+            audioRef.value.src = '';
         }
+        
+        resetInactivityTimer();
 
         window.scrollTo(0, 0);
     }
@@ -444,23 +464,38 @@ const submitCurrentBatch = async (isTimeout = false) => {
         });
 
         if (isTimeout) {
-            await api.post(`/attempts/${attemptId.value}/timeout`, {
-                skill_id: currentSkill.value?.id
-            });
+            if (inactivityTimer.value) clearTimeout(inactivityTimer.value);
+            try {
+                await api.post(`/attempts/${attemptId.value}/timeout`, {
+                    skill_id: currentSkill.value?.id
+                });
+            } catch (err) {
+                console.warn('Failed to mark timeout', err);
+            }
             router.push('/skill-selection');
             return;
         }
 
-        if (res.data.finished_exam) router.push(`/exam/${attemptId.value}/result`);
+        if (res.data.finished_exam) {
+            // Send cheat report before finishing
+            if (cheatAttempts.value.length > 0) {
+                try {
+                    await api.post(`/attempts/${attemptId.value}/cheat-report`, {
+                        total_warnings: cheatWarnings.value,
+                        attempts: cheatAttempts.value
+                    });
+                } catch (err) {
+                    console.warn('Failed to send cheat report', err);
+                }
+            }
+            router.push(`/exam/${attemptId.value}/result`);
+        }
         else if (res.data.next_step === 'dashboard') router.push('/skill-selection');
         else {
-            // Handle retry notification logic
             if (res.data.retry_attempt) {
-                isRetryAttempt.value = true;
                 showRetryNotification.value = true;
-                globalOffset.value = 0; // Reset counter for retry
+                globalOffset.value = 0;
             } else {
-                isRetryAttempt.value = false;
                 showRetryNotification.value = false;
                 globalOffset.value += questions.value.length;
             }
@@ -497,9 +532,7 @@ const displayInstructions = computed(() => {
 const displayNumber = computed(() => globalOffset.value + currentIndex.value + 1);
 const wordCount = computed(() => (answers.value[currentIndex.value]?.text_answer || '').trim().split(/\s+/).filter(w => w).length);
 
-const shouldShowQuestion = computed(() => {
-    return !!currentQ.value; // Show immediately if a question exists
-});
+const isQuestionTypeWithoutOptions = (type) => QUESTION_TYPES_WITHOUT_OPTIONS.includes(type);
 
 const isCurrentAnswerValid = computed(() => {
     if (!currentQ.value || !answers.value[currentIndex.value]) return false;
@@ -516,6 +549,17 @@ watch(() => answers.value[currentIndex.value], (newVal, oldVal) => {
     }
 }, { deep: true });
 
+// Track cheat warnings
+watch(() => cheatWarnings.value, (newCount, oldCount) => {
+    if (newCount > oldCount) {
+        cheatAttempts.value.push({
+            timestamp: new Date().toISOString(),
+            type: 'tab_switching',
+            warning_number: newCount
+        });
+    }
+});
+
 const cleanHtml = (html) => {
     if (!html) return '';
     // Replace non-breaking spaces with normal spaces to allow wrapping
@@ -525,14 +569,7 @@ const cleanHtml = (html) => {
 const { resolveUrl } = useMediaUrl();
 
 
-const getSkillIcon = async (name) => {
-    name = name?.toLowerCase() || '';
-    if (name.includes('listening')) return '🎧';
-    if (name.includes('reading')) return '📖';
-    if (name.includes('writing') || name.includes('writting')) return '✍️';
-    if (name.includes('speaking')) return '🗣️';
-    return '🎯';
-};
+
 
 // Auto-play media when question changes and update progress
 watch(currentQ, (newQ) => {
@@ -600,6 +637,16 @@ const hasStimulusContent = computed(() => {
     const q = currentQ.value;
     const p = q.passage;
 
+    // For writing and short answer questions, apply smart split-screen logic
+    if (q.type === 'writing' || q.type === 'short_answer') {
+        const passageHasContent = p && (
+            (p.content && p.content.trim().length > 150) ||
+            (p.media_url && p.media_url.toLowerCase().includes('.mp4')) ||
+            (p.media_path && p.media_path.toLowerCase().includes('.mp4'))
+        );
+        return !!passageHasContent;
+    }
+
     // A passage counts as stimulus only if it has text or visual media
     const passageHasContent = p && (
         (p.content && p.content.trim().length > 0) ||
@@ -616,21 +663,35 @@ const hasStimulusContent = computed(() => {
     return !!(passageHasContent || questionHasMedia);
 });
 
-// --- INACTIVITY LOGIC ---
-const updateActivity = async () => {
-    lastActivityAt.value = Date.now();
-};
+const responsePaneClass = computed(() => {
+    if (!hasStimulusContent.value) return 'w-full bg-slate-50';
+    if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') return 'w-[55%] bg-white';
+    return 'w-2/5 bg-white';
+});
 
-let inactivityInterval = null;
-const checkInactivity = async () => {
-    const inactiveSeconds = (Date.now() - lastActivityAt.value) / 1000;
-    if (inactiveSeconds > 300) { // 5 minutes
-        showInactivityModal.value = true;
-        setTimeout(() => {
-            handleTimeout();
-        }, 5000); // Give 5 seconds then terminate
+const stimulusPaneClass = computed(() => {
+    if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') return 'w-[45%] bg-white p-4 overflow-y-auto custom-scrollbar flex flex-col h-full transition-all duration-700';
+    return 'w-3/5 bg-white p-4 overflow-y-auto custom-scrollbar flex flex-col h-full transition-all duration-700';
+});
+
+// --- INACTIVITY LOGIC ---
+const resetInactivityTimer = () => {
+    if (inactivityTimer.value) clearTimeout(inactivityTimer.value);
+    lastActivityAt.value = Date.now();
+    
+    if (!isDemo.value && !isLoading.value && questions.value.length > 0) {
+        inactivityTimer.value = setTimeout(() => {
+            showInactivityModal.value = true;
+            setTimeout(() => {
+                handleTimeout();
+            }, 5000);
+        }, INACTIVITY_TIMEOUT);
     }
 };
+
+const updateActivity = debounce(resetInactivityTimer, 500);
+
+
 
 const handleBeforeUnload = async () => {
     isIntentionallyLeaving.value = true;
@@ -641,29 +702,28 @@ onMounted(async () => {
     isDemo.value = user && ['demo', 'staff'].includes(user.role?.toLowerCase());
     await fetchData();
 
-    // Initialize Anti-Cheat
     setupAntiCheat();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Inactivity tracking
-    document.addEventListener('mousemove', updateActivity);
-    document.addEventListener('keydown', updateActivity);
-    document.addEventListener('click', updateActivity);
-    // inactivityInterval = setInterval(checkInactivity, 30000);
+    const debouncedUpdateActivity = debounce(updateActivity, 500);
+    document.addEventListener('mousemove', debouncedUpdateActivity);
+    document.addEventListener('keydown', debouncedUpdateActivity);
+    document.addEventListener('click', debouncedUpdateActivity);
+    
+    resetInactivityTimer();
 });
 
 onUnmounted(() => {
     stopTimer();
-    if (inactivityInterval) clearInterval(inactivityInterval);
+    
+    if (inactivityTimer.value) clearTimeout(inactivityTimer.value);
 
-    // Cleanup Audio
     if (audioRef.value) {
         audioRef.value.pause();
         audioRef.value.src = "";
     }
 
-    // Remove Anti-Cheat
     destroyAntiCheat();
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -740,7 +800,7 @@ onUnmounted(() => {
         </header>
 
         <!--  Sub-header for Level Name -->
-        <div v-if="!isStarting && currentSkill"
+        <div v-if="!isStarting && currentSkill && !currentSkill.name?.toLowerCase().includes('writ')"
             class="bg-white border-b border-slate-200 h-10 px-8 flex justify-end items-center shrink-0 z-20">
             <div class="flex items-center space-x-3 space-x-reverse">
 
@@ -829,13 +889,26 @@ onUnmounted(() => {
                 class="flex flex-row h-full gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 overflow-hidden">
 
                 <!-- Right Side: Response (Question and Choices) - Now on the Left Side of the viewport -->
-                <div :class="hasStimulusContent ? 'w-2/5 bg-white' : 'w-full bg-slate-50'"
+                <div :class="responsePaneClass"
                     class="flex flex-col h-full border-r border-slate-200 shadow-inner animate-in slide-in-from-left-8 duration-700 overflow-hidden">
                     <div
-                        :class="hasStimulusContent ? 'w-full p-4' : 'max-w-5xl mx-auto w-full bg-white my-4 rounded-2xl shadow-xl border border-slate-100 p-6 flex flex-col max-h-[calc(100vh-120px)] overflow-hidden'">
+                        :class="hasStimulusContent 
+                            ? [
+                                'w-full p-4 flex-grow min-h-0 flex flex-col',
+                                currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer') ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'
+                              ] 
+                            : [
+                                'max-w-5xl mx-auto w-full bg-white border border-slate-100 flex flex-col min-h-0 flex-grow transition-all duration-300',
+                                currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer') 
+                                    ? 'my-2 rounded-xl p-4 overflow-hidden' 
+                                    : 'my-4 rounded-2xl shadow-xl p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]'
+                            ]">
                         <!-- Audio Player Integrated (One-time playback, no controls) -->
                         <div v-if="currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path"
-                            class="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 shadow-inner">
+                            :class="[
+                                'bg-slate-50 rounded-lg border border-slate-200 shadow-inner',
+                                currentQ.type === 'writing' || currentQ.type === 'short_answer' ? 'mb-2 p-2' : 'mb-4 p-3'
+                            ]">
                             <div class="flex items-center gap-3 mb-2" dir="rtl">
                                 <div
                                     class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center text-brand-primary text-[10px]">
@@ -873,32 +946,45 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <div class="flex-grow flex flex-col space-y-4 overflow-hidden">
-                            <div v-if="currentQ.content && !['speaking', 'fill_blank', 'drag_drop', 'word_selection', 'click_word', 'highlight', 'matching', 'ordering'].includes(currentQ.type)"
-                                class="text-lg font-black text-slate-900 leading-snug interactive-content-area rtl-support"
+                        <div :class="['flex-grow flex flex-col overflow-hidden', currentQ.type === 'writing' || currentQ.type === 'short_answer' ? 'space-y-2' : 'space-y-4']">
+                            <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
+                                :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
                                 v-html="cleanHtml(currentQ.content)" dir="auto">
                             </div>
 
 
-                            <div class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
+                            <div v-if="!['writing', 'short_answer'].includes(currentQ.type)" class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
                                 <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto">
                                     {{ displayInstructions }}
                                 </p>
                             </div>
 
                             <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :question="currentQ"
-                                v-model:answer="answers[currentIndex]" :disabled="false" />
+                                v-model:answer="answers[currentIndex]" :disabled="false" :hasStimulusContent="hasStimulusContent" />
                         </div>
 
-                        <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+                        <div v-if="!['writing', 'short_answer'].includes(currentQ.type)" class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
                             <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest"></span>
                         </div>
                     </div>
+
+                    <!-- Pinned Virtual Keyboard at the bottom of the Response Column -->
+                    <transition name="slide-up">
+                        <div v-if="showVirtualKeyboard && answers[currentIndex] && (currentQ.type === 'writing' || currentQ.type === 'short_answer')" 
+                            class="w-full border-t border-slate-200 bg-slate-50 shrink-0 z-40 py-1.5 px-3">
+                            <div :class="hasStimulusContent ? 'w-full' : 'max-w-5xl mx-auto'">
+                                <VirtualKeyboard 
+                                    v-model="answers[currentIndex].text_answer"
+                                    :layout="keyboardLayout"
+                                />
+                            </div>
+                        </div>
+                    </transition>
                 </div>
 
                 <!-- Left Side: Stimulus Pane (Material) - Only show if content exists -->
                 <div v-if="hasStimulusContent"
-                    class="w-3/5 bg-white p-4 overflow-y-auto custom-scrollbar flex flex-col h-full transition-all duration-700">
+                    :class="stimulusPaneClass">
                     <div class="flex items-center space-x-2 space-x-reverse mb-4 pb-2 border-b border-slate-100"
                         dir="rtl">
                         <i class="pi pi-file-edit text-slate-400"></i>
@@ -1037,11 +1123,9 @@ onUnmounted(() => {
                 <div class="space-y-2">
                     <!-- instruction in english lang -->
                     <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Security Alert</h2>
-                    <p class="text-slate-500 font-bold leading-relaxed">Please do not leave the exam page or switch
-                        tabs.
-                        The exam will be automatically terminated if you try again.</p>
+                    <p class="text-slate-500 font-bold leading-relaxed">Please do not leave the exam page or switch tabs. Any suspicious activity is being recorded and will be reported to administrators.</p>
                     <div class="pt-2">
-                        <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} of 3</p>
+                        <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} </p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 gap-4 pt-2">
@@ -1070,52 +1154,9 @@ onUnmounted(() => {
                 </div>
             </div>
         </div>
-        <!-- Final Cheat Termination Modal -->
-        <div v-if="showFinalCheatModal"
-            class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-rose-950/80 backdrop-blur-md animate-in fade-in duration-300">
-            <div
-                class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-rose-100 animate-in zoom-in-95 duration-300">
-                <div
-                    class="w-24 h-24 bg-rose-600 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-400">
-                    <i class="pi pi-lock text-4xl text-white"></i>
-                </div>
-                <div class="space-y-2">
-                    <h2 class="text-3xl font-black text-rose-600 tracking-tight uppercase">Exam Terminated</h2>
-                    <p class="text-slate-700 font-bold leading-relaxed">Repeated cheating attempts detected (tab
-                        switching). The
-                        exam is now terminated.</p>
-                </div>
-                <div class="pt-4">
-                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-rose-600 h-full animate-shrink-width"
-                            style="animation: shrink 5s linear forwards;">
-                        </div>
-                    </div>
-                    <p class="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest">Redirecting to
-                        dashboard...
-                    </p>
-                </div>
-            </div>
-        </div>
 
     </div>
 </template>
-
-<style>
-@keyframes shrink {
-    from {
-        width: 100%;
-    }
-
-    to {
-        width: 0%;
-    }
-}
-
-.animate-shrink-width {
-    transform-origin: left;
-}
-</style>
 
 <style scoped>
 .animate-in {
@@ -1182,5 +1223,16 @@ onUnmounted(() => {
 .interactive-content-area :deep(p) {
     display: block;
     margin-bottom: 0.5rem;
+}
+
+/* Slide Up Transition for Virtual Keyboard */
+.slide-up-enter-active,
+.slide-up-leave-active {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+    transform: translateY(100%);
+    opacity: 0;
 }
 </style>

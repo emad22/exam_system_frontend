@@ -250,12 +250,7 @@ const bulkDelete = () => {
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
-                        <!-- Language Selector Toggle -->
-                        <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                            <i class="pi pi-globe text-brand-primary"></i>
-                            <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                        </button>
-
+                        
                         <Button v-if="selectedLogs.length" :label="t[currentLang].massErase" icon="pi pi-trash" severity="danger" outlined class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border-rose-200 hover:bg-rose-50/50" @click="bulkDelete" />
                         <Button icon="pi pi-refresh" outlined rounded severity="secondary" @click="fetchLogs" class="bg-white/50 w-10 h-10 border border-slate-200" />
                     </div>

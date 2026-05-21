@@ -164,11 +164,7 @@ onMounted(fetchRequirements);
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
-                         <!-- Language Selector Toggle -->
-                         <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                             <i class="pi pi-globe text-brand-primary"></i>
-                             <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                         </button>
+                         
                          
                          <!-- Primary Action Button (Create) -->
                          <Button :label="t[currentLang].createBtn" icon="pi pi-plus" 

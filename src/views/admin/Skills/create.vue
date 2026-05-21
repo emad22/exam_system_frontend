@@ -1,6 +1,6 @@
 <script setup>
 import { useModal } from '@/composables/useModal';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -14,6 +14,10 @@ const form = ref({
     name: '',
     short_code: '',
     levels_count: 0
+});
+
+watch(() => form.value.name, (newName) => {
+    form.value.short_code = (newName || '').slice(0, 4).toUpperCase();
 });
 
 const isSubmitting = ref(false);
@@ -78,10 +82,10 @@ const addSkill = async () => {
                         </div>
                         <div>
                             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Mapping Key (Short Code)</label>
-                            <input v-model="form.short_code" type="text" maxlength="5"
-                                class="premium-input uppercase text-sm placeholder:text-slate-300 w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary transition-all text-slate-800 font-bold tracking-wide" 
-                                placeholder="E.G. R, W, G">
-                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">Used for bulk enrollment mapping (e.g., 'r' for reading)</p>
+                            <input v-model="form.short_code" type="text" readonly
+                                class="premium-input uppercase text-sm placeholder:text-slate-300 w-full px-6 py-4 rounded-2xl bg-slate-100 border border-slate-200 transition-all text-slate-400 font-bold tracking-wide cursor-not-allowed select-none" 
+                                placeholder="AUTO-GENERATED">
+                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">Auto-generated from the first 4 characters of Module Name</p>
                         </div>
                         <div>
                             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Initial Tier Capacity (Levels Count)</label>

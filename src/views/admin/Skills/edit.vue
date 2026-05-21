@@ -1,6 +1,6 @@
 <script setup>
 import { useModal } from '@/composables/useModal';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -62,6 +62,10 @@ const form = ref({
     levels_count: 0
 });
 
+watch(() => form.value.name, (newName) => {
+    form.value.short_code = (newName || '').slice(0, 4).toUpperCase();
+});
+
 const loading = ref(true);
 const isSubmitting = ref(false);
 
@@ -97,7 +101,8 @@ const editSkill = async () => {
     try {
         await api.patch(`/admin/skills/${skillId}`, {
             name: form.value.name,
-            short_code: form.value.short_code
+            short_code: form.value.short_code,
+            levels_count: form.value.levels_count
         });
         showAlert(t[currentLang.value].updateSuccess, 'Success', 'success');
         router.push('/admin/skills');
@@ -189,31 +194,30 @@ onMounted(fetchSkill);
                               <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest block mr-1 ml-1">
                                   {{ t[currentLang].fieldCode }}
                               </label>
-                              <input v-model="form.short_code" type="text" maxlength="5"
-                                  class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black uppercase text-brand-primary focus:bg-white focus:border-brand-primary/20 focus:ring-4 focus:ring-rose-50/50 transition-all outline-none shadow-sm font-bold" 
-                                  :placeholder="t[currentLang].placeholderCode">
+                              <input v-model="form.short_code" type="text" readonly
+                                  class="w-full bg-slate-100 border border-slate-200 rounded-2xl p-4 text-xs font-black uppercase text-slate-400 transition-all outline-none shadow-sm cursor-not-allowed select-none font-bold" 
+                                  placeholder="AUTO-GENERATED">
                               <p class="text-[9px] text-slate-400 mt-1 mr-1 ml-1 font-bold uppercase tracking-widest">
-                                  {{ t[currentLang].codeHelp }}
+                                  {{ currentLang === 'ar' ? 'يتم توليده تلقائياً من أول 4 أحرف لاسم المهارة' : 'Auto-generated from the first 4 characters of Module Name' }}
                               </p>
                           </div>
 
-                          <!-- Read-only Levels Display -->
-                          <div class="md:col-span-2 bg-slate-50/50 p-6 rounded-2xl border border-slate-100/50 flex items-center justify-between">
-                              <div class="flex items-center gap-3">
-                                  <div class="w-10 h-10 bg-brand-primary/10 text-brand-primary rounded-xl flex items-center justify-center font-black">
-                                      <i class="pi pi-sliders-h"></i>
-                                  </div>
-                                  <div>
-                                      <p class="text-xs font-black text-slate-700">{{ t[currentLang].tiersCount }}</p>
-                                      <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                                          {{ currentLang === 'ar' ? 'مستويات الصعوبة المخصصة لهذا المجال' : 'Difficulty scales allocated' }}
-                                      </p>
-                                  </div>
-                              </div>
-                              <span class="text-xl font-black text-slate-800 bg-white px-5 py-2 rounded-xl border border-slate-100 shadow-sm leading-none shrink-0">
-                                  {{ form.levels_count }}
-                              </span>
-                          </div>
+                           <!-- Levels Display & Input -->
+                           <div class="md:col-span-2 bg-slate-50/50 p-6 rounded-2xl border border-slate-100/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                               <div class="flex items-center gap-3">
+                                   <div class="w-10 h-10 bg-brand-primary/10 text-brand-primary rounded-xl flex items-center justify-center font-black">
+                                       <i class="pi pi-sliders-h"></i>
+                                   </div>
+                                   <div>
+                                       <p class="text-xs font-black text-slate-700">{{ t[currentLang].tiersCount }}</p>
+                                       <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                                           {{ currentLang === 'ar' ? 'يمكنك زيادة أو تقليل عدد مستويات الصعوبة المخصصة' : 'Adjust the number of allocated difficulty scales' }}
+                                       </p>
+                                   </div>
+                               </div>
+                               <input v-model="form.levels_count" type="number" min="0" max="100"
+                                   class="text-center text-sm font-black text-slate-800 bg-white w-24 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary transition-all outline-none" />
+                           </div>
                       </div>
                   </div>
 

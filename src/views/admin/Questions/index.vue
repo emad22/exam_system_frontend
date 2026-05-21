@@ -408,12 +408,7 @@ onMounted(fetchData);
               </div>
               
               <div class="flex flex-wrap items-center gap-4 relative z-10">
-                   <!-- Language Selector Toggle -->
-                   <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs cursor-pointer active:scale-95">
-                       <i class="pi pi-globe text-brand-primary"></i>
-                       <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                   </button>
-                   
+                  
 
                    <Button :label="t[currentLang].createBtn" icon="pi pi-plus" 
                            class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 cursor-pointer"

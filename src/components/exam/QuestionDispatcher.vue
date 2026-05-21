@@ -23,6 +23,10 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false
+    },
+    hasStimulusContent: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -34,7 +38,12 @@ const updateAnswer = (newAnswer) => {
 </script>
 
 <template>
-    <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 pt-2 space-y-2">
+    <div 
+        :class="[
+            'flex-grow pr-1 pt-2 space-y-2 flex flex-col min-h-0', 
+            ['writing', 'short_answer'].includes(question.type) ? 'h-full overflow-hidden' : 'overflow-y-auto custom-scrollbar'
+        ]"
+    >
         <McqQuestion 
             v-if="question.type === 'mcq' || question.type === 'listening'" 
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
@@ -45,7 +54,11 @@ const updateAnswer = (newAnswer) => {
         
         <WritingQuestion 
             v-else-if="question.type === 'writing'" 
-            :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
+            :question="question" 
+            :answer="answer" 
+            :hasStimulusContent="hasStimulusContent" 
+            @update:answer="updateAnswer" 
+            :disabled="disabled" />
         
         <SpeakingQuestion 
             v-else-if="question.type === 'speaking'" 
@@ -73,7 +86,11 @@ const updateAnswer = (newAnswer) => {
         
         <ShortAnswerQuestion 
             v-else-if="question.type === 'short_answer'" 
-            :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
+            :question="question" 
+            :answer="answer" 
+            :hasStimulusContent="hasStimulusContent" 
+            @update:answer="updateAnswer" 
+            :disabled="disabled" />
         
         <HighlightQuestion 
             v-else-if="question.type === 'highlight'" 

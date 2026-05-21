@@ -1,7 +1,9 @@
 <script setup>
-import { computed } from 'vue';
-import VirtualKeyboard from '@/components/VirtualKeyboard.vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useVirtualKeyboard } from '@/composables/useVirtualKeyboard';
+import { useMediaUrl } from '@/composables/useMediaUrl';
+import Quill from 'quill';
+import 'quill/dist/quill.snow.css';
 
 const props = defineProps({
     question: {
@@ -15,8 +17,14 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false
+    },
+    hasStimulusContent: {
+        type: Boolean,
+        default: false
     }
 });
+
+const { resolveUrl } = useMediaUrl();
 
 const emit = defineEmits(['update:answer']);
 
@@ -25,59 +33,483 @@ const textAnswer = computed({
     set: (val) => emit('update:answer', { ...props.answer, text_answer: val })
 });
 
+const editorRef = ref(null);
+let quillInstance = null;
+
 const wordCount = computed(() => {
-    const text = textAnswer.value || '';
-    return text.trim() ? text.trim().split(/\s+/).length : 0;
+    let plainText = '';
+    if (quillInstance) {
+        plainText = quillInstance.getText().trim();
+    } else {
+        plainText = (textAnswer.value || '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+    // Filter out newline characters only and count words
+    const words = plainText.split(/\s+/).filter(w => w.length > 0);
+    return words.length;
 });
 
-const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtualKeyboard();
+const cleanHtml = (html) => {
+    if (!html) return '';
+    return html.replace(/&nbsp;/g, ' ');
+};
+
+const { 
+    keyboardLayout, 
+    showVirtualKeyboard, 
+    toggleKeyboardLayout,
+    registerKeyPressListener,
+    unregisterKeyPressListener
+} = useVirtualKeyboard();
+
+const handleVirtualKeyboardKeyPress = (button) => {
+    if (!quillInstance) return;
+
+    // Focus editor first so there is a selection range
+    quillInstance.focus();
+    let range = quillInstance.getSelection();
+    if (!range) {
+        const length = quillInstance.getLength();
+        quillInstance.setSelection(length - 1);
+        range = quillInstance.getSelection();
+    }
+
+    const index = range.index;
+
+    if (button === '{bksp}') {
+        if (index > 0) {
+            quillInstance.deleteText(index - 1, 1);
+            quillInstance.setSelection(index - 1);
+        }
+    } else if (button === '{enter}') {
+        quillInstance.insertText(index, '\n');
+        quillInstance.setSelection(index + 1);
+    } else if (button === '{space}') {
+        quillInstance.insertText(index, ' ');
+        quillInstance.setSelection(index + 1);
+    } else if (button === '{tab}') {
+        quillInstance.insertText(index, '\t');
+        quillInstance.setSelection(index + 1);
+    } else if (button.startsWith('{') && button.endsWith('}')) {
+        // Ignore control codes like Shift or Lock which simple-keyboard handles internally
+    } else {
+        quillInstance.insertText(index, button);
+        quillInstance.setSelection(index + button.length);
+    }
+};
+
+onMounted(() => {
+    if (editorRef.value) {
+        quillInstance = new Quill(editorRef.value, {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'direction': 'rtl' }],
+                    ['clean']
+                ]
+            },
+            placeholder: 'ابدأ الكتابة هنا...'
+        });
+
+        // Set initial HTML value
+        quillInstance.root.innerHTML = textAnswer.value;
+
+        // Sync Quill changes to parent textAnswer
+        quillInstance.on('text-change', () => {
+            textAnswer.value = quillInstance.root.innerHTML;
+        });
+
+        if (props.disabled) {
+            quillInstance.enable(false);
+        }
+    }
+
+    // Register active global keyboard keypress listener
+    registerKeyPressListener(handleVirtualKeyboardKeyPress);
+});
+
+watch(() => props.disabled, (newVal) => {
+    if (quillInstance) {
+        quillInstance.enable(!newVal);
+    }
+});
+
+watch(() => textAnswer.value, (newVal) => {
+    if (quillInstance && newVal !== quillInstance.root.innerHTML) {
+        quillInstance.root.innerHTML = newVal || '';
+    }
+});
+
+onUnmounted(() => {
+    unregisterKeyPressListener();
+});
 </script>
 
 <template>
-    <div class="space-y-6 py-4" dir="rtl">
-        <!-- Writing Area with Premium Styling -->
-        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 relative overflow-hidden group">
+    <div class="writing-question-wrapper" dir="rtl">
+        
+        <!-- Prompt Section: Side-by-Side in Single Column Mode -->
+        <div :class="['prompt-section', !hasStimulusContent ? 'side-by-side' : 'stacked']">
             
-            <!-- Glass Textarea -->
-            <textarea v-model="textAnswer" :disabled="disabled"
-                class="w-full bg-slate-50/50 border-2 border-slate-100 rounded-3xl p-8 text-xl font-medium focus:bg-indigo-50/30 focus:border-brand-primary transition-all min-h-[300px] outline-none shadow-inner leading-relaxed resize-none relative z-10"
-                placeholder="ابدأ الكتابة هنا..."></textarea>
-            
-            <!-- Floating Background Decoration -->
-            <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl group-focus-within:bg-brand-primary/10 transition-colors"></div>
+            <!-- Right side / Content Pane: Title, Badge, Text content -->
+            <div class="prompt-text-pane">
+                <!-- 1. Passage Title (only in single-column mode) -->
+                <h3 v-if="!hasStimulusContent && question.passage?.title" class="passage-title">
+                    {{ question.passage.title }}
+                </h3>
 
-            <!-- Integrated Toolbar -->
-            <div class="mt-6 flex flex-wrap justify-between items-center gap-4 relative z-10">
-                <!-- Stats Badges -->
-                <div class="flex items-center gap-3">
-                    <div class="px-4 py-2 bg-slate-100 rounded-xl flex items-center gap-3">
-                        <i class="pi pi-align-right text-[10px] text-slate-400"></i>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-600">الكلمات: {{ wordCount }}</span>
-                    </div>
-                    <div class="px-4 py-2 bg-indigo-50 rounded-xl flex items-center gap-3 border border-indigo-100/50">
-                        <i class="pi pi-flag text-[10px] text-brand-primary"></i>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary">المستهدف: {{ question.min_words || 0 }} - {{ question.max_words || '∞' }}</span>
-                    </div>
+                <!-- 2. Instructions Badge -->
+                <div v-if="question.instructions" class="writing-instructions-badge">
+                    <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></span>
+                    <span>{{ question.instructions }}</span>
                 </div>
 
-                <!-- Keyboard Controls -->
-                <div class="flex items-center gap-2">
-                    <button @click="toggleKeyboardLayout" class="h-10 px-6 bg-white border border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary hover:border-brand-primary shadow-sm transition-all active:scale-95">
-                        {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
-                    </button>
-                    <button @click="showVirtualKeyboard = !showVirtualKeyboard" 
-                        class="w-12 h-10 flex items-center justify-center bg-white border border-slate-100 rounded-xl shadow-sm hover:border-brand-primary transition-all group active:scale-95"
-                        :class="showVirtualKeyboard ? 'border-brand-primary text-brand-primary' : 'text-slate-400'">
-                        <i class="pi pi-keyboard text-lg"></i>
-                    </button>
+                <!-- 3. Question Prompt/Content -->
+                <div v-if="question.content" 
+                     class="writing-prompt-content ql-content" 
+                     v-html="cleanHtml(question.content)">
+                </div>
+
+                <!-- 5. Passage Content (only in single-column mode) -->
+                <div v-if="!hasStimulusContent && question.passage?.content" 
+                     class="passage-short-content ql-content" 
+                     v-html="cleanHtml(question.passage.content)">
                 </div>
             </div>
 
-            <!-- Virtual Keyboard -->
-            <VirtualKeyboard v-if="showVirtualKeyboard && !disabled" 
-                v-model="textAnswer" 
-                :layout="keyboardLayout"
-                class="mt-8 animate-in slide-in-from-bottom-6 duration-500" />
+            <!-- Left side / Image Pane (only in single-column mode) -->
+            <div v-if="!hasStimulusContent && (question.image_url || question.image_path || question.passage?.image_url || question.passage?.image_path)" 
+                 class="prompt-image-pane">
+                <div class="image-prompt-container">
+                    <img 
+                        :src="resolveUrl(question.image_url || question.image_path || question.passage?.image_url || question.passage?.image_path)" 
+                        alt="Prompt Image"
+                        class="prompt-image"
+                    />
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Rich Text Editor Container -->
+        <div class="editor-container-outer">
+            <div ref="editorRef" class="quill-rich-editor"></div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="writing-toolbar">
+            <!-- Stats -->
+            <div class="toolbar-stats">
+                <div class="stat-badge">
+                    <i class="pi pi-align-right"></i>
+                    <span>الكلمات: {{ wordCount }}</span>
+                </div>
+                <div class="stat-badge target" v-if="question.min_words || question.max_words">
+                    <i class="pi pi-flag"></i>
+                    <span>المستهدف: {{ question.min_words || 0 }} - {{ question.max_words || '∞' }}</span>
+                </div>
+            </div>
+
+            <!-- Keyboard Controls -->
+            <div class="toolbar-controls">
+                <button @click="toggleKeyboardLayout" class="kb-lang-btn">
+                    {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
+                </button>
+                <button
+                    @click="showVirtualKeyboard = !showVirtualKeyboard"
+                    class="kb-toggle-btn"
+                    :class="{ active: showVirtualKeyboard }"
+                    title="لوحة المفاتيح الافتراضية"
+                >
+                    <i class="pi pi-keyboard"></i>
+                </button>
+            </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.writing-question-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: 6px;
+    padding: 2px 0;
+    width: 100%;
+}
+
+/* Prompt Section styling */
+.prompt-section {
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.prompt-section.side-by-side {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 12px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    margin-bottom: 1px;
+}
+
+.prompt-section.stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prompt-text-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: right;
+}
+
+.prompt-image-pane {
+    flex-shrink: 0;
+    max-width: 160px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.passage-title {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 1px;
+    text-align: right;
+    line-height: 1.3;
+}
+
+.writing-instructions-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #475569;
+    align-self: flex-start;
+    margin-bottom: 1px;
+    line-height: 1.3;
+}
+
+.writing-prompt-content {
+    font-size: 1.05rem;
+    line-height: 1.5;
+    font-weight: 600;
+    color: #1e293b;
+    width: 100%;
+    margin-bottom: 1px;
+    text-align: right;
+}
+
+.writing-prompt-content :deep(p) {
+    margin-bottom: 0.15rem;
+    display: block;
+}
+
+.passage-short-content {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #334155;
+    width: 100%;
+    margin-bottom: 1px;
+    text-align: right;
+}
+
+/* Rich Editor Outer styling */
+.editor-container-outer {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 80px;
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.quill-rich-editor {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+.editor-container-outer:focus-within {
+    border-color: var(--brand-primary, #4f46e5);
+    box-shadow: inset 0 2px 8px rgba(79, 70, 229, 0.06), 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.editor-container-outer :deep(.ql-toolbar.ql-snow) {
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+    padding: 4px 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.editor-container-outer :deep(.ql-container.ql-snow) {
+    border: none;
+    flex: 1;
+    overflow-y: auto;
+    font-size: 1.1rem;
+    font-family: inherit;
+}
+
+.editor-container-outer :deep(.ql-editor) {
+    padding: 8px 12px;
+    line-height: 1.5;
+    text-align: right;
+    min-height: 100%;
+    direction: rtl;
+}
+
+.editor-container-outer :deep(.ql-editor.ql-blank::before) {
+    left: auto;
+    right: 12px;
+    font-style: normal;
+    color: #94a3b8;
+    content: attr(data-placeholder);
+}
+
+.writing-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.toolbar-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #475569;
+    letter-spacing: 0.04em;
+}
+
+.stat-badge i {
+    font-size: 9px;
+    color: #94a3b8;
+}
+
+.stat-badge.target {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: var(--brand-primary, #4f46e5);
+}
+
+.stat-badge.target i {
+    color: var(--brand-primary, #4f46e5);
+}
+
+.toolbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kb-lang-btn {
+    height: 28px;
+    padding: 0 10px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #475569;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.kb-lang-btn:hover {
+    border-color: var(--brand-primary, #4f46e5);
+    color: var(--brand-primary, #4f46e5);
+}
+
+.kb-toggle-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.kb-toggle-btn:hover {
+    border-color: var(--brand-primary, #4f46e5);
+    color: var(--brand-primary, #4f46e5);
+}
+
+.kb-toggle-btn.active {
+    background: var(--brand-primary, #4f46e5);
+    border-color: var(--brand-primary, #4f46e5);
+    color: #fff;
+}
+
+.image-prompt-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.prompt-image {
+    max-width: 100%;
+    max-height: 85px; /* Scaled down from 120px to save significant vertical height */
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    border: 2px solid #ffffff;
+    transition: transform 0.2s ease-in-out;
+}
+
+.prompt-image:hover {
+    transform: scale(1.03);
+}
+</style>
+
