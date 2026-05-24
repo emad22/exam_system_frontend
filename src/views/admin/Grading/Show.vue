@@ -240,9 +240,9 @@ onMounted(fetchAttempt)
                                 </p>
                             </div>
                             <!-- Admin max cap -->
-                            <div v-if="skill.max_points > 0" class="bg-rose-50/50 border border-rose-100/60 rounded-2xl px-5 py-2.5 text-center shadow-sm">
+                            <div v-if="skill.answers.length > 0" class="bg-rose-50/50 border border-rose-100/60 rounded-2xl px-5 py-2.5 text-center shadow-sm">
                                 <p class="text-[9px] font-black text-rose-400 uppercase tracking-wider">{{ t[currentLang].maxCap }}</p>
-                                <p class="font-black text-rose-600 text-base mt-0.5">{{ skill.max_points }} pts</p>
+                                <p class="font-black text-rose-600 text-base mt-0.5">{{ skill.max_points ?? skillPossible(skill) }} pts</p>
                             </div>
                         </div>
                     </div>
@@ -277,6 +277,25 @@ onMounted(fetchAttempt)
                                     <div v-if="ans.question?.content"
                                         class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
                                         v-html="ans.question.content"></div>
+                                    <div v-else-if="ans.question?.image_url || ans.question?.image_path"
+                                        class="flex justify-center">
+                                        <img :src="resolveUrl(ans.question.image_url || ans.question.image_path)"
+                                            class="rounded-2xl border border-slate-800 shadow-lg max-w-full h-auto"
+                                            alt="Question image" />
+                                    </div>
+                                    <div v-else-if="(ans.question?.media_url || ans.question?.media_path) && (ans.question.media_url || ans.question.media_path).toLowerCase().includes('.mp4')"
+                                        class="flex justify-center">
+                                        <video :src="resolveUrl(ans.question.media_url || ans.question.media_path)"
+                                            controls class="rounded-2xl shadow-lg max-w-full"></video>
+                                    </div>
+                                    <div v-else-if="ans.question?.passage"
+                                        class="space-y-4">
+                                        <p v-if="ans.question.passage.title" class="text-slate-200 font-black text-sm">{{ ans.question.passage.title }}</p>
+                                        <div v-if="ans.question.passage.content"
+                                            class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
+                                            v-html="ans.question.passage.content"></div>
+                                        <p v-else class="text-slate-400 italic text-xs">{{ t[currentLang].noContent }}</p>
+                                    </div>
                                     <p v-else class="text-slate-400 italic text-xs">{{ t[currentLang].noContent }}</p>
                                 </div>
 
@@ -284,11 +303,10 @@ onMounted(fetchAttempt)
                                 <div class="bg-slate-50/60 rounded-2xl p-6 border border-slate-100 shadow-inner min-h-[120px]">
                                     <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-4">{{ t[currentLang].studentAnswer }}</p>
                                     
-                                    <!-- Text answer -->
-                                    <p v-if="ans.text_answer"
-                                        class="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap font-medium" dir="auto">
-                                        {{ ans.text_answer }}
-                                    </p>
+                                    <!-- Text/HTML answer -->
+                                    <div v-if="ans.text_answer"
+                                        class="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap font-medium" dir="auto"
+                                        v-html="ans.text_answer"></div>
                                     
                                     <!-- Audio answer -->
                                     <div v-if="ans.media_answer" class="mt-4">
