@@ -76,6 +76,61 @@ const skills   = ref([])   // [{ skill_id, skill_name, max_points, answers: [...
 // Grades keyed by answer_id
 const grades = ref({})   // { [answer_id]: { points_awarded, teacher_feedback } }
 
+// ── Helper Functions for File Type Detection ───────────────────────────────
+const getFileExtension = (filePath) => {
+    if (!filePath) return '';
+    return filePath.split('.').pop().toLowerCase();
+};
+
+const isImageFile = (filePath) => {
+    if (!filePath) return false;
+    const ext = getFileExtension(filePath);
+    return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
+};
+
+const isAudioFile = (filePath) => {
+    if (!filePath) return false;
+    const ext = getFileExtension(filePath);
+    return ['mp3', 'wav', 'm4a', 'webm', 'ogg', 'aac', 'flac'].includes(ext);
+};
+
+const isPdfFile = (filePath) => {
+    if (!filePath) return false;
+    return getFileExtension(filePath) === 'pdf';
+};
+
+const isDocumentFile = (filePath) => {
+    if (!filePath) return false;
+    const ext = getFileExtension(filePath);
+    return ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx'].includes(ext);
+};
+
+const getFileIcon = (filePath) => {
+    const ext = getFileExtension(filePath);
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'pi-volume-up';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'pi-image';
+    if (['pdf'].includes(ext)) return 'pi-file-pdf';
+    if (['doc', 'docx'].includes(ext)) return 'pi-file-word';
+    return 'pi-file';
+};
+
+const getFileTypeLabel = (filePath) => {
+    const ext = getFileExtension(filePath);
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'صوتي';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'صورة';
+    if (['pdf'].includes(ext)) return 'PDF';
+    if (['doc', 'docx'].includes(ext)) return 'وثيقة';
+    return 'ملف';
+};
+
+const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+};
+
 // ── Fetch ──────────────────────────────────────────────────────────────────
 const fetchAttempt = async () => {
     loading.value = true
@@ -308,9 +363,42 @@ onMounted(fetchAttempt)
                                         class="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap font-medium" dir="auto"
                                         v-html="ans.text_answer"></div>
                                     
+                                    <!-- Image answer -->
+                                    <div v-if="ans.media_answer && isImageFile(ans.media_answer)" class="mt-2">
+                                        <div class="space-y-2">
+                                            <img :src="resolveUrl(ans.media_answer)" 
+                                                alt="Student Image" 
+                                                class="rounded-lg border border-slate-200 max-w-sm max-h-64 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                                                @click="$event.target.click()" />
+                                            <p class="text-xs text-slate-500">نقر للعرض بالحجم الكامل</p>
+                                        </div>
+                                    </div>
+                                    
                                     <!-- Audio answer -->
-                                    <div v-if="ans.media_answer" class="mt-4">
-                                        <audio :src="resolveUrl(ans.media_answer)" controls class="w-full h-11 rounded-xl shadow-sm border border-slate-200"></audio>
+                                    <div v-if="ans.media_answer && isAudioFile(ans.media_answer)" class="mt-4">
+                                        <div class="space-y-2">
+                                            <audio :src="resolveUrl(ans.media_answer)" controls class="w-full h-11 rounded-xl shadow-sm border border-slate-200"></audio>
+                                            <p class="text-xs text-slate-500">الملف الصوتي: {{ getFileTypeLabel(ans.media_answer) }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Document/File answer -->
+                                    <div v-if="ans.media_answer && isDocumentFile(ans.media_answer)" class="mt-4">
+                                        <div class="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                                            <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 rounded-lg">
+                                                <i :class="['pi', getFileIcon(ans.media_answer), 'text-slate-600']"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-bold text-slate-700 truncate">{{ ans.media_answer.split('/').pop() }}</p>
+                                                <p class="text-xs text-slate-500">{{ getFileTypeLabel(ans.media_answer) }}</p>
+                                            </div>
+                                            <a :href="resolveUrl(ans.media_answer)" 
+                                                target="_blank"
+                                                class="flex-shrink-0 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold transition-colors">
+                                                <i class="pi pi-download mr-1"></i>
+                                                تحميل
+                                            </a>
+                                        </div>
                                     </div>
                                     
                                     <!-- No answer -->

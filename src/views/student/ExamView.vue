@@ -346,6 +346,7 @@ const VALIDATORS = {
     mcq: (ans) => !!ans.option_id,
     true_false: (ans) => !!ans.option_id,
     speaking: (ans) => !!ans.recorded_file,
+    writing: (ans) => !!(ans.text_answer && ans.text_answer.trim().length > 0) || !!ans.recorded_file,
     drag_drop: (ans) => ans.drag_drop_answers.every(a => a !== null && a !== ''),
     fill_blank: (ans) => ans.fill_blank_answers.every(a => a && a.trim().length > 0),
     matching: (ans, q) => Object.keys(ans.matching_answers).length === q.options.filter(o => o.is_correct).length,
@@ -396,7 +397,11 @@ const saveCurrentAnswerDraft = async () => {
         
         if (ans.option_id) formData.append('option_id', ans.option_id);
         if (ans.text_answer) formData.append('text_answer', ans.text_answer);
-        if (ans.recorded_file) formData.append('audio_file', ans.recorded_file, 'voice.webm');
+        if (ans.recorded_file) {
+            // Get the actual filename, or use a default with the correct extension
+            const fileName = ans.recorded_file.name || 'voice.webm';
+            formData.append('audio_file', ans.recorded_file, fileName);
+        }
 
         const arrayFields = {
             selected_words: ans.selected_words,
@@ -435,7 +440,11 @@ const submitCurrentBatch = async (isTimeout = false) => {
             formData.append(`answers[${index}][question_id]`, ans.question_id);
             if (ans.option_id) formData.append(`answers[${index}][option_id]`, ans.option_id);
             if (ans.text_answer) formData.append(`answers[${index}][text_answer]`, ans.text_answer);
-            if (ans.recorded_file) formData.append(`answers[${index}][audio_file]`, ans.recorded_file, 'voice.webm');
+            if (ans.recorded_file) {
+                // Get the actual filename, or use a default with the correct extension
+                const fileName = ans.recorded_file.name || 'voice.webm';
+                formData.append(`answers[${index}][audio_file]`, ans.recorded_file, fileName);
+            }
 
             // --- OPTIMIZATION: Use a map for complex array fields ---
             const arrayFields = {
@@ -562,8 +571,11 @@ watch(() => cheatWarnings.value, (newCount, oldCount) => {
 
 const cleanHtml = (html) => {
     if (!html) return '';
-    // Replace non-breaking spaces with normal spaces to allow wrapping
-    return html.replace(/&nbsp;/g, ' ');
+    let clean = html.replace(/&nbsp;/g, ' ');
+    clean = clean.replace(/(\.{3,})\s*([\d\u0660-\u0669]+)/g, '<span class="blank-line-wrapper"><span class="blank-line"></span><span class="blank-badge">$2</span></span>');
+    clean = clean.replace(/([\d\u0660-\u0669]+)\s*(\.{3,})/g, '<span class="blank-line-wrapper"><span class="blank-badge">$1</span><span class="blank-line"></span></span>');
+    clean = clean.replace(/(\.{3,})/g, '<span class="blank-line"></span>');
+    return clean;
 };
 
 const { resolveUrl } = useMediaUrl();
@@ -1234,5 +1246,39 @@ onUnmounted(() => {
 .slide-up-leave-to {
     transform: translateY(100%);
     opacity: 0;
+}
+
+/* Premium Blank Dialogue Lines Styling */
+:deep(.blank-line-wrapper) {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    vertical-align: middle !important;
+    margin: 4px 6px !important;
+    direction: ltr !important;
+}
+
+:deep(.blank-line) {
+    display: inline-block !important;
+    border-bottom: 2px dashed #94a3b8 !important;
+    width: 150px !important;
+    height: 18px !important;
+    vertical-align: middle !important;
+    margin: 0 4px !important;
+}
+
+:deep(.blank-badge) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background-color: var(--brand-primary, #e11d48) !important;
+    color: white !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    font-family: sans-serif !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
 }
 </style>

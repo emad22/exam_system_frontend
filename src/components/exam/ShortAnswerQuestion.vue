@@ -33,7 +33,11 @@ const { resolveUrl } = useMediaUrl();
 
 const cleanHtml = (html) => {
     if (!html) return '';
-    return html.replace(/&nbsp;/g, ' ');
+    let clean = html.replace(/&nbsp;/g, ' ');
+    clean = clean.replace(/(\.{3,})\s*([\d\u0660-\u0669]+)/g, '<span class="blank-line-wrapper"><span class="blank-line"></span><span class="blank-badge">$2</span></span>');
+    clean = clean.replace(/([\d\u0660-\u0669]+)\s*(\.{3,})/g, '<span class="blank-line-wrapper"><span class="blank-badge">$1</span><span class="blank-line"></span></span>');
+    clean = clean.replace(/(\.{3,})/g, '<span class="blank-line"></span>');
+    return clean;
 };
 
 const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtualKeyboard();
@@ -137,7 +141,7 @@ const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtual
 
 .short-prompt-content {
     font-size: 1.15rem;
-    line-height: 2;
+    line-height: 2.2;
     font-weight: 600;
     color: #1e293b;
     width: 100%;
@@ -148,6 +152,39 @@ const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtual
 .short-prompt-content :deep(p) {
     margin-bottom: 0.5rem;
     display: block;
+}
+
+.short-prompt-content :deep(.blank-line-wrapper) {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    vertical-align: middle !important;
+    margin: 4px 6px !important;
+    direction: ltr !important;
+}
+
+.short-prompt-content :deep(.blank-line) {
+    display: inline-block !important;
+    border-bottom: 2px dashed #94a3b8 !important;
+    width: 150px !important;
+    height: 18px !important;
+    vertical-align: middle !important;
+    margin: 0 4px !important;
+}
+
+.short-prompt-content :deep(.blank-badge) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background-color: var(--brand-primary, #e11d48) !important;
+    color: white !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    font-family: sans-serif !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
 }
 
 .image-prompt-container {

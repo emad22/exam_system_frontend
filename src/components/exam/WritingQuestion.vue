@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
 import { useVirtualKeyboard } from '@/composables/useVirtualKeyboard';
 import { useMediaUrl } from '@/composables/useMediaUrl';
+import FileUpload from '@/components/FileUpload.vue';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 
@@ -28,6 +29,8 @@ const { resolveUrl } = useMediaUrl();
 
 const emit = defineEmits(['update:answer']);
 
+const activeTab = ref('write'); // 'write' or 'upload'
+
 const textAnswer = computed({
     get: () => props.answer.text_answer || '',
     set: (val) => emit('update:answer', { ...props.answer, text_answer: val })
@@ -53,7 +56,11 @@ const wordCount = computed(() => {
 
 const cleanHtml = (html) => {
     if (!html) return '';
-    return html.replace(/&nbsp;/g, ' ');
+    let clean = html.replace(/&nbsp;/g, ' ');
+    clean = clean.replace(/(\.{3,})\s*([\d\u0660-\u0669]+)/g, '<span class="blank-line-wrapper"><span class="blank-line"></span><span class="blank-badge">$2</span></span>');
+    clean = clean.replace(/([\d\u0660-\u0669]+)\s*(\.{3,})/g, '<span class="blank-line-wrapper"><span class="blank-badge">$1</span><span class="blank-line"></span></span>');
+    clean = clean.replace(/(\.{3,})/g, '<span class="blank-line"></span>');
+    return clean;
 };
 
 const { 
@@ -100,8 +107,20 @@ const handleVirtualKeyboardKeyPress = (button) => {
     }
 };
 
-onMounted(() => {
-    if (editorRef.value) {
+const handleFileSelected = (file) => {
+    emit('update:answer', { ...props.answer, recorded_file: file });
+};
+
+const handleFileRemoved = () => {
+    emit('update:answer', { ...props.answer, recorded_file: null });
+};
+
+onMounted(async () => {
+    // Wait for DOM to be ready
+    await nextTick();
+    
+    // Initialize Quill editor
+    if (editorRef.value && !quillInstance) {
         quillInstance = new Quill(editorRef.value, {
             theme: 'snow',
             modules: {
@@ -130,6 +149,14 @@ onMounted(() => {
 
     // Register active global keyboard keypress listener
     registerKeyPressListener(handleVirtualKeyboardKeyPress);
+});
+
+watch(() => activeTab.value, async (newTab) => {
+    if (newTab === 'write' && quillInstance) {
+        // Refocus Quill when switching back to write tab
+        await nextTick();
+        quillInstance.focus();
+    }
 });
 
 watch(() => props.disabled, (newVal) => {
@@ -195,39 +222,76 @@ onUnmounted(() => {
 
         </div>
 
-        <!-- Rich Text Editor Container -->
-        <div class="editor-container-outer">
-            <div ref="editorRef" class="quill-rich-editor"></div>
+        <!-- Premium Tab Selector -->
+        <div class="tab-selector">
+            <button 
+                @click="activeTab = 'write'"
+                :class="[
+                    'tab-button',
+                    activeTab === 'write' && 'tab-button-active'
+                ]"
+                :disabled="disabled">
+                <i class="pi pi-pen-to-square"></i>
+                <span>كتابة النص</span>
+            </button>
+            <button 
+                @click="activeTab = 'upload'"
+                :class="[
+                    'tab-button',
+                    activeTab === 'upload' && 'tab-button-active'
+                ]"
+                :disabled="disabled">
+                <i class="pi pi-cloud-upload"></i>
+                <span>رفع صورة/ملف</span>
+            </button>
         </div>
 
-        <!-- Toolbar -->
-        <div class="writing-toolbar">
-            <!-- Stats -->
-            <div class="toolbar-stats">
-                <div class="stat-badge">
-                    <i class="pi pi-align-right"></i>
-                    <span>الكلمات: {{ wordCount }}</span>
-                </div>
-                <div class="stat-badge target" v-if="question.min_words || question.max_words">
-                    <i class="pi pi-flag"></i>
-                    <span>المستهدف: {{ question.min_words || 0 }} - {{ question.max_words || '∞' }}</span>
-                </div>
+        <!-- Tab Content: Write Text -->
+        <div v-show="activeTab === 'write'" class="tab-content">
+            <!-- Rich Text Editor Container -->
+            <div class="editor-container-outer">
+                <div ref="editorRef" class="quill-rich-editor"></div>
             </div>
 
-            <!-- Keyboard Controls -->
-            <div class="toolbar-controls">
-                <button @click="toggleKeyboardLayout" class="kb-lang-btn">
-                    {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
-                </button>
-                <button
-                    @click="showVirtualKeyboard = !showVirtualKeyboard"
-                    class="kb-toggle-btn"
-                    :class="{ active: showVirtualKeyboard }"
-                    title="لوحة المفاتيح الافتراضية"
-                >
-                    <i class="pi pi-keyboard"></i>
-                </button>
+            <!-- Toolbar -->
+            <div class="writing-toolbar">
+                <!-- Stats -->
+                <div class="toolbar-stats">
+                    <div class="stat-badge">
+                        <i class="pi pi-align-right"></i>
+                        <span>الكلمات: {{ wordCount }}</span>
+                    </div>
+                    <div class="stat-badge target" v-if="question.min_words || question.max_words">
+                        <i class="pi pi-flag"></i>
+                        <span>المستهدف: {{ question.min_words || 0 }} - {{ question.max_words || '∞' }}</span>
+                    </div>
+                </div>
+
+                <!-- Keyboard Controls -->
+                <div class="toolbar-controls">
+                    <button @click="toggleKeyboardLayout" class="kb-lang-btn">
+                        {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
+                    </button>
+                    <button
+                        @click="showVirtualKeyboard = !showVirtualKeyboard"
+                        class="kb-toggle-btn"
+                        :class="{ active: showVirtualKeyboard }"
+                        title="لوحة المفاتيح الافتراضية"
+                    >
+                        <i class="pi pi-keyboard"></i>
+                    </button>
+                </div>
             </div>
+        </div>
+
+        <!-- Tab Content: Upload File -->
+        <div v-show="activeTab === 'upload'" class="tab-content">
+            <FileUpload 
+                :accepted-types="['image', 'document']"
+                :max-size="50 * 1024 * 1024"
+                :disabled="disabled"
+                @file-selected="handleFileSelected"
+                @file-removed="handleFileRemoved" />
         </div>
     </div>
 </template>
@@ -311,7 +375,7 @@ onUnmounted(() => {
 
 .writing-prompt-content {
     font-size: 1.05rem;
-    line-height: 1.5;
+    line-height: 2.2;
     font-weight: 600;
     color: #1e293b;
     width: 100%;
@@ -324,6 +388,39 @@ onUnmounted(() => {
     display: block;
 }
 
+.writing-prompt-content :deep(.blank-line-wrapper) {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    vertical-align: middle !important;
+    margin: 4px 6px !important;
+    direction: ltr !important;
+}
+
+.writing-prompt-content :deep(.blank-line) {
+    display: inline-block !important;
+    border-bottom: 2px dashed #94a3b8 !important;
+    width: 150px !important;
+    height: 18px !important;
+    vertical-align: middle !important;
+    margin: 0 4px !important;
+}
+
+.writing-prompt-content :deep(.blank-badge) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background-color: var(--brand-primary, #e11d48) !important;
+    color: white !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    font-family: sans-serif !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
 .passage-short-content {
     font-size: 1rem;
     line-height: 1.5;
@@ -331,6 +428,69 @@ onUnmounted(() => {
     width: 100%;
     margin-bottom: 1px;
     text-align: right;
+}
+
+/* Tab Selector Styling */
+.tab-selector {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.375rem;
+    background: #f1f5f9;
+    border-radius: 1rem;
+    width: 100%;
+}
+
+.tab-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0.75rem;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover:not(:disabled) {
+    color: #475569;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.tab-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tab-button-active {
+    background: white;
+    color: var(--brand-primary, #e11d48);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 0.375rem;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Rich Editor Outer styling */
