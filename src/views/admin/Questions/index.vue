@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import { useAdminStore } from '@/stores/admin';
@@ -18,6 +19,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import Textarea from 'primevue/textarea';
 import Tooltip from 'primevue/tooltip';
 
+const router = useRouter();
 const vTooltip = Tooltip;
 const questions = ref([]);
 const first = ref(0);
@@ -283,11 +285,26 @@ const duplicateQuestion = async (id) => {
     isDuplicating.value = true;
     try {
         const res = await api.post(`/admin/questions/${id}/duplicate`);
-        fetchData();
-        showAlert('تم نسخ السؤال بنجاح', t[currentLang.value].deleted, 'success');
+        const newQuestionId = res.data.question?.id || res.data.id;
+        
+        const routeName = adminStore.user?.role === 'teacher' 
+            ? 'teacher.questions.edit' 
+            : 'admin.questions.edit';
+            
+        showAlert(
+            currentLang.value === 'ar' ? 'تم نسخ السؤال بنجاح، جاري الانتقال للتعديل...' : 'Question duplicated successfully, redirecting to edit...', 
+            t[currentLang.value].deleted, 
+            'success'
+        );
+        
+        router.push({ name: routeName, params: { id: newQuestionId } });
     } catch (err) {
         console.error('Failed to duplicate question', err);
-        showAlert('فشل نسخ السؤال', t[currentLang.value].error, 'error');
+        showAlert(
+            currentLang.value === 'ar' ? 'فشل نسخ السؤال' : 'Failed to duplicate question', 
+            t[currentLang.value].error, 
+            'error'
+        );
     } finally {
         isDuplicating.value = false;
     }
@@ -423,6 +440,40 @@ watch([filterSkill, filterType, searchQuery], () => {
     first.value = 0;
 });
 
+const isFirstInPassage = (data, index) => {
+    if (!data.passage_id) return false;
+    const globalIndex = first.value + index;
+    if (globalIndex === 0) return true;
+    const prevQuestion = filteredQuestions.value[globalIndex - 1];
+    return !prevQuestion || prevQuestion.passage_id !== data.passage_id;
+};
+
+const isLastInPassage = (data, index) => {
+    if (!data.passage_id) return false;
+    const globalIndex = first.value + index;
+    if (globalIndex === filteredQuestions.value.length - 1) return true;
+    const nextQuestion = filteredQuestions.value[globalIndex + 1];
+    return !nextQuestion || nextQuestion.passage_id !== data.passage_id;
+};
+
+const getRowClass = (data) => {
+    const globalIndex = filteredQuestions.value.findIndex(q => q.id === data.id);
+    if (globalIndex === -1 || !data.passage_id) return 'standalone-row';
+    
+    const prevQuestion = globalIndex > 0 ? filteredQuestions.value[globalIndex - 1] : null;
+    const nextQuestion = globalIndex < filteredQuestions.value.length - 1 ? filteredQuestions.value[globalIndex + 1] : null;
+    
+    const isFirst = !prevQuestion || prevQuestion.passage_id !== data.passage_id;
+    const isLast = !nextQuestion || nextQuestion.passage_id !== data.passage_id;
+    
+    return [
+        'passage-row',
+        isFirst ? 'passage-row-first' : '',
+        isLast ? 'passage-row-last' : '',
+        (!isFirst && !isLast) ? 'passage-row-middle' : ''
+    ].filter(Boolean).join(' ');
+};
+
 onMounted(fetchData);
 </script>
 
@@ -555,7 +606,7 @@ onMounted(fetchData);
               
               <!-- 1. COMPACT TABLE VIEW -->
               <div v-if="viewMode === 'table'" class="bg-white rounded-[2rem] border border-slate-100 shadow-md overflow-hidden">
-                  <DataTable v-model:first="first" :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                  <DataTable v-model:first="first" :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm text-sm" responsiveLayout="scroll" :rowClass="getRowClass">
                     
                     <Column :header="t[currentLang].colId" style="width: 100px">
                       <template #body="{ data, index }">
@@ -564,32 +615,59 @@ onMounted(fetchData);
                     </Column>
 
                     <Column :header="t[currentLang].colQuestionContent" style="min-width: 420px">
-                      <template #body="{ data }">
-                        <div class="flex items-center gap-4 py-2.5" :class="{ 'space-x-reverse': currentLang === 'ar' }">
+                      <template #body="{ data, index }">
+                        <div class="flex flex-col w-full">
                           
-                          <!-- Dynamic Framed Image Preview with hover scale -->
-                          <div v-if="data.image_url" 
-                               class="rounded-[1.25rem] overflow-hidden border border-slate-100 shadow-sm shrink-0 hover:shadow-md transition-shadow relative bg-slate-50"
-                               :class="{'w-14 h-14': !data.image_width && !data.image_height}"
-                               :style="data.image_width || data.image_height ? {
-                                   width: data.image_width ? `${data.image_width}px` : 'auto',
-                                   height: data.image_height ? `${data.image_height}px` : 'auto',
-                                   maxWidth: '120px',
-                                   maxHeight: '120px'
-                               } : {}">
-                            <img :src="resolveUrl(data.image_url)" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
+                          <!-- Passage Header Banner (Only on the first question of the passage group) -->
+                          <div v-if="isFirstInPassage(data, index)" 
+                               class="mb-3 bg-gradient-to-r from-brand-primary/10 to-brand-secondary/5 border border-brand-primary/20 rounded-xl p-3 flex items-center justify-between shadow-2xs gap-4 animate-in fade-in duration-300">
+                            <div class="flex items-center gap-2.5 min-w-0" :class="{ 'space-x-reverse': currentLang === 'ar' }">
+                              <div class="w-8 h-8 rounded-lg bg-white border border-brand-primary/20 flex items-center justify-center shrink-0">
+                                <i class="pi pi-book text-sm text-brand-primary"></i>
+                              </div>
+                              <div class="min-w-0 text-right">
+                                <span class="text-[9px] font-black text-brand-primary/85 uppercase tracking-wider block">
+                                  {{ currentLang === 'ar' ? 'أسئلة القطعة' : 'Passage Questions' }}
+                                </span>
+                                <span class="text-xs font-bold text-slate-800 block truncate max-w-[320px] mt-0.5">
+                                  {{ data.passage.title }}
+                                </span>
+                              </div>
+                            </div>
+                            <span class="text-[9px] font-black text-slate-500 bg-white border border-slate-100 rounded-lg px-2.5 py-0.5 shrink-0">
+                              ID: #{{ data.passage.id }}
+                            </span>
                           </div>
 
-                          <div class="min-w-0 flex-1">
-                            <!-- Truncated HTML Preview with fine typography -->
-                            <div class="text-xs font-black text-slate-700 truncate max-w-[400px] leading-relaxed ql-content" v-html="data.content || `<span class='italic text-slate-300'>${t[currentLang].noTextContent}</span>`"></div>
+                          <div class="flex items-center gap-4 py-2.5" :class="{ 'space-x-reverse': currentLang === 'ar' }">
                             
-                            <!-- Attached Passage Pill -->
-                            <div v-if="data.passage" class="inline-flex items-center gap-2 mt-1.5 bg-brand-primary/5 hover:bg-brand-primary/10 border border-brand-primary/10 rounded-lg px-2.5 py-0.5 transition-colors">
-                              <i class="pi pi-book text-[9px] text-brand-primary"></i>
-                              <span class="text-[9px] font-black text-brand-primary truncate max-w-[200px]">{{ data.passage.title }}</span>
+                            <!-- Dynamic Framed Image Preview with hover scale -->
+                            <div v-if="data.image_url" 
+                                 class="rounded-[1.25rem] overflow-hidden border border-slate-100 shadow-sm shrink-0 hover:shadow-md transition-shadow relative bg-slate-50"
+                                 :class="{'w-14 h-14': !data.image_width && !data.image_height}"
+                                 :style="data.image_width || data.image_height ? {
+                                     width: data.image_width ? `${data.image_width}px` : 'auto',
+                                     height: data.image_height ? `${data.image_height}px` : 'auto',
+                                     maxWidth: '120px',
+                                     maxHeight: '120px'
+                                 } : {}">
+                              <img :src="resolveUrl(data.image_url)" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                              <!-- Truncated HTML Preview with fine typography -->
+                              <div class="text-xs font-black text-slate-700 truncate max-w-[400px] leading-relaxed ql-content" v-html="data.content || `<span class='italic text-slate-300'>${t[currentLang].noTextContent}</span>`"></div>
+                              
+                              <!-- Small Indicator instead of full redundant passage title if grouped -->
+                              <div v-if="data.passage" class="inline-flex items-center gap-1.5 mt-1.5 bg-brand-primary/5 border border-brand-primary/10 rounded-lg px-2 py-0.5">
+                                <i class="pi pi-book text-[8px] text-brand-primary"></i>
+                                <span class="text-[9px] font-black text-brand-primary/80">
+                                  {{ currentLang === 'ar' ? 'سؤال من قطعة' : 'Passage Question' }}
+                                </span>
+                              </div>
                             </div>
                           </div>
+
                         </div>
                       </template>
                     </Column>
@@ -652,17 +730,18 @@ onMounted(fetchData);
                     </Column>
 
                     <Column :header="t[currentLang].colActions" style="width: 130px" class="text-right">
-                      <template #body="{ data }">
-                        <div class="flex justify-end gap-1.5">
+                      <template #body="{ data, index }">
+                        <!-- Show full action buttons for standalone questions OR first question of a passage group -->
+                        <div v-if="!data.passage_id || isFirstInPassage(data, index)" class="flex justify-end gap-1.5">
                           <Button icon="pi pi-eye" rounded severity="info" outlined size="small"
                                   class="h-9 w-9 border-blue-200 bg-blue-50/20 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 cursor-pointer transition-all duration-300"
                                   @click="openPreview(data.id)"
-                                  v-tooltip.top="'معاينة السؤال'" :loading="isLoadingPreview" />
+                                  v-tooltip.top="'Preview Question'" :loading="isLoadingPreview" />
                           
                           <Button icon="pi pi-copy" rounded severity="success" outlined size="small"
                                   class="h-9 w-9 border-green-200 bg-green-50/20 text-green-600 hover:bg-green-500 hover:text-white hover:border-green-500 cursor-pointer transition-all duration-300"
                                   @click="duplicateQuestion(data.id)"
-                                  v-tooltip.top="'نسخ السؤال'" :loading="isDuplicating" />
+                                  v-tooltip.top="'duplicate Question'" :loading="isDuplicating" />
                           
                           <Button icon="pi pi-pencil" rounded severity="warning" outlined size="small"
                                   class="h-9 w-9 border-amber-200 bg-amber-50/20 text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 cursor-pointer transition-all duration-300"
@@ -672,6 +751,13 @@ onMounted(fetchData);
                                   class="h-9 w-9 border-rose-200 bg-rose-50/20 text-rose-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-all duration-300"
                                   @click="deleteItem(data.id)" />
                         </div>
+                        <!-- Passage sibling rows: just show a subtle linked indicator, no duplicate controls -->
+                        <div v-else class="flex justify-end">
+                          <span class="inline-flex items-center gap-1 text-[9px] font-black text-brand-primary/60 bg-brand-primary/5 border border-brand-primary/10 rounded-lg px-2 py-1">
+                            <i class="pi pi-link text-[8px]"></i>
+                            {{ currentLang === 'ar' ? 'مرتبط بالقطعة' : 'Part of passage' }}
+                          </span>
+                        </div>
                       </template>
                     </Column>
                   </DataTable>
@@ -680,11 +766,27 @@ onMounted(fetchData);
               <!-- 2. CREATIVE GRID CARD VIEW -->
               <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   <div v-for="data in filteredQuestions" :key="data.id" 
-                       class="relative bg-white rounded-[2rem] border border-slate-100 hover:border-brand-primary/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group">
+                       :class="data.passage ? 'border-brand-primary/25 bg-rose-50/5 shadow-sm' : 'border-slate-100 bg-white'"
+                       class="relative rounded-[2rem] border hover:border-brand-primary/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group">
                       
-                      <!-- Top Color Border Band based on question type severity -->
-                      <div class="absolute top-0 left-0 right-0 h-1.5" :class="questionTypeMeta[data.type]?.color || 'bg-slate-300'"></div>
+                      <!-- Top Color Border Band based on question type severity (Only for standalone questions) -->
+                      <div v-if="!data.passage" class="absolute top-0 left-0 right-0 h-1.5" :class="questionTypeMeta[data.type]?.color || 'bg-slate-300'"></div>
                       
+                      <!-- Passage Group Header for Grid View -->
+                      <div v-if="data.passage" 
+                           class="bg-gradient-to-r from-brand-primary/10 to-brand-secondary/5 border-b border-brand-primary/10 px-6 py-3.5 flex items-center justify-between gap-4"
+                           :class="{ 'flex-row-reverse': currentLang === 'ar' }">
+                          <div class="flex items-center gap-2 min-w-0" :class="{ 'space-x-reverse': currentLang === 'ar' }">
+                              <i class="pi pi-book text-xs text-brand-primary shrink-0"></i>
+                              <span class="text-[10px] font-bold text-slate-700 truncate max-w-[160px]">
+                                  {{ data.passage.title }}
+                              </span>
+                          </div>
+                          <span class="text-[9px] font-black text-brand-primary/90 bg-white border border-brand-primary/10 rounded-lg px-2.5 py-0.5 shrink-0">
+                              {{ currentLang === 'ar' ? 'سؤال قطعة' : 'Passage Q' }}
+                          </span>
+                      </div>
+
                       <!-- Card Header -->
                       <div class="flex items-center justify-between p-6 pb-3 border-b border-slate-50" :class="{ 'flex-row-reverse': currentLang === 'ar' }">
                           <!-- Level difficulty badge -->
@@ -753,7 +855,9 @@ onMounted(fetchData);
                           <span v-else class="text-[9px] font-black text-slate-300 italic">{{ t[currentLang].system }}</span>
 
                           <!-- Custom Action Hub -->
-                          <div class="flex items-center gap-1 shrink-0 ml-auto" :class="{ 'mr-auto ml-0': currentLang === 'ar' }">
+                          <!-- Show full actions for standalone questions OR first card of a passage group -->
+                          <template v-if="!data.passage_id || filteredQuestions.findIndex(q => q.id === data.id) === 0 || filteredQuestions[filteredQuestions.findIndex(q => q.id === data.id) - 1]?.passage_id !== data.passage_id">
+                            <div class="flex items-center gap-1 shrink-0 ml-auto" :class="{ 'mr-auto ml-0': currentLang === 'ar' }">
                               <Button icon="pi pi-eye" rounded severity="info" outlined size="small"
                                       class="h-9 w-9 border-blue-200/80 bg-white text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 cursor-pointer transition-all duration-300"
                                       @click="openPreview(data.id)"
@@ -771,7 +875,15 @@ onMounted(fetchData);
                               <Button icon="pi pi-trash" rounded severity="danger" outlined size="small"
                                       class="h-9 w-9 border-rose-200/80 bg-white text-rose-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-all duration-300"
                                       @click="deleteItem(data.id)" />
-                          </div>
+                            </div>
+                          </template>
+                          <!-- Non-first passage cards: subtle linked indicator -->
+                          <template v-else>
+                            <span class="inline-flex items-center gap-1 text-[9px] font-black text-brand-primary/60 bg-brand-primary/5 border border-brand-primary/10 rounded-xl px-2.5 py-1.5 ml-auto" :class="{ 'mr-auto ml-0': currentLang === 'ar' }">
+                              <i class="pi pi-link text-[8px]"></i>
+                              {{ currentLang === 'ar' ? 'مرتبط بالقطعة' : 'Part of passage' }}
+                            </span>
+                          </template>
 
                       </div>
 
@@ -1005,5 +1117,39 @@ onMounted(fetchData);
 .scrollbar-none {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+}
+
+/* Table grouping styling */
+:deep(.passage-row) {
+    background-color: rgba(244, 63, 94, 0.015) !important; /* Extremely subtle rose tint matching brand-primary */
+}
+:deep(.passage-row:hover) {
+    background-color: rgba(244, 63, 94, 0.035) !important;
+}
+
+/* Side border indicator for the group - LTR */
+:deep(.passage-row td:first-child) {
+    border-left: 4px solid #f43f5e !important; /* brand-primary */
+}
+
+/* Side border indicator for the group - RTL (arabic-theme) */
+.arabic-theme :deep(.passage-row td:first-child) {
+    border-left: none !important;
+    border-right: 4px solid #f43f5e !important; /* brand-primary */
+}
+
+/* First row in group */
+:deep(.passage-row-first td) {
+    border-top: 1.5px solid rgba(244, 63, 94, 0.25) !important;
+}
+
+/* Last row in group */
+:deep(.passage-row-last td) {
+    border-bottom: 1.5px solid rgba(244, 63, 94, 0.25) !important;
+}
+
+/* Middle rows in group */
+:deep(.passage-row-middle td), :deep(.passage-row-first td:not(:last-child)) {
+    border-bottom: 1px dashed rgba(244, 63, 94, 0.08) !important;
 }
 </style>

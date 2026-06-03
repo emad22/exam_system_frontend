@@ -55,6 +55,9 @@ const autoVerifyRequirements = (reqs) => {
 const toggleRequirement = (req) => {
     if (autoVerifiedIds.value.includes(req.id)) return;
     
+    // If already checked via test, don't allow unchecking
+    if (req.test_type && req.test_type !== 'none' && checkedRequirements.value.includes(req.id)) return;
+
     if (req.test_type && req.test_type !== 'none' && !checkedRequirements.value.includes(req.id)) {
         activeTesterReq.value = req;
         return;
@@ -73,7 +76,9 @@ const handleTestPassed = (req) => {
 };
 
 const canProceed = computed(() => {
+    if (isLoading.value || requirements.value.length === 0) return false;
     const mandatoryIds = requirements.value.filter(r => r.is_mandatory).map(r => r.id);
+    if (mandatoryIds.length === 0) return true;
     return mandatoryIds.every(id => checkedRequirements.value.includes(id));
 });
 
