@@ -232,6 +232,8 @@ const bulkDelete = () => {
                 <ProgressSpinner />
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
             </div>
+            
+            
 
             <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
                 
@@ -250,7 +252,11 @@ const bulkDelete = () => {
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
-                        
+                        <!-- Language Selector Toggle -->
+                        <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
+                            <i class="pi pi-globe text-brand-primary"></i>
+                            <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
+                        </button>
                         <Button v-if="selectedLogs.length" :label="t[currentLang].massErase" icon="pi pi-trash" severity="danger" outlined class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border-rose-200 hover:bg-rose-50/50" @click="bulkDelete" />
                         <Button icon="pi pi-refresh" outlined rounded severity="secondary" @click="fetchLogs" class="bg-white/50 w-10 h-10 border border-slate-200" />
                     </div>
@@ -355,6 +361,7 @@ const bulkDelete = () => {
                     </DataTable>
                 </div>
             </div>
+            
 
             <!-- Detail Dialog -->
             <Dialog v-model:visible="showDetail" :header="t[currentLang].dialogTitle" :modal="true" :draggable="false" class="w-full max-w-2xl rounded-[2rem] overflow-hidden" :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'">

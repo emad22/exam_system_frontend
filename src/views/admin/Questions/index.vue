@@ -20,6 +20,7 @@ import Tooltip from 'primevue/tooltip';
 
 const vTooltip = Tooltip;
 const questions = ref([]);
+const first = ref(0);
 const { showAlert, showConfirm } = useModal();
 const adminStore = useAdminStore();
 const loading = ref(true);
@@ -38,7 +39,13 @@ const instructionsAudioFile = ref(null);
 const isSavingInst = ref(false);
 const skillsWithLevels = ref([]);
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
+// Preview & Duplicate state
+const showPreviewModal = ref(false);
+const previewQuestion = ref(null);
+const isLoadingPreview = ref(false);
+const isDuplicating = ref(false);
+
+const currentLang = ref(localStorage.getItem('dashboard_lang') || 'en');
 
 const toggleLang = () => {
     currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
@@ -74,6 +81,8 @@ const t = {
         questionRemoved: "تم حذف السؤال بنجاح من بنك الأسئلة.",
         error: "خطأ",
         failedDelete: "فشل حذف السؤال.",
+        duplicateQuestion: "تم نسخ السؤال بنجاح",
+        previewQuestion: "معاينة السؤال",
         cognitiveAssets: "عنصر معرفي مدار",
         allExams: "جميع الاختبارات",
         allSkills: "كل المهارات",
@@ -142,6 +151,8 @@ const t = {
         questionRemoved: "Question deleted successfully.",
         error: "Error",
         failedDelete: "Failed to delete question.",
+        duplicateQuestion: "Question duplicated successfully",
+        previewQuestion: "Question Preview",
         cognitiveAssets: "Cognitive Assets Managed",
         allExams: "All Exams",
         allSkills: "All Skills",
@@ -187,6 +198,8 @@ const t = {
         activeTier: "Active Difficulty Tier",
         selectLevelPrompt: "Please select a difficulty level to configure",
         searchLabel: "Search",
+        duplicateQuestion: "Question duplicated successfully",
+        previewQuestion: "Question Preview",
     }
 };
 
@@ -249,6 +262,34 @@ const deleteItem = async (id) => {
         } catch (err) {
             showAlert(t[currentLang.value].failedDelete, t[currentLang.value].error, 'error');
         }
+    }
+};
+
+const openPreview = async (id) => {
+    isLoadingPreview.value = true;
+    try {
+        const res = await api.get(`/admin/questions/${id}/preview`);
+        previewQuestion.value = res.data;
+        showPreviewModal.value = true;
+    } catch (err) {
+        console.error('Failed to load preview', err);
+        showAlert('فشل تحميل معاينة السؤال', t[currentLang.value].error, 'error');
+    } finally {
+        isLoadingPreview.value = false;
+    }
+};
+
+const duplicateQuestion = async (id) => {
+    isDuplicating.value = true;
+    try {
+        const res = await api.post(`/admin/questions/${id}/duplicate`);
+        fetchData();
+        showAlert('تم نسخ السؤال بنجاح', t[currentLang.value].deleted, 'success');
+    } catch (err) {
+        console.error('Failed to duplicate question', err);
+        showAlert('فشل نسخ السؤال', t[currentLang.value].error, 'error');
+    } finally {
+        isDuplicating.value = false;
     }
 };
 
@@ -374,7 +415,12 @@ const stats = computed(() => {
 });
 
 watch([filterExam, filterLevel], () => {
+    first.value = 0;
     fetchData();
+});
+
+watch([filterSkill, filterType, searchQuery], () => {
+    first.value = 0;
 });
 
 onMounted(fetchData);
@@ -408,8 +454,11 @@ onMounted(fetchData);
               </div>
               
               <div class="flex flex-wrap items-center gap-4 relative z-10">
-                  
-
+                    <!-- Language Selector Toggle -->
+                    <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
+                        <i class="pi pi-globe text-brand-primary"></i>
+                        <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
+                    </button>
                    <Button :label="t[currentLang].createBtn" icon="pi pi-plus" 
                            class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 cursor-pointer"
                            @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.create' : 'admin.questions.create' })" />
@@ -506,11 +555,11 @@ onMounted(fetchData);
               
               <!-- 1. COMPACT TABLE VIEW -->
               <div v-if="viewMode === 'table'" class="bg-white rounded-[2rem] border border-slate-100 shadow-md overflow-hidden">
-                  <DataTable :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                  <DataTable v-model:first="first" :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm text-sm" responsiveLayout="scroll">
                     
-                    <Column :header="t[currentLang].colId" style="width: 70px">
-                      <template #body="{ data }">
-                          <span class="text-[11px] font-mono font-black text-slate-400">#{{ data.id }}</span>
+                    <Column :header="t[currentLang].colId" style="width: 100px">
+                      <template #body="{ data, index }">
+                          <span class="text-[11px] font-mono font-black text-slate-400">{{ first + index + 1 }} (#{{ data.id }})</span>
                       </template>
                     </Column>
 
@@ -605,6 +654,16 @@ onMounted(fetchData);
                     <Column :header="t[currentLang].colActions" style="width: 130px" class="text-right">
                       <template #body="{ data }">
                         <div class="flex justify-end gap-1.5">
+                          <Button icon="pi pi-eye" rounded severity="info" outlined size="small"
+                                  class="h-9 w-9 border-blue-200 bg-blue-50/20 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 cursor-pointer transition-all duration-300"
+                                  @click="openPreview(data.id)"
+                                  v-tooltip.top="'معاينة السؤال'" :loading="isLoadingPreview" />
+                          
+                          <Button icon="pi pi-copy" rounded severity="success" outlined size="small"
+                                  class="h-9 w-9 border-green-200 bg-green-50/20 text-green-600 hover:bg-green-500 hover:text-white hover:border-green-500 cursor-pointer transition-all duration-300"
+                                  @click="duplicateQuestion(data.id)"
+                                  v-tooltip.top="'نسخ السؤال'" :loading="isDuplicating" />
+                          
                           <Button icon="pi pi-pencil" rounded severity="warning" outlined size="small"
                                   class="h-9 w-9 border-amber-200 bg-amber-50/20 text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 cursor-pointer transition-all duration-300"
                                   @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.edit' : 'admin.questions.edit', params: { id: data.id } })" />
@@ -695,6 +754,16 @@ onMounted(fetchData);
 
                           <!-- Custom Action Hub -->
                           <div class="flex items-center gap-1 shrink-0 ml-auto" :class="{ 'mr-auto ml-0': currentLang === 'ar' }">
+                              <Button icon="pi pi-eye" rounded severity="info" outlined size="small"
+                                      class="h-9 w-9 border-blue-200/80 bg-white text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 cursor-pointer transition-all duration-300"
+                                      @click="openPreview(data.id)"
+                                      v-tooltip.top="'معاينة السؤال'" :loading="isLoadingPreview" />
+                              
+                              <Button icon="pi pi-copy" rounded severity="success" outlined size="small"
+                                      class="h-9 w-9 border-green-200/80 bg-white text-green-600 hover:bg-green-500 hover:text-white hover:border-green-500 cursor-pointer transition-all duration-300"
+                                      @click="duplicateQuestion(data.id)"
+                                      v-tooltip.top="'نسخ السؤال'" :loading="isDuplicating" />
+                              
                               <Button icon="pi pi-pencil" rounded severity="warning" outlined size="small"
                                       class="h-9 w-9 border-amber-200/80 bg-white text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 cursor-pointer transition-all duration-300"
                                       @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.edit' : 'admin.questions.edit', params: { id: data.id } })" />
@@ -716,6 +785,185 @@ onMounted(fetchData);
       
     </div>
   </AdminLayout>
+
+  <!-- Preview Modal - Exam Style -->
+<Teleport to="body">
+  <div v-if="showPreviewModal"
+       class="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-slate-900/75 backdrop-blur-sm overflow-y-auto"
+       @click.self="showPreviewModal = false">
+
+    <div class="bg-white rounded-2xl w-full max-w-5xl my-6 overflow-hidden border border-slate-100 shadow-2xl flex flex-col" style="min-height: 580px">
+
+      <!-- Exam-style dark header -->
+      <div class="bg-slate-800 text-white px-6 py-3 flex items-center justify-between shrink-0">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
+            {{ t[currentLang].previewQuestion }}
+          </span>
+          <div class="flex items-center gap-2" v-if="previewQuestion">
+            <span class="inline-flex items-center gap-1 bg-rose-500/20 text-rose-300 border border-rose-500/25 rounded-lg px-2.5 py-0.5 text-[10px] font-black">
+              <i class="pi pi-chart-bar text-[9px]"></i>
+              L{{ previewQuestion.level?.level_number || previewQuestion.level_id }}
+            </span>
+            <span :class="questionTypeMeta[previewQuestion.type]?.borderColor"
+                  class="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[10px] font-black border bg-white/5">
+              <i :class="questionTypeMeta[previewQuestion.type]?.icon" class="text-[9px]"></i>
+              {{ getQuestionTypeLabel(previewQuestion.type) }}
+            </span>
+            <span class="inline-flex items-center gap-1 bg-slate-700 text-slate-300 border border-slate-600 rounded-lg px-2.5 py-0.5 text-[10px] font-black">
+              <i class="pi pi-tag text-[9px]"></i>
+              {{ previewQuestion.skill?.name }}
+            </span>
+            <span class="inline-flex items-center gap-1 bg-rose-500/10 text-rose-300 border border-rose-500/20 rounded-lg px-2.5 py-0.5 text-[10px] font-black">
+              <i class="pi pi-bolt text-[9px]"></i>
+              {{ previewQuestion.points }} pts
+            </span>
+          </div>
+        </div>
+        <button @click="showPreviewModal = false"
+                class="w-8 h-8 rounded-lg bg-white/8 hover:bg-white/15 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+          <i class="pi pi-times text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="isLoadingPreview" class="flex-1 flex items-center justify-center py-20">
+        <ProgressSpinner />
+      </div>
+
+      <!-- Exam Split Screen -->
+      <div v-else-if="previewQuestion" class="flex flex-row flex-1 gap-px bg-slate-200 min-h-0" style="height: 500px">
+
+        <!-- Response Pane (Left - 40%) -->
+        <div class="flex flex-col bg-white overflow-hidden"
+             :style="previewQuestion.passage ? 'width:40%' : 'width:100%'">
+          <div class="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+
+            <!-- Audio bar (if audio exists) -->
+            <div v-if="previewQuestion.audio_url || previewQuestion.passage?.audio_url"
+                 class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Audio</span>
+              </div>
+              <div class="w-full bg-slate-200 h-1 rounded-full">
+                <div class="bg-rose-500 h-full rounded-full" style="width:0%"></div>
+              </div>
+            </div>
+
+            <!-- Question Content -->
+            <div class="text-base font-black text-slate-900 leading-snug ql-content"
+                 v-html="previewQuestion.content" dir="auto"></div>
+
+            <!-- Instructions -->
+            <div v-if="previewQuestion.instructions"
+                 class="bg-slate-50 border border-slate-100 rounded-xl p-3">
+              <p class="text-[11px] font-bold text-slate-500" dir="auto">{{ previewQuestion.instructions }}</p>
+            </div>
+
+            <!-- MCQ / True-False Options -->
+            <div v-if="previewQuestion.options?.length" class="space-y-2">
+              <div v-for="(opt, idx) in previewQuestion.options" :key="idx"
+                   :class="opt.is_correct
+                     ? 'bg-green-50 border-green-300'
+                     : 'bg-white border-slate-100 hover:border-slate-200'"
+                   class="flex items-center gap-3 p-3 border rounded-xl transition-colors">
+                <div :class="opt.is_correct ? 'bg-green-500 text-white border-green-500' : 'bg-slate-100 text-slate-500 border-slate-200'"
+                     class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border shrink-0">
+                  {{ idx + 1 }}
+                </div>
+                <span class="text-xs font-bold text-slate-700 flex-1">{{ opt.option_text }}</span>
+                <span v-if="opt.is_correct"
+                      class="text-[9px] font-black text-green-600 bg-green-100 px-2 py-0.5 rounded-lg shrink-0">
+                  ✓ {{ currentLang === 'ar' ? 'صحيح' : 'Correct' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Writing/Short Answer placeholder -->
+            <div v-if="['writing','short_answer'].includes(previewQuestion.type)"
+                 class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center">
+              <i class="pi pi-file-edit text-2xl text-slate-300 mb-2 block"></i>
+              <p class="text-xs font-bold text-slate-300 uppercase tracking-widest">
+                {{ currentLang === 'ar' ? 'منطقة الإجابة الكتابية' : 'Written Response Area' }}
+              </p>
+            </div>
+
+            <!-- Speaking placeholder -->
+            <div v-if="previewQuestion.type === 'speaking'"
+                 class="border-2 border-dashed border-rose-100 rounded-xl p-6 text-center">
+              <i class="pi pi-microphone text-2xl text-rose-300 mb-2 block"></i>
+              <p class="text-xs font-bold text-rose-300 uppercase tracking-widest">
+                {{ currentLang === 'ar' ? 'منطقة التسجيل الصوتي' : 'Voice Recording Area' }}
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Stimulus Pane (Right - 60%) — only if passage exists -->
+        <div v-if="previewQuestion.passage" class="flex-1 bg-white flex flex-col overflow-hidden">
+          <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
+            <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+              <i class="pi pi-book text-slate-400 text-sm"></i>
+              <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                {{ t[currentLang].passageAssoc }}
+              </span>
+            </div>
+
+            <!-- Passage Image -->
+            <div v-if="previewQuestion.passage.image_url || previewQuestion.passage.image_path"
+                 class="mb-4 flex justify-center">
+              <img :src="resolveUrl(previewQuestion.passage.image_url || previewQuestion.passage.image_path)"
+                   class="rounded-xl shadow border border-slate-100 max-w-full" />
+            </div>
+
+            <!-- Passage Title -->
+            <h3 v-if="previewQuestion.passage.title"
+                class="text-xl font-black text-slate-900 mb-4 leading-tight" dir="auto">
+              {{ previewQuestion.passage.title }}
+            </h3>
+
+            <!-- Passage Content -->
+            <div v-if="previewQuestion.passage.content"
+                 class="text-sm text-slate-700 leading-relaxed ql-content text-justify"
+                 v-html="previewQuestion.passage.content" dir="auto"></div>
+          </div>
+        </div>
+
+        <!-- Question Image (no passage) -->
+        <div v-else-if="previewQuestion.image_url"
+             class="w-2/5 bg-slate-50 flex items-center justify-center p-6">
+          <img :src="resolveUrl(previewQuestion.image_url)"
+               class="max-w-full max-h-full rounded-xl shadow-md border border-slate-100" />
+        </div>
+
+      </div>
+
+      <!-- Bottom nav bar -->
+      <div class="bg-slate-50 border-t border-slate-100 px-6 py-3 flex items-center justify-between shrink-0">
+        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          ID #{{ previewQuestion?.id }}
+        </span>
+        <div class="flex items-center gap-2">
+          <Button icon="pi pi-pencil" :label="currentLang === 'ar' ? 'تعديل' : 'Edit'"
+                  severity="warning" outlined size="small"
+                  class="rounded-xl font-black text-xs cursor-pointer"
+                  @click="showPreviewModal = false; $router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.edit' : 'admin.questions.edit', params: { id: previewQuestion.id } })" />
+          <Button icon="pi pi-copy" :label="currentLang === 'ar' ? 'نسخ' : 'Duplicate'"
+                  severity="success" outlined size="small"
+                  class="rounded-xl font-black text-xs cursor-pointer"
+                  @click="showPreviewModal = false; duplicateQuestion(previewQuestion.id)" />
+          <Button icon="pi pi-times" :label="currentLang === 'ar' ? 'إغلاق' : 'Close'"
+                  severity="secondary" size="small"
+                  class="rounded-xl font-black text-xs bg-slate-800 text-white border-slate-800 cursor-pointer"
+                  @click="showPreviewModal = false" />
+        </div>
+      </div>
+
+    </div>
+  </div>
+</Teleport>
 </template>
 
 <style scoped>

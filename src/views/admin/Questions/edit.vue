@@ -31,7 +31,7 @@ const loading = ref(true);
 const errorMsg = ref('');
 
 const passageShowHtml = ref(false);
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
+const currentLang = ref(localStorage.getItem('dashboard_lang') || 'en');
 
 // Translation Dictionary
 const t = {
@@ -266,6 +266,9 @@ const form = ref({
     p_image_preview: null,
     p_image_width: null,
     p_image_height: null,
+    clear_p_audio: false,
+    clear_p_image: false,
+    clear_p_media: false,
     questions: []
 });
 
@@ -352,6 +355,70 @@ watch(() => form.value.exam_id, (newVal, oldVal) => {
     if (oldVal && newVal !== oldVal) {
         const isValid = filteredSkills.value.some(s => s.id === form.value.skill_id);
         if (!isValid) form.value.skill_id = '';
+    }
+});
+
+watch(() => form.value.passage_id, (newVal) => {
+    if (loading.value) return; // Skip population during initial load
+    if (newVal && form.value.passage_mode === 'existing') {
+        const selectedPassage = passages.value.find(p => p.id === newVal);
+        if (selectedPassage) {
+            form.value.passage_type = selectedPassage.type || 'text';
+            form.value.passage_title = selectedPassage.title || '';
+            form.value.passage_content = selectedPassage.content || '';
+            form.value.passage_questions_limit = selectedPassage.questions_limit || null;
+            form.value.passage_is_random = !!selectedPassage.is_random;
+            
+            if (selectedPassage.audio_url) {
+                form.value.p_audio_preview = { url: selectedPassage.audio_url, type: 'audio' };
+            } else {
+                form.value.p_audio_preview = null;
+            }
+            form.value.p_audio = null;
+            form.value.clear_p_audio = false;
+
+            if (selectedPassage.image_url) {
+                form.value.p_image_preview = { url: selectedPassage.image_url, type: 'image' };
+                form.value.p_image_width = selectedPassage.image_width || null;
+                form.value.p_image_height = selectedPassage.image_height || null;
+            } else {
+                form.value.p_image_preview = null;
+                form.value.p_image_width = null;
+                form.value.p_image_height = null;
+            }
+            form.value.p_image = null;
+            form.value.clear_p_image = false;
+
+            if (selectedPassage.media_url) {
+                pMediaPreview.value = { url: selectedPassage.media_url, type: selectedPassage.media_path?.split('.').pop() || 'image' };
+            } else {
+                pMediaPreview.value = null;
+            }
+            form.value.p_media = null;
+            form.value.clear_p_media = false;
+        }
+    }
+});
+
+watch(() => form.value.passage_mode, (newVal) => {
+    if (newVal === 'new' || newVal === 'none') {
+        form.value.passage_id = '';
+        form.value.passage_type = 'text';
+        form.value.passage_title = '';
+        form.value.passage_content = '';
+        form.value.passage_questions_limit = null;
+        form.value.passage_is_random = false;
+        form.value.p_audio = null;
+        form.value.p_audio_preview = null;
+        form.value.p_image = null;
+        form.value.p_image_preview = null;
+        form.value.p_image_width = null;
+        form.value.p_image_height = null;
+        form.value.p_media = null;
+        pMediaPreview.value = null;
+        form.value.clear_p_audio = false;
+        form.value.clear_p_image = false;
+        form.value.clear_p_media = false;
     }
 });
 
@@ -509,6 +576,7 @@ const handlePFileChange = (e) => {
     if (!file) return;
     form.value.p_media = file;
     pMediaPreview.value = { url: URL.createObjectURL(file), type: file.type };
+    form.value.clear_p_media = false;
 };
 
 const handlePAudioChange = (e) => {
@@ -516,6 +584,7 @@ const handlePAudioChange = (e) => {
     if (!file) return;
     form.value.p_audio = file;
     form.value.p_audio_preview = { url: URL.createObjectURL(file), type: file.type };
+    form.value.clear_p_audio = false;
 };
 
 const handlePImageChange = (e) => {
@@ -523,6 +592,7 @@ const handlePImageChange = (e) => {
     if (!file) return;
     form.value.p_image = file;
     form.value.p_image_preview = { url: URL.createObjectURL(file), type: file.type };
+    form.value.clear_p_image = false;
 };
 
 const handleQFileChange = (e, index) => {
@@ -693,6 +763,10 @@ const updateBatch = async () => {
             if (form.value.p_image) fd.append('p_image_file', form.value.p_image);
             if (form.value.p_image_width) fd.append('p_image_width', form.value.p_image_width);
             if (form.value.p_image_height) fd.append('p_image_height', form.value.p_image_height);
+            
+            if (form.value.clear_p_audio) fd.append('clear_p_audio', 1);
+            if (form.value.clear_p_image) fd.append('clear_p_image', 1);
+            if (form.value.clear_p_media) fd.append('clear_p_media', 1);
         } else if (form.value.passage_mode === 'new') {
             fd.append('passage_type', form.value.passage_type);
             fd.append('passage_title', form.value.passage_title || '');
@@ -922,7 +996,7 @@ const editorModules = {
                             </div>
 
                             <!-- New Passage Material editor -->
-                            <div v-if="form.passage_mode === 'new'"
+                            <div v-if="form.passage_mode === 'new' || (form.passage_mode === 'existing' && form.passage_id)"
                                 class="p-6 bg-slate-50/50 rounded-[1.8rem] border border-slate-100 space-y-6 animate-in zoom-in-98 duration-400">
                                 
                                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
@@ -989,7 +1063,7 @@ const editorModules = {
                                             :initialUrl="form.p_image_preview?.url"
                                             :label="t[currentLang].imageAttach"
                                             icon="pi-image"
-                                            @clear="form.p_image = null; form.p_image_preview = null; form.p_image_width = null; form.p_image_height = null;"
+                                            @clear="form.p_image = null; form.p_image_preview = null; form.p_image_width = null; form.p_image_height = null; form.clear_p_image = true;"
                                         />
 
                                         <!-- Audio Attachment -->
@@ -1009,7 +1083,7 @@ const editorModules = {
                                                 <div class="flex items-center justify-between pb-1 border-b border-slate-100">
                                                     <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{ t[currentLang].audioLinked }}</span>
                                                     <Button icon="pi pi-trash" text severity="danger" size="small"
-                                                        @click="form.p_audio = null; form.p_audio_preview = null" class="w-7 h-7 flex items-center justify-center" />
+                                                        @click="form.p_audio = null; form.p_audio_preview = null; form.clear_p_audio = true;" class="w-7 h-7 flex items-center justify-center" />
                                                 </div>
                                                 <audio :src="form.p_audio_preview.url" controls class="h-8 w-full"></audio>
                                             </div>

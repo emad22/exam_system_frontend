@@ -31,7 +31,7 @@ const isSubmitting = ref(false);
 const errorMsg = ref('');
 
 const passageShowHtml = ref(false);
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
+const currentLang = ref(localStorage.getItem('dashboard_lang') || 'en');
 
 // Translation Dictionary
 const t = {
@@ -607,9 +607,12 @@ const saveBatch = async () => {
             fd.append('passage_content', form.value.passage_content || '');
             if (form.value.passage_questions_limit) fd.append('passage_questions_limit', form.value.passage_questions_limit);
             fd.append('passage_is_random', form.value.passage_is_random ? 1 : 0);
-            if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
-            if (form.value.p_audio) fd.append('p_audio_file', form.value.p_audio);
-            if (form.value.p_image) fd.append('p_image_file', form.value.p_image);
+            
+            
+            if (form.value.p_media instanceof File) fd.append('p_media_file', form.value.p_media);
+            if (form.value.p_audio instanceof File) fd.append('p_audio_file', form.value.p_audio);
+            if (form.value.p_image instanceof File) fd.append('p_image_file', form.value.p_image);
+
             if (form.value.p_image_width) fd.append('p_image_width', form.value.p_image_width);
             if (form.value.p_image_height) fd.append('p_image_height', form.value.p_image_height);
         }
