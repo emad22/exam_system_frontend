@@ -104,10 +104,6 @@ const t = {
         defineWeight: "تحديد درجات السؤال والقيود المعيارية",
         displayOrder: "ترتيب العرض",
         questionPoints: "درجة السؤال",
-        minWordLabel: "الحد الأدنى للكلمات",
-        maxWordLabel: "الحد الأقصى للكلمات",
-        minWordPlaceholder: "مثال: ١٥٠ كلمة",
-        maxWordPlaceholder: "مثال: ٢٥٠ كلمة",
         guides: {
             writingTitle: "دليل المهمة الكتابية (Writing Task)",
             writingText: "قم بكتابة نص المهمة أو السؤال بوضوح. سيتم عرض مربع نص للطالب للكتابة فيه. يمكنك تحديد الحد الأدنى والأقصى للكلمات في قسم 'المعايير' بالأسفل.",
@@ -201,10 +197,6 @@ const t = {
         defineWeight: "Define question weight & constraints",
         displayOrder: "Display Order",
         questionPoints: "Question Points",
-        minWordLabel: "Min Words Limit",
-        maxWordLabel: "Max Words Limit",
-        minWordPlaceholder: "e.g. 150 words",
-        maxWordPlaceholder: "e.g. 250 words",
         guides: {
             writingTitle: "Writing Task Guide",
             writingText: "Write the prompt clearly. A rich text area will be presented to the student. You can configure minimum and maximum word limits in the parameters section below.",
@@ -432,8 +424,6 @@ const createEmptyQuestion = () => ({
     instructions: '',
     points: 1,
     sort_order: 0,
-    min_words: null,
-    max_words: null,
     q_media: null,
     q_media_preview: null,
     q_audio: null,
@@ -518,8 +508,6 @@ const loadInitialData = async () => {
                 instructions: sq.instructions || '',
                 points: sq.points,
                 sort_order: sq.sort_order || 0,
-                min_words: sq.min_words,
-                max_words: sq.max_words,
                 q_media: null,
                 q_media_preview: sq.media_url ? { url: sq.media_url, type: sq.media_path?.split('.').pop() || 'image' } : null,
                 q_audio: null,
@@ -544,8 +532,6 @@ const loadInitialData = async () => {
                 instructions: q.instructions || '',
                 points: q.points,
                 sort_order: q.sort_order || 0,
-                min_words: q.min_words,
-                max_words: q.max_words,
                 q_media: null,
                 q_media_preview: q.media_url ? { url: q.media_url, type: q.media_path?.split('.').pop() || 'image' } : null,
                 q_audio: null,
@@ -787,8 +773,6 @@ const updateBatch = async () => {
             instructions: q.instructions || '',
             points: q.points,
             sort_order: q.sort_order,
-            min_words: q.min_words,
-            max_words: q.max_words,
             image_width: q.q_image_width || null,
             image_height: q.q_image_height || null,
             options: q.options.map(opt => ({
@@ -1386,24 +1370,18 @@ const editorModules = {
                                                 inputClass="w-full text-center font-black text-brand-primary bg-rose-50/20 border border-slate-150 rounded-xl px-4 focus:border-brand-primary transition-all" />
                                         </div>
 
-                                        <!-- Writing limits -->
+                                        <!-- Writing Task Note -->
                                         <template v-if="q.type === 'writing'">
-                                            <div class="flex flex-col space-y-1.5">
-                                                <div class="flex items-center gap-1.5 ml-1 mr-1">
-                                                    <i class="pi pi-minus-circle text-[9px] text-orange-400"></i>
-                                                    <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{ t[currentLang].minWordLabel }}</label>
+                                            <div class="flex flex-col space-y-1.5 md:col-span-2">
+                                                <div class="bg-blue-50/60 border border-blue-100 rounded-xl p-3">
+                                                    <p class="text-[9px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
+                                                        <i class="pi pi-info-circle text-[10px]"></i>
+                                                        {{ currentLang === 'ar' ? 'ملاحظة: عدد الكلمات يُحفظ تلقائياً' : 'Note: Word count is saved automatically' }}
+                                                    </p>
+                                                    <p class="text-[8px] text-blue-600 mt-1.5 leading-relaxed">
+                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be calculated and displayed to the teacher during grading' }}
+                                                    </p>
                                                 </div>
-                                                <InputNumber v-model="q.min_words" :placeholder="t[currentLang].minWordPlaceholder" class="w-full h-10.5"
-                                                    inputClass="w-full font-black text-slate-700 bg-white border border-slate-150 rounded-xl px-4 focus:border-brand-primary transition-all" />
-                                            </div>
-
-                                            <div class="flex flex-col space-y-1.5">
-                                                <div class="flex items-center gap-1.5 ml-1 mr-1">
-                                                    <i class="pi pi-plus-circle text-[9px] text-rose-400"></i>
-                                                    <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{ t[currentLang].maxWordLabel }}</label>
-                                                </div>
-                                                <InputNumber v-model="q.max_words" :placeholder="t[currentLang].maxWordPlaceholder" class="w-full h-10.5"
-                                                    inputClass="w-full font-black text-slate-700 bg-white border border-slate-150 rounded-xl px-4 focus:border-brand-primary transition-all" />
                                             </div>
                                         </template>
                                     </div>

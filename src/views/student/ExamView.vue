@@ -8,6 +8,8 @@ import RequirementTester from '@/components/RequirementTester.vue';
 import StudentHeader from '@/components/StudentHeader.vue';
 import VirtualKeyboard from '@/components/VirtualKeyboard.vue';
 import QuestionDispatcher from '@/components/exam/QuestionDispatcher.vue';
+import ProctoringInitializer from '@/components/exam/ProctoringInitializer.vue';
+import { PROCTORING_ENABLED } from '@/config/features';
 
 // Composables
 import { useExamTimer } from '@/composables/useExamTimer';
@@ -43,6 +45,11 @@ const attemptId = ref(route.params.id);
 const examId = route.params.examId;
 const skillId = route.params.skillId;
 const levelId = route.params.levelId;
+
+// === PROCTORING STATE ===
+const proctoringComplete = ref(false);
+const studentId = ref(null);
+const proctoringSessionId = ref(null);
 
 const attempt = ref(null);
 const currentSkill = ref(null);
@@ -135,7 +142,11 @@ const handleTestPassed = async (req) => {
     activeTesterReq.value = null;
 };
 
-
+// === PROCTORING HANDLERS ===
+const handleProctoringComplete = async (sessionData) => {
+    proctoringSessionId.value = sessionData.session_id;
+    proctoringComplete.value = true;
+};
 
 const fetchData = async () => {
     isLoading.value = true;
@@ -711,7 +722,14 @@ const handleBeforeUnload = async () => {
 
 onMounted(async () => {
     const user = authStorage.getUser();
+    studentId.value = user?.id;
     isDemo.value = user && ['demo', 'staff'].includes(user.role?.toLowerCase());
+    
+    // Skip proctoring for demo/staff or when feature is disabled
+    if (isDemo.value || !PROCTORING_ENABLED) {
+        proctoringComplete.value = true;
+    }
+    
     await fetchData();
 
     setupAntiCheat();
@@ -747,10 +765,22 @@ onUnmounted(() => {
 
 <template>
     <div class="h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden flex flex-col">
-        <StudentHeader />
+        
+        <!-- === PROCTORING INITIALIZER MODAL === -->
+        <template v-if="PROCTORING_ENABLED && !proctoringComplete && !isDemo">
+            <ProctoringInitializer 
+                :attempt-id="attemptId"
+                :student-id="studentId"
+                :exam-id="examId"
+                @complete="handleProctoringComplete" />
+        </template>
 
-        <header v-if="!isStarting && currentSkill" class="bg-slate-800 text-white shadow-md h-20 px-6 shrink-0"
-            dir="ltr">
+        <!-- === EXAM VIEW (Hidden during proctoring) === -->
+        <template v-else>
+            <StudentHeader />
+
+            <header v-if="!isStarting && currentSkill" class="bg-slate-800 text-white shadow-md h-20 px-6 shrink-0"
+                dir="ltr">
             <div class="max-w-[1600px] mx-auto h-full flex justify-between items-center">
 
                 <!-- Left Side: Skill Info -->
@@ -1166,7 +1196,7 @@ onUnmounted(() => {
                 </div>
             </div>
         </div>
-
+        </template>
     </div>
 </template>
 

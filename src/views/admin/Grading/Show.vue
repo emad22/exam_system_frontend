@@ -363,6 +363,16 @@ onMounted(fetchAttempt)
                                         class="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap font-medium" dir="auto"
                                         v-html="ans.text_answer"></div>
                                     
+                                    <!-- Word count for writing/short answer -->
+                                    <div v-if="['writing', 'short_answer'].includes(ans.question?.type) && ans.word_count !== null && ans.word_count !== undefined"
+                                        class="mt-4 pt-4 border-t border-slate-200 flex items-center gap-3">
+                                        <i class="pi pi-align-right text-slate-400 text-lg"></i>
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">عدد الكلمات</span>
+                                            <span class="text-2xl font-black text-brand-primary mt-0.5">{{ ans.word_count }}</span>
+                                        </div>
+                                    </div>
+                                    
                                     <!-- Image answer -->
                                     <div v-if="ans.media_answer && isImageFile(ans.media_answer)" class="mt-2">
                                         <div class="space-y-2">

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { authStorage } from '@/services/authStorage';
+import { PROCTORING_ENABLED } from '@/config/features';
 
 
 import DashboardView from '@/views/student/DashboardView.vue'
@@ -305,6 +306,18 @@ const adminRoutes = [
     component: AdminActivityLogs,
     meta: { title: 'System Activity Logs' }
   },
+  {
+    path: '/admin/proctoring',
+    name: 'admin.proctoring',
+    component: () => import('@/views/admin/Proctoring/index.vue'),
+    meta: { title: 'Proctoring Management' }
+  },
+  {
+    path: '/admin/proctoring/:id',
+    name: 'admin.proctoring.show',
+    component: () => import('@/views/admin/Proctoring/Show.vue'),
+    meta: { title: 'Session Details' }
+  },
 ];
 
 // Map Admin routes to Teacher routes
@@ -462,6 +475,11 @@ router.beforeEach((to) => {
     if (role !== 'partner' && role !== 'admin' && role !== 'demo') {
       return '/dashboard';
     }
+  }
+
+  // Block proctoring routes when feature is disabled
+  if (!PROCTORING_ENABLED && (to.path.startsWith('/admin/proctoring') || to.path.startsWith('/teacher/proctoring'))) {
+    return to.path.startsWith('/teacher') ? '/teacher' : '/admin';
   }
 
   // Student path protection (optional, but good for consistency)

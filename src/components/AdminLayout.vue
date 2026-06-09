@@ -7,12 +7,13 @@ import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import { useAdminStore } from '@/stores/admin'
 import { useMediaUrl } from '@/composables/useMediaUrl'
+import { PROCTORING_ENABLED } from '@/config/features'
 
 const route = useRoute()
 const router = useRouter()
 const adminStore = useAdminStore()
 
-const navigation = [
+const allNavigation = [
     { name: 'Dashboard', href: '/admin', icon: 'pi pi-home' },
     { name: 'Exam Categories', href: '/admin/exam-categories', icon: 'pi pi-tags' },
     { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
@@ -20,6 +21,7 @@ const navigation = [
     { name: 'Exams', href: '/admin/exams', icon: 'pi pi-file-edit' },
     { name: 'Questions', href: '/admin/questions', icon: 'pi pi-list' },
     { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
+    { name: 'Proctoring', href: '/admin/proctoring', icon: 'pi pi-video' },
     { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
     { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-folder-open' },
@@ -30,6 +32,10 @@ const navigation = [
     { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
     { name: 'Activity Logs', href: '/admin/activity-logs', icon: 'pi pi-history' },
 ]
+
+const navigation = allNavigation.filter(
+    item => PROCTORING_ENABLED || item.href !== '/admin/proctoring'
+)
 
 const currentUser = computed(() => adminStore.user);
 const notifications = computed(() => adminStore.notifications);

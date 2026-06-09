@@ -5,6 +5,7 @@ import api from '@/services/api';
 import RequirementTester from '@/components/RequirementTester.vue';
 import StudentHeader from '@/components/StudentHeader.vue';
 import Button from 'primevue/button';
+import { PROCTORING_ENABLED } from '@/config/features';
 
 const router = useRouter();
 const requirements = ref([]);
@@ -116,7 +117,7 @@ onMounted(fetchRequirements);
                     </div>
 
                     <div class="relative z-10 space-y-4">
-                        <div class="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm">
+                        <div v-if="PROCTORING_ENABLED" class="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm">
                             <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                             <span class="text-[10px] font-black uppercase tracking-widest text-white/80">Proctoring System Active</span>
                         </div>

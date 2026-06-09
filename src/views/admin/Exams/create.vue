@@ -10,6 +10,7 @@ import Textarea from 'primevue/textarea';
 import Dialog from 'primevue/dialog';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import Card from 'primevue/card';
 import { useModal } from '@/composables/useModal';
 
 const router = useRouter();

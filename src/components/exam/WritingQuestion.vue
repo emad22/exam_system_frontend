@@ -38,8 +38,12 @@ const textAnswer = computed({
 
 const editorRef = ref(null);
 let quillInstance = null;
+const forceUpdateCounter = ref(0);
 
 const wordCount = computed(() => {
+    // Force re-evaluation when counter changes
+    forceUpdateCounter.value;
+    
     let plainText = '';
     if (quillInstance) {
         plainText = quillInstance.getText().trim();
@@ -105,6 +109,10 @@ const handleVirtualKeyboardKeyPress = (button) => {
         quillInstance.insertText(index, button);
         quillInstance.setSelection(index + button.length);
     }
+    
+    // Update parent and trigger word count update
+    textAnswer.value = quillInstance.root.innerHTML;
+    forceUpdateCounter.value++;
 };
 
 const handleFileSelected = (file) => {
@@ -137,9 +145,10 @@ onMounted(async () => {
         // Set initial HTML value
         quillInstance.root.innerHTML = textAnswer.value;
 
-        // Sync Quill changes to parent textAnswer
+        // Sync Quill changes to parent textAnswer and trigger word count update
         quillInstance.on('text-change', () => {
             textAnswer.value = quillInstance.root.innerHTML;
+            forceUpdateCounter.value++;
         });
 
         if (props.disabled) {
@@ -260,10 +269,6 @@ onUnmounted(() => {
                     <div class="stat-badge">
                         <i class="pi pi-align-right"></i>
                         <span>الكلمات: {{ wordCount }}</span>
-                    </div>
-                    <div class="stat-badge target" v-if="question.min_words || question.max_words">
-                        <i class="pi pi-flag"></i>
-                        <span>المستهدف: {{ question.min_words || 0 }} - {{ question.max_words || '∞' }}</span>
                     </div>
                 </div>
 

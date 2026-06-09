@@ -482,6 +482,14 @@ onMounted(fetchDetails);
                                                                     <i v-if="answer.is_correct" class="pi pi-check-circle ml-2"></i>
                                                                     <i v-else class="pi pi-times-circle ml-2"></i>
                                                                 </div>
+                                                                
+                                                                <!-- Word Count Badge for Writing/Short Answer -->
+                                                                <div v-if="['writing', 'short_answer'].includes(answer.question?.type) && answer.word_count !== null" 
+                                                                    class="mt-4 pt-4 border-t border-slate-200 flex items-center gap-2">
+                                                                    <i class="pi pi-align-right text-slate-400"></i>
+                                                                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">عدد الكلمات:</span>
+                                                                    <span class="text-lg font-black text-brand-primary">{{ answer.word_count }}</span>
+                                                                </div>
                                                             </div>
                                                             <div v-if="!answer.is_correct && answer.question?.type !== 'speaking'" class="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 relative overflow-hidden">
                                                                 <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl text-emerald-500">
