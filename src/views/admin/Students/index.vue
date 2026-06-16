@@ -476,8 +476,8 @@ onMounted(() => {
                                 <Column :header="t[currentLang].colCategory" style="min-width: 150px">
                                     <template #body="{ data }">
                                         <div class="flex flex-col space-y-1">
-                                            <Tag :value="data.is_continue ? t[currentLang].adaptive : t[currentLang].nonAdaptive"
-                                                 :severity="data.is_continue ? 'info' : 'warn'"
+                                            <Tag :value="data.is_continue ? t[currentLang].nonAdaptive : t[currentLang].adaptive"
+                                                 :severity="data.is_continue ? 'warn' : 'info'"
                                                  class="text-[9px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg" />
                                         </div>
                                     </template>

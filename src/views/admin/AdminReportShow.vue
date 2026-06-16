@@ -158,6 +158,35 @@ const resetSkill = (skillId, skillName) => {
     });
 };
 
+
+const resetLastLevel = (skillId, skillName) => {
+    showModal({
+        title: 'Reset Last Level',
+        message: `This will delete the student's last level progress and answers for "${skillName}". Are you sure?`,
+        type: 'warning',
+        showCancel: true,
+        confirmText: 'Yes, Reset Level',
+        onConfirm: async () => {
+            try {
+                await api.post(`/admin/reports/${attemptId}/skills/${skillId}/reset-last-level`);
+                showModal({
+                    title: 'Success',
+                    message: 'Last level has been reset successfully. The candidate can retake it.',
+                    type: 'success',
+                    onConfirm: () => fetchDetails()  // نحدث الصفحة بدل ما نروح للقايمة
+                });
+            } catch (err) {
+                showModal({
+                    title: 'Error',
+                    message: err.response?.data?.error || 'Failed to reset level.',
+                    type: 'danger'
+                });
+            }
+        }
+    });
+};
+
+
 const formatTime = (dateStr) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -971,6 +1000,13 @@ onMounted(fetchDetails);
                                                         icon="pi pi-refresh" severity="danger" outlined size="small"
                                                         class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl"
                                                         @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
+                                                    
+                                                    <!-- ✅ زرار Reset Last Level الجديد -->
+                                                    <Button v-if="currentUser?.role === 'admin'" label=""
+                                                        icon="pi pi-step-backward" severity="warning" outlined size="small"
+                                                        class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl"
+                                                        v-tooltip.top="'Reset Last Level'"
+                                                        @click="resetLastLevel(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
                                                     
                                                     <Button label="" icon="pi pi-file-pdf" severity="help" size="small"
                                                         class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-indigo-600 border-none"

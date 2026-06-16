@@ -137,6 +137,8 @@ const getTotalScore = (attempt) => {
 };
 
 
+
+
 onMounted(() => {
     fetchReports();
     fetchPartners();

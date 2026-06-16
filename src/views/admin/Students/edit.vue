@@ -128,7 +128,7 @@ const editForm = ref({
     partner_id: null,
     is_active: true,
     allows_retry: false,
-    is_continue: true,
+    is_continue: false,
 });
 
 const loadData = async () => {
@@ -169,7 +169,7 @@ const loadData = async () => {
             password: '', // Empty initially
             is_active: !!student.user?.is_active,
             allows_retry: !!student.allows_retry,
-            is_continue: student.is_continue !== undefined ? !!student.is_continue : true,
+            is_continue: student.is_continue !== undefined ? !!student.is_continue : false,
         };
         reconcilePackageFromSkills();
     } catch (err) {
@@ -485,8 +485,8 @@ onMounted(() => {
                                             <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].adaptiveSelect }}</label>
                                             <Select v-model="editForm.is_continue" 
                                                 :options="[
-                                                    { label: t[currentLang].adaptiveOpt, value: true },
-                                                    { label: t[currentLang].notAdaptiveOpt, value: false }
+                                                    { label: t[currentLang].adaptiveOpt, value: false },
+                                                    { label: t[currentLang].notAdaptiveOpt, value: true }
                                                 ]" 
                                                 optionLabel="label" 
                                                 optionValue="value" 

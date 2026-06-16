@@ -121,7 +121,7 @@ const form = ref({
     language_id: null,
     exam_category_id: null,
     passing_score: 60,
-    is_continue: true,
+    is_continue: false,
     selectedSkills: []
 });
 
@@ -166,7 +166,7 @@ onMounted(async () => {
                 language_id: exam.language_id,
                 exam_category_id: exam.exam_category_id,
                 passing_score: exam.passing_score ?? 60,
-                is_continue: true,
+                is_continue: false,
                 selectedSkills: exam.skills.map(skill => {
                     return {
                         skill_id: skill.id,
