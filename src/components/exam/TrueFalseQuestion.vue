@@ -86,7 +86,7 @@ const getOptionType = (opt) => {
             <div v-if="selectedOptionId === opt.id" 
                 class="mt-3 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
                 :class="getOptionType(opt) === 'true' ? 'bg-emerald-100 text-emerald-700' : (getOptionType(opt) === 'false' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700')">
-                تم الاختيار
+                Selected
             </div>
         </button>
     </div>

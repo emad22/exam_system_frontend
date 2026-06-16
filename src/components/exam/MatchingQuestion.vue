@@ -73,7 +73,7 @@ const currentMatchingRight = computed(() => {
 
             <!-- Left Side: Source Items -->
             <div class="space-y-4 relative z-8">
-                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-right px-2">القائمة الأولى</h4>
+                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-right px-2"> List 1 </h4>
                 <button v-for="opt in currentMatchingLeft" :key="opt.id"
                     @click="toggleMatchSource(opt.id)" :disabled="disabled"
                     class="w-[90%] lg:w-[85%] mx-auto p-4 lg:p-5 rounded-2xl border-2 transition-all duration-300 text-base font-bold text-slate-600 flex justify-between items-center group relative overflow-hidden block"
@@ -98,7 +98,7 @@ const currentMatchingRight = computed(() => {
 
             <!-- Right Side: Target Items -->
             <div class="space-y-4 relative z-8">
-                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-right px-2">القائمة الثانية</h4>
+                <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-right px-2"> List 2 </h4>
                 <button v-for="opt in currentMatchingRight" :key="opt.id"
                     @click="completeMatch(opt.id)"
                     :disabled="disabled || !selectedMatchSource || isAlreadyMatched(opt.id)"
@@ -124,7 +124,7 @@ const currentMatchingRight = computed(() => {
         <!-- Reset Progress Button (Subtle) -->
         <div v-if="Object.keys(matchingAnswers).length > 0 && !disabled" class="flex justify-center pt-4">
             <button @click="matchingAnswers = {}" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-colors flex items-center gap-2">
-                <i class="pi pi-refresh"></i> إعادة الضبط
+                <i class="pi pi-refresh"></i> Reset 
             </button>
         </div>
     </div>

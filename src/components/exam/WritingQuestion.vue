@@ -68,12 +68,11 @@ const cleanHtml = (html) => {
 };
 
 const { 
-    keyboardLayout, 
     showVirtualKeyboard, 
-    toggleKeyboardLayout,
     registerKeyPressListener,
     unregisterKeyPressListener
 } = useVirtualKeyboard();
+const keyboardLayout = 'arabic';
 
 const handleVirtualKeyboardKeyPress = (button) => {
     if (!quillInstance) return;
@@ -241,7 +240,7 @@ onUnmounted(() => {
                 ]"
                 :disabled="disabled">
                 <i class="pi pi-pen-to-square"></i>
-                <span>كتابة النص</span>
+                <span>Write Text</span>
             </button>
             <button 
                 @click="activeTab = 'upload'"
@@ -251,7 +250,7 @@ onUnmounted(() => {
                 ]"
                 :disabled="disabled">
                 <i class="pi pi-cloud-upload"></i>
-                <span>رفع صورة/ملف</span>
+                <span>File Upload</span>
             </button>
         </div>
 
@@ -268,20 +267,17 @@ onUnmounted(() => {
                 <div class="toolbar-stats">
                     <div class="stat-badge">
                         <i class="pi pi-align-right"></i>
-                        <span>الكلمات: {{ wordCount }}</span>
+                        <span>Words: {{ wordCount }}</span>
                     </div>
                 </div>
 
-                <!-- Keyboard Controls -->
+                <!-- Keyboard Controls (Toggle only, no language switch) -->
                 <div class="toolbar-controls">
-                    <button @click="toggleKeyboardLayout" class="kb-lang-btn">
-                        {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
-                    </button>
                     <button
                         @click="showVirtualKeyboard = !showVirtualKeyboard"
                         class="kb-toggle-btn"
                         :class="{ active: showVirtualKeyboard }"
-                        title="لوحة المفاتيح الافتراضية"
+                        title="Virtual keyboard"
                     >
                         <i class="pi pi-keyboard"></i>
                     </button>

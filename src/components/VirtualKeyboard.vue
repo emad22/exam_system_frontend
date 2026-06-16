@@ -131,7 +131,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="virtual-keyboard-wrapper p-4 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner min-h-[200px] relative z-50">
+  <div class="virtual-keyboard-wrapper p-2 md:p-2 bg-slate-100 rounded-xl border border-slate-200 shadow-inner relative z-50">
     <div class="absolute top-1 left-2 text-[8px] text-slate-300 font-bold">V-KB</div>
     <div ref="keyboardRef" class="simple-keyboard"></div>
   </div>
@@ -141,21 +141,35 @@ onUnmounted(() => {
 .simple-keyboard {
   background-color: transparent !important;
   font-family: inherit;
+  padding: 0 !important;
+}
+
+.hg-row {
+  margin-bottom: 2px !important;
+}
+
+.hg-row:last-child {
+  margin-bottom: 0 !important;
 }
 
 .hg-button {
-  height: 45px !important;
+  height: 30px !important;
   background: white !important;
-  border-bottom: 3px solid #e2e8f0 !important;
-  border-radius: 10px !important;
-  font-weight: 800 !important;
-  font-size: 14px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
   color: #1e293b !important;
+  margin-right: 4px !important;
   transition: all 0.1s ease !important;
 }
 
+.hg-button:last-child {
+  margin-right: 0 !important;
+}
+
 .hg-button:active {
-  transform: translateY(2px) !important;
+  transform: translateY(1px) !important;
   border-bottom-width: 1px !important;
 }
 
@@ -166,7 +180,7 @@ onUnmounted(() => {
 .hg-button.hg-functionBtn {
   background-color: #f8fafc !important;
   color: #64748b !important;
-  font-size: 11px !important;
+  font-size: 9px !important;
   text-transform: uppercase !important;
 }
 
@@ -174,5 +188,22 @@ onUnmounted(() => {
   background-color: #4f46e5 !important;
   color: white !important;
   border-bottom-color: #4338ca !important;
+}
+
+@media (max-height: 768px) {
+  .hg-button {
+    height: 25px !important;
+    font-size: 9px !important;
+    border-bottom-width: 1px !important;
+    border-radius: 4px !important;
+    margin-right: 2px !important;
+  }
+  .hg-row {
+    margin-bottom: 1px !important;
+  }
+  .virtual-keyboard-wrapper {
+    min-height: 90px !important;
+    padding: 3px !important;
+  }
 }
 </style>

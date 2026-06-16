@@ -39,21 +39,21 @@ const updateAnswer = (newAnswer) => {
 
 <template>
     <div 
-        :class="[
-            'flex-grow pr-1 pt-2 space-y-2 flex flex-col min-h-0', 
-            ['writing', 'short_answer'].includes(question.type) ? 'h-full overflow-hidden' : 'overflow-y-auto custom-scrollbar'
-        ]"
+        class="flex-grow pr-1 pt-2 space-y-2 flex flex-col min-h-0 overflow-y-auto custom-scrollbar"
     >
         <McqQuestion 
             v-if="question.type === 'mcq' || question.type === 'listening'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
 
         <TrueFalseQuestion 
             v-else-if="question.type === 'true_false'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <WritingQuestion 
             v-else-if="question.type === 'writing'" 
+            :key="question.id"
             :question="question" 
             :answer="answer" 
             :hasStimulusContent="hasStimulusContent" 
@@ -62,30 +62,37 @@ const updateAnswer = (newAnswer) => {
         
         <SpeakingQuestion 
             v-else-if="question.type === 'speaking'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <DragDropQuestion 
             v-else-if="question.type === 'drag_drop'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <WordSelectionQuestion 
             v-else-if="question.type === 'word_selection' || question.type === 'click_word'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <FillBlankQuestion 
             v-else-if="question.type === 'fill_blank'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <MatchingQuestion 
             v-else-if="question.type === 'matching'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <OrderingQuestion 
             v-else-if="question.type === 'ordering'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <ShortAnswerQuestion 
             v-else-if="question.type === 'short_answer'" 
+            :key="question.id"
             :question="question" 
             :answer="answer" 
             :hasStimulusContent="hasStimulusContent" 
@@ -94,6 +101,7 @@ const updateAnswer = (newAnswer) => {
         
         <HighlightQuestion 
             v-else-if="question.type === 'highlight'" 
+            :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
         <div v-else class="text-center p-8 text-slate-500 bg-slate-50 rounded-lg">

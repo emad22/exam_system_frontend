@@ -70,7 +70,7 @@ const t = {
     en: {
         loading: "Loading exams registry...",
         title: "Exams Registry",
-        subtitle: "Design and deploy assessment templates, adaptive structures, and mastery scopes.",
+        subtitle: "Design and deploy assessment templates, continue structures, and mastery scopes.",
         createBtn: "Create Exam",
         placeholderSearch: "Filter by title, domain, or classification...",
         colExamInfo: "Exam Information",
@@ -189,7 +189,7 @@ const saveRules = async () => {
             passing_score: selectedExam.value.passing_score,
             exam_category_id: selectedExam.value.exam_category_id,
             language_id: selectedExam.value.language_id,
-            is_adaptive: selectedExam.value.is_adaptive,
+            is_continue: selectedExam.value.is_continue,
             skills: rulesForm.value.skills
         });
         showRulesModal.value = false;

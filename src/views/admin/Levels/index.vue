@@ -64,7 +64,7 @@ const t = {
     },
     en: {
         loading: "Querying Level Matrix...",
-        title: "Adaptive Tiers",
+        title: "Continue Tiers",
         subtitle: "Configure difficulty matrices and skill mastery thresholds",
         createBtn: "Initialize Tier",
         domainFilter: "Domain Filter",
@@ -78,7 +78,7 @@ const t = {
         colThreshold: "Threshold",
         colVisibility: "Visibility",
         colActions: "Actions",
-        emptyTelemetry: "No adaptive configurations discovered in system registry.",
+        emptyTelemetry: "No Continue configurations discovered in system registry.",
         active: "Active",
         inactive: "Inactive",
         confirmDelete: "Are you sure you want to delete this level globally?",

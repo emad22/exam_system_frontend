@@ -40,11 +40,12 @@ const cleanHtml = (html) => {
     return clean;
 };
 
-const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtualKeyboard();
+const { showVirtualKeyboard } = useVirtualKeyboard();
+const keyboardLayout = 'arabic';
 </script>
 
 <template>
-    <div class="short-answer-wrapper space-y-6 py-4" dir="rtl">
+    <div class="short-answer-wrapper space-y-6 py-4 overflow-y-auto custom-scrollbar" dir="rtl">
         <!-- 1. Passage Title (only in single-column mode) -->
         <h3 v-if="!hasStimulusContent && question.passage?.title" class="passage-title">
             {{ question.passage.title }}
@@ -82,17 +83,14 @@ const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtual
             <div class="w-full max-w-md relative group">
                 <input v-model="textAnswer" :disabled="disabled" type="text"
                     class="w-full px-6 py-4 md:px-8 md:py-5 bg-slate-50 border-b-4 border-slate-200 rounded-t-2xl text-xl md:text-2xl font-black text-slate-800 text-center focus:bg-indigo-50/50 focus:border-brand-primary outline-none transition-all shadow-inner"
-                    placeholder="اكتب إجابتك هنا..." dir="auto" />
+                    placeholder="Answer..." dir="auto" />
                 
                 <!-- Input Glow -->
                 <div class="absolute inset-0 bg-brand-primary/10 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"></div>
             </div>
             
-            <!-- Controls Grid (toggles global docked keyboard) -->
+            <!-- Keyboard Toggle Only -->
             <div class="flex items-center gap-3 w-full justify-center bg-slate-50/50 p-2 rounded-2xl border border-slate-100 max-w-xs transition-all hover:shadow-md">
-                <button @click="toggleKeyboardLayout" class="flex-grow h-11 text-[10px] font-black uppercase tracking-widest px-4 bg-white rounded-xl hover:bg-indigo-50 hover:text-brand-primary border border-slate-100 shadow-sm transition-all active:scale-95">
-                    {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
-                </button>
                 <button @click="showVirtualKeyboard = !showVirtualKeyboard" 
                     class="w-14 h-11 flex items-center justify-center bg-white rounded-xl border border-slate-100 shadow-sm hover:border-brand-primary transition-all group active:scale-95" 
                     :title="showVirtualKeyboard ? 'Hide' : 'Show'">

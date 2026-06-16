@@ -56,7 +56,8 @@ const t = {
         colCategory: "نوع التقييم",
         colStatus: "النشاط",
         colActions: "العمليات",
-        nonAdaptive: "غير تكيفي",
+        nonAdaptive: "يقف عند درجة الطالب",
+        adaptive: "يكمل الامتحان الى الاخر",
         customAsset: "باقة مخصصة / ذاتية",
         active: "نشط",
         inactive: "غير نشط",
@@ -116,7 +117,8 @@ const t = {
         colCategory: "Assessment Model",
         colStatus: "Status",
         colActions: "Actions",
-        nonAdaptive: "Non-Adaptive",
+        nonAdaptive: "Completes the exam to the end",
+        adaptive: "Stops at the student's score",
         customAsset: "Custom Asset",
         active: "Active",
         inactive: "Inactive",
@@ -474,9 +476,9 @@ onMounted(() => {
                                 <Column :header="t[currentLang].colCategory" style="min-width: 150px">
                                     <template #body="{ data }">
                                         <div class="flex flex-col space-y-1">
-                                            <div v-if="data.not_adaptive"
-                                                class="text-[9px] font-extrabold text-brand-accent uppercase tracking-wider">
-                                                {{ t[currentLang].nonAdaptive }}</div>
+                                            <Tag :value="data.is_continue ? t[currentLang].adaptive : t[currentLang].nonAdaptive"
+                                                 :severity="data.is_continue ? 'info' : 'warn'"
+                                                 class="text-[9px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg" />
                                         </div>
                                     </template>
                                 </Column>

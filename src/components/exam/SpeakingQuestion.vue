@@ -21,12 +21,13 @@ const emit = defineEmits(['update:answer']);
 
 const activeMode = ref('record'); // 'record' or 'upload'
 const fileInput = ref(null);
+const audioRecorderRef = ref(null);
 const uploadedFileName = ref('');
 const uploadedFileSize = ref('');
 const uploadedAudioUrl = ref(null);
 
 const handleRecording = (blob) => {
-    emit('update:answer', { ...props.answer, recorded_file: blob });
+    emit('update:answer', { ...props.answer, recorded_file: blob, is_media_uploaded: false });
 };
 
 const triggerFileInput = () => {
@@ -45,7 +46,7 @@ const handleFileUpload = (event) => {
     }
     uploadedAudioUrl.value = URL.createObjectURL(file);
 
-    emit('update:answer', { ...props.answer, recorded_file: file });
+    emit('update:answer', { ...props.answer, recorded_file: file, is_media_uploaded: false });
 };
 
 const clearUploadedFile = () => {
@@ -55,8 +56,10 @@ const clearUploadedFile = () => {
     }
     uploadedFileName.value = '';
     uploadedFileSize.value = '';
-    if (fileInput.value) fileInput.value.value = '';
-    emit('update:answer', { ...props.answer, recorded_file: null });
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
+    emit('update:answer', { ...props.answer, recorded_file: null, is_media_uploaded: false });
 };
 
 const formatFileSize = (bytes) => {
@@ -78,6 +81,34 @@ watch(() => props.answer.recorded_file, (newVal) => {
     }
 });
 
+watch(() => props.question.id, (newQuestionId) => {
+    // Reset local upload states
+    if (uploadedAudioUrl.value) {
+        URL.revokeObjectURL(uploadedAudioUrl.value);
+        uploadedAudioUrl.value = null;
+    }
+    uploadedFileName.value = '';
+    uploadedFileSize.value = '';
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
+
+    // Load state from props.answer.recorded_file if exists
+    const file = props.answer.recorded_file;
+    if (file) {
+        if (file instanceof File && file.name && file.name !== 'voice.webm') {
+            activeMode.value = 'upload';
+            uploadedFileName.value = file.name;
+            uploadedFileSize.value = formatFileSize(file.size);
+            uploadedAudioUrl.value = URL.createObjectURL(file);
+        } else {
+            activeMode.value = 'record';
+        }
+    } else {
+        activeMode.value = 'record';
+    }
+}, { immediate: true });
+
 onUnmounted(() => {
     if (uploadedAudioUrl.value) {
         URL.revokeObjectURL(uploadedAudioUrl.value);
@@ -86,17 +117,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6 py-2" dir="rtl">
+    <div class="space-y-6 py-2" dir="ltr">
         <!-- Main Area Container -->
         <div class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden flex flex-col gap-6">
             
             <!-- Content / Instruction if any -->
             <div v-if="question.content" class="text-right max-w-3xl w-full mx-auto">
-                <div class="text-lg font-bold text-slate-800 leading-relaxed mb-3" v-html="question.content"></div>
-                <div class="flex items-center gap-2 text-slate-400 text-xs font-semibold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                    <span>الرجاء الإجابة عن طريق التسجيل الصوتي أو رفع ملف صوتي جاهز.</span>
-                </div>
+                <div class="text-lg font-bold text-slate-800 leading-relaxed" v-html="question.content"></div>
             </div>
 
             <!-- Premium Mode Switcher (Tabs) -->
@@ -112,7 +139,7 @@ onUnmounted(() => {
                     ]"
                 >
                     <i class="pi pi-microphone"></i>
-                    <span>تسجيل صوتي</span>
+                    <span>Record Audio</span>
                 </button>
                 <button 
                     @click="activeMode = 'upload'"
@@ -125,7 +152,7 @@ onUnmounted(() => {
                     ]"
                 >
                     <i class="pi pi-upload"></i>
-                    <span>رفع ملف صوتي</span>
+                    <span>Upload Audio</span>
                 </button>
             </div>
 
@@ -133,7 +160,10 @@ onUnmounted(() => {
             <div class="w-full flex justify-center min-h-[220px]">
                 <!-- Mode: Record -->
                 <div v-if="activeMode === 'record'" class="w-full max-w-md animate-fade">
-                    <AudioRecorder @recorded="handleRecording"
+                    <AudioRecorder 
+                        ref="audioRecorderRef"
+                        @recorded="handleRecording"
+                        :initial-audio="props.answer.recorded_file"
                         class="!bg-slate-50/50 !border-2 !border-slate-100/80 !shadow-inner !rounded-[2rem] w-full" 
                         :disabled="disabled" />
                 </div>
@@ -150,8 +180,8 @@ onUnmounted(() => {
                             <i class="pi pi-cloud-upload"></i>
                         </div>
                         <div class="space-y-1">
-                            <p class="text-sm font-black text-slate-700">انقر هنا لاختيار ملف صوتي</p>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase">يدعم صيغ MP3, WAV, M4A, WEBM</p>
+                            <p class="text-sm font-black text-slate-700">Click here to select Audio File</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Supports MP3, WAV, M4A, WEBM</p>
                         </div>
                         <input 
                             type="file" 

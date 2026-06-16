@@ -52,6 +52,9 @@ const t = {
         classification: "التصنيف والتبعية التعليمية",
         assignedPartner: "الشريك أو المركز الأكاديمي",
         curriculumPackage: "الباقة التعليمية المعتمدة",
+        adaptiveSelect: "نظام التقييم",
+        adaptiveOpt: "يقف عند درجة الطالب",
+        notAdaptiveOpt: "يكمل الامتحان الى الاخر",
         identificationCode: "كود الهوية الأكاديمية (الكود التعريفي)",
         activeEnrollment: "تفعيل حالة الحساب ونشاطه",
         retryToggle: "السماح بإعادة محاولة المستويات",
@@ -84,6 +87,9 @@ const t = {
         classification: "Classification & Alignment",
         assignedPartner: "Assigned Partner",
         curriculumPackage: "Curriculum Package",
+        adaptiveSelect: "Evaluation System",
+        adaptiveOpt: "Stops at the student's score",
+        notAdaptiveOpt: "Completes the exam to the end",
         identificationCode: "Identification Code",
         activeEnrollment: "Active Enrollment",
         retryToggle: "Allow Level Retry",
@@ -122,6 +128,7 @@ const editForm = ref({
     partner_id: null,
     is_active: true,
     allows_retry: false,
+    is_continue: true,
 });
 
 const loadData = async () => {
@@ -144,20 +151,7 @@ const loadData = async () => {
 
         const student = studentRes.data;
         const rawAssigned = student.assigned_skills || [];
-        
-        // Dynamically map assigned skills to match the exact casing/spelling in the skills table
-        const normalizedAssigned = rawAssigned.map(code => {
-            const clean = String(code).toUpperCase().trim();
-            const found = skills.value.find(sk => {
-                const skCode = String(sk.short_code).toUpperCase().trim();
-                return skCode === clean || 
-                       (clean === 'WRITT' && skCode === 'WRIT') ||
-                       (clean === 'WRIT' && skCode === 'WRITT') ||
-                       (clean === 'SPEK' && skCode === 'SPEAK') ||
-                       (clean === 'SPEAK' && skCode === 'SPEK');
-            });
-            return found ? found.short_code : code;
-        });
+        const normalizedAssigned = rawAssigned.map(code => normalizeCode(code));
 
         editForm.value = {
             first_name: student.user?.first_name || '',
@@ -175,6 +169,7 @@ const loadData = async () => {
             password: '', // Empty initially
             is_active: !!student.user?.is_active,
             allows_retry: !!student.allows_retry,
+            is_continue: student.is_continue !== undefined ? !!student.is_continue : true,
         };
         reconcilePackageFromSkills();
     } catch (err) {
@@ -192,18 +187,20 @@ watch(() => editForm.value.package_id, (newVal) => {
         if (pkg) {
             if (pkg.skills) {
                 // Map package skills to the exact casing/spelling from the skills table
-                editForm.value.assigned_skills = pkg.skills.map(code => {
-                    const clean = String(code).toUpperCase().trim();
-                    const found = skills.value.find(sk => {
-                        const skCode = String(sk.short_code).toUpperCase().trim();
-                        return skCode === clean || 
-                               (clean === 'WRITT' && skCode === 'WRIT') ||
-                               (clean === 'WRIT' && skCode === 'WRITT') ||
-                               (clean === 'SPEK' && skCode === 'SPEAK') ||
-                               (clean === 'SPEAK' && skCode === 'SPEK');
-                    });
-                    return found ? found.short_code : code;
-                });
+                // editForm.value.assigned_skills = pkg.skills.map(code => {
+                //     const clean = String(code).toUpperCase().trim();
+                //     const found = skills.value.find(sk => {
+                //         const skCode = String(sk.short_code).toUpperCase().trim();
+                //         return skCode === clean || 
+                //                (clean === 'WRITT' && skCode === 'WRIT') ||
+                //                (clean === 'WRIT' && skCode === 'WRITT') ||
+                //                (clean === 'SPEK' && skCode === 'SPEAK') ||
+                //                (clean === 'SPEAK' && skCode === 'SPEK');
+                //     });
+                //     return found ? found.short_code : code;
+                // });
+                editForm.value.assigned_skills = pkg.skills.map(code => normalizeCode(code));
+                
             }
             if (pkg.exam_id) {
                 const exam = exams.value.find(e => e.id === pkg.exam_id)
@@ -216,23 +213,47 @@ watch(() => editForm.value.package_id, (newVal) => {
 })
 
 // Helper to normalize skills for comparison (ID to Code if needed)
+// const normalizeSkills = (skillList) => {
+//     return (skillList || [])
+//         .map(s => {
+//             if (typeof s === 'number' || !isNaN(s)) {
+//                 const found = skills.value.find(sk => sk.id == s);
+//                 return found ? found.short_code : s;
+//             }
+//             return s;
+//         })
+//         .map(s => {
+//             const clean = String(s).toUpperCase().trim();
+//             if (clean === 'WRITT' || clean === 'WRIT') return 'WRIT';
+//             if (clean === 'SPEAK' || clean === 'SPEK') return 'SPEK';
+//             return clean;
+//         })
+//         .sort();
+// };
+
+
+
+const normalizeCode = (code) => {
+    const clean = String(code).toUpperCase().trim();
+    const found = skills.value.find(sk =>
+        String(sk.short_code).toUpperCase().trim() === clean
+    );
+    return found ? found.short_code : code;
+};
+
 const normalizeSkills = (skillList) => {
     return (skillList || [])
         .map(s => {
-            if (typeof s === 'number' || !isNaN(s)) {
+            if (typeof s === 'number' || !isNaN(Number(s))) {
                 const found = skills.value.find(sk => sk.id == s);
-                return found ? found.short_code : s;
+                return found ? found.short_code : String(s);
             }
-            return s;
-        })
-        .map(s => {
-            const clean = String(s).toUpperCase().trim();
-            if (clean === 'WRITT' || clean === 'WRIT') return 'WRIT';
-            if (clean === 'SPEAK' || clean === 'SPEK') return 'SPEK';
-            return clean;
+            return normalizeCode(s);
         })
         .sort();
 };
+
+
 
 const reconcilePackageFromSkills = () => {
     if (packages.value.length === 0) return;
@@ -458,6 +479,18 @@ onMounted(() => {
                                         <div class="flex flex-col space-y-1.5">
                                             <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].curriculumPackage }}</label>
                                             <Select v-model="editForm.package_id" :options="packages" optionLabel="name" optionValue="id" :placeholder="t[currentLang].selectPkgPlaceholder" class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
+                                        </div>
+
+                                        <div class="flex flex-col space-y-1.5">
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].adaptiveSelect }}</label>
+                                            <Select v-model="editForm.is_continue" 
+                                                :options="[
+                                                    { label: t[currentLang].adaptiveOpt, value: true },
+                                                    { label: t[currentLang].notAdaptiveOpt, value: false }
+                                                ]" 
+                                                optionLabel="label" 
+                                                optionValue="value" 
+                                                class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
                                         </div>
 
                                         <div class="flex flex-col space-y-1.5">

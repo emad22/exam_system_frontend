@@ -76,8 +76,8 @@ const t = {
         type: "نوع الطالب",
         workflow: "سير عمل المسار",
         linear: "خطي ثابت",
-        adaptive: "تكيفي ذكي",
-        regular: "منتظم",
+        adaptive: "مستمر",
+        regular: "متقطع",
         placement: "تحديد مستوى",
         standard: "قياسي مبسط",
         customAllowed: "تخصيص حر مسموح به",
@@ -132,8 +132,8 @@ const t = {
         type: "Type",
         workflow: "Workflow",
         linear: "Linear",
-        adaptive: "Adaptive",
-        regular: "Regular",
+        adaptive: "Continuous",
+        regular: "Discontinuous",
         placement: "Placement",
         standard: "Standard",
         customAllowed: "Custom Allowed",
@@ -400,7 +400,7 @@ onMounted(() => {
                                                         [t[currentLang].curriculum]: selectedStudent.package?.name || t[currentLang].standard, 
                                                         [t[currentLang].protocol]: selectedStudent.category?.name || t[currentLang].placement, 
                                                         [t[currentLang].type]: selectedStudent.student_type || t[currentLang].regular, 
-                                                        [t[currentLang].workflow]: selectedStudent.not_adaptive ? t[currentLang].linear : t[currentLang].adaptive 
+                                                        [t[currentLang].workflow]: selectedStudent.is_continue ? t[currentLang].continuous : t[currentLang].discontinuous 
                                                     }" :key="key" class="flex justify-between items-center py-3 border-b border-white/10 last:border-0">
                                                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ key }}</span>
                                                         <span class="text-[11px] font-black uppercase text-indigo-300">{{ val }}</span>

@@ -291,7 +291,7 @@ const tabs = ref(['student', 'statistics', 'violations', 'logs'])
 const statistics = ref<any>({})
 
 const showReviewModal = ref(false)
-const currentViolationId = ref(null)
+const currentViolationId = ref<number | null>(null)
 const reviewForm = ref({
   status: 'confirmed',
   proctor_notes: '',

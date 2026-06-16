@@ -80,7 +80,7 @@ const saveLevel = async () => {
                 <div
                     class="hidden md:flex items-center space-x-2 bg-rose-50 px-4 py-2 rounded-2xl border border-indigo-100">
                     <div class="w-2 h-2 bg-brand-primary rounded-full animate-pulse"></div>
-                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Adaptive Logic
+                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Continue
                         Engine</span>
                 </div>
             </div>

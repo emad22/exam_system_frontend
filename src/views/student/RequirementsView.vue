@@ -91,7 +91,7 @@ onMounted(fetchRequirements);
 </script>
 
 <template>
-    <div class="h-screen bg-[#F8FAFC] flex flex-col relative overflow-hidden font-sans">
+    <div class="min-h-screen bg-[#F8FAFC] flex flex-col relative overflow-y-auto md:overflow-hidden font-sans md:h-screen">
         <StudentHeader />
         
         <!-- Background Decoration -->
@@ -101,11 +101,11 @@ onMounted(fetchRequirements);
         </div>
 
         <!-- Main Content -->
-        <main class="flex-grow flex items-center justify-center p-4 relative z-10 overflow-hidden">
-            <div class="w-full max-w-5xl h-full max-h-[min(800px,calc(100vh-120px))] bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in duration-700">
+        <main class="flex-grow flex items-center justify-center p-4 relative z-10 overflow-y-auto md:overflow-hidden">
+            <div class="w-full max-w-5xl h-auto md:h-full md:max-h-[min(800px,calc(100vh-120px))] bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in duration-700">
                 
                 <!-- Left Panel: Info & Illustration -->
-                <div class="w-full md:w-2/5 bg-slate-900 p-10 md:p-16 text-white flex flex-col justify-between relative overflow-hidden">
+                <div class="w-full md:w-2/5 bg-slate-900 p-8 md:p-16 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     <div class="absolute bottom-0 left-0 w-48 h-48 bg-brand-primary/10 rounded-full -ml-24 -mb-24 blur-3xl"></div>
                     
@@ -125,9 +125,9 @@ onMounted(fetchRequirements);
                 </div>
 
                 <!-- Right Panel: Requirements List -->
-                <div class="w-full md:w-3/5 p-10 md:p-16 flex flex-col h-full bg-white">
-                    <div class="flex-grow">
-                        <div class="flex justify-between items-end mb-10">
+                <div class="w-full md:w-3/5 p-6 md:p-12 lg:p-16 flex flex-col justify-between md:h-full bg-white">
+                    <div class="flex flex-col flex-grow min-h-0">
+                        <div class="flex justify-between items-end mb-6 md:mb-10 shrink-0">
                             <div>
                                 <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Required Checks</h2>
                                 <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">Verify all mandatory items to proceed</p>
@@ -137,13 +137,13 @@ onMounted(fetchRequirements);
                             </div>
                         </div>
 
-                        <div v-if="isLoading" class="flex flex-col items-center justify-center h-64">
+                        <div v-if="isLoading" class="flex flex-col items-center justify-center py-12 shrink-0">
                             <div class="w-12 h-12 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin"></div>
                             <p class="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Analyzing System...</p>
                         </div>
 
-                        <div v-else class="h-full overflow-y-auto pr-2 custom-scrollbar pb-20">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div v-else class="overflow-y-auto pr-2 custom-scrollbar flex-grow min-h-[150px] md:max-h-[340px]">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
                                 <div v-for="req in requirements" :key="req.id" 
                                     @click="toggleRequirement(req)"
                                     class="group flex items-center gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer relative"
@@ -171,7 +171,7 @@ onMounted(fetchRequirements);
                     </div>
 
                     <!-- Footer Action -->
-                    <div class="mt-10 pt-10 border-t border-slate-50">
+                    <div class="mt-6 md:mt-10 pt-6 md:pt-10 border-t border-slate-50 shrink-0">
                         <button @click="proceed" :disabled="!canProceed"
                             class="group relative w-full py-6 rounded-2xl font-black text-sm uppercase tracking-[0.3em] transition-all duration-500 shadow-2xl disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                             :class="canProceed 

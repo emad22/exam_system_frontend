@@ -26,7 +26,8 @@ const fillBlankAnswers = computed({
 });
 
 const focusedInputIndex = ref(0);
-const { keyboardLayout, showVirtualKeyboard, toggleKeyboardLayout } = useVirtualKeyboard();
+const { showVirtualKeyboard } = useVirtualKeyboard();
+const keyboardLayout = 'arabic';
 const containerRef = ref(null);
 
 /**
@@ -126,7 +127,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6 py-4">
+    <div class="space-y-4 py-4 overflow-y-auto custom-scrollbar">
         <!-- Content Area with Modern Styling -->
         <div 
             ref="containerRef"
@@ -143,11 +144,8 @@ onMounted(() => {
             <div v-html="processedHtml" class="relative z-0 leading-loose"></div>
         </div>
 
-        <!-- Keyboard Controls -->
+        <!-- Keyboard Toggle Only -->
         <div class="flex items-center gap-3 w-full justify-center bg-slate-50/50 p-2 rounded-2xl border border-slate-100 max-w-xs mx-auto">
-            <button @click="toggleKeyboardLayout" class="flex-grow h-10 text-[10px] font-black uppercase tracking-widest px-4 bg-white rounded-xl hover:bg-indigo-50 hover:text-brand-primary border border-slate-100 shadow-sm transition-all">
-                {{ keyboardLayout === 'arabic' ? 'English' : 'العربية' }}
-            </button>
             <button @click="showVirtualKeyboard = !showVirtualKeyboard" 
                 class="w-12 h-10 flex items-center justify-center bg-white rounded-xl border border-slate-100 shadow-sm hover:border-brand-primary transition-all group" 
                 :title="showVirtualKeyboard ? 'Hide' : 'Show'">

@@ -87,11 +87,7 @@ const handleContainerClick = (e) => {
             v-html="processedHtml">
         </div>
 
-        <!-- Tooltip / Hint -->
-        <div class="flex items-center justify-center gap-2 text-slate-400">
-            <i class="pi pi-highlighter text-[10px]"></i>
-            <span class="text-[10px] font-black uppercase tracking-widest">انقر على الكلمات لتمييزها</span>
-        </div>
+        
     </div>
 </template>
 

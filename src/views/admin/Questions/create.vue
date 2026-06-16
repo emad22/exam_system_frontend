@@ -560,6 +560,11 @@ const saveBatch = async () => {
         showAlert(t[currentLang.value].validationExam, t[currentLang.value].activeSystem, 'warning');
         return;
     }
+
+    // ✅ Log عشان تتأكد
+    console.log('Submitting with exam_id:', form.value.exam_id, typeof form.value.exam_id);
+
+    
     if (!form.value.skill_id) {
         showAlert(t[currentLang.value].validationSkill, t[currentLang.value].activeSystem, 'warning');
         return;

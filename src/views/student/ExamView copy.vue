@@ -666,7 +666,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
+    <div class="h-screen bg-slate-50 font-sans text-slate-900 overflow-auto flex flex-col">
 
         <!-- === PROCTORING INITIALIZER MODAL === -->
         <template v-if="PROCTORING_ENABLED && !proctoringComplete && !isDemo">
@@ -762,7 +762,7 @@ onUnmounted(() => {
                 </div>
             </div>
 
-           <main class="flex-1 relative">
+            <main class="flex-grow overflow-auto relative">
 
                 <!-- Retry Notification Overlay -->
                 <div v-if="showRetryNotification"
@@ -824,7 +824,7 @@ onUnmounted(() => {
 
                 <!-- Exam Split Screen (Dynamic Layout) -->
                 <div v-else-if="currentQ"
-                    class="flex flex-col lg:flex-row gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 overflow-auto">
+                    class="flex flex-row h-full gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 overflow-auto">
 
                     <!-- Response Pane -->
                     <div :class="responsePaneClass"

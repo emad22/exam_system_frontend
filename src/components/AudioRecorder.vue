@@ -1,12 +1,13 @@
 <script setup>
 import { useModal } from '@/composables/useModal';
-import { ref, onUnmounted } from 'vue';
+import { ref, onUnmounted, watch } from 'vue';
 import Button from 'primevue/button';
 
 const { showAlert, showConfirm } = useModal();
 
 const props = defineProps({
-    isMandatory: { type: Boolean, default: false }
+    isMandatory: { type: Boolean, default: false },
+    initialAudio: { type: [Object, String], default: null }
 });
 
 const emit = defineEmits(['recorded', 'recording-state-change']);
@@ -18,6 +19,27 @@ const mediaRecorder = ref(null);
 const audioChunks = ref([]);
 const audioUrl = ref(null);
 const audioBlob = ref(null);
+
+watch(() => props.initialAudio, (newVal) => {
+    if (newVal) {
+        if (newVal === audioBlob.value) {
+            return;
+        }
+        if (audioUrl.value) URL.revokeObjectURL(audioUrl.value);
+        if (newVal instanceof Blob || newVal instanceof File) {
+            audioUrl.value = URL.createObjectURL(newVal);
+            audioBlob.value = newVal;
+        } else if (typeof newVal === 'string') {
+            audioUrl.value = newVal;
+            audioBlob.value = null;
+        }
+    } else {
+        if (audioUrl.value) URL.revokeObjectURL(audioUrl.value);
+        audioUrl.value = null;
+        audioBlob.value = null;
+        recordingTime.value = 0;
+    }
+}, { immediate: true });
 
 const startRecording = async () => {
     try {

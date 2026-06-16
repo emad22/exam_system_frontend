@@ -63,7 +63,7 @@ const removeFromOrdering = (idx) => {
                 </button>
             </template>
             <div v-else class="text-slate-300 font-black text-sm uppercase tracking-widest opacity-40">
-                انقر على الكلمات بالترتيب الصحيح
+                <i class="pi pi-pen-to-square"></i> 
             </div>
         </div>
 

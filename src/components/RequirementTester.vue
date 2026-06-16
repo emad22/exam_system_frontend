@@ -32,7 +32,7 @@ const playTestSound = () => {
             const audio = new Audio(customAudioUrl);
             audio.play().catch(e => {
                 console.error("Audio play failed:", e);
-                errorMessage.value = "فشل تشغيل الصوت. قد يكون المتصفح يمنع ذلك.";
+                errorMessage.value = "failed to play audio";
                 isPlaying.value = false;
             });
             audio.onended = () => {
@@ -40,7 +40,7 @@ const playTestSound = () => {
             };
         } catch (e) {
             console.error("Audio initialization failed:", e);
-            errorMessage.value = "فشل تهيئة مشغل الصوت.";
+            errorMessage.value = "failed to initialize audio";
             isPlaying.value = false;
         }
         return;
@@ -70,7 +70,7 @@ const playTestSound = () => {
         };
     } catch (e) {
         console.error("Audio tone failed:", e);
-        errorMessage.value = "فشل تشغيل نغمة الاختبار.";
+        errorMessage.value = "failed to play audio tone";
         isPlaying.value = false;
     }
 };
@@ -151,7 +151,7 @@ const startMicTest = async () => {
 
     } catch (err) {
         console.error('Mic error:', err);
-        errorMessage.value = 'تعذر الوصول إلى الميكروفون. يرجى التحقق من الأذونات.';
+        errorMessage.value = 'failed to access microphone';
     }
 };
 
@@ -177,7 +177,7 @@ const startCameraTest = async () => {
         }
     } catch (err) {
         console.error('Camera error:', err);
-        errorMessage.value = 'تعذر الوصول إلى الكاميرا. يرجى التحقق من الأذونات.';
+        errorMessage.value = 'failed to access camera';
     }
 };
 
@@ -198,7 +198,7 @@ const markPassed = () => {
 
 const markFailed = (customMessage = null) => {
     testResult.value = 'failed';
-    errorMessage.value = customMessage || 'يبدو أن هناك مشكلة في هذا الاختبار. يرجى التحقق من إعداداتك ثم أعد المحاولة.';
+    errorMessage.value = customMessage || 'failed to test requirement';
 };
 
 const startTest = () => {
@@ -247,7 +247,7 @@ const testType = computed(() => props.requirement.test_type);
 
 <template>
     <div class="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-slate-200" dir="rtl">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-slate-200" dir="ltr">
             
             <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
                 <div>
@@ -266,7 +266,7 @@ const testType = computed(() => props.requirement.test_type);
                     <div class="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
                         <i class="pi pi-check-circle"></i>
                     </div>
-                    <h4 class="text-lg font-black text-slate-800">تم اجتياز الاختبار بنجاح</h4>
+                    <h4 class="text-lg font-black text-slate-800">Test passed successfully</h4>
                 </div>
 
                 <!-- Error State (Permissions etc) -->
@@ -276,7 +276,7 @@ const testType = computed(() => props.requirement.test_type);
                     </div>
                     <p class="text-rose-600 font-medium text-sm mb-6">{{ errorMessage }}</p>
                     <button @click="startTest" class="px-6 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200">
-                        إعادة المحاولة
+                        Try again
                     </button>
                 </div>
 
@@ -290,18 +290,18 @@ const testType = computed(() => props.requirement.test_type);
                             <i class="pi pi-volume-up text-4xl"></i>
                         </div>
                         
-                        <h4 class="font-bold text-slate-700">هل تسمع نغمة الرنين؟</h4>
+                        <h4 class="font-bold text-slate-700">Did you hear the beep?</h4>
                         
                         <div class="flex justify-center gap-4 mt-6">
-                            <button @click="markFailed('يبدو أن هناك مشكلة في إخراج الصوت. يرجى التأكد من توصيل السماعات ورفع مستوى الصوت ثم أعد المحاولة.')" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">
-                                لا أسمع شيئاً
+                            <button @click="markFailed('Did not hear beep')" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">
+                                No
                             </button>
                             <button @click="markPassed" class="px-6 py-2.5 bg-brand-primary text-white font-bold rounded-xl shadow-lg hover:bg-brand-primary/90 transition-colors">
-                                نعم، الصوت واضح
+                                Yes
                             </button>
                         </div>
                         <button v-if="!isPlaying" @click="playTestSound" class="text-brand-primary text-xs font-bold mt-4 hover:underline">
-                            إعادة تشغيل الصوت
+                            Play sound
                         </button>
                     </div>
 
@@ -313,8 +313,8 @@ const testType = computed(() => props.requirement.test_type);
                                 :class="isRecording ? 'bg-rose-50 text-rose-500 scale-110 shadow-lg shadow-rose-100' : 'bg-slate-50 text-slate-400'">
                                 <i class="pi pi-microphone text-4xl" :class="{'animate-pulse': isRecording}"></i>
                             </div>
-                            <h4 class="font-bold text-slate-700 mb-2">تحدث الآن لاختبار الميكروفون</h4>
-                            <p class="text-xs text-slate-500 mb-4">جاري التسجيل لمدة 4 ثوانٍ...</p>
+                            <h4 class="font-bold text-slate-700 mb-2">Speak now to test microphone</h4>
+                            <p class="text-xs text-slate-500 mb-4">recording for 4 seconds...</p>
                             
                             <!-- Volume Meter -->
                             <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-2">
@@ -327,21 +327,21 @@ const testType = computed(() => props.requirement.test_type);
                             <div class="w-16 h-16 mx-auto bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mb-4">
                                 <i class="pi pi-play text-2xl"></i>
                             </div>
-                            <h4 class="font-bold text-slate-700 mb-4">جاري إعادة تشغيل التسجيل...</h4>
+                            <h4 class="font-bold text-slate-700 mb-4">Playing back recording...</h4>
                             
                             <audio :src="recordedAudioUrl" controls autoplay class="w-full h-10 mb-6"></audio>
 
-                            <h4 class="font-bold text-slate-700">هل تسمع صوتك بوضوح؟</h4>
+                            <h4 class="font-bold text-slate-700">Can you hear your voice clearly?</h4>
                             <div class="flex justify-center gap-4 mt-6">
-                                <button @click="markFailed('يبدو أن هناك مشكلة في إدخال الصوت. يرجى التحقق من إعدادات الميكروفون وأذونات المتصفح.')" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">
-                                    لا
+                                <button @click="markFailed('failed to record')" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">
+                                    No
                                 </button>
                                 <button @click="markPassed" class="px-6 py-2.5 bg-brand-primary text-white font-bold rounded-xl shadow-lg hover:bg-brand-primary/90 transition-colors">
-                                    نعم
+                                    Yes
                                 </button>
                             </div>
                             <button @click="startTest" class="text-brand-primary text-xs font-bold mt-4 hover:underline">
-                                إعادة التسجيل
+                                Re-record
                             </button>
                         </div>
                     </div>
@@ -355,13 +355,13 @@ const testType = computed(() => props.requirement.test_type);
                             </div>
                         </div>
                         
-                        <h4 class="font-bold text-slate-700 mt-4">هل ترى نفسك بوضوح؟</h4>
+                        <h4 class="font-bold text-slate-700 mt-4">Do you see yourself clearly?</h4>
                         <div class="flex justify-center gap-4 mt-4">
-                            <button @click="markFailed('يبدو أن هناك مشكلة في الكاميرا. يرجى التأكد من توصيلها ومنح المتصفح الإذن للوصول إليها.')" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">
-                                لا
+                            <button @click="markFailed('failed to record')" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">
+                                No
                             </button>
                             <button @click="markPassed" class="px-6 py-2.5 bg-brand-primary text-white font-bold rounded-xl shadow-lg hover:bg-brand-primary/90 transition-colors">
-                                نعم، أرى بوضوح
+                                Yes
                             </button>
                         </div>
                     </div>
@@ -371,7 +371,7 @@ const testType = computed(() => props.requirement.test_type);
                         <div class="w-20 h-20 mx-auto bg-blue-50 text-blue-500 rounded-full flex items-center justify-center animate-spin">
                             <i class="pi pi-sync text-3xl"></i>
                         </div>
-                        <h4 class="font-bold text-slate-700">جاري فحص متطلبات النظام...</h4>
+                        <h4 class="font-bold text-slate-700">Checking system requirements...</h4>
                         <p class="text-xs text-slate-500">{{ requirement.test_type }}</p>
                     </div>
 

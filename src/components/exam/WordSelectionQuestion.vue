@@ -89,10 +89,10 @@ const handleContainerClick = (e) => {
         </div>
 
         <!-- Hint / Instructions (Subtle) -->
-        <div class="flex items-center justify-center gap-2 text-slate-400">
+        <!-- <div class="flex items-center justify-center gap-2 text-slate-400">
             <i class="pi pi-info-circle text-[10px]"></i>
-            <span class="text-[10px] font-black uppercase tracking-widest">انقر على الكلمة لاختيارها</span>
-        </div>
+            <span class="text-[10px] font-black uppercase tracking-widest">Click words in order</span>
+        </div> -->
     </div>
 </template>
 
