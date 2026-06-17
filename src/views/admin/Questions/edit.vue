@@ -546,6 +546,7 @@ const loadInitialData = async () => {
                 q_image_height: q.image_height || null,
                 showHtml: false,
                 options: (q.options || []).map(o => ({
+                    id: o.id || null, 
                     option_text: o.option_text,
                     is_correct: !!o.is_correct,
                     dir: o.dir || 'ltr',
@@ -788,9 +789,10 @@ const updateBatch = async () => {
             image_width: q.q_image_width || null,
             image_height: q.q_image_height || null,
             options: q.options.map(opt => ({
+                id: opt.id || null, 
                 option_text: opt.option_text,
                 is_correct: opt.is_correct,
-                dir: opt.dir || 'ltr'   // ← أضف
+                dir: opt.dir || 'ltr'   
             }))
         }));
         fd.append('questions', JSON.stringify(cleanQuestions));
