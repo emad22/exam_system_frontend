@@ -861,8 +861,7 @@ onMounted(fetchDetails);
                         <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-1">Candidate
                             Profile</p>
                         <p class="text-2xl font-black uppercase tracking-tight">
-                            {{ selectedAttempt.student?.user?.first_name || selectedAttempt.user?.first_name || 'DEMO'
-                            }}
+                            {{ selectedAttempt.student?.user?.first_name || selectedAttempt.user?.first_name || 'DEMO' }}
                             {{ selectedAttempt.student?.user?.last_name || selectedAttempt.user?.last_name || 'USER' }}
                         </p>
                         <p class="text-[10px] font-bold text-slate-400 tracking-widest">{{

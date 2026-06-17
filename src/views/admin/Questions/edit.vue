@@ -434,8 +434,8 @@ const createEmptyQuestion = () => ({
     q_image_height: null,
     showHtml: false,
     options: [
-        { option_text: '', is_correct: true },
-        { option_text: '', is_correct: false }
+        { option_text: '', is_correct: true,  dir: 'ltr', image: null, image_preview: null },
+        { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null }
     ]
 });
 
@@ -517,9 +517,13 @@ const loadInitialData = async () => {
                 q_image_width: sq.image_width || null,
                 q_image_height: sq.image_height || null,
                 showHtml: false,
+                // الجديد
                 options: (sq.options || []).map(o => ({
                     option_text: o.option_text,
-                    is_correct: !!o.is_correct
+                    is_correct: !!o.is_correct,
+                    dir: o.dir || 'ltr',
+                    image: null,
+                    image_preview: o.image_url || null  // لو الـ API بيرجع image_url
                 }))
             }));
         } else {
@@ -543,7 +547,10 @@ const loadInitialData = async () => {
                 showHtml: false,
                 options: (q.options || []).map(o => ({
                     option_text: o.option_text,
-                    is_correct: !!o.is_correct
+                    is_correct: !!o.is_correct,
+                    dir: o.dir || 'ltr',
+                    image: null,
+                    image_preview: o.image_url || null
                 }))
             }];
         }
@@ -607,8 +614,13 @@ const handleQImageChange = (e, index) => {
 };
 
 const addOption = (qIdx) => {
-    form.value.questions[qIdx].options.push({ option_text: '', is_correct: false });
+    form.value.questions[qIdx].options.push({ 
+        option_text: '', is_correct: false,
+        dir: 'ltr', image: null, image_preview: null
+    });
 };
+
+
 const removeOption = (qIdx, optIdx) => {
     if (form.value.questions[qIdx].options.length > 1) {
         form.value.questions[qIdx].options.splice(optIdx, 1);
@@ -648,57 +660,57 @@ const handleTypeChange = async (qIdx) => {
     if (q.type === 'true_false') {
         q.instructions = currentLang.value === 'ar' ? "اختر صح أم خطأ." : "Choose True or False.";
         q.options = [
-            { option_text: 'True', is_correct: true },
-            { option_text: 'False', is_correct: false }
+            { option_text: 'True',  is_correct: true,  dir: 'ltr', image: null, image_preview: null },
+            { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null }
         ];
     } else if (['writing', 'speaking', 'upload'].includes(q.type)) {
         q.instructions = currentLang.value === 'ar' ? "يرجى تقديم إجابتك." : "Please provide your answer.";
         q.options = [];
     } else if (q.type === 'short_answer') {
         q.instructions = currentLang.value === 'ar' ? "يرجى كتابة الإجابة." : "Please type the correct answer.";
-        q.options = [{ option_text: '', is_correct: true }];
+        q.options = [{ option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null }];
     } else if (q.type === 'drag_drop') {
         q.instructions = currentLang.value === 'ar' ? "اسحب الكلمات إلى المربعات الصحيحة لإكمال الجملة." : "Drag the correct words to complete the sentence.";
         q.options = [
-            { option_text: '', is_correct: true },
-            { option_text: '', is_correct: true }
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null },
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null }
         ];
     } else if (q.type === 'fill_blank') {
         q.instructions = currentLang.value === 'ar' ? "املأ الفراغات بالكلمات الصحيحة." : "Fill in the blanks with the correct answers.";
         q.options = [
-            { option_text: '', is_correct: true }
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null }
         ];
     } else if (['word_selection', 'click_word', 'highlight'].includes(q.type)) {
         q.instructions = q.type === 'highlight' 
             ? (currentLang.value === 'ar' ? "قم بتمييز الأجزاء الصحيحة في النص." : "Highlight the correct parts in the text.")
             : (currentLang.value === 'ar' ? "اختر الكلمات المطلوبة في النص." : "Select the required words in the text.");
         q.options = [
-            { option_text: '', is_correct: true }
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null }
         ];
     } else if (q.type === 'matching') {
         q.instructions = currentLang.value === 'ar' ? "قم بتوصيل العناصر في العمود الأول بما يناسبها في العمود الثاني." : "Match each item in the first column with the correct option in the second column.";
         q.options = [
-            { option_text: 'Source 1 | Target 1', is_correct: true },
-            { option_text: 'Source 2 | Target 2', is_correct: true }
+            { option_text: 'Source 1 | Target 1', is_correct: true, dir: 'ltr', image: null, image_preview: null },
+            { option_text: 'Source 2 | Target 2', is_correct: true, dir: 'ltr', image: null, image_preview: null }
         ];
     } else if (q.type === 'ordering') {
         q.instructions = currentLang.value === 'ar' ? "قم بترتيب العناصر التالية بالترتيب الصحيح." : "Arrange the items below in the correct order.";
         q.options = [
-            { option_text: 'Item 1', is_correct: true },
-            { option_text: 'Item 2', is_correct: true }
+            { option_text: 'Item 1', is_correct: true, dir: 'ltr', image: null, image_preview: null },
+            { option_text: 'Item 2', is_correct: true, dir: 'ltr', image: null, image_preview: null }
         ];
     } else if (q.type === 'listening') {
         q.instructions = currentLang.value === 'ar' ? "استمع إلى المقطع الصوتي وأجب على السؤال." : "Listen to the audio clip and answer the question.";
         q.options = [
-            { option_text: '', is_correct: true },
-            { option_text: '', is_correct: false }
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null },
+            { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null }
         ];
     } else {
         if (q.options.length < 2) {
             q.instructions = currentLang.value === 'ar' ? "يرجى اختيار الإجابة الصحيحة." : "Please select the correct option.";
             q.options = [
-                { option_text: '', is_correct: true },
-                { option_text: '', is_correct: false }
+                { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null },
+                { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null }
             ];
         }
     }
@@ -777,7 +789,8 @@ const updateBatch = async () => {
             image_height: q.q_image_height || null,
             options: q.options.map(opt => ({
                 option_text: opt.option_text,
-                is_correct: opt.is_correct
+                is_correct: opt.is_correct,
+                dir: opt.dir || 'ltr'   // ← أضف
             }))
         }));
         fd.append('questions', JSON.stringify(cleanQuestions));
@@ -786,6 +799,13 @@ const updateBatch = async () => {
             if (q.q_media) fd.append(`questions[${qIdx}][q_media_file]`, q.q_media);
             if (q.q_audio) fd.append(`questions[${qIdx}][q_audio_file]`, q.q_audio);
             if (q.q_image) fd.append(`questions[${qIdx}][q_image_file]`, q.q_image);
+
+            // ← أضف صور الـ options
+            q.options?.forEach((opt, oIdx) => {
+                if (opt.image instanceof File) {
+                    fd.append(`questions[${qIdx}][options][${oIdx}][image]`, opt.image);
+                }
+            });
         });
 
         await api.post(`/admin/questions/${questionId}`, fd, {
@@ -801,6 +821,20 @@ const updateBatch = async () => {
         isSubmitting.value = false;
     }
 };
+
+
+const handleOptionImageChange = (e, qIdx, oIdx) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    form.value.questions[qIdx].options[oIdx].image = file;
+    form.value.questions[qIdx].options[oIdx].image_preview = URL.createObjectURL(file);
+};
+
+const triggerOptionImage = (qIdx, oIdx) => {
+    document.getElementById(`optImg_${qIdx}_${oIdx}`)?.click();
+};
+
+
 
 onMounted(() => {
     loadInitialData();
@@ -1300,9 +1334,11 @@ const editorModules = {
                                     
                                     <div class="space-y-2.5">
                                         <div v-for="(opt, oIdx) in q.options" :key="oIdx"
-                                            class="flex items-center gap-4 p-4 rounded-2xl border transition-all bg-white"
+                                            class="flex items-start gap-3 p-4 rounded-2xl border transition-all bg-white"
                                             :class="opt.is_correct ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100 shadow-sm'">
-                                            <div class="flex items-center gap-2.5 shrink-0">
+                                            
+                                            <!-- Index + Correct toggle -->
+                                            <div class="flex items-center gap-2 shrink-0 mt-1">
                                                 <span class="text-[8px] font-black text-slate-400">#{{ oIdx + 1 }}</span>
                                                 <button v-if="q.type !== 'short_answer'" type="button" @click="setCorrect(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all"
@@ -1310,12 +1346,51 @@ const editorModules = {
                                                     <i class="pi pi-check text-[9px] font-black"></i>
                                                 </button>
                                             </div>
-                                            
-                                            <InputText v-model="opt.option_text" :disabled="q.type === 'true_false'"
-                                                :placeholder="q.type === 'short_answer' ? t[currentLang].acceptedVariation : t[currentLang].optionValuePlaceholder"
-                                                class="w-full border-none bg-transparent font-bold text-slate-800 focus:ring-0 py-1.5" />
-                                            
-                                            <div class="flex items-center gap-0.5 shrink-0 rtl:space-x-reverse">
+
+                                            <!-- Image + Text -->
+                                            <div class="flex flex-col gap-2 grow min-w-0">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="file" :id="`optImg_${qIdx}_${oIdx}`" class="hidden"
+                                                        accept="image/*"
+                                                        @change="(e) => handleOptionImageChange(e, qIdx, oIdx)" />
+
+                                                    <!-- Thumbnail -->
+                                                    <div v-if="opt.image_preview"
+                                                        class="relative w-16 h-12 rounded-xl overflow-hidden border border-slate-100 shrink-0 group/img">
+                                                        <img :src="opt.image_preview" class="w-full h-full object-cover" />
+                                                        <button type="button"
+                                                            @click="opt.image = null; opt.image_preview = null"
+                                                            class="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-all">
+                                                            <i class="pi pi-trash text-white text-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                    <!-- Upload button -->
+                                                    <button v-else type="button" @click="triggerOptionImage(qIdx, oIdx)"
+                                                        class="w-10 h-10 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:text-brand-primary hover:border-brand-primary/40 transition-all shrink-0">
+                                                        <i class="pi pi-image text-sm"></i>
+                                                    </button>
+
+                                                    <!-- Text input -->
+                                                    <InputText v-model="opt.option_text"
+                                                        :disabled="q.type === 'true_false'"
+                                                        :dir="opt.dir"
+                                                        :placeholder="q.type === 'short_answer' ? t[currentLang].acceptedVariation : t[currentLang].optionValuePlaceholder"
+                                                        class="grow border-none bg-transparent font-bold text-slate-800 focus:ring-0 py-1.5 min-w-0" />
+                                                </div>
+                                            </div>
+
+                                            <!-- Controls -->
+                                            <div class="flex items-center gap-1 shrink-0 mt-1">
+                                                <!-- RTL/LTR Toggle -->
+                                                <button type="button" @click="opt.dir = opt.dir === 'ltr' ? 'rtl' : 'ltr'"
+                                                    class="h-7 px-2.5 rounded-lg border text-[8px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                                                    :class="opt.dir === 'rtl'
+                                                        ? 'bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100'
+                                                        : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'">
+                                                    <i class="pi pi-arrow-right-arrow-left text-[8px]"></i>
+                                                    {{ opt.dir.toUpperCase() }}
+                                                </button>
+
                                                 <button v-if="oIdx > 0" type="button" @click="moveOptionUp(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-md hover:bg-slate-50 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                     <i class="pi pi-chevron-up text-[9px]"></i>
@@ -1324,7 +1399,7 @@ const editorModules = {
                                                     class="w-7 h-7 rounded-md hover:bg-slate-50 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                     <i class="pi pi-chevron-down text-[9px]"></i>
                                                 </button>
-                                                <button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && q.options.length > 1"
+                                                <button v-if="['mcq','short_answer','drag_drop','word_selection','click_word','fill_blank','matching','ordering','highlight','listening'].includes(q.type) && q.options.length > 1"
                                                     @click="removeOption(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
                                                     <i class="pi pi-trash text-[9px]"></i>
