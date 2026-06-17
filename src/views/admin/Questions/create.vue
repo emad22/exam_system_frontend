@@ -369,9 +369,9 @@ const createEmptyQuestion = () => ({
     q_image_height: null,
     showHtml: false,
     options: [
-        { option_text: '', is_correct: true,  dir: 'ltr', image: null, image_preview: null },
-        { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null }
-    ]
+    { option_text: '', is_correct: true,  dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+    { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
+]
 });
 
 const addQuestion = async () => {
@@ -459,7 +459,8 @@ const handleQAudioChange = async (e, index) => {
 const addOption = async (qIdx) => {
     form.value.questions[qIdx].options.push({ 
         option_text: '', is_correct: false, 
-        dir: 'ltr', image: null, image_preview: null 
+        dir: 'ltr', image: null, image_preview: null,
+        audio: null, audio_preview: null  
     });
 };
 
@@ -473,6 +474,17 @@ const handleOptionImageChange = (e, qIdx, oIdx) => {
 
 const triggerOptionImage = (qIdx, oIdx) => {
     document.getElementById(`optImg_${qIdx}_${oIdx}`)?.click();
+};
+
+const handleOptionAudioChange = (e, qIdx, oIdx) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    form.value.questions[qIdx].options[oIdx].audio = file;
+    form.value.questions[qIdx].options[oIdx].audio_preview = URL.createObjectURL(file); // ← string مش object
+};
+
+const triggerOptionAudio = (qIdx, oIdx) => {
+    document.getElementById(`optAud_${qIdx}_${oIdx}`)?.click();
 };
 
 const removeOption = async (qIdx, optIdx) => {
@@ -515,57 +527,57 @@ const handleTypeChange = async (qIdx) => {
     if (q.type === 'true_false') {
         q.instructions = currentLang.value === 'ar' ? "اختر صح أم خطأ." : "Choose True or False.";
         q.options = [
-            { option_text: 'True', is_correct: true , dir: 'ltr', image: null, image_preview: null},
-            { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null}
+            { option_text: 'True', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
+            { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
         ];
     } else if (['writing', 'speaking', 'upload'].includes(q.type)) {
         q.instructions = currentLang.value === 'ar' ? "يرجى تقديم إجابتك." : "Please provide your answer.";
         q.options = [];
     } else if (q.type === 'short_answer') {
         q.instructions = currentLang.value === 'ar' ? "يرجى كتابة الإجابة." : "Please type the correct answer.";
-        q.options = [{ option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null}];
+        q.options = [{ option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}];
     } else if (q.type === 'drag_drop') {
         q.instructions = currentLang.value === 'ar' ? "اسحب الكلمات إلى المربعات الصحيحة لإكمال الجملة." : "Drag the correct words to complete the sentence.";
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null},
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null}
+            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
+            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
         ];
     } else if (q.type === 'fill_blank') {
         q.instructions = currentLang.value === 'ar' ? "املأ الفراغات بالكلمات الصحيحة." : "Fill in the blanks with the correct answers.";
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null}
+            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
         ];
     } else if (['word_selection', 'click_word', 'highlight'].includes(q.type)) {
         q.instructions = q.type === 'highlight' 
             ? (currentLang.value === 'ar' ? "قم بتمييز الأجزاء الصحيحة في النص." : "Highlight the correct parts in the text.")
             : (currentLang.value === 'ar' ? "اختر الكلمات المطلوبة في النص." : "Select the required words in the text.");
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null}
+            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
         ];
     } else if (q.type === 'matching') {
         q.instructions = currentLang.value === 'ar' ? "قم بتوصيل العناصر في العمود الأول بما يناسبها في العمود الثاني." : "Match each item in the first column with the correct option in the second column.";
         q.options = [
-            { option_text: 'Source 1 | Target 1', is_correct: true , dir: 'ltr', image: null, image_preview: null},
-            { option_text: 'Source 2 | Target 2', is_correct: true , dir: 'ltr', image: null, image_preview: null}
+            { option_text: 'Source 1 | Target 1', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
+            { option_text: 'Source 2 | Target 2', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
         ];
     } else if (q.type === 'ordering') {
         q.instructions = currentLang.value === 'ar' ? "قم بترتيب العناصر التالية بالترتيب الصحيح." : "Arrange the items below in the correct order.";
         q.options = [
-            { option_text: 'Item 1', is_correct: true , dir: 'ltr', image: null, image_preview: null},
-            { option_text: 'Item 2', is_correct: true , dir: 'ltr', image: null, image_preview: null}
+            { option_text: 'Item 1', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
+            { option_text: 'Item 2', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
         ];
     } else if (q.type === 'listening') {
         q.instructions = currentLang.value === 'ar' ? "استمع إلى المقطع الصوتي وأجب على السؤال." : "Listen to the audio clip and answer the question.";
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null},
-            { option_text: '', is_correct: false , dir: 'ltr', image: null, image_preview: null}
+            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
+            { option_text: '', is_correct: false , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
         ];
     } else {
         if (q.options.length < 2) {
             q.instructions = currentLang.value === 'ar' ? "يرجى اختيار الإجابة الصحيحة." : "Please select the correct option.";
             q.options = [
-                { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null},
-                { option_text: '', is_correct: false , dir: 'ltr', image: null, image_preview: null}
+                { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
+                { option_text: '', is_correct: false , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
             ];
         }
     }
@@ -653,6 +665,11 @@ const saveBatch = async () => {
                 if (opt.image instanceof File) {
                     fd.append(`questions[${qIdx}][options][${oIdx}][image]`, opt.image);
                 }
+                if (opt.audio instanceof File) {  
+                    fd.append(`questions[${qIdx}][options][${oIdx}][audio]`, opt.audio);
+                }
+
+
             });
         });
 
@@ -1214,6 +1231,26 @@ const editorModules = {
                                                         <i class="pi pi-image text-sm"></i>
                                                     </button>
 
+                                                    <!-- Audio Upload للـ option -->
+                                                    <input type="file" :id="`optAud_${qIdx}_${oIdx}`" class="hidden"
+                                                        accept="audio/*"
+                                                        @change="(e) => handleOptionAudioChange(e, qIdx, oIdx)" />
+
+                                                    <button v-if="!opt.audio_preview" type="button" 
+                                                        @click="triggerOptionAudio(qIdx, oIdx)"
+                                                        class="w-10 h-10 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:text-brand-primary hover:border-brand-primary/40 transition-all shrink-0">
+                                                        <i class="pi pi-volume-up text-sm"></i>
+                                                    </button>
+                                                    <div v-else class="flex items-center gap-2 bg-slate-50 px-2 rounded-xl border border-slate-100">
+                                                        <audio :src="opt.audio_preview" controls class="h-8 w-32"></audio>
+                                                        <button type="button" @click="opt.audio = null; opt.audio_preview = null"
+                                                            class="text-rose-400 hover:text-rose-600 transition-colors">
+                                                            <i class="pi pi-trash text-xs"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    
+
                                                     <!-- Text input with dir -->
                                                     <InputText v-model="opt.option_text"
                                                         :disabled="q.type === 'true_false'"
@@ -1221,6 +1258,10 @@ const editorModules = {
                                                         :placeholder="q.type === 'short_answer' ? t[currentLang].acceptedVariation : t[currentLang].optionValuePlaceholder"
                                                         class="grow border-none bg-transparent font-bold text-slate-800 focus:ring-0 py-1.5 min-w-0" />
                                                 </div>
+
+                                                
+                                                
+
                                             </div>
 
                                             <!-- Controls: dir toggle + move + delete -->

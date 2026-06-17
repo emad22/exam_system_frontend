@@ -434,8 +434,8 @@ const createEmptyQuestion = () => ({
     q_image_height: null,
     showHtml: false,
     options: [
-        { option_text: '', is_correct: true,  dir: 'ltr', image: null, image_preview: null },
-        { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null }
+        { option_text: '', is_correct: true,  dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+        { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
     ]
 });
 
@@ -517,13 +517,17 @@ const loadInitialData = async () => {
                 q_image_width: sq.image_width || null,
                 q_image_height: sq.image_height || null,
                 showHtml: false,
-                // الجديد
-                options: (sq.options || []).map(o => ({
+               
+
+                options: (q.options || []).map(o => ({
+                    id: o.id || null, 
                     option_text: o.option_text,
                     is_correct: !!o.is_correct,
                     dir: o.dir || 'ltr',
                     image: null,
-                    image_preview: o.image_url || null  // لو الـ API بيرجع image_url
+                    image_preview: o.image_url || null,
+                    audio: null,
+                    audio_preview: o.sound_url || null
                 }))
             }));
         } else {
@@ -551,7 +555,9 @@ const loadInitialData = async () => {
                     is_correct: !!o.is_correct,
                     dir: o.dir || 'ltr',
                     image: null,
-                    image_preview: o.image_url || null
+                    image_preview: o.image_url || null,
+                    audio: null,
+                    audio_preview: o.sound_url || null  
                 }))
             }];
         }
@@ -589,6 +595,18 @@ const handlePImageChange = (e) => {
     form.value.clear_p_image = false;
 };
 
+
+const triggerOptionAudio = (qIdx, oIdx) => {
+    document.getElementById(`optAud_${qIdx}_${oIdx}`)?.click();
+};
+
+const handleOptionAudioChange = (e, qIdx, oIdx) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    form.value.questions[qIdx].options[oIdx].audio = file;
+    form.value.questions[qIdx].options[oIdx].audio_preview = URL.createObjectURL(file);
+};
+
 const handleQFileChange = (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -615,9 +633,14 @@ const handleQImageChange = (e, index) => {
 };
 
 const addOption = (qIdx) => {
-    form.value.questions[qIdx].options.push({ 
-        option_text: '', is_correct: false,
-        dir: 'ltr', image: null, image_preview: null
+    form.value.questions[qIdx].options.push({
+        option_text: '',
+        is_correct: false,
+        dir: 'ltr',
+        image: null,
+        image_preview: null,
+        audio: null,
+        audio_preview: null
     });
 };
 
@@ -792,7 +815,9 @@ const updateBatch = async () => {
                 id: opt.id || null, 
                 option_text: opt.option_text,
                 is_correct: opt.is_correct,
-                dir: opt.dir || 'ltr'   
+                dir: opt.dir || 'ltr',   
+                clear_audio: opt.clear_audio || false,   
+                clear_image: opt.clear_image || false  
             }))
         }));
         fd.append('questions', JSON.stringify(cleanQuestions));
@@ -802,10 +827,12 @@ const updateBatch = async () => {
             if (q.q_audio) fd.append(`questions[${qIdx}][q_audio_file]`, q.q_audio);
             if (q.q_image) fd.append(`questions[${qIdx}][q_image_file]`, q.q_image);
 
-            // ← أضف صور الـ options
             q.options?.forEach((opt, oIdx) => {
                 if (opt.image instanceof File) {
                     fd.append(`questions[${qIdx}][options][${oIdx}][image]`, opt.image);
+                }
+                if (opt.audio instanceof File) {
+                    fd.append(`questions[${qIdx}][options][${oIdx}][audio]`, opt.audio);
                 }
             });
         });
@@ -1361,7 +1388,7 @@ const editorModules = {
                                                         class="relative w-16 h-12 rounded-xl overflow-hidden border border-slate-100 shrink-0 group/img">
                                                         <img :src="opt.image_preview" class="w-full h-full object-cover" />
                                                         <button type="button"
-                                                            @click="opt.image = null; opt.image_preview = null"
+                                                            @click="opt.image = null; opt.image_preview = null; opt.clear_image = true"
                                                             class="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-all">
                                                             <i class="pi pi-trash text-white text-xs"></i>
                                                         </button>
@@ -1372,6 +1399,24 @@ const editorModules = {
                                                         <i class="pi pi-image text-sm"></i>
                                                     </button>
 
+                                                    <!-- Audio Upload للـ option -->
+                                                    <input type="file" :id="`optAud_${qIdx}_${oIdx}`" class="hidden"
+                                                        accept="audio/*"
+                                                        @change="(e) => handleOptionAudioChange(e, qIdx, oIdx)" />
+
+                                                    <button v-if="!opt.audio_preview" type="button" 
+                                                        @click="triggerOptionAudio(qIdx, oIdx)"
+                                                        class="w-10 h-10 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:text-brand-primary hover:border-brand-primary/40 transition-all shrink-0">
+                                                        <i class="pi pi-volume-up text-sm"></i>
+                                                    </button>
+                                                    <div v-else class="flex items-center gap-2 bg-slate-50 px-2 rounded-xl border border-slate-100">
+                                                        <audio :src="opt.audio_preview" controls class="h-8 w-32"></audio>
+                                                        <button type="button" @click="opt.audio = null; opt.audio_preview = null; opt.clear_audio = true"
+                                                            class="text-rose-400 hover:text-rose-600 transition-colors">
+                                                            <i class="pi pi-trash text-xs"></i>
+                                                        </button>
+                                                    </div>
+
                                                     <!-- Text input -->
                                                     <InputText v-model="opt.option_text"
                                                         :disabled="q.type === 'true_false'"
@@ -1380,6 +1425,8 @@ const editorModules = {
                                                         class="grow border-none bg-transparent font-bold text-slate-800 focus:ring-0 py-1.5 min-w-0" />
                                                 </div>
                                             </div>
+
+                                            
 
                                             <!-- Controls -->
                                             <div class="flex items-center gap-1 shrink-0 mt-1">
