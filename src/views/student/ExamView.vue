@@ -240,15 +240,25 @@ const fetchNextBatch = async () => {
     questions.value = [];
     try {
         const res = await api.get(`/attempts/${attemptId.value}/next-batch`);
+       // alert(res.data.total_questions);
         if (res.data.questions?.length > 0) {
             currentSkill.value = res.data.skill;
+
             if (currentLevel.value && res.data.level && res.data.level.id !== currentLevel.value.id) {
                 nextLevelName.value = res.data.level.name;
                 showLevelTransition.value = true;
-                globalOffset.value = 0;
+               // globalOffset.value = 0; shaimaa commented this
             }
             currentLevel.value = res.data.level;
-            totalSkillQuestions.value = res.data.total_questions;
+
+          //  totalSkillQuestions.value = res.data.total_questions; //shaimaa commented this
+
+            if (res.data.skill_total_questions !== undefined) {
+                totalSkillQuestions.value = res.data.skill_total_questions;
+                globalOffset.value = res.data.skill_global_offset;
+            } else {
+                totalSkillQuestions.value = res.data.total_questions;
+            }
             questions.value = res.data.questions;
             currentIndex.value = 0;
             questionSubmitted.value = false;
@@ -465,10 +475,8 @@ const submitCurrentBatch = async (isTimeout = false) => {
         } else {
             if (res.data.retry_attempt) {
                 showRetryNotification.value = true;
-                globalOffset.value = 0;
             } else {
                 showRetryNotification.value = false;
-                globalOffset.value += questions.value.length;
             }
             await fetchNextBatch();
         }
@@ -695,13 +703,13 @@ onUnmounted(() => {
                         </div>
                     </div>
                     <div class="flex items-center gap-1 sm:gap-2 md:gap-3 flex-wrap sm:flex-nowrap justify-end">
-                        <button @click="prevQuestion"
+                        <!-- <button @click="prevQuestion"
                             :class="currentIndex > 0 ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-800 text-slate-500 cursor-not-allowed'"
                             class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 rounded-lg font-black text-[10px] sm:text-xs md:text-sm transition-all shadow-lg flex items-center gap-1"
                             :title="currentIndex > 0 ? 'Previous' : ''">
                             <i class="pi pi-chevron-left text-[10px]"></i>
                             <span class="hidden sm:inline">PREVIOUS</span>
-                        </button>
+                        </button> -->
 
                         <span class="text-[10px] sm:text-xs md:text-sm font-black text-slate-500 shrink-0 select-none">
                             {{ displayNumber }} / {{ totalSkillQuestions }}
@@ -754,7 +762,8 @@ onUnmounted(() => {
             </header>
 
             <!-- Sub-header for Level Name -->
-            <div v-if="!isStarting && currentSkill && !currentSkill.name?.toLowerCase().includes('writ')"
+             <!-- shaimaa commented this -->
+            <!-- <div v-if="!isStarting && currentSkill && !currentSkill.name?.toLowerCase().includes('writ')"
                 class="bg-white border-b border-slate-200 h-10 px-8 flex justify-end items-center shrink-0 z-20">
                 <div class="flex items-center space-x-3 space-x-reverse">
                     <div class="px-3 py-1 bg-slate-100 rounded-md border border-slate-200">
@@ -762,7 +771,7 @@ onUnmounted(() => {
                             }}</span>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <main class="flex-1 relative">
 
@@ -789,8 +798,9 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Level Transition Modal -->
-                <div v-if="showLevelTransition"
+                <!-- Level Transition Modal --> 
+                 <!-- shaimaa commented this -->
+                <!-- <div v-if="showLevelTransition"
                     class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-6">
                     <div
                         class="bg-white rounded-3xl p-12 max-w-2xl w-full shadow-2xl border border-slate-200 text-center animate-in zoom-in-95 duration-300">
@@ -810,7 +820,7 @@ onUnmounted(() => {
                             Start Next Level
                         </button>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Loading -->
                 <div v-if="isLoading" class="flex flex-col items-center justify-center py-40">
@@ -856,6 +866,8 @@ onUnmounted(() => {
                                     ? 'my-2 rounded-xl p-4 overflow-y-auto custom-scrollbar'
                                     : 'my-4 rounded-2xl shadow-xl p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]'
                             ]">
+
+                
 
                             <!-- Audio Player -->
                             <div v-if="currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path"
