@@ -30,6 +30,11 @@ const handleLogin = async () => {
         authStorage.setToken(res.data.token);
         authStorage.setRole(res.data.role);
 
+        // Always clear verification on fresh login
+        sessionStorage.removeItem('proctoring_verified');
+        sessionStorage.removeItem('requirements_verified');
+        sessionStorage.removeItem('proctoring_session_id');
+
         if (res.data.role === 'admin') {
             router.push('/admin');
         } else if (res.data.role === 'teacher') {
@@ -37,7 +42,20 @@ const handleLogin = async () => {
         } else if (res.data.role === 'partner') {
             router.push('/partner');
         } else {
-            router.push('/requirements');
+            // For students: fetch user profile to check proctoring requirement
+            // then redirect to the correct requirements page directly
+            try {
+                const userRes = await api.get('/user');
+                const proctoringRequired = !!userRes.data?.student?.partner?.proctoring_required;
+                if (proctoringRequired) {
+                    router.push('/proctoring-requirements');
+                } else {
+                    router.push('/requirements');
+                }
+            } catch {
+                // Fallback: if /user call fails, go to requirements
+                router.push('/requirements');
+            }
         }
     } catch (err) {
         errorMsg.value = err.response?.data?.message || 'Invalid credentials. Please try again.';

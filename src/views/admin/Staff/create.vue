@@ -33,7 +33,8 @@ const form = ref({
     phone: '',
     website: '',
     country: '',
-    note: ''
+    note: '',
+    proctoring_required: false,
 });
 
 const roles = [
@@ -61,7 +62,8 @@ const fetchStaff = async () => {
             password: '',
             partner_name: data.partner?.partner_name || '',
             website: data.partner?.website || '',
-            note: data.partner?.note || ''
+            note: data.partner?.note || '',
+            proctoring_required: !!data.partner?.proctoring_required,
         };
     } catch (err) {
         console.error('Failed to load identity', err);
@@ -227,7 +229,6 @@ onMounted(() => {
                                 </template>
                             </Card>
 
-
                             <!-- Partner Specific Details -->
                             <div v-if="form.role === 'partner'"
                                 class="lg:col-span-2 space-y-8 animate-in fade-in slide-in-from-top-2 duration-500">
@@ -236,37 +237,41 @@ onMounted(() => {
                                         <div class="space-y-8 p-4">
                                             <div class="flex items-center space-x-4">
                                                 <div class="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
-                                                <h3
-                                                    class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">
+                                                <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">
                                                     Institutional Partner Profile</h3>
                                             </div>
 
                                             <div class="space-y-8">
                                                 <div class="flex flex-col">
-                                                    <label
-                                                        class="block text-xs font-bold text-slate-500 mb-2 pl-2">Organizational
-                                                        Identity</label>
-                                                    <InputText v-model="form.partner_name"
-                                                        placeholder="ENTER PARTNER NAME"
-                                                        class="w-full shadow-sm rounded-xl uppercase" />
+                                                    <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Organizational Identity</label>
+                                                    <InputText v-model="form.partner_name" placeholder="ENTER PARTNER NAME" class="w-full shadow-sm rounded-xl uppercase" />
                                                 </div>
 
                                                 <div class="flex flex-col">
-                                                    <label
-                                                        class="block text-xs font-bold text-slate-500 mb-2 pl-2">Digital
-                                                        Portal (Website)</label>
-                                                    <InputText v-model="form.website"
-                                                        placeholder="https://www.example.com"
-                                                        class="w-full shadow-sm rounded-xl" />
+                                                    <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Digital Portal (Website)</label>
+                                                    <InputText v-model="form.website" placeholder="https://www.example.com" class="w-full shadow-sm rounded-xl" />
                                                 </div>
 
                                                 <div class="flex flex-col">
-                                                    <label
-                                                        class="block text-xs font-bold text-slate-500 mb-2 pl-2">Strategic
-                                                        Notes</label>
-                                                    <InputText v-model="form.note"
-                                                        placeholder="INTERNAL PARTNERSHIP METADATA"
-                                                        class="w-full shadow-sm rounded-xl" />
+                                                    <label class="block text-xs font-bold text-slate-500 mb-2 pl-2">Strategic Notes</label>
+                                                    <InputText v-model="form.note" placeholder="INTERNAL PARTNERSHIP METADATA" class="w-full shadow-sm rounded-xl" />
+                                                </div>
+
+                                                <!-- Proctoring Toggle -->
+                                                <div class="pt-2 border-t border-slate-100">
+                                                    <label class="flex items-center gap-4 cursor-pointer group w-fit">
+                                                        <div class="relative">
+                                                            <input type="checkbox" v-model="form.proctoring_required" class="sr-only">
+                                                            <div :class="form.proctoring_required ? 'bg-violet-600' : 'bg-slate-200'" class="block w-12 h-7 rounded-full transition-colors duration-300"></div>
+                                                            <div :class="form.proctoring_required ? 'translate-x-6' : 'translate-x-1'" class="absolute left-0 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm"></div>
+                                                        </div>
+                                                        <div>
+                                                            <span class="block text-xs font-black text-slate-700 uppercase tracking-wider">Proctoring Required</span>
+                                                            <span class="block text-[10px] text-slate-400 font-bold mt-0.5">
+                                                                {{ form.proctoring_required ? 'Students must complete identity & camera verification' : 'Students see system requirements check only' }}
+                                                            </span>
+                                                        </div>
+                                                    </label>
                                                 </div>
                                             </div>
                                         </div>
@@ -277,6 +282,7 @@ onMounted(() => {
 
                         <!-- Sidebar: Role Selection -->
                         <div class="space-y-8">
+
                             <div class="p-8 bg-slate-50 border border-slate-100 rounded-[2.5rem] shadow-sm space-y-8">
                                 <div class="flex items-center space-x-4">
                                     <div class="w-1.5 h-6 bg-brand-primary rounded-full"></div>

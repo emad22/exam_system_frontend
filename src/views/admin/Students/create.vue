@@ -43,7 +43,7 @@ const t = {
         adaptiveSelect: "نظام التقييم",
         adaptiveOpt: "يقف عند درجة الطالب",
         notAdaptiveOpt: "يكمل الامتحان الى الاخر",
-        identificationCode: "كود الهوية الأكاديمية (الكود التعريفي)",
+        identificationCode: "كود الهوية الأكاديمية / رقم الهوية (اختياري)",
         retryToggle: "السماح بإعادة محاولة المستويات",
         retrySubtitle: "يسمح للطالب بفرصة ثانية إذا لم يجتاز المستوى من المرة الأولى",
         secretKey: "مفتاح المرور السري (كلمة السر)",
@@ -71,7 +71,7 @@ const t = {
         adaptiveSelect: "Evaluation System",
         adaptiveOpt: "Stops at the student's score",
         notAdaptiveOpt: "Completes the exam to the end",
-        identificationCode: "Identification Code",
+        identificationCode: "Identification Code / National ID (Optional)",
         retryToggle: "Allow Level Retry",
         retrySubtitle: "Allows second attempt if student fails a level",
         secretKey: "Secret Key (Password)",
@@ -346,7 +346,7 @@ const filteredExams = computed(() => {
 
                                         <div class="flex flex-col space-y-1.5">
                                             <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].identificationCode }}</label>
-                                            <InputText v-model="form.student_code" class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" placeholder="STU-XXXX" />
+                                            <InputText v-model="form.student_code" class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" :placeholder="currentLang === 'ar' ? 'مثال: 123456 (اختياري)' : 'e.g. 123456 (Optional)'" />
                                         </div>
 
                                         <!-- Retry Logic Control -->

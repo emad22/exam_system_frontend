@@ -19,10 +19,27 @@ const fetchUser = async () => {
     }
 };
 
-const logout = () => {
-    authStorage.clear();
-    router.push('/login');
+// const logout = () => {
+//     authStorage.clear();
+//     router.push('/login');
+// };
+
+
+const logout = async () => {
+    try {
+        await api.post('/logout');
+
+    } catch (err) {
+        console.error('Logout API failed', err);
+    } finally {
+        authStorage.clear();
+        // router.push('/login');
+        router.replace('/login');
+
+    }
 };
+
+
 
 const { resolveUrl } = useMediaUrl();
 

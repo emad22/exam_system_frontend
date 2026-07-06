@@ -84,6 +84,7 @@ const canProceed = computed(() => {
 });
 
 const proceed = () => {
+    sessionStorage.setItem('requirements_verified', 'true');
     router.push('/skill-selection');
 };
 

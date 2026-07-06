@@ -23,17 +23,36 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (config.data instanceof FormData) {
+    // Allow the browser/axios to set the correct multipart boundary
+    const headers = config.headers || {}
+    for (const key of Object.keys(headers)) {
+      if (key.toLowerCase() === 'content-type') {
+        delete headers[key]
+      }
+    }
+    config.headers = headers
+  }
+
   return config;
 });
 
 // Interceptor for handling 401 Unauthorized responses
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      // Clear all stored credentials
+      try {
+        const sessionId = localStorage.getItem('active_proctoring_session_id');
+        if (sessionId) {
+          await api.post(`/proctoring/session/${sessionId}/end`, {
+            close_reason: 'connection_lost'
+          }).catch(() => {});
+        }
+      } catch (_) {}
+
       authStorage.clear();
-      // Redirect to login if not already there
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

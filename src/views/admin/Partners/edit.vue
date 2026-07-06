@@ -27,6 +27,7 @@ const editForm = ref({
     country: '',
     note:'',
     is_active: true,
+    proctoring_required: false,
 });
 
 const loadData = async () => {
@@ -46,7 +47,8 @@ const loadData = async () => {
             website: partner.website || '',
             country: partner.country || '',
             note: partner.note || '',
-            is_active: !!partner.is_active
+            is_active: !!partner.is_active,
+            proctoring_required: !!partner.proctoring_required,
         };
     } catch (err) {
         console.error(err);
@@ -62,7 +64,11 @@ const loadData = async () => {
 const savePartner = async () => {
     isSaving.value = true;
     try {
-        const payload = { ...editForm.value, is_active: editForm.value.is_active ? 1 : 0 };
+        const payload = {
+            ...editForm.value,
+            is_active: editForm.value.is_active ? 1 : 0,
+            proctoring_required: editForm.value.proctoring_required ? 1 : 0,
+        };
         await api.patch(`/admin/partners/${partnerId}`, payload);
         showAlert('Identity profile updated successfully.');
         router.push('/admin/partners');
@@ -140,11 +146,11 @@ onMounted(() => {
 
                    
 
-                    <!-- Section 3: Academic -->
+                    <!-- Section 3: Settings -->
                     <div class="space-y-6 p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
-                        
 
                         <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-8">
+                            <!-- Active Status Toggle -->
                             <label class="flex items-center cursor-pointer group">
                                 <div class="relative">
                                     <input type="checkbox" v-model="editForm.is_active" class="sr-only">
@@ -152,6 +158,21 @@ onMounted(() => {
                                     <div :class="editForm.is_active ? 'translate-x-6' : 'translate-x-1'" class="absolute left-0 top-1 bg-white w-5 h-5 rounded-full transition-transform shadow-sm"></div>
                                 </div>
                                 <span class="ml-3 text-[10px] font-black text-slate-600 uppercase tracking-widest">Active Status</span>
+                            </label>
+
+                            <!-- Proctoring Required Toggle -->
+                            <label class="flex items-center cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" v-model="editForm.proctoring_required" class="sr-only">
+                                    <div :class="editForm.proctoring_required ? 'bg-violet-600' : 'bg-slate-200'" class="block w-12 h-7 rounded-full transition-colors"></div>
+                                    <div :class="editForm.proctoring_required ? 'translate-x-6' : 'translate-x-1'" class="absolute left-0 top-1 bg-white w-5 h-5 rounded-full transition-transform shadow-sm"></div>
+                                </div>
+                                <div class="ml-3">
+                                    <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest">Proctoring Required</span>
+                                    <p class="text-[9px] text-slate-400 mt-0.5 uppercase tracking-wider">
+                                        {{ editForm.proctoring_required ? 'Students must complete identity & camera verification' : 'Students see system requirements check only' }}
+                                    </p>
+                                </div>
                             </label>
                         </div>
 

@@ -45,13 +45,22 @@ const fetchDashboard = async () => {
         // Check role case-insensitively and include typos
         const userRole = (student.value?.role || '').toLowerCase();
         isDemo.value = ['demo', 'deom', 'staff'].includes(userRole);
+
+        // Auto-redirect proctored students to proctoring requirements
+        // if they haven't completed the proctoring check this session
+        const proctoringRequired = !!(student.value?.student?.partner?.proctoring_required);
+        const alreadyVerified = sessionStorage.getItem('proctoring_verified') === 'true';
+
+        if (!isDemo.value && proctoringRequired && !alreadyVerified) {
+            router.push({ name: 'proctoring-requirements' });
+            return;
+        }
     } catch (err) {
         console.error('Failed to load dashboard', err);
     } finally {
         isLoading.value = false;
     }
 };
-
 
 const skillMap = {
     'listening': 'Listening',
@@ -75,9 +84,8 @@ onMounted(fetchDashboard);
 
 const skills = () => exams.value?.[0]?.skills || [];
 
-const isSkillCompleted = async (exam, skillId) => {
+const isSkillCompleted = (exam, skillId) => {
     if (!exam || !exam.completed_skill_ids) return false;
-    // Use String comparison to be 100% safe against type mismatches
     return exam.completed_skill_ids.some(id => String(id) === String(skillId));
 };
 
@@ -85,14 +93,31 @@ const startSkill = async (skillId) => {
     if (!exams.value[0]) return;
     if (!isDemo.value && isSkillCompleted(exams.value[0], skillId)) return;
 
-    router.push({
-        name: 'exam.setup',
-        params: {
-            examId: exams.value[0].id,
-            skillId: skillId,
-            levelId: isDemo.value ? selectedLevel.value : undefined
-        }
-    });
+    const partnerProctoringRequired = !!(student.value?.student?.partner?.proctoring_required);
+
+    if (isDemo.value) {
+        // Demo students go straight to exam with level override
+        router.push({
+            name: 'exam.setup',
+            params: {
+                examId: exams.value[0].id,
+                skillId: skillId,
+                levelId: selectedLevel.value
+            }
+        });
+    } else if (partnerProctoringRequired) {
+        // Proctored: already verified via /proctoring-requirements,
+        // go directly to exam.setup
+        router.push({
+            name: 'exam.setup',
+            params: { examId: exams.value[0].id, skillId: skillId }
+        });
+    } else {
+        // Non-proctored: system requirements check first
+        sessionStorage.setItem('exam_pending_examId', exams.value[0].id);
+        sessionStorage.setItem('exam_pending_skillId', skillId);
+        router.push({ name: 'requirements' });
+    }
 };
 
 const resetDemoProgress = async () => {
@@ -116,7 +141,6 @@ const getSkillIcon = async (name) => {
     if (name.includes('speaking')) return '/Speaking-02.png';
     if (name.includes('grammar') || name.includes('structure')) return '/Strac-01.png';
     return '/logo.png';
-
 };
 
 const logout = async () => {
@@ -125,10 +149,6 @@ const logout = async () => {
 };
 
 const { resolveUrl } = useMediaUrl();
-
-
-
-
 
 const qrUrl = computed(() => {
     if (certificates.value.length === 0) return null;
@@ -213,8 +233,6 @@ const vClickOutside = {
                                 class="text-base font-black text-slate-900 tracking-tight leading-tight truncate uppercase">
                                 {{ fullStudentName }}
                             </h2>
-                            <!--<p class="text-[9px] font-black text-slate-300 uppercase tracking-widest truncate">{{
-                                student?.student?.student_code || 'DEMO-ACC' }}</p>-->
                         </div>
                     </div>
 
@@ -231,6 +249,18 @@ const vClickOutside = {
                                 <p class="text-[10px] font-black uppercase text-emerald-600">Active</p>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <!-- Proctoring Badge — shown if partner requires it -->
+                <section v-if="student?.student?.partner?.proctoring_required"
+                    class="bg-violet-50 border border-violet-200 p-4 rounded-[0.5rem] flex items-center gap-3">
+                    <div class="w-8 h-8 bg-violet-600 text-white rounded-xl flex items-center justify-center shrink-0">
+                        <i class="pi pi-shield text-[10px]"></i>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-black text-violet-700 uppercase tracking-widest">Proctored Exam</p>
+                        <p class="text-[8px] text-violet-500 mt-0.5">Identity verification required</p>
                     </div>
                 </section>
 
@@ -355,7 +385,39 @@ const vClickOutside = {
                             </p>
                         </div>
 
-                        <button @click="router.push('/requirements')"
+                        <!-- Skills Grid -->
+                        <div v-if="exams?.[0]?.skills?.length" class="grid grid-cols-2 gap-3 text-left">
+                            <button
+                                v-for="skill in exams[0].skills"
+                                :key="skill.id"
+                                @click="startSkill(skill.id)"
+                                :disabled="!isDemo && isSkillCompleted(exams[0], skill.id)"
+                                class="group flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300"
+                                :class="isSkillCompleted(exams[0], skill.id) && !isDemo
+                                    ? 'border-emerald-100 bg-emerald-50/50 cursor-not-allowed opacity-70'
+                                    : 'border-slate-100 hover:border-brand-primary/30 hover:bg-brand-primary/5 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer'"
+                            >
+                                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all"
+                                    :class="isSkillCompleted(exams[0], skill.id) && !isDemo
+                                        ? 'bg-emerald-500'
+                                        : 'bg-slate-100 group-hover:bg-brand-primary/10'">
+                                    <i v-if="isSkillCompleted(exams[0], skill.id) && !isDemo"
+                                        class="pi pi-check text-white text-xs"></i>
+                                    <i v-else class="pi pi-play text-slate-400 group-hover:text-brand-primary text-xs"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight truncate">
+                                        {{ skill.name }}
+                                    </p>
+                                    <p class="text-[8px] text-slate-400 uppercase tracking-wider mt-0.5">
+                                        {{ isSkillCompleted(exams[0], skill.id) && !isDemo ? 'Completed' : 'Start' }}
+                                    </p>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Fallback Start Button (no skills breakdown) -->
+                        <button v-else @click="router.push('/requirements')"
                             class="group relative w-full py-6 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl hover:bg-brand-primary hover:shadow-brand-primary/30 hover:-translate-y-1 transition-all duration-300">
                             <span class="flex items-center justify-center gap-3">
                                 Start New Assessment <i

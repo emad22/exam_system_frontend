@@ -125,14 +125,14 @@ const startExam = async () => {
       : 'Starting proctoring session...'
 
     // Initiate proctoring session
-    const response = await api.post('/v1/proctoring/session/initiate', {
+    const response = await api.post('/proctoring/session/initiate', {
       exam_attempt_id: attemptId.value,
       student_id: route.params.studentId,
     })
 
     if (response.data.success) {
       // Start recording
-      await api.post(`/v1/proctoring/session/${response.data.session_id}/start`)
+      await api.post(`/proctoring/session/${response.data.session_id}/start`)
 
       // Redirect to exam
       router.push({

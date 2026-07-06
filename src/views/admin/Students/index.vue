@@ -218,6 +218,8 @@ const fetchStudents = async () => {
     try {
         const res = await api.get('/admin/students');
         students.value = res.data.data || res.data;
+        // console.log('Student sample:', students.value[0]); // شوف الـ fields
+
     } catch (err) {
         showAlert('Failed to load students', 'Error', 'error');
     } finally {
@@ -496,8 +498,15 @@ onMounted(() => {
                                         <div class="flex items-center space-x-2" :class="currentLang === 'ar' ? 'space-x-reverse' : ''">
                                             <Button icon="pi pi-eye" text severity="info" size="small" @click="openView(data)"
                                                 v-tooltip.top="t[currentLang].tooltipView" />
-                                            <Button icon="pi pi-refresh" text severity="danger" size="small"
-                                                @click="resetProgress(data)" v-tooltip.top="t[currentLang].tooltipReset" />
+                                            <Button 
+                                                icon="pi pi-refresh" 
+                                                text 
+                                                severity="danger" 
+                                                size="small"
+                                                @click="resetProgress(data)" 
+                                                v-tooltip.top="t[currentLang].tooltipReset"
+                                                :disabled="!data.attempts_count"
+                                            />
                                             <Button icon="pi pi-pencil" text severity="warning" size="small"
                                                 @click="openEdit(data)" v-tooltip.top="t[currentLang].tooltipEdit" />
                                             <Button icon="pi pi-trash" text severity="danger" size="small"

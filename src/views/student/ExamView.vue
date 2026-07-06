@@ -3,12 +3,16 @@ import { useModal } from '@/composables/useModal';
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import api from '@/services/api';
+import proctoringService from '@/services/proctoringService';
 import { authStorage } from '@/services/authStorage';
 import RequirementTester from '@/components/RequirementTester.vue';
 import StudentHeader from '@/components/StudentHeader.vue';
 import VirtualKeyboard from '@/components/VirtualKeyboard.vue';
 import QuestionDispatcher from '@/components/exam/QuestionDispatcher.vue';
 import ProctoringInitializer from '@/components/exam/ProctoringInitializer.vue';
+import ProctorCamera from '@/components/exam/ProctorCamera.vue';
+// NOTE: Proctoring is now controlled per-partner via partner.proctoring_required (fetched from /user API).
+// PROCTORING_ENABLED is kept as a master kill-switch override.
 import { PROCTORING_ENABLED } from '@/config/features';
 
 // Composables
@@ -45,10 +49,97 @@ const examId = route.params.examId;
 const skillId = route.params.skillId;
 const levelId = route.params.levelId;
 
+
+
+
+let sessionPollInterval = null
+
+// دالة للملاحة الآمنة (router.push مع fallback إلى location.href)
+const navigateSafely = async (path) => {
+    try {
+        await router.push(path);
+    } catch (err) {
+        console.warn('Router push failed, falling back to location.href:', err);
+        window.location.href = path;
+    }
+};
+
+// دالة مساعدة للتعامل مع انقطاع الجلسة والملاحة
+const handleSessionInterruption = async (messageAr, messageEn, shouldEndSession = false) => {
+    stopSessionPolling();
+    await showAlert(currentLang.value === 'ar' ? messageAr : messageEn);
+    
+    if (shouldEndSession) {
+        await endProctoringSession('terminated_by_proctor');
+    }
+    
+    isIntentionallyLeaving.value = true;
+    await navigateSafely('/skill-selection');
+};
+
+// دالة التحقق من حالة الجلسة
+const pollSessionStatus = async () => {
+    const sessionId = proctoringSessionId.value
+    if (!sessionId || !proctoringRequired.value) return
+
+    try {
+        const res = await proctoringService.getStatus(sessionId)
+        const status = res.data?.session?.status
+        const completedSkills = (res.data?.session?.completed_skills || []).map(Number)
+        const activeSkillId = currentSkill.value?.id ?? (skillId ? Number(skillId) : null)
+
+        if (status === 'ended' || status === 'cancelled') {
+            // الأدمن أنهى الجلسة نهائياً
+            await handleSessionInterruption(
+                'تم إنهاء جلسة المراقبة من قِبل المشرف.',
+                'Your proctoring session has been ended by the admin.',
+                true
+            );
+        } else if (status === 'paused') {
+            // الأدمن أوقف امتحان المهارة الحالية مؤقتاً
+            await handleSessionInterruption(
+                'تم إيقاف امتحان هذه المهارة من قِبل المشرف. سيتم توجيهك لاختيار مهارة أخرى.',
+                'This skill exam has been stopped by the admin. You will be redirected to skill selection.',
+                false
+            );
+        } else if (activeSkillId && completedSkills.includes(activeSkillId)) {
+            // الأدمن أنهى المهارة الحالية فقط دون إيقاف الجلسة الكلية
+            await handleSessionInterruption(
+                'تم إنهاء امتحان هذه المهارة من قِبل المشرف. سيتم توجيهك لاختيار مهارة أخرى.',
+                'This skill exam has been stopped by the admin. You will be redirected to skill selection.',
+                false
+            );
+        }
+    } catch (e) {
+        console.warn('Session poll failed:', e)
+    }
+}
+
+const startSessionPolling = () => {
+    if (sessionPollInterval) return
+    sessionPollInterval = setInterval(pollSessionStatus, 8000) // كل 8 ثواني
+}
+
+const stopSessionPolling = () => {
+    if (sessionPollInterval) {
+        clearInterval(sessionPollInterval)
+        sessionPollInterval = null
+    }
+}
+
+
+
+
+
+
+
 // === PROCTORING STATE ===
-const proctoringComplete = ref(false);
+const proctoringComplete = ref(sessionStorage.getItem('proctoring_verified') === 'true');
+const proctoringRequired = ref(false);
 const studentId = ref(null);
 const proctoringSessionId = ref(null);
+const proctoringSessionToken = ref(sessionStorage.getItem('proctoring_session_token') ?? null); // ✅ أضف السطر ده
+const currentLang = ref(localStorage.getItem('dashboard_lang') || 'en');
 
 const attempt = ref(null);
 const currentSkill = ref(null);
@@ -96,7 +187,7 @@ const {
             warning_count: cheatWarnings.value
         });
     }
-});
+}, proctoringSessionId);
 
 const {
     audioRef, isAudioPlaying, audioProgress, audioCurrentTime, audioDuration, autoplayFailed,
@@ -140,8 +231,88 @@ const handleTestPassed = async (req) => {
 // === PROCTORING HANDLERS ===
 const handleProctoringComplete = async (sessionData) => {
     proctoringSessionId.value = sessionData.session_id;
+    proctoringSessionToken.value = sessionData.session_token; // ✅ أضف السطر ده
+    sessionStorage.setItem('proctoring_session_token', sessionData.session_token); // ✅ وده
+    localStorage.setItem('active_proctoring_session_id', sessionData.session_id.toString());
+    localStorage.setItem('active_proctoring_session_token', sessionData.session_token);
     proctoringComplete.value = true;
+    startSessionPolling()
 };
+
+const autoStartProctoring = async () => {
+    if (proctoringRequired.value && !proctoringSessionId.value) {
+        const isVerified = sessionStorage.getItem('proctoring_verified') === 'true';
+        if (isVerified) {
+            try {
+                // Check if identity verification already created a session
+                const savedSessionId = sessionStorage.getItem('proctoring_session_id');
+
+                let sId = studentId.value || attempt.value?.student_id;
+                if (!sId) {
+                    console.warn('Student ID is missing in autoStartProctoring, fetching user details...');
+                    const userRes = await api.get('/user');
+                    studentId.value = userRes.data?.id;
+                    sId = userRes.data?.id;
+                }
+
+                const finalStudentId = sId || attempt.value?.student_id;
+                if (!finalStudentId) {
+                    throw new Error('Student ID could not be resolved');
+                }
+
+                // 1. Initiate proctoring session (passing savedSessionId to link exam_attempt_id)
+                const response = await proctoringService.initiate(attemptId.value, finalStudentId, savedSessionId);
+
+                if (response.data.success) {
+                    const status = response.data.status;
+                    if (status === 'paused' || status === 'ended' || status === 'cancelled') {
+                        console.warn(`Proctoring session is ${status}, redirecting student.`);
+                        isIntentionallyLeaving.value = true;
+                        await navigateSafely('/skill-selection');
+                        return;
+                    }
+
+                    await proctoringService.start(response.data.session_id);
+                    proctoringSessionId.value = response.data.session_id;
+                    proctoringSessionToken.value = response.data.session_token; // ✅ لو الـ backend بيبعته
+                    sessionStorage.setItem('proctoring_session_id', response.data.session_id.toString());
+                    sessionStorage.setItem('proctoring_session_token', response.data.session_token ?? ''); // ✅
+                    localStorage.setItem('active_proctoring_session_id', response.data.session_id.toString());
+                    localStorage.setItem('active_proctoring_session_token', response.data.session_token ?? '');
+                    proctoringComplete.value = true;
+                    startSessionPolling()
+                }
+            } catch (err) {
+                console.error('Failed to auto-start proctoring session:', err);
+                // Fallback: if auto-initiate fails, let the user complete it via the UI modal
+            }
+        }
+    }
+};
+
+
+
+// NEW: END PROCTORING SESSION
+const endProctoringSession = async (reason = 'exam_submitted') => {
+    const sessionId = proctoringSessionId.value;
+    if (!sessionId) return;
+
+    try {
+        await proctoringService.end(sessionId, reason);
+    } catch (e) {
+        // Session may already be ended by admin — clean up local state anyway
+        console.error('Failed to end proctoring session:', e);
+    }
+
+    proctoringSessionId.value = null;
+    proctoringSessionToken.value = null;
+    sessionStorage.removeItem('proctoring_session_id');
+    sessionStorage.removeItem('proctoring_session_token');
+    sessionStorage.removeItem('proctoring_verified');
+    localStorage.removeItem('active_proctoring_session_id');
+    localStorage.removeItem('active_proctoring_session_token');
+};
+
 
 const fetchData = async () => {
     isLoading.value = true;
@@ -150,14 +321,17 @@ const fetchData = async () => {
             const attRes = await api.get(`/attempts/${attemptId.value}`);
             attempt.value = attRes.data;
             if (attempt.value.status === 'completed' || attempt.value.status === 'voided') {
-                router.push('/skill-selection');
+                await navigateSafely('/skill-selection');
                 return;
             }
+            await autoStartProctoring();
             await fetchNextBatch();
             startTimer();
+            startSessionPolling(); // ✅ Ensure proctoring polling is started for existing attempts
         } else {
             await beginExam();
         }
+        isIntentionallyLeaving.value = false; // Reset to false after initial load/redirect
     } catch (err) {
         errorMsg.value = "Session initialization failed.";
     } finally {
@@ -173,27 +347,32 @@ const beginExam = async () => {
             const res = await api.post(`/exams/${examId}/start`, payload);
             attemptId.value = res.data.attempt.id;
             attempt.value = res.data.attempt;
+            await autoStartProctoring();
             router.replace(`/exam/${attemptId.value}`);
         } catch (err) {
-            showAlert(err.response?.data?.error || 'Failed to start session');
+            await showAlert(err.response?.data?.error || 'Failed to start session');
             isLoading.value = false;
+            isIntentionallyLeaving.value = true;
+            await navigateSafely('/skill-selection');
             return;
         }
     }
     isStarting.value = false;
     await fetchNextBatch();
     startTimer();
+    isIntentionallyLeaving.value = false; // Reset to false after starting is complete
 };
 
 const confirmExit = async () => {
     showExitModal.value = false;
+    isIntentionallyLeaving.value = true; // ✅ أضف ده
     try {
         isLoading.value = true;
         await api.post(`/attempts/${attemptId.value}/completion`);
-        router.push('/skill-selection');
+        await navigateSafely('/skill-selection');
     } catch (err) {
         console.error('Error finishing attempt:', err);
-        router.push('/skill-selection');
+        await navigateSafely('/skill-selection');
     }
 };
 
@@ -205,6 +384,9 @@ const isNavigatingBack = ref(false);
 
 onBeforeRouteLeave((to, from) => {
     isIntentionallyLeaving.value = true;
+    if (proctoringSessionId.value && skillId) {
+        proctoringService.recordSkillExit(proctoringSessionId.value, skillId);
+    }
 });
 
 const prevQuestion = async () => {
@@ -216,16 +398,6 @@ const prevQuestion = async () => {
 
 const startNextLevel = async () => {
     showLevelTransition.value = false;
-    nextTick(() => {
-        if (audioRef.value) {
-            const audioUrl = currentQ.value?.passage?.audio_url || currentQ.value?.passage?.audio_path || currentQ.value?.audio_url || currentQ.value?.audio_path;
-            if (audioUrl) {
-                audioRef.value.play().catch(err => {
-                    console.warn('Manual play failed after transition:', err);
-                });
-            }
-        }
-    });
 };
 
 const fetchNextBatch = async () => {
@@ -233,25 +405,28 @@ const fetchNextBatch = async () => {
     if (audioRef.value) {
         audioRef.value.pause();
         audioRef.value.currentTime = 0;
-        audioRef.value.src = '';
     }
     isAudioPlaying.value = false;
     lastAudioUrl.value = '';
     questions.value = [];
     try {
         const res = await api.get(`/attempts/${attemptId.value}/next-batch`);
-       // alert(res.data.total_questions);
+        // alert(res.data.total_questions);
         if (res.data.questions?.length > 0) {
             currentSkill.value = res.data.skill;
 
+            if (proctoringSessionId.value && res.data.skill?.id) {
+                proctoringService.recordSkillEntry(proctoringSessionId.value, res.data.skill.id);
+            }
+
             if (currentLevel.value && res.data.level && res.data.level.id !== currentLevel.value.id) {
                 nextLevelName.value = res.data.level.name;
-                showLevelTransition.value = true;
-               // globalOffset.value = 0; shaimaa commented this
+                // showLevelTransition.value = true; // Disabled because shaimaa commented out the modal in template, preventing audio lock
+                // globalOffset.value = 0; shaimaa commented this
             }
             currentLevel.value = res.data.level;
 
-          //  totalSkillQuestions.value = res.data.total_questions; //shaimaa commented this
+            //  totalSkillQuestions.value = res.data.total_questions; //shaimaa commented this
 
             if (res.data.skill_total_questions !== undefined) {
                 totalSkillQuestions.value = res.data.skill_total_questions;
@@ -323,7 +498,6 @@ const fetchNextBatch = async () => {
         if (audioRef.value) {
             audioRef.value.pause();
             audioRef.value.currentTime = 0;
-            audioRef.value.src = '';
         }
         resetInactivityTimer();
         window.scrollTo(0, 0);
@@ -455,10 +629,11 @@ const submitCurrentBatch = async (isTimeout = false) => {
             } catch (err) {
                 console.warn('Failed to mark timeout', err);
             }
-            router.push('/skill-selection');
+            await navigateSafely('/skill-selection');
             return;
         }
         if (res.data.finished_exam) {
+            isIntentionallyLeaving.value = true; // ✅ أضف ده
             if (cheatAttempts.value.length > 0) {
                 try {
                     await api.post(`/attempts/${attemptId.value}/cheat-report`, {
@@ -469,9 +644,10 @@ const submitCurrentBatch = async (isTimeout = false) => {
                     console.warn('Failed to send cheat report', err);
                 }
             }
-            router.push(`/exam/${attemptId.value}/result`);
+            // await endProctoringSession('exam_submitted');
+            await navigateSafely(`/exam/${attemptId.value}/result`);
         } else if (res.data.next_step === 'dashboard') {
-            router.push('/skill-selection');
+            await navigateSafely('/skill-selection');
         } else {
             if (res.data.retry_attempt) {
                 showRetryNotification.value = true;
@@ -483,7 +659,7 @@ const submitCurrentBatch = async (isTimeout = false) => {
     } catch (err) {
         console.error('Submission failed', err);
         if (isTimeout) {
-            router.push('/skill-selection');
+            await navigateSafely('/skill-selection');
         } else {
             showAlert('Data transmission error. Try again.');
         }
@@ -493,6 +669,8 @@ const submitCurrentBatch = async (isTimeout = false) => {
 };
 
 const handleTimeout = async () => {
+    isIntentionallyLeaving.value = true; // ✅ أضف ده
+    // await endProctoringSession('time_ended');
     await submitCurrentBatch(true);
 };
 
@@ -514,8 +692,23 @@ const isCurrentAnswerValid = computed(() => {
 });
 
 watch(() => answers.value[currentIndex.value], (newVal, oldVal) => {
+    // Only reset confirmation if the actual answer content changed (not just upload-status flags)
     if (newVal && oldVal && newVal.question_id === oldVal.question_id) {
-        questionSubmitted.value = false;
+        // Ignore changes to is_media_uploaded — this is set after upload on CONFIRM, not a real edit
+        const contentChanged = (
+            newVal.option_id !== oldVal.option_id ||
+            newVal.text_answer !== oldVal.text_answer ||
+            newVal.recorded_file !== oldVal.recorded_file ||
+            JSON.stringify(newVal.drag_drop_answers) !== JSON.stringify(oldVal.drag_drop_answers) ||
+            JSON.stringify(newVal.selected_words) !== JSON.stringify(oldVal.selected_words) ||
+            JSON.stringify(newVal.fill_blank_answers) !== JSON.stringify(oldVal.fill_blank_answers) ||
+            JSON.stringify(newVal.matching_answers) !== JSON.stringify(oldVal.matching_answers) ||
+            JSON.stringify(newVal.ordering_answers) !== JSON.stringify(oldVal.ordering_answers) ||
+            JSON.stringify(newVal.highlight_answers) !== JSON.stringify(oldVal.highlight_answers)
+        );
+        if (contentChanged) {
+            questionSubmitted.value = false;
+        }
     }
 }, { deep: true });
 
@@ -540,6 +733,86 @@ const cleanHtml = (html) => {
 
 const { resolveUrl } = useMediaUrl();
 
+const playCurrentAudio = () => {
+    if (isLoading.value || showLevelTransition.value || showRetryNotification.value || isStarting.value || !proctoringComplete.value) {
+        if (audioRef.value) {
+            audioRef.value.pause();
+            audioRef.value.currentTime = 0;
+            lastAudioUrl.value = '';
+        }
+        return;
+    }
+
+    if (isNavigatingBack.value) {
+        isNavigatingBack.value = false;
+        if (audioRef.value) {
+            audioRef.value.pause();
+            audioRef.value.currentTime = 0;
+            lastAudioUrl.value = '';
+        }
+        isAudioPlaying.value = false;
+        return;
+    }
+
+    const audioUrl = currentQ.value?.passage?.audio_url || currentQ.value?.passage?.audio_path || currentQ.value?.audio_url || currentQ.value?.audio_path;
+    if (audioUrl) {
+        const resolved = resolveUrl(audioUrl);
+        if (resolved === lastAudioUrl.value) {
+            return;
+        }
+        lastAudioUrl.value = resolved;
+        nextTick(() => {
+            if (audioRef.value) {
+                audioRef.value.pause();
+                audioRef.value.load();
+                audioRef.value.play()
+                    .then(() => {
+                        autoplayFailed.value = false;
+                        isAudioPlaying.value = true;
+                    })
+                    .catch(err => {
+                        if (err.name === 'AbortError') {
+                            return;
+                        }
+                        console.warn('Autoplay blocked by browser. User interaction required.', err);
+                        autoplayFailed.value = true;
+                        isAudioPlaying.value = false;
+                    });
+            } else {
+                setTimeout(() => {
+                    if (audioRef.value) {
+                        audioRef.value.pause();
+                        audioRef.value.load();
+                        audioRef.value.play()
+                            .then(() => {
+                                autoplayFailed.value = false;
+                                isAudioPlaying.value = true;
+                            })
+                            .catch(err => {
+                                if (err.name === 'AbortError') {
+                                    return;
+                                }
+                                console.warn('Autoplay blocked by browser in fallback. User interaction required.', err);
+                                autoplayFailed.value = true;
+                                isAudioPlaying.value = false;
+                            });
+                    } else {
+                        autoplayFailed.value = true;
+                    }
+                }, 150);
+            }
+        });
+    } else {
+        lastAudioUrl.value = '';
+        autoplayFailed.value = false;
+        isAudioPlaying.value = false;
+        if (audioRef.value) {
+            audioRef.value.pause();
+            audioRef.value.currentTime = 0;
+        }
+    }
+};
+
 watch(currentQ, (newQ) => {
     if (!newQ) return;
     autoplayFailed.value = false;
@@ -550,39 +823,24 @@ watch(currentQ, (newQ) => {
         api.patch(`/attempts/${attemptId.value}/progress`, { question_id: newQ.id })
             .catch(err => console.warn('Progress update failed', err));
     }
-    if (showLevelTransition.value || showRetryNotification.value || isStarting.value) {
-        if (audioRef.value) {
-            audioRef.value.pause();
-            audioRef.value.currentTime = 0;
-            lastAudioUrl.value = '';
-        }
-        return;
+    playCurrentAudio();
+});
+
+watch(isLoading, (loading) => {
+    if (!loading) {
+        playCurrentAudio();
     }
-    if (isNavigatingBack.value) {
-        isNavigatingBack.value = false;
-        if (audioRef.value) {
-            audioRef.value.pause();
-            audioRef.value.currentTime = 0;
-            lastAudioUrl.value = '';
-        }
-        return;
+});
+
+watch(proctoringComplete, (complete) => {
+    if (complete) {
+        playCurrentAudio();
     }
-    const audioUrl = newQ?.passage?.audio_url || newQ?.passage?.audio_path || newQ?.audio_url || newQ?.audio_path;
-    if (audioUrl) {
-        if (audioUrl === lastAudioUrl.value) return;
-        lastAudioUrl.value = audioUrl;
-        nextTick(() => {
-            if (audioRef.value) {
-                audioRef.value.load();
-                audioRef.value.play().catch(err => {
-                    console.warn('Autoplay blocked by browser. User interaction required.', err);
-                    autoplayFailed.value = true;
-                });
-            }
-        });
-    } else {
-        lastAudioUrl.value = '';
-        autoplayFailed.value = false;
+});
+
+watch(showLevelTransition, (inTransition) => {
+    if (!inTransition) {
+        playCurrentAudio();
     }
 });
 
@@ -637,21 +895,85 @@ const resetInactivityTimer = () => {
 
 const updateActivity = debounce(resetInactivityTimer, 500);
 
-const handleBeforeUnload = async () => {
-    isIntentionallyLeaving.value = true;
-};
+// const handleBeforeUnload = async () => {
+//     isIntentionallyLeaving.value = true;
+// };
+
+
+
+const handleBeforeUnloadBeacon = () => {
+    // ✅ لو الطالب خرج بشكل طبيعي (exit/finish)، مبعتش beacon
+    if (isIntentionallyLeaving.value) return
+
+    isIntentionallyLeaving.value = true
+    const sessionId = proctoringSessionId.value
+    const token = proctoringSessionToken.value
+    if (!sessionId || !token) return
+
+    const payload = JSON.stringify({
+        close_reason: 'connection_lost',
+        session_token: token,
+        ended_at: new Date().toISOString(),
+    })
+
+    const blob = new Blob([payload], { type: 'application/json' })
+
+    try {
+        navigator.sendBeacon(`/api/proctoring/session/${sessionId}/end-beacon`, blob)
+    } catch (e) {
+        console.warn('Failed to send proctoring beacon via sendBeacon:', e)
+    }
+
+    try {
+        fetch(`/api/proctoring/session/${sessionId}/end-beacon`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Session-Token': token,
+            },
+            body: payload,
+            keepalive: true,
+        }).catch(() => {})
+    } catch (e) {
+        console.warn('Failed to send proctoring beacon via fetch:', e)
+    }
+}
+
+
 
 onMounted(async () => {
     const user = authStorage.getUser();
     studentId.value = user?.id;
     isDemo.value = user && ['demo', 'staff'].includes(user.role?.toLowerCase());
+
+    // Determine if proctoring is required for this student's partner.
+    // PROCTORING_ENABLED is a master kill-switch — if false, proctoring is always skipped.
     if (isDemo.value || !PROCTORING_ENABLED) {
+        proctoringRequired.value = false;
         proctoringComplete.value = true;
+    } else {
+        try {
+            const userRes = await api.get('/user');
+            studentId.value = userRes.data?.id;
+            const partnerProctoringRequired = userRes.data?.student?.partner?.proctoring_required ?? false;
+            proctoringRequired.value = !!partnerProctoringRequired;
+            if (!proctoringRequired.value) {
+                // Partner doesn't require proctoring — skip initializer
+                proctoringComplete.value = true;
+            }
+        } catch {
+            // On error, fail safe: skip proctoring
+            proctoringRequired.value = false;
+            proctoringComplete.value = true;
+        }
     }
+
     await fetchData();
     setupAntiCheat();
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handleBeforeUnloadBeacon)
+    window.addEventListener('pagehide', handleBeforeUnloadBeacon)
+
     const debouncedUpdateActivity = debounce(updateActivity, 500);
     document.addEventListener('mousemove', debouncedUpdateActivity);
     document.addEventListener('keydown', debouncedUpdateActivity);
@@ -660,6 +982,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+    stopSessionPolling()
     stopTimer();
     if (inactivityTimer.value) clearTimeout(inactivityTimer.value);
     if (audioRef.value) {
@@ -668,10 +991,15 @@ onUnmounted(() => {
     }
     destroyAntiCheat();
     document.removeEventListener('visibilitychange', handleVisibilityChange);
-    window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.removeEventListener('beforeunload', handleBeforeUnloadBeacon)
+    window.removeEventListener('pagehide', handleBeforeUnloadBeacon)
+    handleBeforeUnloadBeacon()
     document.removeEventListener('mousemove', updateActivity);
     document.removeEventListener('keydown', updateActivity);
     document.removeEventListener('click', updateActivity);
+    // endProctoringSession('connection_lost').catch(e =>
+    //     console.error('Failed to end proctoring session on unmount:', e)
+    // )
 });
 </script>
 
@@ -679,7 +1007,8 @@ onUnmounted(() => {
     <div class="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
 
         <!-- === PROCTORING INITIALIZER MODAL === -->
-        <template v-if="PROCTORING_ENABLED && !proctoringComplete && !isDemo">
+        <!-- Shown when partner requires proctoring and it hasn't been completed yet -->
+        <template v-if="proctoringRequired && !proctoringComplete && !isDemo">
             <ProctoringInitializer :attempt-id="attemptId" :student-id="studentId" :exam-id="examId"
                 @complete="handleProctoringComplete" />
         </template>
@@ -688,11 +1017,16 @@ onUnmounted(() => {
         <template v-else>
             <StudentHeader />
 
+            <audio ref="audioRef"
+                :src="currentQ ? resolveUrl(currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path) : ''"
+                @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="hasListened = true"
+                @timeupdate="updateAudioProgress" class="hidden"></audio>
+
             <header v-if="!isStarting && currentSkill"
                 class="bg-slate-800 text-white shadow-md min-h-16 px-2 sm:px-4 md:px-6 shrink-0 flex items-center"
                 dir="ltr">
                 <div class="max-w-[1600px] w-full mx-auto flex justify-between items-center py-2 md:py-0 gap-1.5">
-                    <div class="flex items-center shrink-0 max-w-[80px] sm:max-w-none overflow-auto">
+                    <div class="flex items-center shrink-0 max-w-[180px] sm:max-w-none overflow-auto gap-3">
                         <div class="flex flex-col items-start text-left">
                             <div class="flex items-center">
                                 <span
@@ -700,6 +1034,13 @@ onUnmounted(() => {
                                     {{ currentSkill?.name }}
                                 </span>
                             </div>
+                        </div>
+                        <!-- Proctoring Status Badge -->
+                        <div v-if="proctoringRequired && !isDemo"
+                            class="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded text-rose-400 font-black text-[8px] sm:text-[9px] uppercase tracking-widest shrink-0">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                            <i class="pi pi-shield text-[8px]"></i>
+                            <span>{{ currentLang === 'ar' ? 'جلسة مراقبة نشطة' : 'Proctored' }}</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-1 sm:gap-2 md:gap-3 flex-wrap sm:flex-nowrap justify-end">
@@ -762,7 +1103,7 @@ onUnmounted(() => {
             </header>
 
             <!-- Sub-header for Level Name -->
-             <!-- shaimaa commented this -->
+            <!-- shaimaa commented this -->
             <!-- <div v-if="!isStarting && currentSkill && !currentSkill.name?.toLowerCase().includes('writ')"
                 class="bg-white border-b border-slate-200 h-10 px-8 flex justify-end items-center shrink-0 z-20">
                 <div class="flex items-center space-x-3 space-x-reverse">
@@ -798,8 +1139,8 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Level Transition Modal --> 
-                 <!-- shaimaa commented this -->
+                <!-- Level Transition Modal -->
+                <!-- shaimaa commented this -->
                 <!-- <div v-if="showLevelTransition"
                     class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-6">
                     <div
@@ -838,7 +1179,7 @@ onUnmounted(() => {
                         <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">System Notification</h2>
                         <p class="text-slate-500 font-medium leading-relaxed">{{ errorMsg }}</p>
                     </div>
-                    <button @click="router.push('/skill-selection')"
+                    <button @click="navigateSafely('/skill-selection')"
                         class="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-brand-primary transition-all active:scale-95">
                         Back to Dashboard
                     </button>
@@ -846,7 +1187,7 @@ onUnmounted(() => {
 
                 <!-- Exam Split Screen (Dynamic Layout) -->
                 <div v-else-if="currentQ"
-                    class="flex flex-col lg:flex-row gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 overflow-auto">
+                    class="flex flex-col lg:flex-row gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0">
 
                     <!-- Response Pane -->
                     <div :class="responsePaneClass"
@@ -867,7 +1208,7 @@ onUnmounted(() => {
                                     : 'my-4 rounded-2xl shadow-xl p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]'
                             ]">
 
-                
+
 
                             <!-- Audio Player -->
                             <div v-if="currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path"
@@ -883,11 +1224,6 @@ onUnmounted(() => {
                                     <span
                                         class="text-[20px] font-black text-slate-400 uppercase tracking-widest"></span>
                                 </div>
-                                <audio ref="audioRef"
-                                    :src="resolveUrl(currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path)"
-                                    @play="isAudioPlaying = true" @pause="isAudioPlaying = false"
-                                    @ended="hasListened = true" @timeupdate="updateAudioProgress"
-                                    class="hidden"></audio>
                                 <div v-if="autoplayFailed && !isAudioPlaying && !hasListened"
                                     class="mt-2 flex items-center justify-between p-2 bg-rose-50 border border-rose-200 rounded-lg animate-in fade-in slide-in-from-top-2 duration-500">
                                     <div class="flex items-center gap-2">
@@ -1118,6 +1454,10 @@ onUnmounted(() => {
                     </div>
                 </div>
             </div>
+
+            <!-- Proctoring Camera Widget -->
+            <ProctorCamera v-if="proctoringRequired && proctoringSessionId && proctoringComplete"
+                :session-id="proctoringSessionId" :student-id="studentId" />
         </template>
     </div>
 </template>
@@ -1125,6 +1465,16 @@ onUnmounted(() => {
 <style scoped>
 .animate-in {
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes shrink {
+    from {
+        width: 100%;
+    }
+
+    to {
+        width: 0%;
+    }
 }
 
 .custom-scrollbar::-webkit-scrollbar {

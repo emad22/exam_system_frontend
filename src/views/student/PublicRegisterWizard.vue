@@ -55,7 +55,7 @@ const handleRegister = async () => {
         step.value = 4;
         
         setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/skill-selection');
         }, 3000);
     } catch (err) {
         console.error(err);

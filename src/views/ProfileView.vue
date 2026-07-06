@@ -120,7 +120,7 @@ const updateProfile = async () => {
         showAlert('Success', 'Profile updated successfully');
         setTimeout(() => {
             if (isStudent.value) {
-                window.location.href = '/dashboard';
+                window.location.href = '/skill-selection';
             } else if (isPartner.value) {
                 window.location.href = '/partner';
             } else {
@@ -161,7 +161,7 @@ const layoutComponent = computed(() => {
 
 const backToDashboard = () => {
     if (isStudent.value) {
-        router.push('/dashboard');
+        router.push('/skill-selection');
     } else if (isPartner.value) {
         router.push('/partner');
     } else {

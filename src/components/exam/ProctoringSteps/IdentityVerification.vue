@@ -275,11 +275,7 @@ const verifyIdentity = async () => {
     formData.append('id_number', idNumber.value)
 
     // Send to backend
-    const response = await api.post('/v1/proctoring/verify-identity', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    const response = await api.post('/proctoring/verify-identity', formData)
 
     if (response.data.verified) {
       verificationStatus.value = {

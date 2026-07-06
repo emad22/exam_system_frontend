@@ -313,6 +313,12 @@ const adminRoutes = [
     meta: { title: 'Proctoring Management' }
   },
   {
+    path: '/admin/proctoring/student/:studentId',
+    name: 'admin.proctoring.student',
+    component: () => import('@/views/admin/Proctoring/Student.vue'),
+    meta: { title: 'Student Proctoring Profile' }
+  },
+  {
     path: '/admin/proctoring/:id',
     name: 'admin.proctoring.show',
     component: () => import('@/views/admin/Proctoring/Show.vue'),
@@ -414,6 +420,12 @@ const routes = [
     meta: { title: 'System Requirements' }
   },
   {
+    path: '/proctoring-requirements',
+    name: 'proctoring-requirements',
+    component: () => import('@/views/student/ProctoringRequirementsView.vue'),
+    meta: { title: 'Proctoring System Check' }
+  },
+  {
     path: '/skill-selection',
     name: 'skill-selection',
     component: () => import('@/views/student/SkillSelectionView.vue'),
@@ -449,7 +461,7 @@ router.beforeEach((to) => {
   // Redirect authenticated users away from public pages
   if (to.path === '/login' && token) {
     if (role === 'teacher') return '/teacher';
-    if (role === 'student') return '/dashboard';
+    if (role === 'student') return '/skill-selection';
     if (role === 'partner') return '/partner';
     return '/admin';
   }
@@ -483,12 +495,13 @@ router.beforeEach((to) => {
   }
 
   // Student path protection (optional, but good for consistency)
-  if (to.path === '/dashboard' && (role === 'admin' || role === 'teacher' || role === 'partner')) {
+  if (to.path === '/dashboard') {
+    if (role === 'student') return '/skill-selection';
     if (role === 'admin') return '/admin';
     if (role === 'teacher') return '/teacher';
     if (role === 'partner') return '/partner';
   }
-    
+
   return true;
 });
 

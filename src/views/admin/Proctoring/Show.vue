@@ -1,270 +1,229 @@
-<template>
-  <div class="session-detail-page">
-    <!-- Back Button -->
-    <router-link to="/admin/proctoring" class="btn-back">← العودة إلى الجلسات</router-link>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
-      <p>جاري تحميل بيانات الجلسة...</p>
-    </div>
-
-    <!-- Session Not Found -->
-    <div v-else-if="!session" class="error-container">
-      <p>لم يتم العثور على الجلسة</p>
-    </div>
-
-    <!-- Session Details -->
-    <div v-else class="session-details">
-      <!-- Header with Session Info -->
-      <div class="header-card">
-        <div class="header-info">
-          <div class="session-title">
-            <h1>جلسة الاختبار #{{ session.id }}</h1>
-            <span :class="['status-badge', `status-${session.status}`]">
-              {{ getStatusLabel(session.status) }}
-            </span>
-          </div>
-          <div class="session-date">{{ formatDate(session.created_at) }}</div>
-        </div>
-
-        <div class="header-actions">
-          <button v-if="session.status === 'active'" class="btn-action btn-pause" @click="updateStatus('paused')">
-            ⏸ إيقاف الجلسة
-          </button>
-          <button v-else-if="session.status === 'paused'" class="btn-action btn-resume" @click="updateStatus('active')">
-            ▶ استئناف الجلسة
-          </button>
-          <button v-if="session.status !== 'ended'" class="btn-action btn-end" @click="updateStatus('ended')">
-            🛑 إنهاء الجلسة
-          </button>
-          <router-link :to="`/admin/proctoring/${session.id}/report`" class="btn-action btn-report">
-            📊 عرض التقرير
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="tabs-section">
-        <div class="tabs-nav">
-          <button
-            v-for="tab in tabs"
-            :key="tab"
-            :class="['tab-btn', { active: activeTab === tab }]"
-            @click="activeTab = tab"
-          >
-            {{ getTabLabel(tab) }}
-          </button>
-        </div>
-
-        <!-- Tab Content: Student Info -->
-        <div v-if="activeTab === 'student'" class="tab-content">
-          <div class="info-grid">
-            <div class="info-item">
-              <label>اسم الطالب:</label>
-              <span>{{ session.student.name }}</span>
-            </div>
-            <div class="info-item">
-              <label>البريد الإلكتروني:</label>
-              <span>{{ session.student.email }}</span>
-            </div>
-            <div class="info-item">
-              <label>الامتحان:</label>
-              <span>{{ session.exam_attempt.exam.title }}</span>
-            </div>
-            <div class="info-item">
-              <label>تم التحقق من الهوية:</label>
-              <span :class="{ 'verified': session.identity_verified, 'not-verified': !session.identity_verified }">
-                {{ session.identity_verified ? '✓ نعم' : '✗ لا' }}
-              </span>
-            </div>
-            <div class="info-item" v-if="session.identity_verified">
-              <label>درجة التحقق:</label>
-              <span>{{ session.face_verification_score }}%</span>
-            </div>
-            <div class="info-item">
-              <label>عنوان IP:</label>
-              <span>{{ session.ip_address }}</span>
-            </div>
-            <div class="info-item">
-              <label>المتصفح:</label>
-              <span>{{ session.browser_info?.name || 'غير معروف' }}</span>
-            </div>
-            <div class="info-item">
-              <label>النظام:</label>
-              <span>{{ session.device_info?.os || 'غير معروف' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Content: Session Statistics -->
-        <div v-if="activeTab === 'statistics'" class="tab-content">
-          <div class="stats-container">
-            <div class="stat-box">
-              <div class="stat-label">مدة الجلسة</div>
-              <div class="stat-value">{{ formatDuration(session.duration_seconds) }}</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">إجمالي الانتهاكات</div>
-              <div class="stat-value" :style="{ color: getViolationColor(session.violations_count) }">
-                {{ session.violations_count }}
-              </div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">درجة الخطر</div>
-              <div class="stat-value" :style="{ color: getRiskColor(session.risk_score) }">
-                {{ session.risk_score }}/100
-              </div>
-              <div class="risk-bar-large">
-                <div class="risk-fill" :style="{ width: session.risk_score + '%', backgroundColor: getRiskColor(session.risk_score) }"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="violations-summary">
-            <h3>ملخص الانتهاكات</h3>
-            <div class="summary-grid">
-              <div class="summary-item">
-                <span class="label">كشف الوجوه:</span>
-                <span class="value">{{ session.face_detection_alerts }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="label">تبديل التبويبات:</span>
-                <span class="value">{{ session.tab_switch_alerts }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="label">نسخ/لصق:</span>
-                <span class="value">{{ session.copy_paste_alerts }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="label">أجهزة خارجية:</span>
-                <span class="value">{{ session.external_device_alerts }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Violations by Type -->
-          <div class="chart-section" v-if="statistics.violations_by_type.length > 0">
-            <h3>توزيع الانتهاكات</h3>
-            <div class="violation-types">
-              <div v-for="viol in statistics.violations_by_type" :key="viol.violation_type" class="violation-type-item">
-                <span class="type-label">{{ getViolationTypeLabel(viol.violation_type) }}</span>
-                <div class="type-bar">
-                  <div class="type-fill" :style="{ width: getViolationPercentage(viol.count) + '%' }"></div>
-                </div>
-                <span class="type-count">{{ viol.count }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Content: Violations -->
-        <div v-if="activeTab === 'violations'" class="tab-content">
-          <div class="violations-list">
-            <div v-if="session.violations.length === 0" class="empty-state">
-              <p>لا توجد انتهاكات في هذه الجلسة</p>
-            </div>
-            <div v-else>
-              <div v-for="violation in session.violations" :key="violation.id" class="violation-card">
-                <div class="violation-header">
-                  <div class="violation-type">
-                    <span class="type-name">{{ getViolationTypeLabel(violation.violation_type) }}</span>
-                    <span :class="['severity-badge', `severity-${violation.severity}`]">
-                      {{ getSeverityLabel(violation.severity) }}
-                    </span>
-                  </div>
-                  <div class="violation-time">{{ formatDate(violation.timestamp) }}</div>
-                </div>
-
-                <div v-if="violation.description" class="violation-description">
-                  {{ violation.description }}
-                </div>
-
-                <div v-if="violation.screenshot_url" class="violation-screenshot">
-                  <img :src="violation.screenshot_url" :alt="`Screenshot - ${violation.violation_type}`" />
-                </div>
-
-                <div class="violation-footer">
-                  <span :class="['status-label', `status-${violation.status}`]">
-                    {{ getViolationStatusLabel(violation.status) }}
-                  </span>
-                  <button v-if="!violation.reviewed_at" class="btn-review" @click="reviewViolation(violation.id)">
-                    مراجعة
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Content: Logs -->
-        <div v-if="activeTab === 'logs'" class="tab-content">
-          <div class="logs-container">
-            <h3>سجلات كشف الوجه</h3>
-            <div class="logs-list">
-              <div v-for="log in session.face_detection_logs" :key="log.id" class="log-item">
-                <span class="log-time">{{ formatDate(log.created_at) }}</span>
-                <span class="log-message">{{ log.message || 'كشف الوجه: ' + log.face_count }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Review Violation Modal -->
-    <div v-if="showReviewModal" class="modal-overlay" @click.self="showReviewModal = false">
-      <div class="modal-content">
-        <h2>مراجعة الانتهاك</h2>
-        <form @submit.prevent="submitReview">
-          <div class="form-group">
-            <label>الحالة:</label>
-            <select v-model="reviewForm.status" required>
-              <option value="confirmed">مؤكدة</option>
-              <option value="dismissed">مرفوضة</option>
-              <option value="suspicious">مريبة</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>ملاحظات:</label>
-            <textarea v-model="reviewForm.proctor_notes" rows="4" placeholder="أضف ملاحظاتك..."></textarea>
-          </div>
-
-          <div class="form-group">
-            <label>الإجراء المتخذ:</label>
-            <select v-model="reviewForm.action_taken">
-              <option value="">بدون إجراء</option>
-              <option value="warning">تحذير</option>
-              <option value="pause_exam">إيقاف الاختبار</option>
-              <option value="terminate_exam">إنهاء الاختبار</option>
-              <option value="report_to_instructor">إبلاغ المعلم</option>
-            </select>
-          </div>
-
-          <div class="modal-actions">
-            <button type="submit" class="btn-submit">حفظ</button>
-            <button type="button" class="btn-cancel" @click="showReviewModal = false">إلغاء</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import axios from 'axios'
+// @ts-ignore
+import api from '@/services/api'
+import AdminLayout from '@/components/AdminLayout.vue'
+// @ts-ignore
+import { useModal } from '@/composables/useModal';
 
 const router = useRouter()
 const route = useRoute()
 
+// ─── Language ───────────────────────────────────────────────────────────────
+const currentLang = ref<'ar' | 'en'>((localStorage.getItem('dashboard_lang') as 'ar' | 'en') || 'ar')
+const toggleLang = () => {
+  currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar'
+  localStorage.setItem('dashboard_lang', currentLang.value)
+}
+
+const t = {
+  ar: {
+    loading: 'جاري تحميل بيانات الجلسة...',
+    notFound: 'لم يتم العثور على الجلسة',
+    sessionTitle: 'جلسة الاختبار',
+    backToSessions: 'العودة إلى الجلسات',
+    backToStudent: 'العودة لملف الطالب',
+    pauseSession: '⏸ إيقاف الجلسة',
+    resumeSession: '▶ استئناف الجلسة',
+    endSession: '🛑 إنهاء الجلسة',
+    viewReport: '📊 عرض التقرير',
+    tabStudent: 'معلومات الطالب',
+    tabStatistics: 'الإحصائيات',
+    tabViolations: 'الانتهاكات',
+    tabLogs: 'السجلات',
+    studentName: 'اسم الطالب:',
+    email: 'البريد الإلكتروني:',
+    exam: 'الامتحان:',
+    identityVerified: 'تم التحقق من الهوية:',
+    yes: '✓ نعم',
+    no: '✗ لا',
+    verificationScore: 'درجة التحقق:',
+    ipAddress: 'عنوان IP:',
+    browser: 'المتصفح:',
+    system: 'النظام:',
+    unknown: 'غير معروف',
+    notSetYet: 'لم يُحدد بعد',
+    sessionDuration: 'مدة الجلسة',
+    totalViolations: 'إجمالي الانتهاكات',
+    riskScore: 'درجة الخطر',
+    violationsSummary: 'ملخص الانتهاكات',
+    faceDetection: 'كشف الوجوه:',
+    tabSwitching: 'تبديل التبويبات:',
+    copyPaste: 'نسخ/لصق:',
+    externalDevices: 'أجهزة خارجية:',
+    violationsDistribution: 'توزيع الانتهاكات',
+    noViolations: 'لا توجد انتهاكات في هذه الجلسة',
+    review: 'مراجعة',
+    faceDetectionLogs: 'سجلات كشف الوجه',
+    noFaceLogs: 'لا توجد سجلات كشف وجه لهذه الجلسة',
+    facesDetected: 'عدد الوجوه المكتشفة:',
+    noFaceDetected: 'لم يتم كشف وجه',
+    moreThanOneFace: 'أكثر من وجه',
+    verificationAccuracy: 'دقة الفحص:',
+    reviewViolation: 'مراجعة الانتهاك',
+    status: 'الحالة:',
+    confirmed: 'مؤكدة',
+    dismissed: 'مرفوضة',
+    suspicious: 'مريبة',
+    notes: 'ملاحظات:',
+    addNotes: 'أضف ملاحظاتك...',
+    actionTaken: 'الإجراء المتخذ:',
+    noAction: 'بدون إجراء',
+    warning: 'تحذير',
+    pauseExam: 'إيقاف الاختبار',
+    terminateExam: 'إنهاء الاختبار',
+    reportToInstructor: 'إبلاغ المعلم',
+    save: 'حفظ',
+    cancel: 'إلغاء',
+    statusPending: 'قيد الانتظار',
+    statusActive: 'نشطة',
+    statusPaused: 'موقوفة',
+    statusEnded: 'منتهية',
+    statusCancelled: 'ملغاة',
+    violationPending: 'قيد الانتظار',
+    violationConfirmed: 'مؤكدة',
+    violationDismissed: 'مرفوضة',
+    violationSuspicious: 'مريبة',
+    severityInfo: 'معلومة',
+    severityLow: 'منخفضة',
+    severityMedium: 'متوسطة',
+    severityHigh: 'عالية',
+    severityCritical: 'حرجة',
+    riskVeryHigh: 'خطر مرتفع جداً (غش مؤكد)',
+    riskHigh: 'خطر مرتفع',
+    riskMedium: 'خطر متوسط',
+    riskSafe: 'آمن',
+    violationMultipleFaces: 'عدة وجوه',
+    violationFaceNotVisible: 'الوجه غير مرئي',
+    violationFaceSwap: 'تبديل الوجه',
+    violationTabSwitched: 'تبديل التبويب',
+    violationBrowserOpened: 'فتح متصفح',
+    violationCopyPaste: 'نسخ/لصق',
+    violationExternalDevice: 'جهاز خارجي',
+    violationSuspiciousAudio: 'صوت مريب',
+
+    endSessionConfirmTitle: 'إنهاء الجلسة',
+    endSessionConfirmMsg: 'ماذا تريد أن تفعل؟',
+    endAndGoBack: 'إنهاء والعودة للقائمة',
+    onlyPauseExam: 'إيقاف الاختبار فقط',
+    sessionEnded: 'تم إنهاء الجلسة',
+    sessionEndedMsg: 'تم إنهاء الجلسة بنجاح',
+    error: 'خطأ',
+    errorMsg: 'حدث خطأ أثناء إنهاء الجلسة',
+    ok: 'حسناً',
+    endSkillExam: '❌ إنهاء المهارة الحالية',
+    endSkillConfirmMsg: 'سيتم إنهاء هذه المهارة وإخراج الطالب إلى صفحة اختيار المهارات. هل أنت متأكد؟',
+    endSkillSuccess: 'تم إنهاء المهارة وإخراج الطالب بنجاح.',
+  },
+  en: {
+    loading: 'Loading session data...',
+    notFound: 'Session not found',
+    sessionTitle: 'Exam Session',
+    backToSessions: 'Back to Sessions',
+    backToStudent: 'Back to Student Profile',
+    pauseSession: '⏸ Pause Session',
+    resumeSession: '▶ Resume Session',
+    endSession: '🛑 End Session',
+    viewReport: '📊 View Report',
+    tabStudent: 'Student Info',
+    tabStatistics: 'Statistics',
+    tabViolations: 'Violations',
+    tabLogs: 'Logs',
+    studentName: 'Student Name:',
+    email: 'Email:',
+    exam: 'Exam:',
+    identityVerified: 'Identity Verified:',
+    yes: '✓ Yes',
+    no: '✗ No',
+    verificationScore: 'Verification Score:',
+    ipAddress: 'IP Address:',
+    browser: 'Browser:',
+    system: 'System:',
+    unknown: 'Unknown',
+    notSetYet: 'Not set yet',
+    sessionDuration: 'Session Duration',
+    totalViolations: 'Total Violations',
+    riskScore: 'Risk Score',
+    violationsSummary: 'Violations Summary',
+    faceDetection: 'Face Detection:',
+    tabSwitching: 'Tab Switching:',
+    copyPaste: 'Copy/Paste:',
+    externalDevices: 'External Devices:',
+    violationsDistribution: 'Violations Distribution',
+    noViolations: 'No violations in this session',
+    review: 'Review',
+    faceDetectionLogs: 'Face Detection Logs',
+    noFaceLogs: 'No face detection logs for this session',
+    facesDetected: 'Faces Detected:',
+    noFaceDetected: 'No face detected',
+    moreThanOneFace: 'More than one face',
+    verificationAccuracy: 'Verification Accuracy:',
+    reviewViolation: 'Review Violation',
+    status: 'Status:',
+    confirmed: 'Confirmed',
+    dismissed: 'Dismissed',
+    suspicious: 'Suspicious',
+    notes: 'Notes:',
+    addNotes: 'Add your notes...',
+    actionTaken: 'Action Taken:',
+    noAction: 'No Action',
+    warning: 'Warning',
+    pauseExam: 'Pause Exam',
+    terminateExam: 'Terminate Exam',
+    reportToInstructor: 'Report to Instructor',
+    save: 'Save',
+    cancel: 'Cancel',
+    statusPending: 'Pending',
+    statusActive: 'Active',
+    statusPaused: 'Paused',
+    statusEnded: 'Ended',
+    statusCancelled: 'Cancelled',
+    violationPending: 'Pending',
+    violationConfirmed: 'Confirmed',
+    violationDismissed: 'Dismissed',
+    violationSuspicious: 'Suspicious',
+    severityInfo: 'Info',
+    severityLow: 'Low',
+    severityMedium: 'Medium',
+    severityHigh: 'High',
+    severityCritical: 'Critical',
+    riskVeryHigh: 'Very High Risk (Confirmed Cheating)',
+    riskHigh: 'High Risk',
+    riskMedium: 'Medium Risk',
+    riskSafe: 'Safe',
+    violationMultipleFaces: 'Multiple Faces',
+    violationFaceNotVisible: 'Face Not Visible',
+    violationFaceSwap: 'Face Swap',
+    violationTabSwitched: 'Tab Switched',
+    violationBrowserOpened: 'Browser Opened',
+    violationCopyPaste: 'Copy/Paste',
+    violationExternalDevice: 'External Device',
+    violationSuspiciousAudio: 'Suspicious Audio',
+
+    endSessionConfirmTitle: 'End Session',
+    endSessionConfirmMsg: 'What would you like to do?',
+    endAndGoBack: 'End Session',
+    onlyPauseExam: 'Pause Exam Only',
+    sessionEnded: 'Session Ended',
+    sessionEndedMsg: 'Session ended successfully',
+    error: 'Error',
+    errorMsg: 'Error ending session',
+    ok: 'OK',
+    endSkillExam: '❌ End Current Skill',
+    endSkillConfirmMsg: 'This will end the current skill and redirect the student to skill selection. Are you sure?',
+    endSkillSuccess: 'Skill ended and student has been kicked out successfully.',
+  },
+}
+
+
+const { showAlert } = useModal();
 // Types
 interface Session {
   id: number
   created_at: string
   status: string
-  student: { name: string; email: string; id: number }
+  student: { id: number; user?: { name: string; email: string } }
   exam_attempt: { exam: { title: string } }
   identity_verified: boolean
   face_verification_score: number
@@ -282,6 +241,9 @@ interface Session {
   face_detection_logs: any[]
   device_detection_logs: any[]
 }
+
+
+
 
 // State
 const session = ref<Session | null>(null)
@@ -301,9 +263,15 @@ const reviewForm = ref({
 // Methods
 const fetchSession = async () => {
   try {
-    const response = await axios.get(`/api/admin/proctoring/${route.params.id}`)
-    session.value = response.data.session
-    statistics.value = response.data.statistics
+    const response = await api.get(`/admin/proctoring/${route.params.id}`)
+
+    session.value = {
+      ...response.data.session,
+      violations: response.data.violations ?? [],
+      face_detection_logs: response.data.face_detection_logs ?? [],
+      device_detection_logs: response.data.device_detection_logs ?? [],
+    }
+    statistics.value = response.data.statistics || {}
   } catch (error) {
     console.error('Failed to fetch session:', error)
   } finally {
@@ -313,7 +281,7 @@ const fetchSession = async () => {
 
 const updateStatus = async (newStatus: string) => {
   try {
-    await axios.patch(`/api/admin/proctoring/${session.value?.id}/status`, { status: newStatus })
+    await api.patch(`/admin/proctoring/${session.value?.id}/status`, { status: newStatus })
     await fetchSession()
   } catch (error) {
     console.error('Failed to update status:', error)
@@ -332,9 +300,8 @@ const reviewViolation = (violationId: number) => {
 
 const submitReview = async () => {
   try {
-    await axios.post(`/api/admin/proctoring/${currentViolationId.value}/review`, {
+    await api.post(`/admin/proctoring/${currentViolationId.value}/review`, {
       ...reviewForm.value,
-      reviewed_by: (window as any).auth?.user?.id,
     })
     showReviewModal.value = false
     await fetchSession()
@@ -344,7 +311,8 @@ const submitReview = async () => {
 }
 
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('ar-SA', {
+  const locale = currentLang.value === 'ar' ? 'ar-SA' : 'en-GB'
+  return new Date(date).toLocaleDateString(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -354,7 +322,7 @@ const formatDate = (date: string) => {
 }
 
 const formatDuration = (seconds: number | null) => {
-  if (!seconds) return 'غير معروف'
+  if (!seconds) return t[currentLang.value].unknown
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
   const secs = seconds % 60
@@ -362,59 +330,84 @@ const formatDuration = (seconds: number | null) => {
 }
 
 const getStatusLabel = (status: string) => {
-  const labels: { [key: string]: string } = {
-    pending: 'قيد الانتظار',
-    active: 'نشطة',
-    paused: 'موقوفة',
-    ended: 'منتهية',
-    cancelled: 'ملغاة',
+  const map: Record<string, string> = {
+    pending: 'statusPending',
+    active: 'statusActive',
+    paused: 'statusPaused',
+    ended: 'statusEnded',
+    cancelled: 'statusCancelled',
   }
-  return labels[status] || status
+  const key = map[status]
+  if (key) {
+    const langObj = t[currentLang.value] as Record<string, string>
+    return langObj[key] || status
+  }
+  return status
 }
 
 const getTabLabel = (tab: string) => {
-  const labels: { [key: string]: string } = {
-    student: 'معلومات الطالب',
-    statistics: 'الإحصائيات',
-    violations: 'الانتهاكات',
-    logs: 'السجلات',
+  const map: Record<string, string> = {
+    student: 'tabStudent',
+    statistics: 'tabStatistics',
+    violations: 'tabViolations',
+    logs: 'tabLogs',
   }
-  return labels[tab]
+  const key = map[tab]
+  if (key) {
+    const langObj = t[currentLang.value] as Record<string, string>
+    return langObj[key] || tab
+  }
+  return tab
 }
 
 const getViolationTypeLabel = (type: string) => {
-  const labels: { [key: string]: string } = {
-    multiple_faces: 'عدة وجوه',
-    face_not_visible: 'الوجه غير مرئي',
-    face_swap: 'تبديل الوجه',
-    tab_switched: 'تبديل التبويب',
-    browser_opened: 'فتح متصفح',
-    copy_paste: 'نسخ/لصق',
-    external_device: 'جهاز خارجي',
-    suspicious_audio: 'صوت مريب',
+  const map: Record<string, string> = {
+    multiple_faces: 'violationMultipleFaces',
+    face_not_visible: 'violationFaceNotVisible',
+    face_swap: 'violationFaceSwap',
+    tab_switched: 'violationTabSwitched',
+    browser_opened: 'violationBrowserOpened',
+    copy_paste: 'violationCopyPaste',
+    external_device: 'violationExternalDevice',
+    suspicious_audio: 'violationSuspiciousAudio',
   }
-  return labels[type] || type
+  const key = map[type]
+  if (key) {
+    const langObj = t[currentLang.value] as Record<string, string>
+    return langObj[key] || type
+  }
+  return type
 }
 
 const getSeverityLabel = (severity: string) => {
-  const labels: { [key: string]: string } = {
-    info: 'معلومة',
-    low: 'منخفضة',
-    medium: 'متوسطة',
-    high: 'عالية',
-    critical: 'حرجة',
+  const map: Record<string, string> = {
+    info: 'severityInfo',
+    low: 'severityLow',
+    medium: 'severityMedium',
+    high: 'severityHigh',
+    critical: 'severityCritical',
   }
-  return labels[severity] || severity
+  const key = map[severity]
+  if (key) {
+    const langObj = t[currentLang.value] as Record<string, string>
+    return langObj[key] || severity
+  }
+  return severity
 }
 
 const getViolationStatusLabel = (status: string) => {
-  const labels: { [key: string]: string } = {
-    pending: 'قيد الانتظار',
-    confirmed: 'مؤكدة',
-    dismissed: 'مرفوضة',
-    suspicious: 'مريبة',
+  const map: Record<string, string> = {
+    pending: 'violationPending',
+    confirmed: 'violationConfirmed',
+    dismissed: 'violationDismissed',
+    suspicious: 'violationSuspicious',
   }
-  return labels[status] || status
+  const key = map[status]
+  if (key) {
+    const langObj = t[currentLang.value] as Record<string, string>
+    return langObj[key] || status
+  }
+  return status
 }
 
 const getRiskColor = (score: number) => {
@@ -435,11 +428,470 @@ const getViolationPercentage = (count: number) => {
   return Math.round((count / session.value.violations_count) * 100)
 }
 
+
+const confirmEndSession = () => {
+  showAlert({
+    title: t[currentLang.value].endSessionConfirmTitle,
+    message: t[currentLang.value].endSessionConfirmMsg,
+    type: 'warning',
+    showCancel: true,
+    confirmText: t[currentLang.value].endAndGoBack,
+    cancelText: t[currentLang.value].onlyPauseExam,
+  }).then((confirmed: any) => {
+    if (confirmed) {
+      endSession(true)
+    } else {
+      endSession(false)
+    }
+  })
+}
+
+const confirmEndSkillExam = () => {
+  showAlert({
+    title: t[currentLang.value].endSkillExam,
+    message: t[currentLang.value].endSkillConfirmMsg,
+    type: 'warning',
+    showCancel: true,
+    confirmText: currentLang.value === 'ar' ? 'نعم، إنهاء' : 'Yes, End it',
+    cancelText: t[currentLang.value].cancel,
+  }).then(async (confirmed: any) => {
+    if (!confirmed) return
+    try {
+      await api.post(`/admin/proctoring/${session.value?.id}/end-skill`)
+      await fetchSession()
+      showAlert({
+        title: t[currentLang.value].endSkillExam,
+        message: t[currentLang.value].endSkillSuccess,
+        type: 'success',
+        confirmText: t[currentLang.value].ok,
+      })
+    } catch (error) {
+      console.error('Error ending skill:', error)
+      showAlert({
+        title: t[currentLang.value].error,
+        message: t[currentLang.value].errorMsg,
+        type: 'error',
+        confirmText: t[currentLang.value].ok,
+      })
+    }
+  })
+}
+
+
+const endSession = async (endExam: boolean) => {
+  try {
+    if (endExam) {
+      // End the session completely via admin endpoint
+      await api.patch(`/admin/proctoring/${session.value?.id}/status`, {
+        status: 'ended',
+      })
+    } else {
+      // Pause only — student will be notified via session polling and redirected to skill selection
+      await api.patch(`/admin/proctoring/${session.value?.id}/status`, {
+        status: 'paused',
+      })
+    }
+    await fetchSession()
+    showAlert({
+      title: t[currentLang.value].sessionEnded,
+      message: t[currentLang.value].sessionEndedMsg,
+      type: 'success',
+      confirmButtonText: t[currentLang.value].ok,
+      onConfirm: () => {
+        if (endExam) {
+          if (session.value?.student?.id) {
+            router.push(`/admin/proctoring/student/${session.value.student.id}`)
+          } else {
+            router.push('/admin/proctoring')
+          }
+        }
+      },
+    })
+  } catch (error) {
+    console.error('Error ending session:', error)
+    showAlert({
+      title: t[currentLang.value].error,
+      message: t[currentLang.value].errorMsg,
+      type: 'error',
+      confirmButtonText: t[currentLang.value].ok,
+    })
+  }
+}
+
+
+
+const getRiskLabel = (score: number) => {
+  if (score > 80) return t[currentLang.value].riskVeryHigh
+  if (score > 60) return t[currentLang.value].riskHigh
+  if (score > 40) return t[currentLang.value].riskMedium
+  return t[currentLang.value].riskSafe
+}
+
+let pollingInterval: any = null
+
+const startPolling = () => {
+  pollingInterval = setInterval(async () => {
+    if (session.value && session.value.status === 'active') {
+      await fetchSession()
+    }
+  }, 5000)
+}
+
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   fetchSession()
+  startPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
+
+
+
+<template>
+  <AdminLayout>
+    <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4">
+      <!-- Back Button & Language Toggle -->
+      <div class="flex flex-wrap items-center gap-3">
+        <router-link
+          :to="session?.student?.id ? `/admin/proctoring/student/${session.student.id}` : '/admin/proctoring'"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+          <i class="pi pi-arrow-right"></i> {{ session?.student?.id ? t[currentLang].backToStudent :
+            t[currentLang].backToSessions }}
+        </router-link>
+        <!-- Language Toggle -->
+        <button @click="toggleLang"
+          class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
+          <i class="pi pi-globe text-brand-primary"></i>
+          <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="loading-container">
+        <p>{{ t[currentLang].loading }}</p>
+      </div>
+
+      <!-- Session Not Found -->
+      <div v-else-if="!session" class="error-container">
+        <p>{{ t[currentLang].notFound }}</p>
+      </div>
+
+      <!-- Session Details -->
+      <div v-else class="session-details">
+        <!-- Header with Session Info -->
+        <div class="header-card">
+          <div class="header-info">
+            <div class="session-title flex items-center gap-3">
+              <h1>{{ t[currentLang].sessionTitle }} #{{ session.id }}</h1>
+              <span :class="['status-badge', `status-${session.status}`]">
+                {{ getStatusLabel(session.status) }}
+              </span>
+              <span
+                :style="{ backgroundColor: getRiskColor(session.risk_score) + '15', color: getRiskColor(session.risk_score), border: '1px solid ' + getRiskColor(session.risk_score) + '30' }"
+                class="px-2 py-1 rounded text-xs font-bold font-sans">
+                {{ getRiskLabel(session.risk_score) }}
+              </span>
+            </div>
+            <div class="session-date">{{ formatDate(session.created_at) }}</div>
+          </div>
+
+          <!-- <div class="header-actions">
+            <button v-if="session.status === 'active'" class="btn-action btn-pause" @click="updateStatus('paused')">
+              {{ t[currentLang].pauseSession }}
+            </button>
+            <button v-else-if="session.status === 'paused'" class="btn-action btn-resume"
+              @click="updateStatus('active')">
+              {{ t[currentLang].resumeSession }}
+            </button>
+            <button v-if="session.status === 'active'" class="btn-action" style="background:#b45309;color:#fff;"
+              @click="confirmEndSkillExam">
+              {{ t[currentLang].endSkillExam }}
+            </button>
+            <button v-if="session.status !== 'ended'" class="btn-action btn-end" @click="confirmEndSession">
+              {{ t[currentLang].endSession }}
+            </button>
+            <router-link :to="`/admin/proctoring/${session.id}/report`" class="btn-action btn-report">
+              {{ t[currentLang].viewReport }}
+            </router-link>
+          </div> -->
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-section">
+          <div class="tabs-nav">
+            <button v-for="tab in tabs" :key="tab" :class="['tab-btn', { active: activeTab === tab }]"
+              @click="activeTab = tab">
+              {{ getTabLabel(tab) }}
+            </button>
+          </div>
+
+          <!-- Tab Content: Student Info -->
+          <div v-if="activeTab === 'student'" class="tab-content">
+            <div class="info-grid">
+              <div class="info-item">
+                <label>{{ t[currentLang].studentName }}</label>
+                <span>{{ session.student?.user?.name }}</span>
+              </div>
+              <div class="info-item">
+                <label>{{ t[currentLang].email }}</label>
+                <span>{{ session.student?.user?.email }}</span>
+              </div>
+              <div class="info-item">
+                <label>{{ t[currentLang].exam }}</label>
+                <span>{{ session.exam_attempt?.exam?.title || t[currentLang].notSetYet }}</span>
+              </div>
+              <div class="info-item">
+                <label>{{ t[currentLang].identityVerified }}</label>
+                <span :class="{ 'verified': session.identity_verified, 'not-verified': !session.identity_verified }">
+                  {{ session.identity_verified ? t[currentLang].yes : t[currentLang].no }}
+                </span>
+              </div>
+              <div class="info-item" v-if="session.identity_verified">
+                <label>{{ t[currentLang].verificationScore }}</label>
+                <span>{{ session.face_verification_score }}%</span>
+              </div>
+              <div class="info-item">
+                <label>{{ t[currentLang].ipAddress }}</label>
+                <span>{{ session.ip_address }}</span>
+              </div>
+              <div class="info-item">
+                <label>{{ t[currentLang].browser }}</label>
+                <span>{{ session.browser_info?.name || t[currentLang].unknown }}</span>
+              </div>
+              <div class="info-item">
+                <label>{{ t[currentLang].system }}</label>
+                <span>{{ session.device_info?.os || t[currentLang].unknown }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content: Session Statistics -->
+          <div v-if="activeTab === 'statistics'" class="tab-content">
+            <div class="stats-container">
+              <div class="stat-box">
+                <div class="stat-label">{{ t[currentLang].sessionDuration }}</div>
+                <div class="stat-value">{{ formatDuration(session.duration_seconds) }}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">{{ t[currentLang].totalViolations }}</div>
+                <div class="stat-value" :style="{ color: getViolationColor(session.violations_count) }">
+                  {{ session.violations_count }}
+                </div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">{{ t[currentLang].riskScore }}</div>
+                <div class="stat-value" :style="{ color: getRiskColor(session.risk_score) }">
+                  {{ session.risk_score }}/100
+                </div>
+                <div class="risk-bar-large">
+                  <div class="risk-fill"
+                    :style="{ width: session.risk_score + '%', backgroundColor: getRiskColor(session.risk_score) }">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="violations-summary">
+              <h3>{{ t[currentLang].violationsSummary }}</h3>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <span class="label">{{ t[currentLang].faceDetection }}</span>
+                  <span class="value">{{ session.face_detection_alerts }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">{{ t[currentLang].tabSwitching }}</span>
+                  <span class="value">{{ session.tab_switch_alerts }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">{{ t[currentLang].copyPaste }}</span>
+                  <span class="value">{{ session.copy_paste_alerts }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">{{ t[currentLang].externalDevices }}</span>
+                  <span class="value">{{ session.external_device_alerts }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Violations by Type -->
+            <div class="chart-section" v-if="statistics.violations_by_type.length > 0">
+              <h3>{{ t[currentLang].violationsDistribution }}</h3>
+              <div class="violation-types">
+                <div v-for="viol in statistics.violations_by_type" :key="viol.violation_type"
+                  class="violation-type-item">
+                  <span class="type-label">{{ getViolationTypeLabel(viol.violation_type) }}</span>
+                  <div class="type-bar">
+                    <div class="type-fill" :style="{ width: getViolationPercentage(viol.count) + '%' }"></div>
+                  </div>
+                  <span class="type-count">{{ viol.count }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content: Violations -->
+          <div v-if="activeTab === 'violations'" class="tab-content">
+            <div class="violations-list">
+              <div v-if="session.violations.length === 0" class="empty-state">
+                <p>{{ t[currentLang].noViolations }}</p>
+              </div>
+              <div v-else>
+                <div v-for="violation in session.violations" :key="violation.id" class="violation-card">
+                  <div class="violation-header">
+                    <div class="violation-type">
+                      <span class="type-name">{{ getViolationTypeLabel(violation.violation_type) }}</span>
+                      <span :class="['severity-badge', `severity-${violation.severity}`]">
+                        {{ getSeverityLabel(violation.severity) }}
+                      </span>
+                    </div>
+                    <div class="violation-time">{{ formatDate(violation.timestamp) }}</div>
+                  </div>
+
+                  <div v-if="violation.description" class="violation-description">
+                    {{ violation.description }}
+                  </div>
+
+                  <div v-if="violation.screenshot_url" class="violation-screenshot">
+                    <img :src="violation.screenshot_url" :alt="`Screenshot - ${violation.violation_type}`" />
+                  </div>
+
+                  <div class="violation-footer">
+                    <span :class="['status-label', `status-${violation.status}`]">
+                      {{ getViolationStatusLabel(violation.status) }}
+                    </span>
+                    <button v-if="!violation.reviewed_at" class="btn-review" @click="reviewViolation(violation.id)">
+                      {{ t[currentLang].review }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content: Logs -->
+          <!-- Tab Content: Logs -->
+          <div v-if="activeTab === 'logs'" class="tab-content">
+            <div class="logs-container">
+              <h3>{{ t[currentLang].faceDetectionLogs }}</h3>
+              <div v-if="!session.face_detection_logs || session.face_detection_logs.length === 0" class="empty-state">
+                <p>{{ t[currentLang].noFaceLogs }}</p>
+              </div>
+              <div v-else class="logs-list">
+                <div v-for="log in session.face_detection_logs" :key="log.id" :class="[
+                  'log-item flex gap-3 p-3 rounded-xl mb-2 border text-sm',
+                  log.face_lost
+                    ? 'bg-rose-50 border-rose-200'
+                    : log.secondary_face_detected
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-slate-50 border-slate-200'
+                ]">
+
+                  <!-- Icon -->
+                  <div class="text-lg mt-0.5">
+                    <span v-if="log.face_lost">🚫</span>
+                    <span v-else-if="log.secondary_face_detected">⚠️</span>
+                    <span v-else>✅</span>
+                  </div>
+
+                  <!-- Content -->
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                      <!-- Status text -->
+                      <span :class="[
+                        'font-semibold font-sans',
+                        log.face_lost ? 'text-rose-600' : log.secondary_face_detected ? 'text-amber-600' : 'text-slate-700'
+                      ]">
+                        <span v-if="log.face_lost">{{ t[currentLang].noFaceDetected }}</span>
+                        <span v-else-if="log.secondary_face_detected">{{ t[currentLang].moreThanOneFace }}</span>
+                        <span v-else>{{ currentLang === 'ar' ? 'وجه واحد مكتشف' : 'Face Detected' }}</span>
+                      </span>
+
+                      <!-- Time -->
+                      <span class="text-xs text-slate-400 font-sans">{{ formatDate(log.timestamp) }}</span>
+                    </div>
+
+                    <!-- Confidence -->
+                    <div v-if="log.primary_face_confidence && log.face_count > 0" class="mt-1 flex items-center gap-2">
+                      <span class="text-xs text-slate-500 font-sans">
+                        {{ t[currentLang].verificationAccuracy }}
+                      </span>
+                      <div class="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden max-w-[100px]">
+                        <div class="h-full bg-emerald-400 rounded-full"
+                          :style="{ width: Math.round(log.primary_face_confidence * 100) + '%' }">
+                        </div>
+                      </div>
+                      <span class="text-xs font-bold text-slate-600 font-sans">
+                        {{ Math.round(log.primary_face_confidence * 100) }}%
+                      </span>
+                    </div>
+
+                    <!-- Screenshot -->
+                    <div v-if="log.screenshot_url" class="mt-2">
+                      <img :src="log.screenshot_url" class="max-w-[200px] rounded-lg border border-slate-200 shadow-sm"
+                        :alt="currentLang === 'ar' ? 'لقطة شاشة' : 'Screenshot'" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review Violation Modal -->
+      <div v-if="showReviewModal" class="modal-overlay" @click.self="showReviewModal = false">
+        <div class="modal-content">
+          <h2>{{ t[currentLang].reviewViolation }}</h2>
+          <form @submit.prevent="submitReview">
+            <div class="form-group">
+              <label>{{ t[currentLang].status }}</label>
+              <select v-model="reviewForm.status" required>
+                <option value="confirmed">{{ t[currentLang].confirmed }}</option>
+                <option value="dismissed">{{ t[currentLang].dismissed }}</option>
+                <option value="suspicious">{{ t[currentLang].suspicious }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>{{ t[currentLang].notes }}</label>
+              <textarea v-model="reviewForm.proctor_notes" rows="4" :placeholder="t[currentLang].addNotes"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>{{ t[currentLang].actionTaken }}</label>
+              <select v-model="reviewForm.action_taken">
+                <option value="">{{ t[currentLang].noAction }}</option>
+                <option value="warning">{{ t[currentLang].warning }}</option>
+                <option value="pause_exam">{{ t[currentLang].pauseExam }}</option>
+                <option value="terminate_exam">{{ t[currentLang].terminateExam }}</option>
+                <option value="report_to_instructor">{{ t[currentLang].reportToInstructor }}</option>
+              </select>
+            </div>
+
+            <div class="modal-actions">
+              <button type="submit" class="btn-submit">{{ t[currentLang].save }}</button>
+              <button type="button" class="btn-cancel" @click="showReviewModal = false">{{ t[currentLang].cancel
+              }}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+
+  </AdminLayout>
+</template>
+
+
 
 <style scoped>
 .session-detail-page {

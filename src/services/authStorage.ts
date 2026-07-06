@@ -80,9 +80,34 @@ export const authStorage = {
     },
 
     clear(): void {
+        const proctorSessionId = localStorage.getItem('active_proctoring_session_id');
+        const proctorSessionToken = localStorage.getItem('active_proctoring_session_token');
+        if (proctorSessionId && proctorSessionToken) {
+            const getApiBaseUrl = () => {
+                const envUrl = import.meta.env?.VITE_API_BASE_URL;
+                if (envUrl) return envUrl;
+                if (typeof window !== 'undefined') {
+                    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+                    return isLocal ? 'http://localhost:8000/api/v1' : `${window.location.origin}/api/v1`;
+                }
+                return '/api/v1';
+            };
+            const blob = new Blob(
+                [JSON.stringify({
+                    close_reason: 'session_expired',
+                    session_token: proctorSessionToken,
+                    ended_at: new Date().toISOString(),
+                })],
+                { type: 'application/json' }
+            );
+            navigator.sendBeacon(`${getApiBaseUrl()}/proctoring/session/${proctorSessionId}/end-beacon`, blob);
+        }
+
         localStorage.removeItem('token');
         localStorage.removeItem('role');
         localStorage.removeItem('user');
         localStorage.removeItem('last_activity');
+        localStorage.removeItem('active_proctoring_session_id');
+        localStorage.removeItem('active_proctoring_session_token');
     }
 };
