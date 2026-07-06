@@ -21,6 +21,20 @@ import { useAntiCheat } from '@/composables/useAntiCheat';
 import { useAudioEngine } from '@/composables/useAudioEngine';
 import { useMediaUrl } from '@/composables/useMediaUrl';
 import { useVirtualKeyboard } from '@/composables/useVirtualKeyboard';
+import * as faceapi from '@vladmandic/face-api';
+
+// Pre-load face-api models in the background (non-blocking)
+const preloadFaceApiModels = () => {
+    // Start loading models in background without awaiting
+    Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('/models/face-api'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('/models/face-api'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('/models/face-api'),
+    ]).catch(err => console.warn('Face-API models preload failed (non-critical):', err));
+};
+
+// Start preloading immediately when component loads (very early)
+preloadFaceApiModels();
 
 // Constants
 const QUESTION_TYPES_WITHOUT_OPTIONS = ['speaking', 'fill_blank', 'drag_drop', 'word_selection', 'click_word', 'highlight', 'matching', 'ordering', 'writing', 'short_answer'];
@@ -68,11 +82,11 @@ const navigateSafely = async (path) => {
 const handleSessionInterruption = async (messageAr, messageEn, shouldEndSession = false) => {
     stopSessionPolling();
     await showAlert(currentLang.value === 'ar' ? messageAr : messageEn);
-    
+
     if (shouldEndSession) {
         await endProctoringSession('terminated_by_proctor');
     }
-    
+
     isIntentionallyLeaving.value = true;
     await navigateSafely('/skill-selection');
 };
@@ -140,6 +154,35 @@ const studentId = ref(null);
 const proctoringSessionId = ref(null);
 const proctoringSessionToken = ref(sessionStorage.getItem('proctoring_session_token') ?? null); // ✅ أضف السطر ده
 const currentLang = ref(localStorage.getItem('dashboard_lang') || 'en');
+
+const enteredExam = ref(false);
+const proctorCameraState = ref('initializing'); // 'initializing', 'ready', 'error'
+const proctorCameraError = ref('');
+
+const handleCameraReady = () => {
+    proctorCameraState.value = 'ready';
+    proctorCameraError.value = '';
+    // Automatically transition into the exam after a short delay (2 seconds)
+    setTimeout(() => {
+        handleEnterExam();
+    }, 2000);
+};
+
+const handleCameraError = (errMsg) => {
+    proctorCameraState.value = 'error';
+    proctorCameraError.value = errMsg || 'Failed to start proctoring camera';
+};
+
+const handleEnterExam = () => {
+    enteredExam.value = true;
+    startTimer();
+    startSessionPolling();
+    playCurrentAudio();
+};
+
+const reloadPage = () => {
+    window.location.reload();
+};
 
 const attempt = ref(null);
 const currentSkill = ref(null);
@@ -326,8 +369,10 @@ const fetchData = async () => {
             }
             await autoStartProctoring();
             await fetchNextBatch();
-            startTimer();
-            startSessionPolling(); // ✅ Ensure proctoring polling is started for existing attempts
+            if (!proctoringRequired.value || enteredExam.value) {
+                startTimer();
+                startSessionPolling(); // ✅ Ensure proctoring polling is started for existing attempts
+            }
         } else {
             await beginExam();
         }
@@ -359,7 +404,9 @@ const beginExam = async () => {
     }
     isStarting.value = false;
     await fetchNextBatch();
-    startTimer();
+    if (!proctoringRequired.value || enteredExam.value) {
+        startTimer();
+    }
     isIntentionallyLeaving.value = false; // Reset to false after starting is complete
 };
 
@@ -734,7 +781,7 @@ const cleanHtml = (html) => {
 const { resolveUrl } = useMediaUrl();
 
 const playCurrentAudio = () => {
-    if (isLoading.value || showLevelTransition.value || showRetryNotification.value || isStarting.value || !proctoringComplete.value) {
+    if (isLoading.value || showLevelTransition.value || showRetryNotification.value || isStarting.value || !proctoringComplete.value || (proctoringRequired.value && !enteredExam.value)) {
         if (audioRef.value) {
             audioRef.value.pause();
             audioRef.value.currentTime = 0;
@@ -933,7 +980,7 @@ const handleBeforeUnloadBeacon = () => {
             },
             body: payload,
             keepalive: true,
-        }).catch(() => {})
+        }).catch(() => { })
     } catch (e) {
         console.warn('Failed to send proctoring beacon via fetch:', e)
     }
@@ -1022,29 +1069,31 @@ onUnmounted(() => {
                 @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="hasListened = true"
                 @timeupdate="updateAudioProgress" class="hidden"></audio>
 
-            <header v-if="!isStarting && currentSkill"
-                class="bg-slate-800 text-white shadow-md min-h-16 px-2 sm:px-4 md:px-6 shrink-0 flex items-center"
-                dir="ltr">
-                <div class="max-w-[1600px] w-full mx-auto flex justify-between items-center py-2 md:py-0 gap-1.5">
-                    <div class="flex items-center shrink-0 max-w-[180px] sm:max-w-none overflow-auto gap-3">
-                        <div class="flex flex-col items-start text-left">
-                            <div class="flex items-center">
-                                <span
-                                    class="text-[10px] sm:text-xs md:text-mm font-black uppercase tracking-wider text-slate-400 truncate">
-                                    {{ currentSkill?.name }}
-                                </span>
+            <!-- Exam Interface Container: Hidden when proctor checking is active -->
+            <template v-if="!proctoringRequired || enteredExam">
+                <header v-if="!isStarting && currentSkill"
+                    class="bg-slate-800 text-white shadow-md min-h-16 px-2 sm:px-4 md:px-6 shrink-0 flex items-center"
+                    dir="ltr">
+                    <div class="max-w-[1600px] w-full mx-auto flex justify-between items-center py-2 md:py-0 gap-1.5">
+                        <div class="flex items-center shrink-0 max-w-[180px] sm:max-w-none overflow-auto gap-3">
+                            <div class="flex flex-col items-start text-left">
+                                <div class="flex items-center">
+                                    <span
+                                        class="text-[10px] sm:text-xs md:text-mm font-black uppercase tracking-wider text-slate-400 truncate">
+                                        {{ currentSkill?.name }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Proctoring Status Badge -->
+                            <div v-if="proctoringRequired && !isDemo"
+                                class="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded text-rose-400 font-black text-[8px] sm:text-[9px] uppercase tracking-widest shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                <i class="pi pi-shield text-[8px]"></i>
+                                <span>{{ currentLang === 'ar' ? 'جلسة مراقبة نشطة' : 'Proctored' }}</span>
                             </div>
                         </div>
-                        <!-- Proctoring Status Badge -->
-                        <div v-if="proctoringRequired && !isDemo"
-                            class="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded text-rose-400 font-black text-[8px] sm:text-[9px] uppercase tracking-widest shrink-0">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                            <i class="pi pi-shield text-[8px]"></i>
-                            <span>{{ currentLang === 'ar' ? 'جلسة مراقبة نشطة' : 'Proctored' }}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-1 sm:gap-2 md:gap-3 flex-wrap sm:flex-nowrap justify-end">
-                        <!-- <button @click="prevQuestion"
+                        <div class="flex items-center gap-1 sm:gap-2 md:gap-3 flex-wrap sm:flex-nowrap justify-end">
+                            <!-- <button @click="prevQuestion"
                             :class="currentIndex > 0 ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-800 text-slate-500 cursor-not-allowed'"
                             class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 rounded-lg font-black text-[10px] sm:text-xs md:text-sm transition-all shadow-lg flex items-center gap-1"
                             :title="currentIndex > 0 ? 'Previous' : ''">
@@ -1052,59 +1101,61 @@ onUnmounted(() => {
                             <span class="hidden sm:inline">PREVIOUS</span>
                         </button> -->
 
-                        <span class="text-[10px] sm:text-xs md:text-sm font-black text-slate-500 shrink-0 select-none">
-                            {{ displayNumber }} / {{ totalSkillQuestions }}
-                        </span>
-
-                        <button @click="submitAnswer" :disabled="!isCurrentAnswerValid || questionSubmitted"
-                            class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-brand-primary text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                            title="Confirm">
-                            <i class="pi pi-thumbs-up text-xs"></i>
-                            <span class="hidden sm:inline">CONFIRM</span>
-                        </button>
-
-                        <button @click="advanceQuestion" :disabled="!questionSubmitted || isSubmittingBatch"
-                            class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-emerald-600 text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-emerald-500 transition-all shadow-lg flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Next">
-                            <span v-if="isSubmittingBatch" class="flex items-center gap-1">
-                                <i class="pi pi-spin pi-spinner text-[10px]"></i>
-                                <span class="hidden sm:inline">Saving...</span>
-                            </span>
-                            <template v-else>
-                                <span class="hidden sm:inline">NEXT</span>
-                                <i class="pi pi-chevron-right text-[10px]"></i>
-                            </template>
-                        </button>
-
-                        <div v-if="!isDemo && timerConfig && timerConfig.skillDuration > 0" :class="[
-                            'h-8 sm:h-9 md:h-10 flex items-center gap-1 px-1 sm:px-2 md:px-5 rounded-lg border transition-colors shrink-0',
-                            timeLeftSeconds < 300 ? 'bg-rose-900/50 border-rose-500 text-rose-300 animate-pulse' : 'bg-slate-900/50 border-slate-700 text-white'
-                        ]">
                             <span
-                                class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded bg-white/5 flex items-center justify-center shrink-0">
-                                <i class="pi pi-clock text-[9px] sm:text-[10px] md:text-xs"
-                                    :class="timeLeftSeconds < 300 ? 'text-rose-400' : 'text-slate-400'"></i>
+                                class="text-[10px] sm:text-xs md:text-sm font-black text-slate-500 shrink-0 select-none">
+                                {{ displayNumber }} / {{ totalSkillQuestions }}
                             </span>
-                            <span class="text-[10px] sm:text-xs md:text-lg font-black tabular-nums tracking-tighter">
-                                {{ formattedTime }}
-                            </span>
-                        </div>
 
-                        <div class="flex items-center rounded-lg transition-colors">
-                            <button @click="exitExam"
-                                class="h-8 sm:h-9 md:h-10 flex items-center gap-1 px-2 sm:px-3 md:px-6 bg-slate-700/50 hover:bg-rose-600/80 text-slate-300 hover:text-white rounded-lg transition-all text-[10px] sm:text-xs md:text-sm font-black shadow-lg"
-                                title="Exit">
-                                <span class="hidden md:inline">EXIT</span>
-                                <i class="pi pi-sign-out inline-block scale-x-[1]"></i>
+                            <button @click="submitAnswer" :disabled="!isCurrentAnswerValid || questionSubmitted"
+                                class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-brand-primary text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                title="Confirm">
+                                <i class="pi pi-thumbs-up text-xs"></i>
+                                <span class="hidden sm:inline">CONFIRM</span>
                             </button>
+
+                            <button @click="advanceQuestion" :disabled="!questionSubmitted || isSubmittingBatch"
+                                class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-emerald-600 text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-emerald-500 transition-all shadow-lg flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Next">
+                                <span v-if="isSubmittingBatch" class="flex items-center gap-1">
+                                    <i class="pi pi-spin pi-spinner text-[10px]"></i>
+                                    <span class="hidden sm:inline">Saving...</span>
+                                </span>
+                                <template v-else>
+                                    <span class="hidden sm:inline">NEXT</span>
+                                    <i class="pi pi-chevron-right text-[10px]"></i>
+                                </template>
+                            </button>
+
+                            <div v-if="!isDemo && timerConfig && timerConfig.skillDuration > 0" :class="[
+                                'h-8 sm:h-9 md:h-10 flex items-center gap-1 px-1 sm:px-2 md:px-5 rounded-lg border transition-colors shrink-0',
+                                timeLeftSeconds < 300 ? 'bg-rose-900/50 border-rose-500 text-rose-300 animate-pulse' : 'bg-slate-900/50 border-slate-700 text-white'
+                            ]">
+                                <span
+                                    class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded bg-white/5 flex items-center justify-center shrink-0">
+                                    <i class="pi pi-clock text-[9px] sm:text-[10px] md:text-xs"
+                                        :class="timeLeftSeconds < 300 ? 'text-rose-400' : 'text-slate-400'"></i>
+                                </span>
+                                <span
+                                    class="text-[10px] sm:text-xs md:text-lg font-black tabular-nums tracking-tighter">
+                                    {{ formattedTime }}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center rounded-lg transition-colors">
+                                <button @click="exitExam"
+                                    class="h-8 sm:h-9 md:h-10 flex items-center gap-1 px-2 sm:px-3 md:px-6 bg-slate-700/50 hover:bg-rose-600/80 text-slate-300 hover:text-white rounded-lg transition-all text-[10px] sm:text-xs md:text-sm font-black shadow-lg"
+                                    title="Exit">
+                                    <span class="hidden md:inline">EXIT</span>
+                                    <i class="pi pi-sign-out inline-block scale-x-[1]"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <!-- Sub-header for Level Name -->
-            <!-- shaimaa commented this -->
-            <!-- <div v-if="!isStarting && currentSkill && !currentSkill.name?.toLowerCase().includes('writ')"
+                <!-- Sub-header for Level Name -->
+                <!-- shaimaa commented this -->
+                <!-- <div v-if="!isStarting && currentSkill && !currentSkill.name?.toLowerCase().includes('writ')"
                 class="bg-white border-b border-slate-200 h-10 px-8 flex justify-end items-center shrink-0 z-20">
                 <div class="flex items-center space-x-3 space-x-reverse">
                     <div class="px-3 py-1 bg-slate-100 rounded-md border border-slate-200">
@@ -1114,34 +1165,36 @@ onUnmounted(() => {
                 </div>
             </div> -->
 
-            <main class="flex-1 relative">
+                <main class="flex-1 relative">
 
-                <!-- Retry Notification Overlay -->
-                <div v-if="showRetryNotification"
-                    class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-6">
-                    <div class="bg-white rounded-lg p-10 max-w-xl w-full shadow-2xl border border-slate-200 text-center"
-                        dir="rtl">
-                        <div
-                            class="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
-                            <i class="pi pi-refresh"></i>
+                    <!-- Retry Notification Overlay -->
+                    <div v-if="showRetryNotification"
+                        class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-6">
+                        <div class="bg-white rounded-lg p-10 max-w-xl w-full shadow-2xl border border-slate-200 text-center"
+                            dir="rtl">
+                            <div
+                                class="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
+                                <i class="pi pi-refresh"></i>
+                            </div>
+                            <h3 class="text-xl font-black text-slate-900 tracking-tight mb-4 uppercase">System
+                                Notification
+                            </h3>
+                            <p class="text-slate-600 text-base font-medium leading-relaxed mb-8">
+                                You did not meet the minimum score requirement. A second evaluation cycle with new
+                                content
+                                is about to
+                                begin...
+                            </p>
+                            <button @click="showRetryNotification = false"
+                                class="w-full py-4 bg-slate-800 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-slate-700 transition-all">
+                                Start New Attempt
+                            </button>
                         </div>
-                        <h3 class="text-xl font-black text-slate-900 tracking-tight mb-4 uppercase">System Notification
-                        </h3>
-                        <p class="text-slate-600 text-base font-medium leading-relaxed mb-8">
-                            You did not meet the minimum score requirement. A second evaluation cycle with new content
-                            is about to
-                            begin...
-                        </p>
-                        <button @click="showRetryNotification = false"
-                            class="w-full py-4 bg-slate-800 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-slate-700 transition-all">
-                            Start New Attempt
-                        </button>
                     </div>
-                </div>
 
-                <!-- Level Transition Modal -->
-                <!-- shaimaa commented this -->
-                <!-- <div v-if="showLevelTransition"
+                    <!-- Level Transition Modal -->
+                    <!-- shaimaa commented this -->
+                    <!-- <div v-if="showLevelTransition"
                     class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-6">
                     <div
                         class="bg-white rounded-3xl p-12 max-w-2xl w-full shadow-2xl border border-slate-200 text-center animate-in zoom-in-95 duration-300">
@@ -1163,301 +1216,317 @@ onUnmounted(() => {
                     </div>
                 </div> -->
 
-                <!-- Loading -->
-                <div v-if="isLoading" class="flex flex-col items-center justify-center py-40">
-                    <div class="w-10 h-10 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-                    <p class="mt-6 text-sm font-bold text-slate-500 uppercase tracking-widest">Loading...</p>
-                </div>
-
-                <!-- Error State -->
-                <div v-else-if="errorMsg" class="max-w-xl mx-auto py-32 text-center space-y-8" dir="rtl">
-                    <div
-                        class="w-20 h-20 bg-rose-50 text-rose-600 rounded-[2rem] flex items-center justify-center mx-auto text-3xl shadow-lg shadow-rose-100">
-                        <i class="pi pi-exclamation-circle"></i>
+                    <!-- Loading -->
+                    <div v-if="isLoading" class="flex flex-col items-center justify-center py-40">
+                        <div class="w-10 h-10 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin">
+                        </div>
+                        <p class="mt-6 text-sm font-bold text-slate-500 uppercase tracking-widest">Loading...</p>
                     </div>
-                    <div class="space-y-2">
-                        <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">System Notification</h2>
-                        <p class="text-slate-500 font-medium leading-relaxed">{{ errorMsg }}</p>
+
+                    <!-- Error State -->
+                    <div v-else-if="errorMsg" class="max-w-xl mx-auto py-32 text-center space-y-8" dir="rtl">
+                        <div
+                            class="w-20 h-20 bg-rose-50 text-rose-600 rounded-[2rem] flex items-center justify-center mx-auto text-3xl shadow-lg shadow-rose-100">
+                            <i class="pi pi-exclamation-circle"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">System Notification
+                            </h2>
+                            <p class="text-slate-500 font-medium leading-relaxed">{{ errorMsg }}</p>
+                        </div>
+                        <button @click="navigateSafely('/skill-selection')"
+                            class="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-brand-primary transition-all active:scale-95">
+                            Back to Dashboard
+                        </button>
                     </div>
-                    <button @click="navigateSafely('/skill-selection')"
-                        class="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-brand-primary transition-all active:scale-95">
-                        Back to Dashboard
-                    </button>
-                </div>
 
-                <!-- Exam Split Screen (Dynamic Layout) -->
-                <div v-else-if="currentQ"
-                    class="flex flex-col lg:flex-row gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0">
+                    <!-- Exam Split Screen (Dynamic Layout) -->
+                    <div v-else-if="currentQ"
+                        class="flex flex-col lg:flex-row gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0">
 
-                    <!-- Response Pane -->
-                    <div :class="responsePaneClass"
-                        class="flex flex-col h-full border-r border-slate-200 shadow-inner animate-in slide-in-from-left-8 duration-700 overflow-auto">
+                        <!-- Response Pane -->
+                        <div :class="responsePaneClass"
+                            class="flex flex-col h-full border-r border-slate-200 shadow-inner animate-in slide-in-from-left-8 duration-700 overflow-auto">
 
-                        <!-- ✅ التعديل الوحيد: overflow-y-auto بدل overflow-hidden لـ writing/short_answer -->
-                        <div :class="hasStimulusContent
-                            ? [
-                                'w-full p-4 flex-grow min-h-0 flex flex-col',
-                                currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer')
-                                    ? 'overflow-y-auto custom-scrollbar'
-                                    : 'overflow-y-auto custom-scrollbar'
-                            ]
-                            : [
-                                'max-w-5xl mx-auto w-full bg-white border border-slate-100 flex flex-col min-h-0 flex-grow transition-all duration-300',
-                                currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer')
-                                    ? 'my-2 rounded-xl p-4 overflow-y-auto custom-scrollbar'
-                                    : 'my-4 rounded-2xl shadow-xl p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]'
-                            ]">
-
-
-
-                            <!-- Audio Player -->
-                            <div v-if="currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path"
-                                :class="[
-                                    'bg-slate-50 rounded-lg border border-slate-200 shadow-inner',
-                                    currentQ.type === 'writing' || currentQ.type === 'short_answer' ? 'mb-2 p-2' : 'mb-4 p-3'
+                            <!-- ✅ التعديل الوحيد: overflow-y-auto بدل overflow-hidden لـ writing/short_answer -->
+                            <div :class="hasStimulusContent
+                                ? [
+                                    'w-full p-4 flex-grow min-h-0 flex flex-col',
+                                    currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer')
+                                        ? 'overflow-y-auto custom-scrollbar'
+                                        : 'overflow-y-auto custom-scrollbar'
+                                ]
+                                : [
+                                    'max-w-5xl mx-auto w-full bg-white border border-slate-100 flex flex-col min-h-0 flex-grow transition-all duration-300',
+                                    currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer')
+                                        ? 'my-2 rounded-xl p-4 overflow-y-auto custom-scrollbar'
+                                        : 'my-4 rounded-2xl shadow-xl p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]'
                                 ]">
-                                <div class="flex items-center gap-3 mb-2" dir="rtl">
+
+
+
+                                <!-- Audio Player -->
+                                <div v-if="currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path"
+                                    :class="[
+                                        'bg-slate-50 rounded-lg border border-slate-200 shadow-inner',
+                                        currentQ.type === 'writing' || currentQ.type === 'short_answer' ? 'mb-2 p-2' : 'mb-4 p-3'
+                                    ]">
+                                    <div class="flex items-center gap-3 mb-2" dir="rtl">
+                                        <div
+                                            class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center text-brand-primary text-[10px]">
+                                            <i class="pi pi-volume-up"
+                                                :class="isAudioPlaying ? 'animate-pulse' : ''"></i>
+                                        </div>
+                                        <span
+                                            class="text-[20px] font-black text-slate-400 uppercase tracking-widest"></span>
+                                    </div>
+                                    <div v-if="autoplayFailed && !isAudioPlaying && !hasListened"
+                                        class="mt-2 flex items-center justify-between p-2 bg-rose-50 border border-rose-200 rounded-lg animate-in fade-in slide-in-from-top-2 duration-500">
+                                        <div class="flex items-center gap-2">
+                                            <i class="pi pi-exclamation-triangle text-rose-500 text-xs"></i>
+                                            <span class="text-[10px] font-bold text-rose-700">Click to start
+                                                listening</span>
+                                        </div>
+                                        <button @click="toggleAudioManual"
+                                            class="px-4 py-1.5 bg-rose-600 text-white rounded-md text-[10px] font-black hover:bg-rose-700 transition-all shadow-sm">
+                                            Play audio
+                                        </button>
+                                    </div>
+                                    <div class="w-full bg-slate-200 h-1 rounded-full overflow-auto mt-1">
+                                        <div class="bg-brand-primary h-full transition-all duration-150 ease-linear"
+                                            :style="{ width: audioProgress + '%' }"></div>
+                                    </div>
                                     <div
-                                        class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center text-brand-primary text-[10px]">
-                                        <i class="pi pi-volume-up" :class="isAudioPlaying ? 'animate-pulse' : ''"></i>
+                                        class="flex justify-between mt-1.5 text-[8px] font-bold text-slate-400 font-mono">
+                                        <span class="text-brand-primary">{{ audioCurrentTime }}</span>
+                                        <span>{{ audioDuration }}</span>
                                     </div>
-                                    <span
-                                        class="text-[20px] font-black text-slate-400 uppercase tracking-widest"></span>
                                 </div>
-                                <div v-if="autoplayFailed && !isAudioPlaying && !hasListened"
-                                    class="mt-2 flex items-center justify-between p-2 bg-rose-50 border border-rose-200 rounded-lg animate-in fade-in slide-in-from-top-2 duration-500">
-                                    <div class="flex items-center gap-2">
-                                        <i class="pi pi-exclamation-triangle text-rose-500 text-xs"></i>
-                                        <span class="text-[10px] font-bold text-rose-700">Click to start
-                                            listening</span>
-                                    </div>
-                                    <button @click="toggleAudioManual"
-                                        class="px-4 py-1.5 bg-rose-600 text-white rounded-md text-[10px] font-black hover:bg-rose-700 transition-all shadow-sm">
-                                        Play audio
-                                    </button>
-                                </div>
-                                <div class="w-full bg-slate-200 h-1 rounded-full overflow-auto mt-1">
-                                    <div class="bg-brand-primary h-full transition-all duration-150 ease-linear"
-                                        :style="{ width: audioProgress + '%' }"></div>
-                                </div>
-                                <div class="flex justify-between mt-1.5 text-[8px] font-bold text-slate-400 font-mono">
-                                    <span class="text-brand-primary">{{ audioCurrentTime }}</span>
-                                    <span>{{ audioDuration }}</span>
-                                </div>
-                            </div>
 
-                            <div :class="[
-                                'flex-grow flex flex-col min-h-0',
-                                ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type)
-                                    ? 'space-y-2'
-                                    : 'space-y-4'
-                            ]">
-                                <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                    :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
-                                    v-html="cleanHtml(currentQ.content)" dir="auto">
+                                <div :class="[
+                                    'flex-grow flex flex-col min-h-0',
+                                    ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type)
+                                        ? 'space-y-2'
+                                        : 'space-y-4'
+                                ]">
+                                    <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
+                                        :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
+                                        v-html="cleanHtml(currentQ.content)" dir="auto">
+                                    </div>
+                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                                        class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
+                                        <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto">
+                                            {{ displayInstructions }}
+                                        </p>
+                                    </div>
+                                    <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
+                                        :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
+                                        :hasStimulusContent="hasStimulusContent" />
                                 </div>
+
                                 <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
-                                    class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
-                                    <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto">
-                                        {{ displayInstructions }}
-                                    </p>
-                                </div>
-                                <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
-                                    :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
-                                    :hasStimulusContent="hasStimulusContent" />
-                            </div>
-
-                            <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
-                                class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
-                                <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest"></span>
-                            </div>
-                        </div>
-
-                        <!-- ✅ Virtual Keyboard - pinned في الأسفل، shrink-0 عشان مايتضغطش -->
-                        <transition name="slide-up">
-                            <div v-if="showVirtualKeyboard && answers[currentIndex] && (currentQ.type === 'writing' || currentQ.type === 'short_answer')"
-                                class="w-full border-t border-slate-200 bg-slate-50 shrink-0 z-40 py-1.5 px-3">
-                                <div :class="hasStimulusContent ? 'w-full' : 'max-w-5xl mx-auto'">
-                                    <VirtualKeyboard v-model="answers[currentIndex].text_answer" layout="arabic" />
+                                    class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+                                    <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest"></span>
                                 </div>
                             </div>
-                        </transition>
-                    </div>
 
-                    <!-- Stimulus Pane -->
-                    <div v-if="hasStimulusContent" :class="stimulusPaneClass">
-                        <div class="flex items-center space-x-2 space-x-reverse mb-4 pb-2 border-b border-slate-100"
-                            dir="rtl">
-                            <i class="pi pi-file-edit text-slate-400"></i>
-                            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest"> </span>
+                            <!-- ✅ Virtual Keyboard - pinned في الأسفل، shrink-0 عشان مايتضغطش -->
+                            <transition name="slide-up">
+                                <div v-if="showVirtualKeyboard && answers[currentIndex] && (currentQ.type === 'writing' || currentQ.type === 'short_answer')"
+                                    class="w-full border-t border-slate-200 bg-slate-50 shrink-0 z-40 py-1.5 px-3">
+                                    <div :class="hasStimulusContent ? 'w-full' : 'max-w-5xl mx-auto'">
+                                        <VirtualKeyboard v-model="answers[currentIndex].text_answer" layout="arabic" />
+                                    </div>
+                                </div>
+                            </transition>
                         </div>
-                        <div class="flex-grow prose prose-slate max-w-none">
-                            <div v-if="currentQ.passage"
-                                class="space-y-4 mb-6 pb-6 border-b border-slate-100 border-dashed">
-                                <h3 v-if="currentQ.passage.title"
-                                    class="text-xl font-black text-slate-900 tracking-tight leading-tight" dir="auto">{{
-                                        currentQ.passage.title }}</h3>
-                                <div v-if="currentQ.passage.image_url || currentQ.passage.image_path"
-                                    class="w-full mb-4 flex justify-center">
-                                    <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
-                                        class="rounded-xl shadow-md border border-slate-100"
-                                        :class="!currentQ.passage.image_width && !currentQ.passage.image_height ? 'w-full h-auto' : 'max-w-full'"
-                                        :style="currentQ.passage.image_width || currentQ.passage.image_height ? {
-                                            width: currentQ.passage.image_width ? `${currentQ.passage.image_width}px` : 'auto',
-                                            height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'
+
+                        <!-- Stimulus Pane -->
+                        <div v-if="hasStimulusContent" :class="stimulusPaneClass">
+                            <div class="flex items-center space-x-2 space-x-reverse mb-4 pb-2 border-b border-slate-100"
+                                dir="rtl">
+                                <i class="pi pi-file-edit text-slate-400"></i>
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest"> </span>
+                            </div>
+                            <div class="flex-grow prose prose-slate max-w-none">
+                                <div v-if="currentQ.passage"
+                                    class="space-y-4 mb-6 pb-6 border-b border-slate-100 border-dashed">
+                                    <h3 v-if="currentQ.passage.title"
+                                        class="text-xl font-black text-slate-900 tracking-tight leading-tight"
+                                        dir="auto">{{
+                                            currentQ.passage.title }}</h3>
+                                    <div v-if="currentQ.passage.image_url || currentQ.passage.image_path"
+                                        class="w-full mb-4 flex justify-center">
+                                        <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
+                                            class="rounded-xl shadow-md border border-slate-100"
+                                            :class="!currentQ.passage.image_width && !currentQ.passage.image_height ? 'w-full h-auto' : 'max-w-full'"
+                                            :style="currentQ.passage.image_width || currentQ.passage.image_height ? {
+                                                width: currentQ.passage.image_width ? `${currentQ.passage.image_width}px` : 'auto',
+                                                height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'
+                                            } : {}" />
+                                    </div>
+                                    <div v-if="currentQ.passage.content"
+                                        class="text-lg text-slate-700 leading-relaxed font-serif text-justify ql-content rtl-support"
+                                        v-html="cleanHtml(currentQ.passage.content)" dir="auto"></div>
+                                </div>
+                                <div v-if="(currentQ.media_url || currentQ.media_path) && (currentQ.media_url || currentQ.media_path).includes('.mp4')"
+                                    class="flex flex-col items-center justify-center py-4">
+                                    <video :src="resolveUrl(currentQ.media_url || currentQ.media_path)" controls
+                                        autoplay @ended="hasListened = true"
+                                        class="w-full rounded-xl shadow-lg"></video>
+                                </div>
+                                <div v-if="currentQ.image_url || currentQ.image_path"
+                                    class="w-full flex justify-center py-4">
+                                    <img :src="resolveUrl(currentQ.image_url || currentQ.image_path)"
+                                        class="rounded-xl shadow-lg border border-white"
+                                        :class="!currentQ.image_width && !currentQ.image_height ? 'max-w-full h-auto' : 'max-w-full'"
+                                        :style="currentQ.image_width || currentQ.image_height ? {
+                                            width: currentQ.image_width ? `${currentQ.image_width}px` : 'auto',
+                                            height: currentQ.image_height ? `${currentQ.image_height}px` : 'auto'
                                         } : {}" />
                                 </div>
-                                <div v-if="currentQ.passage.content"
-                                    class="text-lg text-slate-700 leading-relaxed font-serif text-justify ql-content rtl-support"
-                                    v-html="cleanHtml(currentQ.passage.content)" dir="auto"></div>
-                            </div>
-                            <div v-if="(currentQ.media_url || currentQ.media_path) && (currentQ.media_url || currentQ.media_path).includes('.mp4')"
-                                class="flex flex-col items-center justify-center py-4">
-                                <video :src="resolveUrl(currentQ.media_url || currentQ.media_path)" controls autoplay
-                                    @ended="hasListened = true" class="w-full rounded-xl shadow-lg"></video>
-                            </div>
-                            <div v-if="currentQ.image_url || currentQ.image_path"
-                                class="w-full flex justify-center py-4">
-                                <img :src="resolveUrl(currentQ.image_url || currentQ.image_path)"
-                                    class="rounded-xl shadow-lg border border-white"
-                                    :class="!currentQ.image_width && !currentQ.image_height ? 'max-w-full h-auto' : 'max-w-full'"
-                                    :style="currentQ.image_width || currentQ.image_height ? {
-                                        width: currentQ.image_width ? `${currentQ.image_width}px` : 'auto',
-                                        height: currentQ.image_height ? `${currentQ.image_height}px` : 'auto'
-                                    } : {}" />
                             </div>
                         </div>
                     </div>
-                </div>
-            </main>
+                </main>
 
-            <!-- Timeout Modal -->
-            <div v-if="showTimeoutModal"
-                class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                <div
-                    class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                <!-- Timeout Modal -->
+                <div v-if="showTimeoutModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div
-                        class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
-                        <i class="pi pi-clock text-4xl text-rose-500 animate-pulse"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight"> TIMEOUT! </h2>
-                        <p class="text-slate-500 font-bold leading-relaxed">The time allocated for this part of the exam
-                            has
-                            expired. Your answers will be saved and you will be directed automatically.</p>
-                    </div>
-                    <button @click="handleTimeout"
-                        class="w-full py-5 bg-brand-primary text-white rounded-2xl font-black text-lg hover:bg-brand-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-100">
-                        OK
-                    </button>
-                </div>
-            </div>
-
-            <!-- Exit Confirmation Modal -->
-            <div v-if="showExitModal"
-                class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                <div
-                    class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
-                    <div
-                        class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
-                        <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">ARE YOU SURE?</h2>
-                        <p class="text-slate-500 font-bold leading-relaxed">Are you sure you want to exit? The exam will
-                            be ended
-                            and your current progress will be saved and you will not be able to return.</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 pt-2">
-                        <button @click="showExitModal = false"
-                            class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
-                            CANCEL
-                        </button>
-                        <button @click="confirmExit"
-                            class="py-4 bg-rose-600 text-white rounded-2xl font-black text-sm hover:bg-rose-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-rose-100">
-                            CONFIRM EXIT
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
+                            <i class="pi pi-clock text-4xl text-rose-500 animate-pulse"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight"> TIMEOUT! </h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">The time allocated for this part of the
+                                exam
+                                has
+                                expired. Your answers will be saved and you will be directed automatically.</p>
+                        </div>
+                        <button @click="handleTimeout"
+                            class="w-full py-5 bg-brand-primary text-white rounded-2xl font-black text-lg hover:bg-brand-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-100">
+                            OK
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- System Requirement Tester Modal -->
-            <RequirementTester v-if="activeTesterReq" :requirement="activeTesterReq" @close="activeTesterReq = null"
-                @passed="handleTestPassed" />
-
-            <!-- Confirm Answer Modal -->
-            <div v-if="showConfirmAnswerModal"
-                class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                <div
-                    class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                <!-- Exit Confirmation Modal -->
+                <div v-if="showExitModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div
-                        class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
-                        <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Please complete the task before
-                            continuing.
-                        </h2>
-                        <p class="text-slate-500 font-bold leading-relaxed">Please complete the task before continuing.
-                        </p>
-                    </div>
-                    <div class="grid grid-cols-1 gap-4 pt-2">
-                        <button @click="showConfirmAnswerModal = false"
-                            class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
-                            ok
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cheat Warning Modal -->
-            <div v-if="showCheatModal"
-                class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                <div
-                    class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
-                    <div
-                        class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
-                        <i class="pi pi-shield text-4xl text-rose-500"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Security Alert</h2>
-                        <p class="text-slate-500 font-bold leading-relaxed">Please do not leave the exam page or switch
-                            tabs. Any
-                            suspicious activity is being recorded and will be reported to administrators.</p>
-                        <div class="pt-2">
-                            <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} </p>
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
+                            <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight">ARE YOU SURE?</h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">Are you sure you want to exit? The exam
+                                will
+                                be ended
+                                and your current progress will be saved and you will not be able to return.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <button @click="showExitModal = false"
+                                class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
+                                CANCEL
+                            </button>
+                            <button @click="confirmExit"
+                                class="py-4 bg-rose-600 text-white rounded-2xl font-black text-sm hover:bg-rose-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-rose-100">
+                                CONFIRM EXIT
+                            </button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 gap-4 pt-2">
-                        <button @click="showCheatModal = false"
-                            class="py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-lg">
-                            Understood, I will adhere to the instructions
-                        </button>
-                    </div>
                 </div>
-            </div>
 
-            <!-- Inactivity Modal -->
-            <div v-if="showInactivityModal"
-                class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                <div
-                    class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                <!-- System Requirement Tester Modal -->
+                <RequirementTester v-if="activeTesterReq" :requirement="activeTesterReq" @close="activeTesterReq = null"
+                    @passed="handleTestPassed" />
+
+                <!-- Confirm Answer Modal -->
+                <div v-if="showConfirmAnswerModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div
-                        class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
-                        <i class="pi pi-clock text-4xl text-amber-500"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Inactivity Alert</h2>
-                        <p class="text-slate-500 font-bold leading-relaxed">You have been inactive for too long. Your
-                            session will
-                            be terminated in a few seconds.</p>
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
+                            <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Please complete the task
+                                before
+                                continuing.
+                            </h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">Please complete the task before
+                                continuing.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 pt-2">
+                            <button @click="showConfirmAnswerModal = false"
+                                class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
+                                ok
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+
+                <!-- Cheat Warning Modal -->
+                <div v-if="showCheatModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
+                            <i class="pi pi-shield text-4xl text-rose-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Security Alert</h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">Please do not leave the exam page or
+                                switch
+                                tabs. Any
+                                suspicious activity is being recorded and will be reported to administrators.</p>
+                            <div class="pt-2">
+                                <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} </p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 pt-2">
+                            <button @click="showCheatModal = false"
+                                class="py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-lg">
+                                Understood, I will adhere to the instructions
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inactivity Modal -->
+                <div v-if="showInactivityModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
+                            <i class="pi pi-clock text-4xl text-amber-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Inactivity Alert
+                            </h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">You have been inactive for too long.
+                                Your
+                                session will
+                                be terminated in a few seconds.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </template>
 
             <!-- Proctoring Camera Widget -->
             <ProctorCamera v-if="proctoringRequired && proctoringSessionId && proctoringComplete"
-                :session-id="proctoringSessionId" :student-id="studentId" />
+                :session-id="proctoringSessionId" :student-id="studentId" :is-checking="!enteredExam"
+                @ready="handleCameraReady" @error="handleCameraError" />
         </template>
     </div>
 </template>
@@ -1577,5 +1646,15 @@ onUnmounted(() => {
     font-weight: 900 !important;
     font-family: sans-serif !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Hide all scrollbars visually from any child div inside the exam */
+:deep(div) {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+:deep(div::-webkit-scrollbar) {
+    display: none !important;
 }
 </style>

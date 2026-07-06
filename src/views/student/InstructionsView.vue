@@ -254,7 +254,7 @@ const getSkillSpecificInstructions = (name) => {
 </script>
 
 <template>
-    <div class="h-screen bg-[#F8FAFC] flex flex-col font-sans relative overflow-hidden">
+    <div class="min-h-screen bg-[#F8FAFC] flex flex-col font-sans relative">
         <StudentHeader />
         
         <!-- Decoration -->
@@ -263,8 +263,8 @@ const getSkillSpecificInstructions = (name) => {
             <div class="absolute bottom-[10%] -right-[5%] w-[30%] h-[30%] bg-brand-accent/5 rounded-full blur-[120px]"></div>
         </div>
 
-        <main class="flex-grow flex items-center justify-center p-6 relative z-10 overflow-hidden">
-            <div class="w-full max-w-7xl h-full max-h-[min(750px,calc(100vh-120px))] bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-700">
+        <main class="flex items-center justify-center p-6 relative z-10 py-12">
+            <div class="w-full max-w-7xl bg-white rounded-xl shadow-2xl border border-slate-100 flex flex-col animate-in fade-in zoom-in duration-700">
                 <!-- Header Banner -->
                 <div class="bg-slate-900 p-5 md:p-6 text-white relative overflow-hidden shrink-0">
                     <div class="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>

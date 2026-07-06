@@ -24,7 +24,8 @@ export function useAntiCheat(attemptId: any, options: { onFinalWarning: () => vo
                     await api.post(`/proctoring/session/${proctoringSessionId.value}/violation`, {
                         violation_type: 'tab_switched',
                         severity: 'medium',
-                        description: 'قام الطالب بالانتقال إلى تبويب آخر أو تصغير المتصفح'
+                        description: 'قام الطالب بالانتقال إلى تبويب آخر أو تصغير المتصفح' // in english 
+                        
                     });
                 } catch (err) {
                     console.error('Failed to report tab_switched violation:', err);
