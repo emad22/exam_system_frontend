@@ -3,10 +3,14 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import StudentHeader from '@/components/StudentHeader.vue';
 import api from '@/services/api';
+import { authStorage } from '@/services/authStorage';
+import { shouldBlockLocalFaceMismatch } from '@/utils/identityVerification';
 import * as faceapi from '@vladmandic/face-api';
 
 
 const router = useRouter();
+
+
 
 // ─── Steps ────────────────────────────────────────────────────────
 // 0: System Check  1: Camera & Mic  2: Identity  3: Review  4: Ready
@@ -107,6 +111,7 @@ const isCapturing = ref(false);
 const isVerifying = ref(false);
 const verifyError = ref('');
 const verifySuccess = ref(false);
+const isIdentityBypassed = ref(false);
 let faceStream = null;
 
 const faceModelsLoaded = ref(false);
@@ -134,8 +139,33 @@ const idFaceMatchScore = ref(null);   // 0-100 percentage
 const idFaceDistance = ref(null);     // euclidean distance (lower = better)
 const idFaceStatus = ref('');         // 'matched' | 'mismatch' | 'no_face'
 
-const canVerify = computed(() => capturedFace.value && idNumber.value.trim().length >= 3);
+// const canVerify = computed(() => capturedFace.value && idNumber.value.trim().length >= 3);
+const canVerify = computed(() =>
+    capturedFace.value &&
+    uploadedId.value &&
+    idNumber.value.trim().length >= 3
+);
 const identityDone = computed(() => verifySuccess.value);
+
+const loadIdentityBypassState = async () => {
+    const storedUser = authStorage.getUser();
+    const storedBypass = storedUser?.student?.bypass_identity_verification;
+    if (typeof storedBypass === 'boolean') {
+        isIdentityBypassed.value = storedBypass;
+        return;
+    }
+
+    try {
+        const { data } = await api.get('/user');
+        const bypassFromProfile = data?.student?.bypass_identity_verification;
+        isIdentityBypassed.value = !!bypassFromProfile;
+        if (data?.student) {
+            authStorage.setUser(data);
+        }
+    } catch (error) {
+        console.warn('Unable to load identity bypass state:', error);
+    }
+};
 
 const startFaceCamera = async () => {
     try { faceStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } }); if (faceVideoEl.value) faceVideoEl.value.srcObject = faceStream; }
@@ -319,7 +349,7 @@ const verifyIdentity = async () => {
             faceVsIdScore = Math.round((1 - Math.min(faceVsIdDistance, 1)) * 100);
 
             // Check if face match is good enough (distance < 0.6 is good)
-            if (faceVsIdDistance >= 0.6) {
+            if (shouldBlockLocalFaceMismatch({ bypassEnabled: isIdentityBypassed.value, distance: faceVsIdDistance })) {
                 verifyError.value = 'Face does not match the ID card image. Please ensure you are the person in the ID.';
                 return;
             }
@@ -426,7 +456,7 @@ const proceed = () => {
 onMounted(() => {
     runSystemChecks();
     loadFaceModels(); // ابدأ تحميل الـ models في الخلفية من أول ما الصفحة تفتح
-
+    loadIdentityBypassState();
 });
 onUnmounted(() => { stopCamMic(); stopFaceCamera(); });
 </script>

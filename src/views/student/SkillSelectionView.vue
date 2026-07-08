@@ -31,6 +31,9 @@ const sortedSkills = computed(() => {
 });
 
 const proctoringRequired = computed(() => {
+    if (student.value?.student?.is_demo) {
+        return !!(student.value?.student?.is_demo_proctored);
+    }
     return !!(student.value?.student?.partner?.proctoring_required);
 });
 
@@ -70,8 +73,10 @@ const fetchExamsAndUser = async () => {
 
         // Check if requirements or proctoring check needs to be done
         const userRole = (student.value?.role || '').toLowerCase();
-        const isDemo = ['demo', 'deom', 'staff'].includes(userRole);
-        const proctoringRequired = !!(student.value?.student?.partner?.proctoring_required);
+        const isDemo = ['demo', 'deom', 'staff'].includes(userRole) || !!student.value?.student?.is_demo;
+        const proctoringRequired = isDemo
+            ? !!(student.value?.student?.is_demo_proctored)
+            : !!(student.value?.student?.partner?.proctoring_required);
 
         if (!isDemo) {
             if (proctoringRequired) {
@@ -123,6 +128,8 @@ const getSkillIcon = (name) => {
 };
 
 const isSkillCompleted = (exam, skillId) => {
+    const isDemo = ['demo', 'deom', 'staff'].includes((student.value?.role || '').toLowerCase()) || !!student.value?.student?.is_demo;
+    if (isDemo) return false;
     if (!exam || !exam.skill_statuses) return false;
     const status = exam.skill_statuses[skillId];
     return ['completed', 'failed', 'skipped'].includes(status);
@@ -133,7 +140,7 @@ const isSkillInProgress = (exam, skillId) => {
     return exam.skill_statuses[skillId] === 'in_progress';
 };
 
-const selectSkill = (skillId) => {
+const selectSkill = (skillId, levelId = null) => {
     if (isSessionRestricted.value) return;
     const exam = exams.value[0];
     if (!exam) return;
@@ -142,7 +149,8 @@ const selectSkill = (skillId) => {
         name: 'exam.instructions',
         params: {
             examId: exam.id,
-            skillId: skillId
+            skillId: skillId,
+            levelId: levelId || ''
         }
     });
 };
@@ -160,6 +168,8 @@ const activeSkillId = computed(() => {
 });
 
 const isSkillLocked = (exam, skillId) => {
+    const isDemo = ['demo', 'deom', 'staff'].includes((student.value?.role || '').toLowerCase()) || !!student.value?.student?.is_demo;
+    if (isDemo) return false;
     if (!activeSkillId.value) return false;
     if (skillId === activeSkillId.value) return false;
     if (isSkillCompleted(exam, skillId)) return false;
@@ -258,7 +268,7 @@ onUnmounted(() => {
                 <div v-else class="pt-2 pr-1.5">
                     <div class="space-y-2.5 pb-1 animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <div v-for="skill in sortedSkills" :key="skill.id"
-                            @click="!isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) && selectSkill(skill.id)"
+                            @click="!isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) && (student?.student?.is_demo ? selectSkill(skill.id, 1) : selectSkill(skill.id))"
                             class="group relative bg-white border border-slate-100 rounded-xl px-5 py-3 min-h-[78px] transition-all duration-300 flex items-center gap-5"
                             :class="[
                                 isSessionRestricted ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : '',
@@ -298,21 +308,35 @@ onUnmounted(() => {
                                         <span class="text-[8px] font-black uppercase tracking-widest">Not Taken</span>
                                     </div>
                                 </div>
-                                <div v-if="isSkillLocked(exams[0], skill.id)"
+                                <div v-if="isSkillLocked(exams[0], skill.id) && !student?.student?.is_demo"
                                     class="flex items-center gap-1.5 bg-slate-100 text-slate-400 px-3 py-1 rounded-md border border-slate-200">
                                     <i class="pi pi-lock text-[10px]"></i>
                                     <span class="text-[8px] font-black uppercase tracking-widest">Locked</span>
                                 </div>
 
-                                <!--<p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Institutional Proficiency Assessment Track</p>-->
+                                <div v-if="student?.student?.is_demo" class="flex flex-wrap items-center gap-1.5 mt-2"
+                                    @click.stop>
+                                    <span
+                                        class="text-[8px] font-black text-slate-400 uppercase tracking-widest mr-1">Select
+                                        starting level:</span>
+                                    <button v-for="lvl in 6" :key="lvl" @click="selectSkill(skill.id, lvl)"
+                                        class="w-6 h-6 rounded-md bg-slate-100 hover:bg-brand-primary hover:text-white transition-colors text-[9px] font-black flex items-center justify-center border border-slate-200">
+                                        {{ lvl }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Action "Link" Style -->
                             <div class="shrink-0 flex items-center gap-4">
-                                <div v-if="!isSkillCompleted(exams[0], skill.id)"
+                                <div v-if="student?.student?.is_demo"
+                                    class="flex items-center gap-2 text-brand-primary transition-all font-black text-[9px] uppercase tracking-[0.2em]">
+                                    <span>Select Level to Start</span>
+                                    <i class="pi pi-arrow-right text-[8px] transition-transform"></i>
+                                </div>
+                                <div v-else-if="!isSkillCompleted(exams[0], skill.id)"
                                     class="flex items-center gap-2 text-slate-300 group-hover:text-brand-primary transition-all font-black text-[9px] uppercase tracking-[0.2em]">
                                     <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Test' : 'Start Test'
-                                        }}</span>
+                                    }}</span>
                                     <i
                                         class="pi pi-arrow-right text-[8px] group-hover:translate-x-1 transition-transform"></i>
                                 </div>

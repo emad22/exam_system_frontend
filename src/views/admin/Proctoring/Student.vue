@@ -124,7 +124,7 @@ interface StudentSession {
     exam_attempt?: { exam: { title: string } }
 }
 interface StudentData {
-    student: { id: number; user?: { name: string; email: string } }
+    student: { id: number; user?: { name: string; email: string }; bypass_identity_verification?: boolean }
     sessions: StudentSession[]
 }
 
@@ -281,6 +281,22 @@ const initials = computed(() => {
     return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
 })
 
+const isTogglingBypass = ref(false)
+const toggleBypass = async () => {
+    if (!studentData.value?.student?.id) return
+    isTogglingBypass.value = true
+    try {
+        const response = await api.post(`/admin/students/${studentData.value.student.id}/toggle-bypass-identity-verification`)
+        if (studentData.value.student) {
+            studentData.value.student.bypass_identity_verification = response.data.bypass_identity_verification
+        }
+    } catch (error) {
+        console.error('Failed to toggle bypass identity verification:', error)
+    } finally {
+        isTogglingBypass.value = false
+    }
+}
+
 onMounted(fetchStudentSessions)
 </script>
 
@@ -354,6 +370,12 @@ onMounted(fetchStudentSessions)
                                     <i class="pi pi-envelope text-[10px]"></i>
                                     {{ studentData.student?.user?.email }}
                                 </p>
+                                <button @click="toggleBypass" :disabled="isTogglingBypass"
+                                    :class="studentData.student?.bypass_identity_verification ? 'bg-emerald-500 hover:bg-emerald-630 text-white' : 'bg-slate-100/80 hover:bg-slate-200 text-slate-600 border border-slate-200/50'"
+                                    class="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all duration-300 cursor-pointer disabled:opacity-60">
+                                    <i :class="isTogglingBypass ? 'pi pi-spin pi-spinner' : 'pi pi-shield'"></i>
+                                    <span>{{ studentData.student?.bypass_identity_verification ? (currentLang === 'ar' ?'إلغاء تخطي الهوية' : 'Disable Identity Bypass') : (currentLang === 'ar' ? 'تخطيالتحقق من الهوية' : 'Bypass Identity Verification') }}</span>
+                                </button>
                             </div>
 
                             <!-- Quick Stats chips -->
@@ -606,14 +628,14 @@ onMounted(fetchStudentSessions)
                 <p class="text-xs font-bold text-slate-500 text-center leading-relaxed mb-6">
                     <template v-if="sessionEndMode === 'skill'">
                         {{ currentLang === 'ar'
-                            ? 'سيتم إيقاف الجلسة مؤقتاً وسيُبلَّغ الطالب. يمكن للطالب استئناف المهمة عند اختيار مهارة جديدة.'
-                            : 'The session will be paused and the student notified. They can resume by selecting a new skill.'
+                            ? 'سيتم إيقاف الجلسة مؤقتاً وسيُبلَّغ الطالب. يمكن للطالب استئناف المهمة عند اختيار مهارةجديدة.'
+                        : 'The session will be paused and the student notified. They can resume by selecting a new skill.'
                         }}
                     </template>
                     <template v-else>
                         {{ currentLang === 'ar'
                             ? 'سيتم إنهاء الجلسة وإخراج الطالب من الامتحان. لا يمكنه مواصلة هذه المحاولة.'
-                            : 'The session will be ended and the student will be removed from the exam. They cannot continue this attempt.'
+                            : 'The session will be ended and the student will be removed from the exam. They cannot continuethis attempt.'
                         }}
                     </template>
                 </p>

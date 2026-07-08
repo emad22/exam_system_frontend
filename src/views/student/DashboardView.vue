@@ -44,11 +44,13 @@ const fetchDashboard = async () => {
 
         // Check role case-insensitively and include typos
         const userRole = (student.value?.role || '').toLowerCase();
-        isDemo.value = ['demo', 'deom', 'staff'].includes(userRole);
+        isDemo.value = ['demo', 'deom', 'staff'].includes(userRole) || !!student.value?.student?.is_demo;
 
         // Auto-redirect proctored students to proctoring requirements
         // if they haven't completed the proctoring check this session
-        const proctoringRequired = !!(student.value?.student?.partner?.proctoring_required);
+        const proctoringRequired = isDemo.value
+            ? !!(student.value?.student?.is_demo_proctored)
+            : !!(student.value?.student?.partner?.proctoring_required);
         const alreadyVerified = sessionStorage.getItem('proctoring_verified') === 'true';
 
         if (!isDemo.value && proctoringRequired && !alreadyVerified) {
@@ -93,7 +95,9 @@ const startSkill = async (skillId) => {
     if (!exams.value[0]) return;
     if (!isDemo.value && isSkillCompleted(exams.value[0], skillId)) return;
 
-    const partnerProctoringRequired = !!(student.value?.student?.partner?.proctoring_required);
+    const partnerProctoringRequired = isDemo.value
+        ? !!(student.value?.student?.is_demo_proctored)
+        : !!(student.value?.student?.partner?.proctoring_required);
 
     if (isDemo.value) {
         // Demo students go straight to exam with level override
@@ -253,7 +257,8 @@ const vClickOutside = {
                 </section>
 
                 <!-- Proctoring Badge — shown if partner requires it -->
-                <section v-if="student?.student?.partner?.proctoring_required"
+                <section
+                    v-if="isDemo ? student?.student?.is_demo_proctored : student?.student?.partner?.proctoring_required"
                     class="bg-violet-50 border border-violet-200 p-4 rounded-[0.5rem] flex items-center gap-3">
                     <div class="w-8 h-8 bg-violet-600 text-white rounded-xl flex items-center justify-center shrink-0">
                         <i class="pi pi-shield text-[10px]"></i>
@@ -387,23 +392,20 @@ const vClickOutside = {
 
                         <!-- Skills Grid -->
                         <div v-if="exams?.[0]?.skills?.length" class="grid grid-cols-2 gap-3 text-left">
-                            <button
-                                v-for="skill in exams[0].skills"
-                                :key="skill.id"
-                                @click="startSkill(skill.id)"
+                            <button v-for="skill in exams[0].skills" :key="skill.id" @click="startSkill(skill.id)"
                                 :disabled="!isDemo && isSkillCompleted(exams[0], skill.id)"
                                 class="group flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300"
                                 :class="isSkillCompleted(exams[0], skill.id) && !isDemo
                                     ? 'border-emerald-100 bg-emerald-50/50 cursor-not-allowed opacity-70'
-                                    : 'border-slate-100 hover:border-brand-primary/30 hover:bg-brand-primary/5 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer'"
-                            >
+                                    : 'border-slate-100 hover:border-brand-primary/30 hover:bg-brand-primary/5 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer'">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all"
                                     :class="isSkillCompleted(exams[0], skill.id) && !isDemo
                                         ? 'bg-emerald-500'
                                         : 'bg-slate-100 group-hover:bg-brand-primary/10'">
                                     <i v-if="isSkillCompleted(exams[0], skill.id) && !isDemo"
                                         class="pi pi-check text-white text-xs"></i>
-                                    <i v-else class="pi pi-play text-slate-400 group-hover:text-brand-primary text-xs"></i>
+                                    <i v-else
+                                        class="pi pi-play text-slate-400 group-hover:text-brand-primary text-xs"></i>
                                 </div>
                                 <div class="min-w-0">
                                     <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight truncate">

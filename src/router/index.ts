@@ -296,6 +296,19 @@ const adminRoutes = [
     meta: { title: 'Certificate Templates' }
   },
   {
+    path: '/admin/certificates/templates/create',
+    name: 'admin.certificates.templates.create',
+    component: () => import('@/views/admin/Certificates/create.vue'),
+    meta: { title: 'Create Certificate Template' }
+  },
+  {
+    path: '/admin/certificates/templates/:id/edit',
+    name: 'admin.certificates.templates.edit',
+    component: () => import('@/views/admin/Certificates/edit.vue'),
+    props: true,
+    meta: { title: 'Edit Certificate Template' }
+  },
+  {
     path: '/admin/profile',
     name: 'admin.profile',
     component: ProfileView,

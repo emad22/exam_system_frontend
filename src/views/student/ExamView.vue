@@ -263,7 +263,7 @@ const handleVisibilityChange = () => logCheatWarning(isStarting.value, showTimeo
 const startTimer = async () => {
     const user = authStorage.getUser();
     const role = (user?.role || '').toLowerCase();
-    isDemo.value = ['demo', 'staff'].includes(role);
+    isDemo.value = ['demo', 'staff'].includes(role) || !!user?.student?.is_demo;
     if (isDemo.value) return;
     initTimer(timerConfig.value, () => {
         showTimeoutModal.value = true;
@@ -306,6 +306,12 @@ const handleProctoringComplete = async (sessionData) => {
 };
 
 const autoStartProctoring = async () => {
+    // Demo users who don't require proctoring should skip this entirely
+    if (isDemo.value && !proctoringRequired.value) {
+        proctoringComplete.value = true;
+        return;
+    }
+
     if (proctoringRequired.value && !proctoringSessionId.value) {
         const isVerified = sessionStorage.getItem('proctoring_verified') === 'true';
         if (isVerified) {
@@ -435,7 +441,7 @@ const beginExam = async () => {
 
 const confirmExit = async () => {
     showExitModal.value = false;
-    isIntentionallyLeaving.value = true; // ✅ أضف ده
+    isIntentionallyLeaving.value = true; // 
     try {
         isLoading.value = true;
         await api.post(`/attempts/${attemptId.value}/completion`);
@@ -1028,19 +1034,27 @@ const handleBeforeUnloadBeacon = () => {
 onMounted(async () => {
     const user = authStorage.getUser();
     studentId.value = user?.id;
-    isDemo.value = user && ['demo', 'staff'].includes(user.role?.toLowerCase());
+    isDemo.value = (user && ['demo', 'staff'].includes(user.role?.toLowerCase())) || !!user?.student?.is_demo;
 
     // Determine if proctoring is required for this student's partner.
     // PROCTORING_ENABLED is a master kill-switch — if false, proctoring is always skipped.
-    if (isDemo.value || !PROCTORING_ENABLED) {
+    if (!PROCTORING_ENABLED) {
         proctoringRequired.value = false;
         proctoringComplete.value = true;
     } else {
         try {
             const userRes = await api.get('/user');
             studentId.value = userRes.data?.id;
-            const partnerProctoringRequired = userRes.data?.student?.partner?.proctoring_required ?? false;
-            proctoringRequired.value = !!partnerProctoringRequired;
+            const fetchedStudent = userRes.data?.student;
+            const isStudentDemo = !!fetchedStudent?.is_demo;
+            isDemo.value = isDemo.value || isStudentDemo;
+
+            if (isStudentDemo) {
+                proctoringRequired.value = !!fetchedStudent?.is_demo_proctored;
+            } else {
+                proctoringRequired.value = !!fetchedStudent?.partner?.proctoring_required;
+            }
+
             if (!proctoringRequired.value) {
                 // Partner doesn't require proctoring — skip initializer
                 proctoringComplete.value = true;
