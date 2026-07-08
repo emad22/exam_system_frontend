@@ -1,12 +1,20 @@
 import { ref, nextTick } from 'vue';
+import type { Ref } from 'vue';
 import { useMediaUrl } from './useMediaUrl';
 
 /**
  * useAudioManagement - إدارة تشغيل الصوتيات والمسارات
  */
-export const useAudioManagement = (currentQuestion, isLoading, showLevelTransition, showRetryNotification, isStarting, proctoringComplete) => {
+export const useAudioManagement = (
+    currentQuestion: Ref<Record<string, unknown> | null>,
+    isLoading: Ref<boolean>,
+    showLevelTransition: Ref<boolean>,
+    showRetryNotification: Ref<boolean>,
+    isStarting: Ref<boolean>,
+    proctoringComplete: Ref<boolean>
+) => {
     // States
-    const audioRef = ref(null);
+    const audioRef = ref<HTMLAudioElement | null>(null);
     const isAudioPlaying = ref(false);
     const autoplayFailed = ref(false);
     const hasListened = ref(false);
@@ -14,6 +22,7 @@ export const useAudioManagement = (currentQuestion, isLoading, showLevelTransiti
     const audioProgress = ref(0);
     const audioCurrentTime = ref('0:00');
     const audioDuration = ref('0:00');
+    const isNavigatingBack = ref(false);
 
     const { resolveUrl } = useMediaUrl();
 
@@ -43,10 +52,9 @@ export const useAudioManagement = (currentQuestion, isLoading, showLevelTransiti
             return;
         }
 
-        const audioUrl = currentQuestion.value?.passage?.audio_url || 
-                        currentQuestion.value?.passage?.audio_path || 
-                        currentQuestion.value?.audio_url || 
-                        currentQuestion.value?.audio_path;
+        const q = currentQuestion.value as Record<string, unknown> | null;
+        const passage = q?.passage as Record<string, unknown> | undefined;
+        const audioUrl = (passage?.audio_url || passage?.audio_path || q?.audio_url || q?.audio_path) as string | undefined;
 
         if (audioUrl) {
             const resolved = resolveUrl(audioUrl);
@@ -94,7 +102,7 @@ export const useAudioManagement = (currentQuestion, isLoading, showLevelTransiti
                 autoplayFailed.value = false;
                 isAudioPlaying.value = true;
             })
-            .catch(err => {
+            .catch((err: Error) => {
                 if (err.name === 'AbortError') {
                     return;
                 }
@@ -129,7 +137,7 @@ export const useAudioManagement = (currentQuestion, isLoading, showLevelTransiti
     /**
      * تنسيق الوقت (MM:SS)
      */
-    const formatTime = (seconds) => {
+    const formatTime = (seconds: number) => {
         if (!seconds || isNaN(seconds)) return '0:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
@@ -158,6 +166,7 @@ export const useAudioManagement = (currentQuestion, isLoading, showLevelTransiti
         audioProgress,
         audioCurrentTime,
         audioDuration,
+        isNavigatingBack,
 
         // Methods
         playCurrentAudio,

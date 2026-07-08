@@ -1,21 +1,28 @@
 import { ref } from 'vue';
+import type { Ref } from 'vue';
 import proctoringService from '@/services/proctoringService';
 
 /**
  * useProctoring - إدارة جلسات المراقبة والتحقق من الحالة
  */
-export const useProctoring = (showAlert, navigateSafely, currentLang, skillId) => {
+export const useProctoring = (
+    showAlert: (msg: string) => Promise<void>,
+    navigateSafely: (path: string) => Promise<void>,
+    currentLang: Ref<string>,
+    skillId: Ref<number | string | null>,
+    attemptId?: Ref<number | string | null>
+) => {
     // States
     const proctoringRequired = ref(false);
     const proctoringComplete = ref(false);
-    const proctoringSessionId = ref(null);
-    const proctoringSessionToken = ref(null);
-    let sessionPollInterval = null;
+    const proctoringSessionId = ref<number | string | null>(null);
+    const proctoringSessionToken = ref<string | null>(null);
+    let sessionPollInterval: ReturnType<typeof setInterval> | null = null;
 
     /**
      * التعامل مع انقطاع الجلسة والملاحة
      */
-    const handleSessionInterruption = async (messageAr, messageEn, shouldEndSession = false) => {
+    const handleSessionInterruption = async (messageAr: string, messageEn: string, shouldEndSession = false) => {
         stopSessionPolling();
         await showAlert(currentLang.value === 'ar' ? messageAr : messageEn);
 
@@ -37,7 +44,7 @@ export const useProctoring = (showAlert, navigateSafely, currentLang, skillId) =
             const res = await proctoringService.getStatus(sessionId);
             const status = res.data?.session?.status;
             const completedSkills = (res.data?.session?.completed_skills || []).map(Number);
-            const currentSkillId = skillId ? Number(skillId) : null;
+            const currentSkillId = skillId.value ? Number(skillId.value) : null;
 
             if (status === 'ended' || status === 'cancelled') {
                 // Admin ended the session
@@ -99,10 +106,12 @@ export const useProctoring = (showAlert, navigateSafely, currentLang, skillId) =
                 return;
             }
 
-            const savedSessionId = sessionStorage.getItem('proctoring_session_id');
+            const savedSessionIdStr = sessionStorage.getItem('proctoring_session_id');
+            const savedSessionId = savedSessionIdStr ? parseInt(savedSessionIdStr) : null;
+            const currentAttemptId = attemptId?.value ?? null;
 
             const response = await proctoringService.initiate(
-                attemptId.value,
+                currentAttemptId as number | string,
                 studentId,
                 savedSessionId
             );
@@ -117,11 +126,11 @@ export const useProctoring = (showAlert, navigateSafely, currentLang, skillId) =
                 await proctoringService.start(response.data.session_id);
                 proctoringSessionId.value = response.data.session_id;
                 proctoringSessionToken.value = response.data.session_token;
-                
+
                 // Store in sessionStorage
                 sessionStorage.setItem('proctoring_session_id', response.data.session_id.toString());
                 sessionStorage.setItem('proctoring_session_token', response.data.session_token ?? '');
-                
+
                 // Store in localStorage
                 localStorage.setItem('active_proctoring_session_id', response.data.session_id.toString());
                 localStorage.setItem('active_proctoring_session_token', response.data.session_token ?? '');

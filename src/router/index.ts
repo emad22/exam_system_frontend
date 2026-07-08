@@ -64,6 +64,7 @@ import AdminActivityLogs from '@/views/admin/ActivityLogs/index.vue'
 import PartnerDashboard from '@/views/partner/Dashboard.vue'
 import PartnerReports from '@/views/partner/Reports/index.vue'
 import PartnerReportShow from '@/views/partner/Reports/show.vue'
+import PartnerCertificates from '@/views/partner/Certificates.vue'
 
 const adminRoutes = [
   {
@@ -351,6 +352,12 @@ const partnerRoutes = [
     name: 'partner.reports.show',
     component: PartnerReportShow,
     meta: { title: 'Report Details' }
+  },
+  {
+    path: '/partner/certificates',
+    name: 'partner.certificates',
+    component: PartnerCertificates,
+    meta: { title: 'Student Certificates' }
   }
 ];
 

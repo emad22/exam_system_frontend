@@ -45,7 +45,7 @@ export const proctoringService = {
     async recordSkillEntry(sessionId: number | string, skillId: number | string) {
         return api.post(`/proctoring/session/${sessionId}/skill`, {
             skill_id: skillId
-        }).catch(e => {
+        }).catch((e: unknown) => {
             console.warn('Failed to record skill entry:', e);
         });
     },
@@ -56,7 +56,7 @@ export const proctoringService = {
     async recordSkillExit(sessionId: number | string, skillId: number | string) {
         return api.post(`/proctoring/session/${sessionId}/skill/exit`, {
             skill_id: skillId
-        }).catch(e => {
+        }).catch((e: unknown) => {
             console.warn('Failed to record skill exit:', e);
         });
     }

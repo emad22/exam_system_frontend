@@ -34,8 +34,7 @@ const warningMessage = ref('');
 const isBlinking = ref(false);
 
 let stream = null;
-let detectionInterval = null; // timeout id for detection loop
-let detectionRunning = false; // prevents overlapping detection runs
+let detectionInterval = null;
 
 // Face matching
 const FACE_MATCH_THRESHOLD = 0.6; // Euclidean distance threshold (lower = stricter)
@@ -150,24 +149,13 @@ onUnmounted(() => {
 });
 
 function startDetection() {
-  const runIntervalMs = 2000;
+  detectionInterval = setInterval(async () => {
+    if (!videoRef.value || videoRef.value.paused || videoRef.value.ended) return;
 
-  const detectionLoop = async () => {
-    detectionInterval = null;
-
-    if (!videoRef.value || videoRef.value.paused || videoRef.value.ended) {
-      detectionInterval = setTimeout(detectionLoop, runIntervalMs);
-      return;
-    }
-
-    if (detectionRunning) {
-      detectionInterval = setTimeout(detectionLoop, runIntervalMs);
-      return;
-    }
-
-    detectionRunning = true;
     try {
       const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 });
+
+
 
       // When face matching is enabled, we need full landmarks + descriptor pipeline
       let detections;
@@ -184,19 +172,23 @@ function startDetection() {
 
       let primaryConfidence = null;
       if (faceCount > 0) {
+        // .detection exists on both plain Detection and WithFaceDescriptor
         primaryConfidence = (detections[0].detection ?? detections[0]).score;
       }
 
       const faceLost = faceCount === 0;
       const multipleFaces = faceCount > 1;
 
-      // Face matching
+      // ── Face matching ─────────────────────────────────────────────────────────
       let faceSwap = false;
       if (faceMatcher && faceCount === 1) {
         const result = faceMatcher.findBestMatch(detections[0].descriptor);
+        // If the best match label is 'unknown', the face doesn't belong to the student
         faceSwap = result.label === 'unknown';
       }
+      // ─────────────────────────────────────────────────────────────────────────
 
+      // Capture screenshot when any anomaly is detected
       let screenshot = null;
       if (faceLost || multipleFaces || faceSwap) {
         screenshot = captureScreenshot();
@@ -209,15 +201,15 @@ function startDetection() {
 
       if (currentState === 'normal') {
         if (lastState !== 'normal') {
-          shouldSendLog = true;
+          shouldSendLog = true; // State transition: anomaly -> normal
         } else if (nowTime - lastNormalLogSent >= 20000) {
-          shouldSendLog = true;
+          shouldSendLog = true; // 20-second heartbeat
         }
       } else {
         if (lastState !== 'anomaly') {
-          shouldSendLog = true;
+          shouldSendLog = true; // State transition: normal -> anomaly
         } else if (nowTime - lastAnomalyLogSent >= 10000) {
-          shouldSendLog = true;
+          shouldSendLog = true; // Throttle anomalies to once every 10 seconds
         }
       }
 
@@ -230,16 +222,17 @@ function startDetection() {
           lastAnomalyLogSent = nowTime;
         }
 
+        // Send face log
         api.post(`/proctoring/session/${props.sessionId}/face-log`, {
           face_count: faceCount,
           primary_face_confidence: primaryConfidence,
           secondary_face_detected: multipleFaces,
           face_lost: faceLost,
           screenshot: screenshot
-        }).catch(err => console.warn('Failed to send face log:', err));
+        }).catch(err => console.error('Failed to send face log:', err));
       }
 
-      // State machine
+      // ── State machine ─────────────────────────────────────────────────────────
       if (faceLost) {
         noFaceDuration += 2.0;
         multipleFaceDuration = Math.max(0, multipleFaceDuration - 2.0);
@@ -277,6 +270,7 @@ function startDetection() {
         }
 
       } else {
+        // Normal state — decay all counters
         noFaceDuration = Math.max(0, noFaceDuration - 2.0);
         multipleFaceDuration = Math.max(0, multipleFaceDuration - 2.0);
         faceSwapDuration = Math.max(0, faceSwapDuration - 2.0);
@@ -287,25 +281,18 @@ function startDetection() {
           lastViolationReported = null;
         }
       }
+      // ─────────────────────────────────────────────────────────────────────────
 
     } catch (err) {
-      console.warn('Face detection run error:', err);
-    } finally {
-      detectionRunning = false;
-      detectionInterval = setTimeout(detectionLoop, runIntervalMs);
+      console.error('Face detection run error:', err);
     }
-  };
-
-  // start the loop
-  detectionLoop();
+  }, 2000);
 }
 
 function stopDetection() {
   if (detectionInterval) {
-    clearTimeout(detectionInterval);
-    detectionInterval = null;
+    clearInterval(detectionInterval);
   }
-  detectionRunning = false;
 }
 
 function captureScreenshot() {

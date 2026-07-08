@@ -1,9 +1,15 @@
 import { ref } from 'vue';
+import type { Ref } from 'vue';
 
 /**
  * useQuestionNavigation - إدارة التنقل بين الأسئلة
  */
-export const useQuestionNavigation = (questions, answers, saveCurrentAnswerDraft, submitBatch) => {
+export const useQuestionNavigation = (
+    questions: Ref<Record<string, unknown>[]>,
+    answers: Ref<Record<string, unknown>[]>,
+    saveCurrentAnswerDraft: (ans: Record<string, unknown>, q: Record<string, unknown>) => Promise<void>,
+    submitBatch: () => Promise<unknown>
+) => {
     // States
     const currentIndex = ref(0);
     const isNavigatingBack = ref(false);
@@ -22,17 +28,17 @@ export const useQuestionNavigation = (questions, answers, saveCurrentAnswerDraft
      * الانتقال للسؤال التالي أو إرسال الإجابات
      */
     const advanceQuestion = async () => {
-        const prevAns = answers.value[currentIndex.value];
-        const prevQ = questions.value[currentIndex.value];
+        const prevAns = answers.value[currentIndex.value] as Record<string, unknown> | undefined;
+        const prevQ = questions.value[currentIndex.value] as Record<string, unknown> | undefined;
 
         if (currentIndex.value < questions.value.length - 1) {
             // Save draft and move to next question
-            saveCurrentAnswerDraft(prevAns, prevQ); // Non-blocking background save
+            if (prevAns && prevQ) saveCurrentAnswerDraft(prevAns, prevQ); // Non-blocking background save
             currentIndex.value++;
             window.scrollTo(0, 0);
         } else {
             // Last question - save draft and submit batch
-            await saveCurrentAnswerDraft(prevAns, prevQ); // Await last draft before submitting
+            if (prevAns && prevQ) await saveCurrentAnswerDraft(prevAns, prevQ); // Await last draft before submitting
             await submitBatch();
         }
     };
@@ -40,7 +46,7 @@ export const useQuestionNavigation = (questions, answers, saveCurrentAnswerDraft
     /**
      * الذهاب إلى سؤال محدد
      */
-    const goToQuestion = (index) => {
+    const goToQuestion = (index: number) => {
         if (index >= 0 && index < questions.value.length) {
             currentIndex.value = index;
             window.scrollTo(0, 0);

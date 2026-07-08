@@ -89,7 +89,7 @@ const currentMatchingRight = computed(() => {
                         <i class="pi pi-check"></i>
                     </div>
 
-                    <span class="text-right w-full" dir="auto">{{ opt.option_text }}</span>
+                    <div class="text-right w-full whitespace-normal break-words" dir="auto" v-html="opt.option_text"></div>
                     
                     <!-- Selection Indicator -->
                     <div v-if="selectedMatchSource === opt.id" class="w-2 h-8 bg-brand-primary absolute left-10 rounded-r-lg"></div>
@@ -111,7 +111,7 @@ const currentMatchingRight = computed(() => {
                                 : 'border-slate-100 bg-white shadow-sm')
                     ]">
                     
-                    <span dir="auto" class="block w-full">{{ opt.option_text }}</span>
+                    <div dir="auto" class="block w-full whitespace-normal break-words" v-html="opt.option_text"></div>
 
                     <!-- Matched Indicator -->
                     <div v-if="isAlreadyMatched(opt.id)" class="absolute top-2 left-2 text-[10px] text-slate-400">

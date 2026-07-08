@@ -147,6 +147,7 @@ const stopSessionPolling = () => {
 
 
 
+
 // === PROCTORING STATE ===
 const proctoringComplete = ref(sessionStorage.getItem('proctoring_verified') === 'true');
 const proctoringRequired = ref(false);
@@ -202,6 +203,26 @@ const showRetryNotification = ref(false);
 const errorMsg = ref('');
 const checkedRequirements = ref([]);
 const hasListened = ref(false);
+const listenedQuestions = ref(new Set());
+const listenedPassages = ref(new Set());
+
+const shouldShowContent = computed(() => {
+    if (!currentQ.value) return false;
+    const passageAudioUrl = currentQ.value?.passage?.audio_url || currentQ.value?.passage?.audio_path;
+    if (!passageAudioUrl) return true;
+    return hasListened.value;
+});
+
+const markCurrentAsListened = () => {
+    hasListened.value = true;
+    if (currentQ.value?.id) {
+        listenedQuestions.value.add(currentQ.value.id);
+    }
+    if (currentQ.value?.passage?.id) {
+        listenedPassages.value.add(currentQ.value.passage.id);
+    }
+};
+
 const isDemo = ref(false);
 const showLevelTransition = ref(false);
 const nextLevelName = ref('');
@@ -220,7 +241,7 @@ const lastActivityAt = ref(Date.now());
 // Use Composables
 const { timeLeftSeconds, formattedTime, isTimeLow, startTimer: initTimer, stopTimer } = useExamTimer();
 const {
-    cheatWarnings, showCheatModal, showFinalCheatModal, isIntentionallyLeaving,
+    cheatWarnings, cheatMessage, showCheatModal, showFinalCheatModal, isIntentionallyLeaving,
     handleVisibilityChange: logCheatWarning, setupAntiCheat, destroyAntiCheat
 } = useAntiCheat(attemptId, {
     onFinalWarning: () => {
@@ -272,10 +293,12 @@ const handleTestPassed = async (req) => {
 };
 
 // === PROCTORING HANDLERS ===
+
 const handleProctoringComplete = async (sessionData) => {
     proctoringSessionId.value = sessionData.session_id;
     proctoringSessionToken.value = sessionData.session_token; // ✅ أضف السطر ده
     sessionStorage.setItem('proctoring_session_token', sessionData.session_token); // ✅ وده
+    sessionStorage.setItem('proctoring_session_id', sessionData.session_id.toString()); // ✅ FIX: ده اللي كان ناقص
     localStorage.setItem('active_proctoring_session_id', sessionData.session_id.toString());
     localStorage.setItem('active_proctoring_session_token', sessionData.session_token);
     proctoringComplete.value = true;
@@ -538,6 +561,7 @@ const fetchNextBatch = async () => {
         isLoading.value = false;
         questionSubmitted.value = false;
         hasListened.value = false;
+        listenedPassages.value.clear();
         isAudioPlaying.value = false;
         audioProgress.value = 0;
         audioCurrentTime.value = '0:00';
@@ -866,6 +890,17 @@ watch(currentQ, (newQ) => {
     audioProgress.value = 0;
     audioCurrentTime.value = '0:00';
     audioDuration.value = '0:00';
+
+    // Check if user already listened to this question or the associated passage fully
+    const isPassage = !!(newQ.passage?.audio_url || newQ.passage?.audio_path);
+    if (newQ.id && listenedQuestions.value.has(newQ.id)) {
+        hasListened.value = true;
+    } else if (isPassage && newQ.passage?.id && listenedPassages.value.has(newQ.passage.id)) {
+        hasListened.value = true;
+    } else {
+        hasListened.value = false;
+    }
+
     if (newQ && newQ.id) {
         api.patch(`/attempts/${attemptId.value}/progress`, { question_id: newQ.id })
             .catch(err => console.warn('Progress update failed', err));
@@ -916,14 +951,16 @@ const hasStimulusContent = computed(() => {
 });
 
 const responsePaneClass = computed(() => {
-    if (!hasStimulusContent.value) return 'w-full bg-slate-50';
-    if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') return 'w-[55%] bg-white';
-    return 'w-2/5 bg-white';
+    // Always full width on small screens; split only on large screens (lg)
+    if (!hasStimulusContent.value) return 'w-full bg-slate-50 min-h-0';
+    if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') return 'w-full lg:w-[55%] bg-white min-h-0';
+    return 'w-full lg:w-2/5 bg-white min-h-0';
 });
 
 const stimulusPaneClass = computed(() => {
-    if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') return 'w-[45%] bg-white p-4 overflow-y-auto custom-scrollbar flex flex-col h-full transition-all duration-700';
-    return 'w-3/5 bg-white p-4 overflow-y-auto custom-scrollbar flex flex-col h-full transition-all duration-700';
+    // Make stimulus pane responsive as well
+    if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') return 'w-full lg:w-[45%] bg-white p-4 flex flex-col h-full transition-all duration-700 min-h-0';
+    return 'w-full lg:w-3/5 bg-white p-4 flex flex-col h-full transition-all duration-700 min-h-0';
 });
 
 // --- INACTIVITY LOGIC ---
@@ -1066,7 +1103,7 @@ onUnmounted(() => {
 
             <audio ref="audioRef"
                 :src="currentQ ? resolveUrl(currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path) : ''"
-                @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="hasListened = true"
+                @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="markCurrentAsListened"
                 @timeupdate="updateAudioProgress" class="hidden"></audio>
 
             <!-- Exam Interface Container: Hidden when proctor checking is active -->
@@ -1246,21 +1283,17 @@ onUnmounted(() => {
 
                         <!-- Response Pane -->
                         <div :class="responsePaneClass"
-                            class="flex flex-col h-full border-r border-slate-200 shadow-inner animate-in slide-in-from-left-8 duration-700 overflow-auto">
+                            class="flex flex-col h-full border-b lg:border-r border-slate-200 shadow-inner animate-in slide-in-from-left-8 duration-700 order-2 lg:order-1">
 
-                            <!-- ✅ التعديل الوحيد: overflow-y-auto بدل overflow-hidden لـ writing/short_answer -->
                             <div :class="hasStimulusContent
                                 ? [
-                                    'w-full p-4 flex-grow min-h-0 flex flex-col',
-                                    currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer')
-                                        ? 'overflow-y-auto custom-scrollbar'
-                                        : 'overflow-y-auto custom-scrollbar'
+                                    'w-full p-4 flex-grow min-h-0 flex flex-col'
                                 ]
                                 : [
                                     'max-w-5xl mx-auto w-full bg-white border border-slate-100 flex flex-col min-h-0 flex-grow transition-all duration-300',
                                     currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer')
-                                        ? 'my-2 rounded-xl p-4 overflow-y-auto custom-scrollbar'
-                                        : 'my-4 rounded-2xl shadow-xl p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]'
+                                        ? 'my-2 rounded-xl p-4'
+                                        : 'my-4 rounded-2xl shadow-xl p-6'
                                 ]">
 
 
@@ -1303,26 +1336,46 @@ onUnmounted(() => {
                                     </div>
                                 </div>
 
-                                <div :class="[
-                                    'flex-grow flex flex-col min-h-0',
-                                    ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type)
-                                        ? 'space-y-2'
-                                        : 'space-y-4'
-                                ]">
-                                    <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
-                                        v-html="cleanHtml(currentQ.content)" dir="auto">
+                                <template v-if="shouldShowContent">
+                                    <div :class="[
+                                        'flex-grow flex flex-col min-h-0',
+                                        ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type)
+                                            ? 'space-y-2'
+                                            : 'space-y-4'
+                                    ]">
+                                        <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
+                                            :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
+                                            v-html="cleanHtml(currentQ.content)" dir="auto">
+                                        </div>
+                                        <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                                            class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
+                                            <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto"
+                                                v-html="displayInstructions">
+                                            </p>
+                                        </div>
+                                        <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
+                                            :question="currentQ" v-model:answer="answers[currentIndex]"
+                                            :disabled="false" :hasStimulusContent="hasStimulusContent" />
                                     </div>
-                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
-                                        class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
-                                        <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto">
-                                            {{ displayInstructions }}
-                                        </p>
+                                </template>
+                                <template v-else>
+                                    <!-- Locked Questions Message -->
+                                    <div
+                                        class="flex-grow flex flex-col items-center justify-center p-6 text-center bg-slate-50/50 rounded-2xl border border-slate-200/50 border-dashed space-y-4">
+                                        <div
+                                            class="w-16 h-16 bg-brand-primary/5 rounded-[1.5rem] flex items-center justify-center text-brand-primary animate-bounce">
+                                            <i class="pi pi-headphones text-2xl"></i>
+                                        </div>
+                                        <div class="space-y-1 max-w-sm">
+                                            <h4 class="text-sm font-black text-slate-800">يرجى الاستماع للمقطع الصوتي
+                                                أولاً</h4>
+                                            <p class="text-[11px] font-medium text-slate-500">الأسئلة والخيارات ستظهر
+                                                تلقائياً بعد اكتمال تشغيل الصوت.</p>
+                                            <p class="text-[10px] text-slate-400 mt-1 font-mono italic">Questions and
+                                                choices will be unlocked once the audio finishes playing.</p>
+                                        </div>
                                     </div>
-                                    <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
-                                        :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
-                                        :hasStimulusContent="hasStimulusContent" />
-                                </div>
+                                </template>
 
                                 <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
                                     class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
@@ -1342,7 +1395,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Stimulus Pane -->
-                        <div v-if="hasStimulusContent" :class="stimulusPaneClass">
+                        <div v-if="hasStimulusContent" :class="stimulusPaneClass" class="order-1 lg:order-2">
                             <div class="flex items-center space-x-2 space-x-reverse mb-4 pb-2 border-b border-slate-100"
                                 dir="rtl">
                                 <i class="pi pi-file-edit text-slate-400"></i>
@@ -1351,28 +1404,48 @@ onUnmounted(() => {
                             <div class="flex-grow prose prose-slate max-w-none">
                                 <div v-if="currentQ.passage"
                                     class="space-y-4 mb-6 pb-6 border-b border-slate-100 border-dashed">
-                                    <h3 v-if="currentQ.passage.title"
-                                        class="text-xl font-black text-slate-900 tracking-tight leading-tight"
-                                        dir="auto">{{
-                                            currentQ.passage.title }}</h3>
-                                    <div v-if="currentQ.passage.image_url || currentQ.passage.image_path"
-                                        class="w-full mb-4 flex justify-center">
-                                        <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
-                                            class="rounded-xl shadow-md border border-slate-100"
-                                            :class="!currentQ.passage.image_width && !currentQ.passage.image_height ? 'w-full h-auto' : 'max-w-full'"
-                                            :style="currentQ.passage.image_width || currentQ.passage.image_height ? {
-                                                width: currentQ.passage.image_width ? `${currentQ.passage.image_width}px` : 'auto',
-                                                height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'
-                                            } : {}" />
-                                    </div>
-                                    <div v-if="currentQ.passage.content"
-                                        class="text-lg text-slate-700 leading-relaxed font-serif text-justify ql-content rtl-support"
-                                        v-html="cleanHtml(currentQ.passage.content)" dir="auto"></div>
+                                    <template v-if="shouldShowContent">
+                                        <h3 v-if="currentQ.passage.title"
+                                            class="text-xl font-black text-slate-900 tracking-tight leading-tight"
+                                            dir="auto">{{
+                                                currentQ.passage.title }}</h3>
+                                        <div v-if="currentQ.passage.image_url || currentQ.passage.image_path"
+                                            class="w-full mb-4 flex justify-center">
+                                            <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
+                                                class="rounded-xl shadow-md border border-slate-100"
+                                                :class="!currentQ.passage.image_width && !currentQ.passage.image_height ? 'w-full h-auto' : 'max-w-full'"
+                                                :style="currentQ.passage.image_width || currentQ.passage.image_height ? {
+                                                    width: currentQ.passage.image_width ? `${currentQ.passage.image_width}px` : 'auto',
+                                                    height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'
+                                                } : {}" />
+                                        </div>
+                                        <div v-if="currentQ.passage.content"
+                                            class="text-lg text-slate-700 leading-relaxed font-serif text-justify ql-content rtl-support"
+                                            v-html="cleanHtml(currentQ.passage.content)" dir="auto"></div>
+                                    </template>
+                                    <template v-else>
+                                        <!-- Locked State Message -->
+                                        <div
+                                            class="flex flex-col items-center justify-center py-10 px-4 text-center bg-slate-50 rounded-2xl border border-slate-200/60 border-dashed space-y-3">
+                                            <div
+                                                class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
+                                                <i class="pi pi-lock text-sm"></i>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <h4 class="text-xs font-bold text-slate-705 text-slate-700">محتوى القطعة
+                                                    مخفي مؤقتاً</h4>
+                                                <p class="text-[10px] text-slate-400">يرجى الاستماع إلى التسجيل الصوتي
+                                                    بالكامل لإظهار القطعة.</p>
+                                                <p class="text-[9px] text-slate-400 mt-1 font-mono italic">Please listen
+                                                    to the entire audio to unlock the passage text.</p>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
                                 <div v-if="(currentQ.media_url || currentQ.media_path) && (currentQ.media_url || currentQ.media_path).includes('.mp4')"
                                     class="flex flex-col items-center justify-center py-4">
                                     <video :src="resolveUrl(currentQ.media_url || currentQ.media_path)" controls
-                                        autoplay @ended="hasListened = true"
+                                        autoplay @ended="markCurrentAsListened"
                                         class="w-full rounded-xl shadow-lg"></video>
                                 </div>
                                 <div v-if="currentQ.image_url || currentQ.image_path"
@@ -1483,11 +1556,9 @@ onUnmounted(() => {
                             <i class="pi pi-shield text-4xl text-rose-500"></i>
                         </div>
                         <div class="space-y-2">
-                            <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Security Alert</h2>
-                            <p class="text-slate-500 font-bold leading-relaxed">Please do not leave the exam page or
-                                switch
-                                tabs. Any
-                                suspicious activity is being recorded and will be reported to administrators.</p>
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">{{
+                                cheatMessage.title }}</h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">{{ cheatMessage.body }}</p>
                             <div class="pt-2">
                                 <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} </p>
                             </div>

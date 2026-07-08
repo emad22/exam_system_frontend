@@ -1,22 +1,42 @@
 import { ref, computed } from 'vue';
+import type { Ref } from 'vue';
 import api from '@/services/api';
 import proctoringService from '@/services/proctoringService';
+
+interface TimerConfig {
+    type: string;
+    globalLimit: number;
+    skillDuration: number;
+    skillStartedAt: string;
+}
+
+interface Attempt {
+    id: number | string;
+    status: string;
+    [key: string]: unknown;
+}
 
 /**
  * useExamFlow - إدارة تدفق الامتحان والأسئلة والمستويات
  */
-export const useExamFlow = (attemptId, examId, isStarting, isLoading, proctoringSessionId) => {
+export const useExamFlow = (
+    attemptId: Ref<string | number>,
+    examId: Ref<string | number>,
+    isStarting: Ref<boolean>,
+    isLoading: Ref<boolean>,
+    proctoringSessionId: Ref<number | string | null>
+) => {
     // States
-    const attempt = ref(null);
-    const currentSkill = ref(null);
-    const currentLevel = ref(null);
-    const questions = ref([]);
+    const attempt = ref<Attempt | null>(null);
+    const currentSkill = ref<Record<string, unknown> | null>(null);
+    const currentLevel = ref<Record<string, unknown> | null>(null);
+    const questions = ref<Record<string, unknown>[]>([]);
     const totalSkillQuestions = ref(0);
     const globalOffset = ref(0);
     const nextLevelName = ref('');
     const showLevelTransition = ref(false);
     const showRetryNotification = ref(false);
-    const timerConfig = ref(null);
+    const timerConfig = ref<TimerConfig | null>(null);
     const errorMsg = ref('');
     const isDemo = ref(false);
 
@@ -28,8 +48,8 @@ export const useExamFlow = (attemptId, examId, isStarting, isLoading, proctoring
         try {
             if (attemptId.value && attemptId.value !== 'start') {
                 const attRes = await api.get(`/attempts/${attemptId.value}`);
-                attempt.value = attRes.data;
-                if (attempt.value.status === 'completed' || attempt.value.status === 'voided') {
+                attempt.value = attRes.data as Attempt;
+                if (attempt.value!.status === 'completed' || attempt.value!.status === 'voided') {
                     return { shouldNavigate: true };
                 }
                 await fetchNextBatch();
@@ -47,17 +67,18 @@ export const useExamFlow = (attemptId, examId, isStarting, isLoading, proctoring
     /**
      * بدء امتحان جديد
      */
-    const beginExam = async (skillId, levelId) => {
+    const beginExam = async (skillId: number | string, levelId: number | string) => {
         if (!attemptId.value || attemptId.value === 'start') {
             try {
                 isLoading.value = true;
                 const payload = { skill_id: skillId, level_id: levelId };
                 const res = await api.post(`/exams/${examId}/start`, payload);
                 attemptId.value = res.data.attempt.id;
-                attempt.value = res.data.attempt;
+                attempt.value = res.data.attempt as Attempt;
                 return { success: true, attemptId: attemptId.value };
-            } catch (err) {
-                return { success: false, error: err.response?.data?.error || 'Failed to start session' };
+            } catch (err: unknown) {
+                const e = err as { response?: { data?: { error?: string } } };
+                return { success: false, error: e.response?.data?.error || 'Failed to start session' };
             } finally {
                 isLoading.value = false;
             }
@@ -81,7 +102,7 @@ export const useExamFlow = (attemptId, examId, isStarting, isLoading, proctoring
                 }
 
                 // Handle level transition
-                if (currentLevel.value && res.data.level && res.data.level.id !== currentLevel.value.id) {
+                if (currentLevel.value && res.data.level && res.data.level.id !== (currentLevel.value as Record<string, unknown>).id) {
                     nextLevelName.value = res.data.level.name;
                 }
                 currentLevel.value = res.data.level;
@@ -111,11 +132,12 @@ export const useExamFlow = (attemptId, examId, isStarting, isLoading, proctoring
                 errorMsg.value = res.data.error || "Module content empty.";
                 return { success: false };
             }
-        } catch (err) {
-            if (err.response?.status === 404) {
-                errorMsg.value = err.response?.data?.error || "No more questions available for this level.";
+        } catch (err: unknown) {
+            const e = err as { response?: { status?: number; data?: { error?: string } } };
+            if (e.response?.status === 404) {
+                errorMsg.value = e.response?.data?.error || "No more questions available for this level.";
             } else {
-                errorMsg.value = err.response?.data?.error || "Assessment segment unavailable.";
+                errorMsg.value = e.response?.data?.error || "Assessment segment unavailable.";
             }
             return { success: false };
         } finally {
@@ -147,13 +169,13 @@ export const useExamFlow = (attemptId, examId, isStarting, isLoading, proctoring
         timerConfig,
         errorMsg,
         isDemo,
-        
+
         // Methods
         fetchData,
         beginExam,
         fetchNextBatch,
         startNextLevel,
-        
+
         // Computed
         currentQuestion
     };

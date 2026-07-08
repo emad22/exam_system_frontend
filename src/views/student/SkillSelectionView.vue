@@ -312,7 +312,7 @@ onUnmounted(() => {
                                 <div v-if="!isSkillCompleted(exams[0], skill.id)"
                                     class="flex items-center gap-2 text-slate-300 group-hover:text-brand-primary transition-all font-black text-[9px] uppercase tracking-[0.2em]">
                                     <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Test' : 'Start Test'
-                                    }}</span>
+                                        }}</span>
                                     <i
                                         class="pi pi-arrow-right text-[8px] group-hover:translate-x-1 transition-transform"></i>
                                 </div>

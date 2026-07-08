@@ -176,12 +176,12 @@ watch(
                 </div>
 
                 <!-- نص الاختيار أو حرفه -->
-                <span class="text-sm font-bold text-center leading-tight transition-colors duration-300"
+                <div class="text-sm font-bold text-center leading-tight transition-colors duration-300 whitespace-normal break-words"
                       :class="selectedOptionId === opt.id
                         ? 'text-indigo-700'
-                        : 'text-slate-500 group-hover:text-indigo-500'">
-                    {{ opt.option_text || `اختيار ${String.fromCharCode(65 + oIdx)}` }}
-                </span>
+                        : 'text-slate-500 group-hover:text-indigo-500'"
+                      v-html="opt.option_text || `اختيار ${String.fromCharCode(65 + oIdx)}`">
+                </div>
 
                 <!-- علامة الاختيار -->
                 <div v-if="selectedOptionId === opt.id"
@@ -202,12 +202,12 @@ watch(
         <!-- ══════════════════════════════════════
              LAYOUT 3 — Default (text / mixed)
         ══════════════════════════════════════ -->
-        <div v-else class="space-y-1 py-1">
+        <div v-else class="space-y-1 py-1 overflow-x-hidden">
 
             <button v-for="(opt, oIdx) in question.options" :key="opt.id"
                 @click="selectedOptionId = opt.id"
                 :disabled="disabled"
-                class="w-[calc(100%-20px)] p-4 rounded-2xl border-2 transition-all duration-300
+                class="w-full p-4 rounded-2xl border-2 transition-all duration-300
                        flex flex-row-reverse items-center gap-4 group relative overflow-hidden"
                 :class="selectedOptionId === opt.id
                     ? 'border-brand-primary bg-indigo-50/40 ring-4 ring-indigo-500/5 shadow-md'
@@ -226,14 +226,14 @@ watch(
                         class="w-20 h-16 object-cover rounded-xl border border-slate-100 shadow-sm shrink-0" />
 
                     <!-- النص لو موجود -->
-                    <span v-if="opt.option_text" :dir="opt.dir || 'ltr'"
-                        class="font-bold tracking-tight leading-snug text-lg transition-colors duration-300 grow"
+                    <div v-if="opt.option_text" :dir="opt.dir || 'ltr'"
+                        class="font-bold tracking-tight leading-snug text-lg transition-colors duration-300 grow whitespace-normal break-words"
                         :class="[
                             selectedOptionId === opt.id ? 'text-indigo-950' : 'text-slate-700 group-hover:text-slate-900',
                             opt.dir === 'rtl' ? 'text-right' : 'text-left'
-                        ]">
-                        {{ opt.option_text }}
-                    </span>
+                        ]"
+                        v-html="opt.option_text">
+                    </div>
 
                     <!-- لو صورة بس بدون نص — grow فاضي -->
                     <span v-if="!opt.option_text && opt.image_url" class="grow"></span>

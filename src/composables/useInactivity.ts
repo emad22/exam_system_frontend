@@ -3,10 +3,10 @@ import { ref } from 'vue';
 /**
  * useInactivity - إدارة كشف عدم النشاط والمهلة الزمنية
  */
-export const useInactivity = (onTimeout) => {
+export const useInactivity = (onTimeout?: () => void) => {
     // States
-    const inactivityTimer = ref(null);
-    const lastActivityAt = ref(null);
+    const inactivityTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+    const lastActivityAt = ref<Date | null>(null);
     const showInactivityModal = ref(false);
 
     // Constants

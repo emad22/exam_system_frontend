@@ -7,6 +7,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import ProgressSpinner from 'primevue/progressspinner';
+import InputSwitch from 'primevue/inputswitch';
 
 const certificates = ref({ data: [] });
 const isLoading = ref(false);
@@ -32,6 +33,8 @@ const t = {
         colScore: "النسبة / الدرجة",
         colDate: "تاريخ الإصدار",
         colActions: "إجراءات",
+        colQr: "QR Code",
+        colVisibility: "ظهور للطالب",
         emptyTelemetry: "لم يتم إصدار أي شهادات في النظام بعد...",
         downloadPdf: "تحميل PDF",
         verifyLink: "رابط التحقق"
@@ -48,6 +51,8 @@ const t = {
         colScore: "Score",
         colDate: "Date",
         colActions: "Actions",
+        colQr: "QR Code",
+        colVisibility: "Visible to Student",
         emptyTelemetry: "No certificates found in system registry...",
         downloadPdf: "Download PDF",
         verifyLink: "Verify Link"
@@ -82,25 +87,47 @@ const downloadCertificate = (cert) => {
 const onPage = (event) => {
     fetchCertificates(event.page + 1);
 };
+
+const getQrUrl = (cert) => {
+    const verificationUrl = window.location.origin + '/verify-certificate/' + cert.verification_code;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(verificationUrl)}`;
+};
+
+const toggleVisibility = async (cert) => {
+    try {
+        const res = await api.patch(`/admin/certificates/${cert.id}/toggle-visibility`);
+        cert.is_visible_to_student = res.data.is_visible_to_student;
+    } catch (err) {
+        console.error('Failed to toggle visibility', err);
+    }
+};
 </script>
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
-            
+        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'"
+            class="w-full">
+
             <!-- Loading Indicator -->
-            <div v-if="isLoading && certificates.data.length === 0" class="flex flex-col items-center justify-center py-32 space-y-4">
+            <div v-if="isLoading && certificates.data.length === 0"
+                class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
             </div>
 
-            <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
-                
+            <div v-else
+                class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
+
                 <!-- Premium Header Section -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 w-64 h-64 bg-rose-50/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-rose-100/30 transition-all duration-1000"></div>
-                    <div class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000"></div>
-                    
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
+                    <div
+                        class="absolute right-0 top-0 w-64 h-64 bg-rose-50/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-rose-100/30 transition-all duration-1000">
+                    </div>
+                    <div
+                        class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000">
+                    </div>
+
                     <div class="relative z-10 space-y-2">
                         <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
                             {{ t[currentLang].title }}
@@ -109,23 +136,26 @@ const onPage = (event) => {
                             {{ t[currentLang].subtitle }}
                         </p>
                     </div>
-                    
+
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
                         <!-- Language Selector Toggle -->
-                        <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
+                        <button @click="toggleLang"
+                            class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
                             <i class="pi pi-globe text-brand-primary"></i>
                             <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
                         </button>
 
                         <router-link to="/admin/certificates/templates">
-                            <Button :label="t[currentLang].manageTemplates" icon="pi pi-palette" outlined severity="secondary" 
-                                    class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white" />
+                            <Button :label="t[currentLang].manageTemplates" icon="pi pi-palette" outlined
+                                severity="secondary"
+                                class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white" />
                         </router-link>
                     </div>
                 </div>
 
                 <!-- Premium Search Bar -->
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between">
+                <div
+                    class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between">
                     <div class="relative w-full max-w-xl">
                         <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
                         <InputText v-model="searchQuery" @input="fetchCertificates(1)"
@@ -141,7 +171,8 @@ const onPage = (event) => {
                         responsiveLayout="scroll">
 
                         <!-- ID Column -->
-                        <Column field="certificate_number" :header="t[currentLang].colCertId" class="font-mono text-xs font-extrabold text-slate-500"></Column>
+                        <Column field="certificate_number" :header="t[currentLang].colCertId"
+                            class="font-mono text-xs font-extrabold text-slate-500"></Column>
 
                         <!-- Student Column -->
                         <Column :header="t[currentLang].colStudent">
@@ -169,7 +200,8 @@ const onPage = (event) => {
                         <!-- Score Column -->
                         <Column :header="t[currentLang].colScore">
                             <template #body="{ data }">
-                                <span class="px-3 py-1 rounded-xl bg-brand-primary/5 text-brand-primary font-black text-xs border border-brand-primary/10 shadow-sm">
+                                <span
+                                    class="px-3 py-1 rounded-xl bg-brand-primary/5 text-brand-primary font-black text-xs border border-brand-primary/10 shadow-sm">
                                     {{ data.score }}%
                                 </span>
                             </template>
@@ -184,6 +216,29 @@ const onPage = (event) => {
                             </template>
                         </Column>
 
+                        <!-- QR Code Column -->
+                        <Column :header="t[currentLang].colQr" style="width: 80px">
+                            <template #body="{ data }">
+                                <div class="flex justify-center">
+                                    <a :href="'/verify-certificate/' + data.verification_code" target="_blank"
+                                        class="block">
+                                        <img :src="getQrUrl(data)" alt="QR"
+                                            class="w-12 h-12 rounded-lg border border-slate-100 shadow-sm hover:shadow-md hover:scale-110 transition-all cursor-pointer" />
+                                    </a>
+                                </div>
+                            </template>
+                        </Column>
+
+                        <!-- Visibility Toggle Column -->
+                        <Column :header="t[currentLang].colVisibility" style="width: 100px">
+                            <template #body="{ data }">
+                                <div class="flex justify-center">
+                                    <InputSwitch v-model="data.is_visible_to_student"
+                                        @change="toggleVisibility(data)" />
+                                </div>
+                            </template>
+                        </Column>
+
                         <!-- Actions Column -->
                         <Column :header="t[currentLang].colActions" class="text-right" style="width: 120px">
                             <template #body="{ data }">
@@ -191,8 +246,8 @@ const onPage = (event) => {
                                     <Button icon="pi pi-download" text rounded severity="info" size="small"
                                         @click="downloadCertificate(data)" v-tooltip="t[currentLang].downloadPdf" />
                                     <a :href="'/verify-certificate/' + data.verification_code" target="_blank">
-                                        <Button icon="pi pi-external-link" text rounded severity="secondary" size="small"
-                                            v-tooltip="t[currentLang].verifyLink" />
+                                        <Button icon="pi pi-external-link" text rounded severity="secondary"
+                                            size="small" v-tooltip="t[currentLang].verifyLink" />
                                     </a>
                                 </div>
                             </template>
@@ -201,8 +256,9 @@ const onPage = (event) => {
                         <!-- Empty state slot -->
                         <template #empty>
                             <div class="py-16 text-center space-y-3">
-                                 <div class="text-4xl opacity-20">📜</div>
-                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].emptyTelemetry }}</p>
+                                <div class="text-4xl opacity-20">📜</div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{
+                                    t[currentLang].emptyTelemetry }}</p>
                             </div>
                         </template>
                     </DataTable>
@@ -237,6 +293,7 @@ const onPage = (event) => {
 .arabic-theme :deep(.p-datatable-thead > tr > th) {
     text-align: right !important;
 }
+
 .arabic-theme :deep(.p-datatable-tbody > tr > td) {
     text-align: right !important;
 }

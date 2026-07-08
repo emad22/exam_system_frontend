@@ -45,16 +45,14 @@ const keyboardLayout = 'arabic';
 </script>
 
 <template>
-    <div class="short-answer-wrapper space-y-6 py-4 overflow-y-auto custom-scrollbar" dir="rtl">
+    <div class="short-answer-wrapper space-y-6 py-4" dir="rtl">
         <!-- 1. Passage Title (only in single-column mode) -->
-        <h3 v-if="!hasStimulusContent && question.passage?.title" class="passage-title">
-            {{ question.passage.title }}
-        </h3>
+        <h3 v-if="!hasStimulusContent && question.passage?.title" class="passage-title" v-html="question.passage.title"></h3>
 
         <!-- 2. Instructions Badge (always show here) -->
         <div v-if="question.instructions" class="short-instructions-badge">
             <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></span>
-            <span>{{ question.instructions }}</span>
+            <span v-html="question.instructions"></span>
         </div>
 
         <!-- 3. Question Prompt/Content (always show here) -->

@@ -193,14 +193,12 @@ onUnmounted(() => {
             <!-- Right side / Content Pane: Title, Badge, Text content -->
             <div class="prompt-text-pane">
                 <!-- 1. Passage Title (only in single-column mode) -->
-                <h3 v-if="!hasStimulusContent && question.passage?.title" class="passage-title">
-                    {{ question.passage.title }}
-                </h3>
+                <h3 v-if="!hasStimulusContent && question.passage?.title" class="passage-title" v-html="question.passage.title"></h3>
 
                 <!-- 2. Instructions Badge -->
                 <div v-if="question.instructions" class="writing-instructions-badge">
                     <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></span>
-                    <span>{{ question.instructions }}</span>
+                    <span v-html="question.instructions"></span>
                 </div>
 
                 <!-- 3. Question Prompt/Content -->

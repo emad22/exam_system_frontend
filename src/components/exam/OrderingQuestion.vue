@@ -58,8 +58,8 @@ const removeFromOrdering = (idx) => {
             <template v-if="orderingAnswers.length > 0">
                 <button v-for="(word, oIdx) in orderingAnswers" :key="oIdx" 
                     @click="removeFromOrdering(oIdx)" :disabled="disabled"
-                    class="px-5 py-2.5 bg-indigo-50 border-2 border-brand-primary text-brand-primary font-black rounded-xl text-base shadow-md hover:scale-105 active:scale-95 transition-all animate-in zoom-in-95 duration-300 relative z-10">
-                    {{ word }}
+                    class="px-5 py-2.5 bg-indigo-50 border-2 border-brand-primary text-brand-primary font-black rounded-xl text-base shadow-md hover:scale-105 active:scale-95 transition-all animate-in zoom-in-95 duration-300 relative z-10"
+                    v-html="word">
                 </button>
             </template>
             <div v-else class="text-slate-300 font-black text-sm uppercase tracking-widest opacity-40">
@@ -71,8 +71,8 @@ const removeFromOrdering = (idx) => {
         <div class="p-6 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 flex flex-wrap gap-3 justify-center" dir="rtl">
             <button v-for="(word, wIdx) in currentAvailableWords" :key="wIdx"
                 @click="addToOrdering(word)" :disabled="disabled"
-                class="px-5 py-2.5 bg-white border border-slate-100 text-slate-600 font-bold rounded-xl text-base hover:border-brand-primary hover:text-brand-primary hover:shadow-xl hover:shadow-indigo-100 transition-all duration-300 shadow-sm active:scale-95">
-                {{ word }}
+                class="px-5 py-2.5 bg-white border border-slate-100 text-slate-600 font-bold rounded-xl text-base hover:border-brand-primary hover:text-brand-primary hover:shadow-xl hover:shadow-indigo-100 transition-all duration-300 shadow-sm active:scale-95"
+                v-html="word">
             </button>
         </div>
     </div>

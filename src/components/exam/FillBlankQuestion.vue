@@ -127,7 +127,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-4 py-4 overflow-y-auto custom-scrollbar">
+    <div class="space-y-4 py-4">
         <!-- Content Area with Modern Styling -->
         <div 
             ref="containerRef"

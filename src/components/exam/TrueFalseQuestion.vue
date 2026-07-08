@@ -23,12 +23,23 @@ const selectedOptionId = computed({
     set: (val) => emit('update:answer', { ...props.answer, option_id: val })
 });
 
+// Helper to strip HTML tags from option text for internal checks or abbreviations
+const stripHtml = (value) => {
+    if (!value) return '';
+    return value.replace(/<[^>]*>/g, '').trim();
+};
+
 // Helper to determine if an option is "True" or "False" based on text or common patterns
 const getOptionType = (opt) => {
-    const text = opt.option_text.toLowerCase().trim();
+    const text = stripHtml(opt.option_text).toLowerCase();
     if (text === 'true' || text === 'صواب' || text === 'صح') return 'true';
     if (text === 'false' || text === 'خطأ' || text === 'خطا') return 'false';
     return 'default';
+};
+
+const getOptionAbbreviation = (opt) => {
+    const text = stripHtml(opt.option_text);
+    return text ? text.charAt(0) : '';
 };
 </script>
 
@@ -72,14 +83,14 @@ const getOptionType = (opt) => {
                     <i class="pi pi-times text-2xl font-black"></i>
                 </template>
                 <template v-else>
-                    <span class="text-xl font-black">{{ opt.option_text.charAt(0) }}</span>
+                    <span class="text-xl font-black">{{ getOptionAbbreviation(opt) }}</span>
                 </template>
             </div>
 
             <!-- Option Text -->
             <span class="font-black text-xl tracking-tight transition-colors duration-300"
-                :class="selectedOptionId === opt.id ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'">
-                {{ opt.option_text }}
+                :class="selectedOptionId === opt.id ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'"
+                v-html="opt.option_text">
             </span>
 
             <!-- Subtle "Selected" Badge -->

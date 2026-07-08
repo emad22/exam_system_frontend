@@ -39,7 +39,7 @@ const updateAnswer = (newAnswer) => {
 
 <template>
     <div 
-        class="flex-grow pr-1 pt-2 space-y-2 flex flex-col min-h-0 overflow-y-auto custom-scrollbar"
+        class="flex-grow pr-1 pt-2 space-y-2 flex flex-col min-h-0"
     >
         <McqQuestion 
             v-if="question.type === 'mcq' || question.type === 'listening'" 
