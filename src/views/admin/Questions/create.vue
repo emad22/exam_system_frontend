@@ -89,6 +89,8 @@ const t = {
         draftQuestions: "الأسئلة والمهام المسودة",
         questionTypeLabel: "نوع السؤال الأكاديمي",
         instructionsLabel: "توجيهات وتعليمات السؤال للمرشح",
+        generalInstructionsLabel: "التعليمات العامة للسؤال",
+        generalInstructionsPlaceholder: "مثال: بعد الانتهاء من الصوت، ستتبع 5 أسئلة...",
         questionPrompt: "صيغة أو نص السؤال",
         textTab: "نص السؤال",
         mediaTab: "وسائط (صوت/صورة/فيديو)",
@@ -180,6 +182,8 @@ const t = {
         draftQuestions: "Draft Questions List",
         questionTypeLabel: "Academic Question Type",
         instructionsLabel: "Question Instructions & Guidelines",
+        generalInstructionsLabel: "General Question Instructions",
+        generalInstructionsPlaceholder: "e.g. After the audio ends, 5 questions will follow...",
         questionPrompt: "Question Text or Prompt",
         textTab: "Question Text",
         mediaTab: "Media Assets (Audio/Image/Video)",
@@ -245,6 +249,7 @@ const form = ref({
     passage_type: 'text',
     passage_title: '',
     passage_content: '',
+    passage_general_instructions: '',
     passage_questions_limit: null,
     passage_is_random: false,
     p_media: null,
@@ -590,7 +595,7 @@ const saveBatch = async () => {
     }
 
     // ✅ Log عشان تتأكد
-    console.log('Submitting with exam_id:', form.value.exam_id, typeof form.value.exam_id);
+    //console.log('Submitting with exam_id:', form.value.exam_id, typeof form.value.exam_id);
 
     
     if (!form.value.skill_id) {
@@ -628,6 +633,7 @@ const saveBatch = async () => {
             fd.append('passage_type', form.value.passage_type);
             fd.append('passage_title', form.value.passage_title || '');
             fd.append('passage_content', form.value.passage_content || '');
+            fd.append('passage_general_instructions', form.value.passage_general_instructions || '');
             if (form.value.passage_questions_limit) fd.append('passage_questions_limit', form.value.passage_questions_limit);
             fd.append('passage_is_random', form.value.passage_is_random ? 1 : 0);
             
@@ -926,6 +932,15 @@ const editorModules = {
                                     </div>
                                 </div>
 
+                                <div class="space-y-3 mt-4">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].generalInstructionsLabel }}</label>
+                                    <Editor v-model="form.passage_general_instructions"
+                                        editorStyle="height: 140px"
+                                        :modules="editorModules"
+                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                        :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                </div>
+
                                 <!-- Media Assets Grid -->
                                 <div class="space-y-3">
                                     <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].mediaAssetsLabel }}</label>
@@ -1021,8 +1036,8 @@ const editorModules = {
                                         placeholder="e.g. Choose the correct answer..."
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold" />
                                 </div>
+                                
                             </div>
-
                             <!-- Question Content Input: Text or Media mode -->
                             <div class="space-y-4">
                                 <div class="flex items-center gap-3">

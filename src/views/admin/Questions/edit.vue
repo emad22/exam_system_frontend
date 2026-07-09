@@ -89,6 +89,8 @@ const t = {
         draftQuestions: "الأسئلة والمهام المرتبطة",
         questionTypeLabel: "نوع السؤال الأكاديمي",
         instructionsLabel: "توجيهات وتعليمات السؤال للمرشح",
+        generalInstructionsLabel: "التعليمات العامة للسؤال",
+        generalInstructionsPlaceholder: "مثال: بعد الانتهاء من الصوت، ستتبع 5 أسئلة...",
         questionPrompt: "صيغة أو نص السؤال",
         textTab: "نص السؤال",
         mediaTab: "وسائط (صوت/صورة/فيديو)",
@@ -182,6 +184,8 @@ const t = {
         draftQuestions: "Associated Questions List",
         questionTypeLabel: "Academic Question Type",
         instructionsLabel: "Question Instructions & Guidelines",
+        generalInstructionsLabel: "General Question Instructions",
+        generalInstructionsPlaceholder: "e.g. After the audio ends, 5 questions will follow...",
         questionPrompt: "Question Text or Prompt",
         textTab: "Question Text",
         mediaTab: "Media Assets (Audio/Image/Video)",
@@ -249,6 +253,7 @@ const form = ref({
     passage_type: 'text',
     passage_title: '',
     passage_content: '',
+    passage_general_instructions: '',
     passage_questions_limit: null,
     passage_is_random: false,
     p_media: null,
@@ -358,6 +363,7 @@ watch(() => form.value.passage_id, (newVal) => {
             form.value.passage_type = selectedPassage.type || 'text';
             form.value.passage_title = selectedPassage.title || '';
             form.value.passage_content = selectedPassage.content || '';
+            form.value.passage_general_instructions = selectedPassage.general_instructions || '';
             form.value.passage_questions_limit = selectedPassage.questions_limit || null;
             form.value.passage_is_random = !!selectedPassage.is_random;
 
@@ -398,6 +404,7 @@ watch(() => form.value.passage_mode, (newVal) => {
         form.value.passage_type = 'text';
         form.value.passage_title = '';
         form.value.passage_content = '';
+        form.value.passage_general_instructions = '';
         form.value.passage_questions_limit = null;
         form.value.passage_is_random = false;
         form.value.p_audio = null;
@@ -486,6 +493,7 @@ const loadInitialData = async () => {
             updatedForm.passage_type = q.passage.type;
             updatedForm.passage_title = q.passage.title;
             updatedForm.passage_content = q.passage.content;
+            updatedForm.passage_general_instructions = q.passage.general_instructions || '';
             updatedForm.passage_questions_limit = q.passage.questions_limit;
             updatedForm.passage_is_random = q.passage.is_random;
             if (q.passage.media_url) {
@@ -777,6 +785,7 @@ const updateBatch = async () => {
             fd.append('passage_type', form.value.passage_type || 'text');
             fd.append('passage_title', form.value.passage_title || '');
             fd.append('passage_content', form.value.passage_content || '');
+            fd.append('passage_general_instructions', form.value.passage_general_instructions || '');
             if (form.value.passage_questions_limit) fd.append('passage_questions_limit', form.value.passage_questions_limit);
             fd.append('passage_is_random', form.value.passage_is_random ? 1 : 0);
             if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
@@ -792,6 +801,7 @@ const updateBatch = async () => {
             fd.append('passage_type', form.value.passage_type);
             fd.append('passage_title', form.value.passage_title || '');
             fd.append('passage_content', form.value.passage_content || '');
+            fd.append('passage_general_instructions', form.value.passage_general_instructions || '');
             if (form.value.passage_questions_limit) fd.append('passage_questions_limit', form.value.passage_questions_limit);
             fd.append('passage_is_random', form.value.passage_is_random ? 1 : 0);
             if (form.value.p_media) fd.append('p_media_file', form.value.p_media);
@@ -1065,6 +1075,8 @@ const editorModules = {
                                 </button>
                             </div>
 
+
+
                             <!-- Existing Passage Library select -->
                             <div v-if="form.passage_mode === 'existing'"
                                 class="animate-in fade-in slide-in-from-bottom-2 duration-300 pt-2">
@@ -1096,6 +1108,7 @@ const editorModules = {
                                             class="w-full rounded-xl bg-white border-slate-100 shadow-sm" />
                                     </div>
                                 </div>
+
 
                                 <!-- Text Editor Section -->
                                 <div class="flex flex-col space-y-1.5">
@@ -1135,6 +1148,15 @@ const editorModules = {
                                             class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
                                             placeholder="Write your raw HTML here (e.g. <b>Hello</b> World)..."></textarea>
                                     </div>
+                                </div>
+
+                                <div class="space-y-3 mt-4">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].generalInstructionsLabel }}</label>
+                                    <Editor v-model="form.passage_general_instructions"
+                                        editorStyle="height: 140px"
+                                        :modules="editorModules"
+                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                        :placeholder="t[currentLang].generalInstructionsPlaceholder" />
                                 </div>
 
                                 <!-- Media Assets Grid -->
@@ -1202,6 +1224,7 @@ const editorModules = {
                                         t[currentLang].fileAttached }}</span>
                                 </div>
                             </div>
+
                         </div>
                     </template>
                 </Card>
@@ -1235,7 +1258,7 @@ const editorModules = {
 
                         <div class="space-y-8">
                             <!-- Question Type & Instruction inputs -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="flex flex-col space-y-1.5">
                                     <label
                                         class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
@@ -1252,6 +1275,7 @@ const editorModules = {
                                         placeholder="e.g. Listen carefully to the prompt and select the correct matching pair."
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-800 px-4" />
                                 </div>
+                                
                             </div>
 
                             <!-- Question prompt wrapper (Text vs Media Toggle) -->
