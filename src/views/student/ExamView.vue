@@ -208,8 +208,11 @@ const listenedPassages = ref(new Set());
 
 const shouldShowContent = computed(() => {
     if (!currentQ.value) return false;
-    const passageAudioUrl = currentQ.value?.passage?.audio_url || currentQ.value?.passage?.audio_path;
-    if (!passageAudioUrl) return true;
+    const audioUrl = currentQ.value?.passage?.audio_url
+        || currentQ.value?.passage?.audio_path
+        || currentQ.value?.audio_url
+        || currentQ.value?.audio_path;
+    if (!audioUrl) return true;
     return hasListened.value;
 });
 
@@ -752,10 +755,24 @@ const handleTimeout = async () => {
 };
 
 const currentQ = computed(() => questions.value[currentIndex.value] || null);
+const isFirstQuestionInPassage = computed(() => {
+    const q = currentQ.value;
+    if (!q) return false;
+    const passageId = q?.passage?.id ?? q?.passage_id;
+    if (!passageId) return true;
+    return !questions.value.slice(0, currentIndex.value).some(item => (item?.passage?.id ?? item?.passage_id) === passageId);
+});
+const passageGeneralInstructions = computed(() => {
+    if (!currentQ.value) return '';
+    if (!isFirstQuestionInPassage.value) return '';
+    return (currentQ.value?.passage?.general_instructions || currentQ.value?.general_instructions || '').trim();
+});
+
 const displayInstructions = computed(() => {
     if (!currentQ.value) return '';
     return currentQ.value.instructions || 'Choose The Correct Answer';
 });
+
 const displayNumber = computed(() => globalOffset.value + currentIndex.value + 1);
 const wordCount = computed(() => (answers.value[currentIndex.value]?.text_answer || '').trim().split(/\s+/).filter(w => w).length);
 
@@ -1312,8 +1329,9 @@ onUnmounted(() => {
 
 
 
+                               
                                 <!-- Audio Player -->
-                                <div v-if="currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path"
+                                <div v-if="(currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path) && !shouldShowContent"
                                     :class="[
                                         'bg-slate-50 rounded-lg border border-slate-200 shadow-inner',
                                         currentQ.type === 'writing' || currentQ.type === 'short_answer' ? 'mb-2 p-2' : 'mb-4 p-3'
@@ -1350,6 +1368,8 @@ onUnmounted(() => {
                                     </div>
                                 </div>
 
+                                
+
                                 <template v-if="shouldShowContent">
                                     <div :class="[
                                         'flex-grow flex flex-col min-h-0',
@@ -1380,14 +1400,10 @@ onUnmounted(() => {
                                             class="w-16 h-16 bg-brand-primary/5 rounded-[1.5rem] flex items-center justify-center text-brand-primary animate-bounce">
                                             <i class="pi pi-headphones text-2xl"></i>
                                         </div>
-                                        <div class="space-y-1 max-w-sm">
-                                            <h4 class="text-sm font-black text-slate-800">يرجى الاستماع للمقطع الصوتي
-                                                أولاً</h4>
-                                            <p class="text-[11px] font-medium text-slate-500">الأسئلة والخيارات ستظهر
-                                                تلقائياً بعد اكتمال تشغيل الصوت.</p>
-                                            <p class="text-[10px] text-slate-400 mt-1 font-mono italic">Questions and
-                                                choices will be unlocked once the audio finishes playing.</p>
-                                        </div>
+                                        <!-- General instructions from DB, shown here instead of the yellow box -->
+                                        <p v-if="passageGeneralInstructions"
+                                            class="text-[11px] font-medium text-slate-600 leading-relaxed mt-3 pt-3 border-t border-slate-200"
+                                            dir="auto" v-html="cleanHtml(passageGeneralInstructions)"></p>
                                     </div>
                                 </template>
 
