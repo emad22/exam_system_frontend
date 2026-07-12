@@ -1,6 +1,6 @@
 <script setup>
 import { useModal } from '@/composables/useModal';
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -314,10 +314,12 @@ const remainingPointsBudget = computed(() => {
 });
 
 const dbQuestionsPoints = ref(0);
+const budgetError = ref(false);
 
 const fetchDbQuestionsPoints = async () => {
     if (!form.value.exam_id || !form.value.skill_id) {
         dbQuestionsPoints.value = 0;
+        budgetError.value = false;
         return;
     }
     try {
@@ -338,9 +340,11 @@ const fetchDbQuestionsPoints = async () => {
         } else {
             dbQuestionsPoints.value = 0;
         }
+        budgetError.value = false;
     } catch (err) {
         console.error('Failed to fetch existing questions points:', err);
         dbQuestionsPoints.value = 0;
+        budgetError.value = true;
     }
 };
 
@@ -423,6 +427,12 @@ watch(() => form.value.passage_mode, (newVal) => {
 
 const pFileInput = ref(null);
 const pMediaPreview = ref(null);
+
+const revokeIfBlob = (url) => {
+    if (url && typeof url === 'string' && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+    }
+};
 
 const createEmptyQuestion = () => ({
     type: 'mcq',
@@ -581,6 +591,7 @@ const loadInitialData = async () => {
 const handlePFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    revokeIfBlob(pMediaPreview.value?.url);
     form.value.p_media = file;
     pMediaPreview.value = { url: URL.createObjectURL(file), type: file.type };
     form.value.clear_p_media = false;
@@ -589,6 +600,7 @@ const handlePFileChange = (e) => {
 const handlePAudioChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    revokeIfBlob(form.value.p_audio_preview?.url);
     form.value.p_audio = file;
     form.value.p_audio_preview = { url: URL.createObjectURL(file), type: file.type };
     form.value.clear_p_audio = false;
@@ -597,6 +609,7 @@ const handlePAudioChange = (e) => {
 const handlePImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    revokeIfBlob(form.value.p_image_preview?.url);
     form.value.p_image = file;
     form.value.p_image_preview = { url: URL.createObjectURL(file), type: file.type };
     form.value.clear_p_image = false;
@@ -610,13 +623,16 @@ const triggerOptionAudio = (qIdx, oIdx) => {
 const handleOptionAudioChange = (e, qIdx, oIdx) => {
     const file = e.target.files[0];
     if (!file) return;
-    form.value.questions[qIdx].options[oIdx].audio = file;
-    form.value.questions[qIdx].options[oIdx].audio_preview = URL.createObjectURL(file);
+    const opt = form.value.questions[qIdx].options[oIdx];
+    revokeIfBlob(opt.audio_preview);
+    opt.audio = file;
+    opt.audio_preview = URL.createObjectURL(file);
 };
 
 const handleQFileChange = (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
+    revokeIfBlob(form.value.questions[index].q_media_preview?.url);
     form.value.questions[index].q_media = file;
     form.value.questions[index].q_media_preview = { url: URL.createObjectURL(file), type: file.type };
 };
@@ -628,6 +644,7 @@ const triggerQFile = (idx) => document.getElementById(`qFile_${idx}`)?.click();
 const handleQAudioChange = (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
+    revokeIfBlob(form.value.questions[index].q_audio_preview?.url);
     form.value.questions[index].q_audio = file;
     form.value.questions[index].q_audio_preview = { url: URL.createObjectURL(file), type: file.type };
 };
@@ -635,6 +652,7 @@ const handleQAudioChange = (e, index) => {
 const handleQImageChange = (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
+    revokeIfBlob(form.value.questions[index].q_image_preview?.url);
     form.value.questions[index].q_image = file;
     form.value.questions[index].q_image_preview = { url: URL.createObjectURL(file), type: file.type };
 };
@@ -668,7 +686,7 @@ const setCorrect = (qIdx, optIdx) => {
     }
 };
 
-const moveOptionUp = async (qIdx, optIdx) => {
+const moveOptionUp = (qIdx, optIdx) => {
     if (optIdx > 0) {
         const options = form.value.questions[qIdx].options;
         const temp = options[optIdx];
@@ -677,7 +695,7 @@ const moveOptionUp = async (qIdx, optIdx) => {
     }
 };
 
-const moveOptionDown = async (qIdx, optIdx) => {
+const moveOptionDown = (qIdx, optIdx) => {
     const options = form.value.questions[qIdx].options;
     if (optIdx < options.length - 1) {
         const temp = options[optIdx];
@@ -686,8 +704,9 @@ const moveOptionDown = async (qIdx, optIdx) => {
     }
 };
 
-const handleTypeChange = async (qIdx) => {
+const handleTypeChange = (qIdx) => {
     const q = form.value.questions[qIdx];
+    const prevOptions = q.options;
     if (q.type === 'true_false') {
         q.instructions = currentLang.value === 'ar' ? "اختر صح أم خطأ." : "Choose True or False.";
         q.options = [
@@ -745,6 +764,21 @@ const handleTypeChange = async (qIdx) => {
             ];
         }
     }
+
+    // Preserve media attachments from previous options to avoid silent data loss on type switch
+    if (q.options.length) {
+        q.options.forEach((opt, i) => {
+            const prev = prevOptions[i];
+            if (prev) {
+                opt.image = prev.image ?? null;
+                opt.image_preview = prev.image_preview ?? null;
+                opt.audio = prev.audio ?? null;
+                opt.audio_preview = prev.audio_preview ?? null;
+                opt.clear_image = prev.clear_image ?? false;
+                opt.clear_audio = prev.clear_audio ?? false;
+            }
+        });
+    }
 };
 
 const updateBatch = async () => {
@@ -765,6 +799,14 @@ const updateBatch = async () => {
         showAlert(
             t[currentLang.value].validationPointsLimit.replace('{current}', currentTotalPoints.value).replace('{max}', selectedSkillMaxPoints.value),
             currentLang.value === 'ar' ? 'تنبيه تجاوز الميزانية' : 'Limit Warning', 'danger'
+        );
+        return;
+    }
+
+    if (isProductiveSkill.value && selectedSkillMaxPoints.value > 0 && budgetError.value) {
+        showAlert(
+            currentLang.value === 'ar' ? 'تعذر التحقق من ميزانية النقاط. يرجى المحاولة مرة أخرى.' : 'Could not verify the points budget. Please try again.',
+            currentLang.value === 'ar' ? 'تنبيه الميزانية' : 'Budget Check', 'warning'
         );
         return;
     }
@@ -864,8 +906,10 @@ const updateBatch = async () => {
 const handleOptionImageChange = (e, qIdx, oIdx) => {
     const file = e.target.files[0];
     if (!file) return;
-    form.value.questions[qIdx].options[oIdx].image = file;
-    form.value.questions[qIdx].options[oIdx].image_preview = URL.createObjectURL(file);
+    const opt = form.value.questions[qIdx].options[oIdx];
+    revokeIfBlob(opt.image_preview);
+    opt.image = file;
+    opt.image_preview = URL.createObjectURL(file);
 };
 
 const triggerOptionImage = (qIdx, oIdx) => {
@@ -876,6 +920,21 @@ const triggerOptionImage = (qIdx, oIdx) => {
 
 onMounted(() => {
     loadInitialData();
+});
+
+onUnmounted(() => {
+    revokeIfBlob(pMediaPreview.value?.url);
+    revokeIfBlob(form.value.p_audio_preview?.url);
+    revokeIfBlob(form.value.p_image_preview?.url);
+    form.value.questions.forEach(q => {
+        revokeIfBlob(q.q_media_preview?.url);
+        revokeIfBlob(q.q_audio_preview?.url);
+        revokeIfBlob(q.q_image_preview?.url);
+        q.options?.forEach(opt => {
+            revokeIfBlob(opt.image_preview?.url);
+            revokeIfBlob(opt.audio_preview?.url);
+        });
+    });
 });
 
 const editorModules = {
@@ -967,7 +1026,7 @@ const editorModules = {
                                 <div class="flex flex-col space-y-1.5">
                                     <label
                                         class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                        t[currentLang].linkedExam }}</label>
+                                            t[currentLang].linkedExam }}</label>
                                     <Select v-model="form.exam_id" :options="exams" optionLabel="title" optionValue="id"
                                         :placeholder="t[currentLang].selectExamPlaceholder"
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
@@ -977,7 +1036,7 @@ const editorModules = {
                                 <div class="flex flex-col space-y-1.5">
                                     <label
                                         class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                        t[currentLang].targetSkill }}</label>
+                                            t[currentLang].targetSkill }}</label>
                                     <Select v-model="form.skill_id" :options="filteredSkills" optionLabel="name"
                                         optionValue="id" :placeholder="t[currentLang].selectSkillPlaceholder"
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm"
@@ -1005,7 +1064,7 @@ const editorModules = {
                                         class="flex justify-between text-[8px] text-slate-400 font-black mt-2 uppercase tracking-widest ml-1 mr-1">
                                         <span>{{ t[currentLang].beginnerText }}</span>
                                         <span>{{ t[currentLang].expertText.replace('{max}', currentSkillMaxLevel)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                 </div>
 
@@ -1041,7 +1100,7 @@ const editorModules = {
                                         <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest">{{
                                             t[currentLang].noCapTitle }}</p>
                                         <p class="text-[10px] text-amber-500 font-bold mt-1">{{ t[currentLang].noCapDesc
-                                            }}</p>
+                                        }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1093,7 +1152,7 @@ const editorModules = {
                                     <div class="md:col-span-8 flex flex-col space-y-1.5">
                                         <label
                                             class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                            t[currentLang].passageTitleLabel }}</label>
+                                                t[currentLang].passageTitleLabel }}</label>
                                         <InputText v-model="form.passage_title"
                                             :placeholder="t[currentLang].passageTitlePlaceholder"
                                             class="w-full rounded-xl bg-white border-slate-100 font-bold text-slate-800" />
@@ -1101,7 +1160,7 @@ const editorModules = {
                                     <div class="md:col-span-4 flex flex-col space-y-1.5">
                                         <label
                                             class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                            t[currentLang].passageTypeLabel }}</label>
+                                                t[currentLang].passageTypeLabel }}</label>
                                         <Select v-model="form.passage_type"
                                             :options="[{ label: t[currentLang].passageTypes.text, value: 'text' }, { label: t[currentLang].passageTypes.image, value: 'image' }, { label: t[currentLang].passageTypes.audio, value: 'audio' }, { label: t[currentLang].passageTypes.video, value: 'video' }]"
                                             optionLabel="label" optionValue="value"
@@ -1116,7 +1175,7 @@ const editorModules = {
                                         <div>
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
-                                                t[currentLang].passageContentLabel }}</label>
+                                                    t[currentLang].passageContentLabel }}</label>
                                             <p class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">{{
                                                 t[currentLang].passageContentDesc }}</p>
                                         </div>
@@ -1151,9 +1210,10 @@ const editorModules = {
                                 </div>
 
                                 <div class="space-y-3 mt-4">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].generalInstructionsLabel }}</label>
-                                    <Editor v-model="form.passage_general_instructions"
-                                        editorStyle="height: 140px"
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].generalInstructionsLabel }}</label>
+                                    <Editor v-model="form.passage_general_instructions" editorStyle="height: 140px"
                                         :modules="editorModules"
                                         class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
                                         :placeholder="t[currentLang].generalInstructionsPlaceholder" />
@@ -1163,7 +1223,7 @@ const editorModules = {
                                 <div class="space-y-3">
                                     <label
                                         class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                        t[currentLang].mediaAssetsLabel }}</label>
+                                            t[currentLang].mediaAssetsLabel }}</label>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <!-- Image Attachment -->
                                         <ImageResizeUploader v-model="form.p_image" v-model:width="form.p_image_width"
@@ -1183,10 +1243,10 @@ const editorModules = {
                                                 <div class="flex flex-col">
                                                     <span
                                                         class="text-[11px] font-black text-slate-700 uppercase tracking-wide">{{
-                                                        t[currentLang].attachListening }}</span>
+                                                            t[currentLang].attachListening }}</span>
                                                     <span
                                                         class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{{
-                                                        t[currentLang].mp3Support }}</span>
+                                                            t[currentLang].mp3Support }}</span>
                                                 </div>
                                             </div>
                                             <div v-else class="flex flex-col gap-2.5">
@@ -1194,7 +1254,7 @@ const editorModules = {
                                                     class="flex items-center justify-between pb-1 border-b border-slate-100">
                                                     <span
                                                         class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{
-                                                        t[currentLang].audioLinked }}</span>
+                                                            t[currentLang].audioLinked }}</span>
                                                     <Button icon="pi pi-trash" text severity="danger" size="small"
                                                         @click="form.p_audio = null; form.p_audio_preview = null; form.clear_p_audio = true;"
                                                         class="w-7 h-7 flex items-center justify-center" />
@@ -1216,12 +1276,12 @@ const editorModules = {
                                         t[currentLang].needVideo }}</p>
                                     <button type="button" @click="$refs.pFileInput.click()"
                                         class="text-[9px] font-black text-brand-primary uppercase tracking-widest underline decoration-dotted">{{
-                                        t[currentLang].clickHere }}</button>
+                                            t[currentLang].clickHere }}</button>
                                     <input type="file" ref="pFileInput" class="hidden" @change="handlePFileChange"
                                         accept="video/*" />
                                     <span v-if="pMediaPreview"
                                         class="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded shadow-sm border border-emerald-100">{{
-                                        t[currentLang].fileAttached }}</span>
+                                            t[currentLang].fileAttached }}</span>
                                 </div>
                             </div>
 
@@ -1262,7 +1322,7 @@ const editorModules = {
                                 <div class="flex flex-col space-y-1.5">
                                     <label
                                         class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                        t[currentLang].questionTypeLabel }}</label>
+                                            t[currentLang].questionTypeLabel }}</label>
                                     <Select v-model="q.type" @change="handleTypeChange(qIdx)" :options="questionTypes"
                                         optionLabel="label" optionValue="value"
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
@@ -1270,12 +1330,12 @@ const editorModules = {
                                 <div class="flex flex-col space-y-1.5">
                                     <label
                                         class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                        t[currentLang].instructionsLabel }}</label>
+                                            t[currentLang].instructionsLabel }}</label>
                                     <InputText v-model="q.instructions"
                                         placeholder="e.g. Listen carefully to the prompt and select the correct matching pair."
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-800 px-4" />
                                 </div>
-                                
+
                             </div>
 
                             <!-- Question prompt wrapper (Text vs Media Toggle) -->
@@ -1284,7 +1344,7 @@ const editorModules = {
                                     class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-slate-50">
                                     <span
                                         class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                        t[currentLang].questionPrompt }}</span>
+                                            t[currentLang].questionPrompt }}</span>
                                     <div class="flex bg-slate-50 p-1 rounded-xl gap-0.5">
                                         <button type="button"
                                             @click="q.content_mode = 'text'; q.q_media = null; q.q_media_preview = null"
@@ -1409,7 +1469,7 @@ const editorModules = {
                                         <div class="flex flex-col space-y-1.5">
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].imageAttachment }}</label>
+                                                    t[currentLang].imageAttachment }}</label>
                                             <ImageResizeUploader v-model="q.q_image" v-model:width="q.q_image_width"
                                                 v-model:height="q.q_image_height" :initialUrl="q.q_image_preview?.url"
                                                 :label="t[currentLang].imageSelect" icon="pi-image"
@@ -1420,7 +1480,7 @@ const editorModules = {
                                         <div class="flex flex-col space-y-1.5">
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].audioAttachment }}</label>
+                                                    t[currentLang].audioAttachment }}</label>
                                             <div class="flex flex-col gap-3">
                                                 <div @click="triggerQAudio(qIdx)"
                                                     class="w-full h-20 border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 cursor-pointer transition-all group"
@@ -1433,7 +1493,7 @@ const editorModules = {
                                                     <span class="text-[9px] font-black uppercase tracking-widest"
                                                         :class="q.q_audio_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-brand-primary'">
                                                         {{ q.q_audio_preview ? t[currentLang].audioLinked :
-                                                        t[currentLang].selectAudioFile }}
+                                                            t[currentLang].selectAudioFile }}
                                                     </span>
                                                 </div>
                                                 <div v-if="q.q_audio_preview"
@@ -1453,7 +1513,7 @@ const editorModules = {
                                             <div class="flex items-center gap-3">
                                                 <label
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
-                                                    t[currentLang].otherMediaLabel }}</label>
+                                                        t[currentLang].otherMediaLabel }}</label>
                                                 <div class="grow h-[1px] bg-slate-50"></div>
                                                 <Button icon="pi pi-plus" :label="t[currentLang].needVideo" text
                                                     class="text-[9px] font-black" @click="triggerQFile(qIdx)" />
@@ -1469,7 +1529,7 @@ const editorModules = {
                                                     q.q_media_preview.type }}</span>
                                                 <button @click="q.q_media = null; q.q_media_preview = null"
                                                     class="text-rose-500 font-black text-[9px] uppercase hover:underline">{{
-                                                    t[currentLang].modes.none }}</button>
+                                                        t[currentLang].modes.none }}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1483,7 +1543,7 @@ const editorModules = {
                                     <div class="flex items-center justify-between pb-1">
                                         <label
                                             class="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1 mr-1">{{
-                                            t[currentLang].optionsMatrix }}</label>
+                                                t[currentLang].optionsMatrix }}</label>
                                         <Button
                                             v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type)"
                                             icon="pi pi-plus" :label="t[currentLang].addOptionBtn" text rounded
@@ -1499,7 +1559,7 @@ const editorModules = {
                                             <!-- Index + Correct toggle -->
                                             <div class="flex items-center gap-2 shrink-0 mt-1">
                                                 <span class="text-[8px] font-black text-slate-400">#{{ oIdx + 1
-                                                    }}</span>
+                                                }}</span>
                                                 <button v-if="q.type !== 'short_answer'" type="button"
                                                     @click="setCorrect(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all"
@@ -1610,7 +1670,7 @@ const editorModules = {
                                                     t[currentLang].scoringParams }}</label>
                                                 <span
                                                     class="text-[8px] font-bold text-slate-400 uppercase tracking-wide">{{
-                                                    t[currentLang].defineWeight }}</span>
+                                                        t[currentLang].defineWeight }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1623,7 +1683,7 @@ const editorModules = {
                                                 <i class="pi pi-sort-alt text-[9px] text-slate-400"></i>
                                                 <label
                                                     class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{
-                                                    t[currentLang].displayOrder }}</label>
+                                                        t[currentLang].displayOrder }}</label>
                                             </div>
                                             <InputNumber v-model="q.sort_order" :min="0" class="w-full h-10.5"
                                                 inputClass="w-full text-center font-black text-slate-700 bg-white border border-slate-150 rounded-xl px-4 focus:border-brand-primary transition-all" />
@@ -1635,7 +1695,7 @@ const editorModules = {
                                                 <i class="pi pi-star text-[9px] text-brand-primary animate-pulse"></i>
                                                 <label
                                                     class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{
-                                                    t[currentLang].questionPoints }}</label>
+                                                        t[currentLang].questionPoints }}</label>
                                             </div>
                                             <InputNumber v-model="q.points" :min="1" class="w-full h-10.5"
                                                 inputClass="w-full text-center font-black text-brand-primary bg-rose-50/20 border border-slate-150 rounded-xl px-4 focus:border-brand-primary transition-all" />
@@ -1649,7 +1709,7 @@ const editorModules = {
                                                         class="text-[9px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
                                                         <i class="pi pi-info-circle text-[10px]"></i>
                                                         {{ currentLang === 'ar' ? 'ملاحظة: عدد الكلمات يُحفظ تلقائياً' :
-                                                        'Note: Word count is saved automatically' }}
+                                                            'Note: Word count is saved automatically' }}
                                                     </p>
                                                     <p class="text-[8px] text-blue-600 mt-1.5 leading-relaxed">
                                                         {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be calculated and displayed to the teacher during grading' }}
