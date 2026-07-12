@@ -1329,7 +1329,20 @@ onUnmounted(() => {
 
 
 
-                               
+                                <!-- ✅ General Instructions Banner (shown BEFORE audio player when locked) -->
+                                <div v-if="passageGeneralInstructions && !shouldShowContent"
+                                    class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl shadow-sm animate-in fade-in duration-500"
+                                    dir="auto">
+                                    <div class="flex items-start gap-3">
+                                        <div
+                                            class="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
+                                            <i class="pi pi-info-circle text-sm"></i>
+                                        </div>
+                                        <p class="text-sm font-semibold text-amber-900 leading-relaxed"
+                                            v-html="cleanHtml(passageGeneralInstructions)"></p>
+                                    </div>
+                                </div>
+
                                 <!-- Audio Player -->
                                 <div v-if="(currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path) && !shouldShowContent"
                                     :class="[
@@ -1368,7 +1381,6 @@ onUnmounted(() => {
                                     </div>
                                 </div>
 
-                                
 
                                 <template v-if="shouldShowContent">
                                     <div :class="[
@@ -1393,17 +1405,17 @@ onUnmounted(() => {
                                     </div>
                                 </template>
                                 <template v-else>
-                                    <!-- Locked Questions Message -->
+                                    <!-- Locked Questions Message (no instructions here anymore - moved above) -->
                                     <div
                                         class="flex-grow flex flex-col items-center justify-center p-6 text-center bg-slate-50/50 rounded-2xl border border-slate-200/50 border-dashed space-y-4">
                                         <div
                                             class="w-16 h-16 bg-brand-primary/5 rounded-[1.5rem] flex items-center justify-center text-brand-primary animate-bounce">
                                             <i class="pi pi-headphones text-2xl"></i>
                                         </div>
-                                        <!-- General instructions from DB, shown here instead of the yellow box -->
-                                        <p v-if="passageGeneralInstructions"
-                                            class="text-[11px] font-medium text-slate-600 leading-relaxed mt-3 pt-3 border-t border-slate-200"
-                                            dir="auto" v-html="cleanHtml(passageGeneralInstructions)"></p>
+                                        <p class="text-xs font-semibold text-slate-500">استمع إلى الصوت بالكامل لتظهر
+                                            الأسئلة</p>
+                                        <p class="text-[10px] text-slate-400 italic">Listen to the full audio to unlock
+                                            the questions</p>
                                     </div>
                                 </template>
 

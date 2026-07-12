@@ -143,7 +143,7 @@ const skillMap = {
 const skillStylesMap = {
     'listening': {
         borderColor: 'border-l-[#2563EB]',
-        bgTint: 'bg-[#F3F8FF]', 
+        bgTint: 'bg-[#F3F8FF]',
         iconBg: 'bg-[#EFF6FF]',
         iconColor: 'text-[#2563EB]',
         textColor: 'text-[#1E3A8A]',
@@ -368,7 +368,7 @@ onUnmounted(() => {
                 <div v-else class="pt-2 pr-1.5 flex flex-col gap-5">
                     <div class="space-y-2 pb-1 animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <div v-for="skill in sortedSkills" :key="skill.id"
-                            @click="!isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) && (student?.student?.is_demo ? selectSkill(skill.id, 1) : selectSkill(skill.id))"
+                            @click="!isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) && selectSkill(skill.id)"
                             class="group relative bg-white border border-slate-200 border-l-[3px] rounded-lg px-6 py-3 min-h-[72px] transition-all duration-300 flex items-center gap-5 shadow-sm"
                             :class="[
                                 getSkillStyle(skill.name).borderColor,
@@ -383,7 +383,8 @@ onUnmounted(() => {
                             <!-- Icon -->
                             <div class="w-14 h-14 rounded-lg flex items-center justify-center transition-all duration-500 shadow-sm shrink-0 border border-slate-100/60"
                                 :class="isSkillCompleted(exams[0], skill.id) ? 'bg-emerald-50 text-emerald-500 border border-emerald-100' : [getSkillStyle(skill.name).iconBg]">
-                                <i v-if="isSkillCompleted(exams[0], skill.id)" class="pi pi-check text-xl font-bold"></i>
+                                <i v-if="isSkillCompleted(exams[0], skill.id)"
+                                    class="pi pi-check text-xl font-bold"></i>
                                 <img v-else :src="getSkillIcon(skill.name)" :alt="skill.name"
                                     class="w-20 h-20 object-contain group-hover:scale-105 transition-transform" />
                             </div>
@@ -391,11 +392,10 @@ onUnmounted(() => {
                             <!-- Details -->
                             <div class="flex-grow">
                                 <div class="flex items-center gap-3 mb-0.5">
-                                    <h3
-                                        class="text-sm font-bold text-slate-800 tracking-wide uppercase leading-none">
+                                    <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase leading-none">
                                         {{ getSkillDisplayName(skill.name) }}
                                     </h3>
-                                    
+
                                     <!-- Status Badges styled like image 2 -->
                                     <div v-if="isSkillCompleted(exams[0], skill.id)"
                                         class="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-[4px] border border-emerald-100 text-[9px] font-bold uppercase tracking-wide">
@@ -404,7 +404,8 @@ onUnmounted(() => {
                                     </div>
                                     <div v-else-if="isSkillInProgress(exams[0], skill.id)"
                                         class="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-[4px] border border-amber-100 text-[9px] font-bold uppercase tracking-wide">
-                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                        <span
+                                            class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                                         <span>In Progress</span>
                                     </div>
                                     <div v-else
@@ -413,13 +414,14 @@ onUnmounted(() => {
                                         <span>Not Started</span>
                                     </div>
                                 </div>
-                                
+
                                 <div v-if="isSkillLocked(exams[0], skill.id) && !student?.student?.is_demo"
                                     class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 text-[8px] font-bold uppercase tracking-widest leading-none">
                                     <i class="pi pi-lock text-[8px]"></i>
                                     <span>Locked</span>
                                 </div>
 
+                                <!-- COMMENTED: Demo level selector buttons (1-6)
                                 <div v-if="student?.student?.is_demo" class="flex flex-wrap items-center gap-1 mt-1"
                                     @click.stop>
                                     <span
@@ -430,19 +432,24 @@ onUnmounted(() => {
                                         {{ lvl }}
                                     </button>
                                 </div>
+                                -->
                             </div>
 
                             <!-- Action "Link" Style -->
                             <div class="shrink-0 flex items-center gap-4">
+                                <!-- COMMENTED: Demo "Select Level to Start" action
                                 <div v-if="student?.student?.is_demo"
                                     class="flex items-center gap-1.5 text-brand-primary transition-all font-bold text-xs tracking-wide">
                                     <span>Select Level to Start</span>
                                     <i class="pi pi-arrow-right text-[10px]"></i>
                                 </div>
-                                <div v-else-if="!isSkillCompleted(exams[0], skill.id)"
+                                -->
+                                <div v-if="!isSkillCompleted(exams[0], skill.id)"
                                     class="flex items-center gap-1.5 font-bold text-xs tracking-wide transition-colors text-[#2563EB] group-hover:text-[#1d4ed8]">
-                                    <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Test' : 'Start Test' }}</span>
-                                    <i class="pi pi-arrow-right text-[10px] group-hover:translate-x-1 transition-transform font-bold"></i>
+                                    <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Test' : 'Start Test'
+                                    }}</span>
+                                    <i
+                                        class="pi pi-arrow-right text-[10px] group-hover:translate-x-1 transition-transform font-bold"></i>
                                 </div>
                                 <div v-else class="text-emerald-600 font-bold text-xs tracking-wide">
                                     Taken
@@ -452,14 +459,17 @@ onUnmounted(() => {
                     </div>
 
                     <!-- About the test banner at the bottom -->
-                    <div class="bg-[#F3F8FF] border border-[#BFDBFE]/60 rounded-lg p-4 flex items-start gap-4 animate-in fade-in duration-1000 mt-1">
-                        <div class="w-9 h-9 rounded-full bg-[#2563EB] flex items-center justify-center text-white shrink-0 shadow-sm border border-blue-400/20">
+                    <div
+                        class="bg-[#F3F8FF] border border-[#BFDBFE]/60 rounded-lg p-4 flex items-start gap-4 animate-in fade-in duration-1000 mt-1">
+                        <div
+                            class="w-9 h-9 rounded-full bg-[#2563EB] flex items-center justify-center text-white shrink-0 shadow-sm border border-blue-400/20">
                             <i class="pi pi-info text-sm font-bold"></i>
                         </div>
                         <div>
                             <h4 class="text-xs font-bold text-[#1E3A8A] tracking-wide mb-0.5">About the test</h4>
                             <p class="text-[11px] text-slate-500 font-medium leading-relaxed">
-                                Complete all skills to receive your ALPT certificate. You can take the skills in any order.
+                                Complete all skills to receive your ALPT certificate. You can take the skills in any
+                                order.
                             </p>
                         </div>
                     </div>
