@@ -28,6 +28,18 @@ export default defineConfig({
           if (id.includes('node_modules/quill')) {
             return 'quill';
           }
+          if (id.includes('node_modules/chart.js')) {
+            return 'chartjs';
+          }
+          if (id.includes('node_modules/@vladmandic/face-api')) {
+            return 'face-api';
+          }
+          if (id.includes('node_modules/tesseract.js')) {
+            return 'tesseract';
+          }
+          if (id.includes('node_modules/simple-keyboard')) {
+            return 'simple-keyboard';
+          }
           if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router')) {
             return 'vendor';
           }
