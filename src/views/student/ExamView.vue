@@ -1521,17 +1521,12 @@ onUnmounted(() => {
                     <!-- ============================================================ -->
                     <!-- CASE 3: No passage content â†’ Single full-width pane          -->
                     <!-- ============================================================ -->
-                    <div v-else-if="currentQ"
-                        class="flex flex-col border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0 bg-slate-50">
-
+                    <div v-else-if="currentQ" class="flex flex-col border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0 bg-slate-50">
                         <div class="flex-1 overflow-y-auto">
                             <div class="max-w-5xl mx-auto w-full bg-white border border-slate-100 flex flex-col transition-all duration-300"
                                 :class="currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer') ? 'my-2 rounded-xl p-4' : 'my-4 rounded-2xl shadow-xl p-6'">
 
-                                <div :class="[
-                                    'flex flex-col',
-                                    ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4'
-                                ]">
+                                <div :class="[ 'flex flex-col', ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4']">
 
                                     <!-- Instructions Banner (matches design in image 2) -->
                                     <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
