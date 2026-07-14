@@ -26,10 +26,10 @@ const props = defineProps({
 });
 
 const { resolveUrl } = useMediaUrl();
-
 const emit = defineEmits(['update:answer']);
 
 const activeTab = ref('write'); // 'write' or 'upload'
+const hasStartedWriting = ref(false); // Controls the active view screens
 
 const textAnswer = computed({
     get: () => props.answer.text_answer || '',
@@ -40,22 +40,24 @@ const editorRef = ref(null);
 let quillInstance = null;
 const forceUpdateCounter = ref(0);
 
-const wordCount = computed(() => {
-    // Force re-evaluation when counter changes
+const plainTextContent = computed(() => {
     forceUpdateCounter.value;
-    
-    let plainText = '';
     if (quillInstance) {
-        plainText = quillInstance.getText().trim();
-    } else {
-        plainText = (textAnswer.value || '')
-            .replace(/<[^>]*>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+        return quillInstance.getText().trim();
     }
-    // Filter out newline characters only and count words
-    const words = plainText.split(/\s+/).filter(w => w.length > 0);
+    return (textAnswer.value || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+});
+
+const wordCount = computed(() => {
+    const words = plainTextContent.value.split(/\s+/).filter(w => w.length > 0);
     return words.length;
+});
+
+const charCount = computed(() => {
+    return plainTextContent.value.replace(/\s+/g, '').length;
 });
 
 const cleanHtml = (html) => {
@@ -109,7 +111,6 @@ const handleVirtualKeyboardKeyPress = (button) => {
         quillInstance.setSelection(index + button.length);
     }
     
-    // Update parent and trigger word count update
     textAnswer.value = quillInstance.root.innerHTML;
     forceUpdateCounter.value++;
 };
@@ -123,45 +124,71 @@ const handleFileRemoved = () => {
 };
 
 onMounted(async () => {
-    // Wait for DOM to be ready
     await nextTick();
-    
-    // Initialize Quill editor
-    if (editorRef.value && !quillInstance) {
-        quillInstance = new Quill(editorRef.value, {
-            theme: 'snow',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline'],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    [{ 'direction': 'rtl' }],
-                    ['clean']
-                ]
-            },
-            placeholder: 'ابدأ الكتابة هنا...'
-        });
+});
 
-        // Set initial HTML value
-        quillInstance.root.innerHTML = textAnswer.value;
+// Initialize Quill only when entering the editor view for the first time
+watch(hasStartedWriting, async (isWriting) => {
+    if (isWriting) {
+        await nextTick();
+        if (editorRef.value && !quillInstance) {
+            quillInstance = new Quill(editorRef.value, {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['undo', 'redo'],
+                        ['bold', 'italic', 'underline'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'direction': 'rtl' }, { 'align': [] }],
+                        ['clean']
+                    ],
+                    keyboard: {
+                        bindings: {
+                            undo: { key: 'Z', shortKey: true, handler: function() { this.quill.history.undo(); } },
+                            redo: { key: 'Y', shortKey: true, handler: function() { this.quill.history.redo(); } }
+                        }
+                    }
+                },
+                placeholder: 'ابدأ الكتابة هنا...'
+            });
 
-        // Sync Quill changes to parent textAnswer and trigger word count update
-        quillInstance.on('text-change', () => {
-            textAnswer.value = quillInstance.root.innerHTML;
-            forceUpdateCounter.value++;
-        });
+            quillInstance.root.innerHTML = textAnswer.value;
 
-        if (props.disabled) {
-            quillInstance.enable(false);
+            quillInstance.on('text-change', () => {
+                textAnswer.value = quillInstance.root.innerHTML;
+                forceUpdateCounter.value++;
+            });
+
+            if (props.disabled) {
+                quillInstance.enable(false);
+            }
+        }
+        
+        // Add custom undo/redo icons
+        const toolbar = quillInstance.getModule('toolbar');
+        if (toolbar) {
+            const undoBtn = toolbar.container.querySelector('.ql-undo');
+            const redoBtn = toolbar.container.querySelector('.ql-redo');
+            if (undoBtn) undoBtn.innerHTML = '<svg viewBox="0 0 18 18"><path class="ql-fill ql-stroke" d="M8.5,4L5,7.5L8.5,11V8c3.5,0,5,2.5,5,5c0-1-1-5-6-5V4z"></path></svg>';
+            if (redoBtn) redoBtn.innerHTML = '<svg viewBox="0 0 18 18"><path class="ql-fill ql-stroke" d="M9.5,4l3.5,3.5L9.5,11V8c-3.5,0-5,2.5-5,5c0-1,1-5,6-5V4z"></path></svg>';
+            
+            if (undoBtn) undoBtn.addEventListener('click', () => quillInstance.history.undo());
+            if (redoBtn) redoBtn.addEventListener('click', () => quillInstance.history.redo());
         }
     }
-
-    // Register active global keyboard keypress listener
-    registerKeyPressListener(handleVirtualKeyboardKeyPress);
 });
+
+// Sync Keyboard Toggle
+watch(showVirtualKeyboard, (newVal) => {
+    if (newVal) {
+        registerKeyPressListener(handleVirtualKeyboardKeyPress);
+    } else {
+        unregisterKeyPressListener();
+    }
+}, { immediate: true });
 
 watch(() => activeTab.value, async (newTab) => {
     if (newTab === 'write' && quillInstance) {
-        // Refocus Quill when switching back to write tab
         await nextTick();
         quillInstance.focus();
     }
@@ -181,116 +208,157 @@ watch(() => textAnswer.value, (newVal) => {
 
 onUnmounted(() => {
     unregisterKeyPressListener();
+    showVirtualKeyboard.value = false; // Ensure keyboard closes totally if we navigate away
 });
 </script>
 
 <template>
-    <div class="writing-question-wrapper" dir="rtl">
+    <div class="writing-question-wrapper" dir="ltr">
         
-        <!-- Prompt Section: Side-by-Side in Single Column Mode -->
-        <div :class="['prompt-section', !hasStimulusContent ? 'side-by-side' : 'stacked']">
+        <!-- ============================================== -->
+        <!-- STATE 1: TOPICS AND INSTRUCTIONS PANEL         -->
+        <!-- ============================================== -->
+        <div v-show="!hasStartedWriting" class="topics-view animate-in fade-in zoom-in-95 duration-300 w-full" dir="ltr">
             
-            <!-- Right side / Content Pane: Title, Badge, Text content -->
-            <div class="prompt-text-pane">
-                <!-- 1. Passage Title (only in single-column mode) -->
-                <h3 v-if="!hasStimulusContent && question.passage?.title" class="passage-title" v-html="question.passage.title"></h3>
-
-                <!-- 2. Instructions Badge -->
-                <div v-if="question.instructions" class="writing-instructions-badge">
-                    <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></span>
-                    <span v-html="question.instructions"></span>
+            <!-- Instructions Banner -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col overflow-hidden">
+                <div class="flex items-center gap-2 p-4 border-b border-slate-100 bg-slate-50/50">
+                    <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                        <i class="pi pi-info text-xs font-black"></i>
+                    </div>
+                    <span class="font-black text-slate-800 text-[15px] tracking-wide">Instructions</span>
                 </div>
-
-                <!-- 3. Question Prompt/Content -->
-                <div v-if="question.content" 
-                     class="writing-prompt-content ql-content" 
-                     v-html="cleanHtml(question.content)">
-                </div>
-
-                <!-- 5. Passage Content (only in single-column mode) -->
-                <div v-if="!hasStimulusContent && question.passage?.content" 
-                     class="passage-short-content ql-content" 
-                     v-html="cleanHtml(question.passage.content)">
-                </div>
-            </div>
-
-            <!-- Left side / Image Pane (only in single-column mode) -->
-            <div v-if="!hasStimulusContent && (question.image_url || question.image_path || question.passage?.image_url || question.passage?.image_path)" 
-                 class="prompt-image-pane">
-                <div class="image-prompt-container">
-                    <img 
-                        :src="resolveUrl(question.image_url || question.image_path || question.passage?.image_url || question.passage?.image_path)" 
-                        alt="Prompt Image"
-                        class="prompt-image"
-                    />
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Premium Tab Selector -->
-        <div class="tab-selector">
-            <button 
-                @click="activeTab = 'write'"
-                :class="[
-                    'tab-button',
-                    activeTab === 'write' && 'tab-button-active'
-                ]"
-                :disabled="disabled">
-                <i class="pi pi-pen-to-square"></i>
-                <span>Write Text</span>
-            </button>
-            <button 
-                @click="activeTab = 'upload'"
-                :class="[
-                    'tab-button',
-                    activeTab === 'upload' && 'tab-button-active'
-                ]"
-                :disabled="disabled">
-                <i class="pi pi-cloud-upload"></i>
-                <span>File Upload</span>
-            </button>
-        </div>
-
-        <!-- Tab Content: Write Text -->
-        <div v-show="activeTab === 'write'" class="tab-content">
-            <!-- Rich Text Editor Container -->
-            <div class="editor-container-outer">
-                <div ref="editorRef" class="quill-rich-editor"></div>
-            </div>
-
-            <!-- Toolbar -->
-            <div class="writing-toolbar">
-                <!-- Stats -->
-                <div class="toolbar-stats">
-                    <div class="stat-badge">
-                        <i class="pi pi-align-right"></i>
-                        <span>Words: {{ wordCount }}</span>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 bg-white">
+                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+                        <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
+                            <i class="pi pi-check-square"></i> 1. Choose ONE topic only.
+                        </div>
+                        <p class="text-xs text-slate-500 font-semibold leading-relaxed">
+                            Select the topic you want to write about from the list.
+                        </p>
+                    </div>
+                    
+                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+                        <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
+                            <i class="pi pi-pencil"></i> 2. Write your answer.
+                        </div>
+                        <p class="text-xs text-slate-500 font-semibold leading-relaxed">
+                            You may write your answer directly in the text box using the Arabic keyboard.
+                        </p>
+                    </div>
+                    
+                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+                        <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
+                            <i class="pi pi-cloud-upload"></i> 3. Upload your answer (optional).
+                        </div>
+                        <p class="text-xs text-slate-500 font-semibold leading-relaxed">
+                            You can upload your answer as a file<br>(DOC, DOCX, PDF, PNG, JPG).
+                        </p>
                     </div>
                 </div>
+            </div>
 
-                <!-- Keyboard Controls (Toggle only, no language switch) -->
-                <div class="toolbar-controls">
-                    <button
-                        @click="showVirtualKeyboard = !showVirtualKeyboard"
-                        class="kb-toggle-btn"
-                        :class="{ active: showVirtualKeyboard }"
-                        title="Virtual keyboard"
-                    >
-                        <i class="pi pi-keyboard"></i>
-                    </button>
+            <!-- Topics Container -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 mb-8 flex flex-col items-center">
+                <div class="flex flex-col items-center justify-center gap-1 mb-8">
+                    <div class="flex items-center gap-2 font-black text-lg text-slate-800">
+                        <span class="font-arabic">موضوعات الكتابة</span>
+                        <i class="pi pi-clipboard text-blue-600 text-lg"></i>
+                    </div>
+                    <span class="text-xs font-black tracking-widest text-[#1e293b] uppercase">Writing Topics</span>
                 </div>
+                
+                <!-- The actual topics from content -->
+                <div v-if="question.content" 
+                     class="writing-prompt-content w-full"
+                     dir="auto" 
+                     v-html="cleanHtml(question.content)">
+                </div>
+            </div>
+
+            <!-- Start Writing Button -->
+            <div class="flex justify-center pb-4">
+                <button @click="hasStartedWriting = true" 
+                        class="bg-[#2563EB] hover:bg-blue-700 active:scale-95 text-white font-black text-xs uppercase tracking-widest px-14 py-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-3">
+                    <span>Start Writing</span>
+                    <i class="pi pi-pencil"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Tab Content: Upload File -->
-        <div v-show="activeTab === 'upload'" class="tab-content">
-            <FileUpload 
-                :accepted-types="['image', 'document']"
-                :max-size="50 * 1024 * 1024"
-                :disabled="disabled"
-                @file-selected="handleFileSelected"
-                @file-removed="handleFileRemoved" />
+        <!-- ============================================== -->
+        <!-- STATE 2: EDITOR PANEL                          -->
+        <!-- ============================================== -->
+        <div v-show="hasStartedWriting" class="editor-view flex flex-col w-full h-full animate-in fade-in duration-300" dir="ltr">
+            
+            <!-- Top Controls (Show Topics + Tabs) -->
+            <div class="flex flex-col md:flex-row items-center justify-between mb-4 border-b border-slate-200 pb-2 gap-4">
+                
+                <!-- Back Button -->
+                <button @click="hasStartedWriting = false; showVirtualKeyboard = false" 
+                        class="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-bold text-xs uppercase tracking-wider px-3 py-2 rounded-lg hover:bg-slate-100 transition-all self-start md:self-auto">
+                    <i class="pi pi-arrow-left"></i> Show Topics
+                </button>
+
+                <!-- Tabs -->
+                <div class="flex items-center gap-8 px-4">
+                    <button @click="activeTab = 'write'"
+                        class="pb-3 text-sm font-black flex items-center gap-2 transition-all relative"
+                        :class="activeTab === 'write' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'">
+                        <i class="pi pi-pen-to-square text-base"></i> Write Text
+                        <div v-if="activeTab === 'write'" class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+                    </button>
+                    <button @click="activeTab = 'upload'"
+                        class="pb-3 text-sm font-black flex items-center gap-2 transition-all relative"
+                        :class="activeTab === 'upload' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'">
+                        <i class="pi pi-cloud-upload text-base"></i> Upload File
+                        <div v-if="activeTab === 'upload'" class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+                    </button>
+                </div>
+                
+                <!-- Empty div for centering balance on desktop -->
+                <div class="hidden md:block w-[130px]"></div>
+            </div>
+
+            <!-- Tab Content: Write -->
+            <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[400px]">
+                <div class="editor-container-outer flex-1 border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all">
+                    <div ref="editorRef" class="quill-rich-editor w-full h-full font-arabic text-right"></div>
+                </div>
+                
+                <!-- Bottom Toolbar (Keyboard Toggle & Counts) -->
+                <div class="flex items-center justify-between bg-white border border-t-0 border-slate-200 rounded-b-xl px-4 py-3 shadow-sm">
+                    <!-- Keyboard Toggle -->
+                    <button 
+                        @click="showVirtualKeyboard = !showVirtualKeyboard"
+                        class="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md border transition-all"
+                        :class="showVirtualKeyboard 
+                                ? 'bg-[#EDF3FF]/30 border-blue-600 outline outline-1 outline-blue-600 text-blue-700 shadow-sm' 
+                                : 'bg-transparent border-slate-300 text-slate-700 hover:bg-slate-50'">
+                        <i class="pi pi-keyboard text-lg"></i>
+                        Arabic Keyboard
+                    </button>
+
+                    <!-- Stats / Word Count -->
+                    <div class="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                        <span class="flex items-center gap-2">Words: <span class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{ wordCount }}</span></span>
+                        <span class="flex items-center gap-2">Characters: <span class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{ charCount }}</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Upload -->
+            <div v-show="activeTab === 'upload'" class="flex flex-col flex-1 pb-4">
+                <FileUpload 
+                    class="w-full"
+                    :accepted-types="['image', 'document']"
+                    :max-size="50 * 1024 * 1024"
+                    :disabled="disabled"
+                    @file-selected="handleFileSelected"
+                    @file-removed="handleFileRemoved" />
+            </div>
+
         </div>
     </div>
 </template>
@@ -301,210 +369,37 @@ onUnmounted(() => {
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    gap: 6px;
-    padding: 2px 0;
     width: 100%;
 }
 
-/* Prompt Section styling */
-.prompt-section {
-    width: 100%;
-    transition: all 0.3s ease;
+.font-arabic {
+    font-family: 'Lotus Linotype', 'Myriad Arabic', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
-.prompt-section.side-by-side {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 6px 12px;
-    background: #f8fafc;
-    border: 1px solid #f1f5f9;
-    border-radius: 12px;
-    margin-bottom: 1px;
-}
-
-.prompt-section.stacked {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.prompt-text-pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    text-align: right;
-}
-
-.prompt-image-pane {
-    flex-shrink: 0;
-    max-width: 160px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.passage-title {
-    font-size: 1.1rem;
-    font-weight: 900;
-    color: #0f172a;
-    margin-bottom: 1px;
-    text-align: right;
-    line-height: 1.3;
-}
-
-.writing-instructions-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 8px;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #475569;
-    align-self: flex-start;
-    margin-bottom: 1px;
-    line-height: 1.3;
-}
-
+/* Prompt Content Styling to match design */
 .writing-prompt-content {
-    font-size: 1.05rem;
-    line-height: 2.2;
-    font-weight: 600;
+    font-size: 26px; /* slightly smaller than 30px to fit multiple topics nicely */
+    line-height: 2 !important;
     color: #1e293b;
-    width: 100%;
-    margin-bottom: 1px;
-    text-align: right;
+    text-align: center;
+}
+
+.writing-prompt-content :deep(p),
+.writing-prompt-content :deep(div),
+.writing-prompt-content :deep(span) {
+    font-family: 'Lotus Linotype', 'Myriad Arabic', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
 .writing-prompt-content :deep(p) {
-    margin-bottom: 0.15rem;
+    margin-bottom: 1.5rem;
     display: block;
 }
 
-.writing-prompt-content :deep(.blank-line-wrapper) {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    vertical-align: middle !important;
-    margin: 4px 6px !important;
-    direction: ltr !important;
-}
-
-.writing-prompt-content :deep(.blank-line) {
-    display: inline-block !important;
-    border-bottom: 2px dashed #94a3b8 !important;
-    width: 150px !important;
-    height: 18px !important;
-    vertical-align: middle !important;
-    margin: 0 4px !important;
-}
-
-.writing-prompt-content :deep(.blank-badge) {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 24px !important;
-    height: 24px !important;
-    border-radius: 50% !important;
-    background-color: var(--brand-primary, #e11d48) !important;
-    color: white !important;
-    font-size: 12px !important;
-    font-weight: 900 !important;
-    font-family: sans-serif !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
-}
-
-.passage-short-content {
-    font-size: 1rem;
-    line-height: 1.5;
-    color: #334155;
-    width: 100%;
-    margin-bottom: 1px;
-    text-align: right;
-}
-
-/* Tab Selector Styling */
-.tab-selector {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.375rem;
-    background: #f1f5f9;
-    border-radius: 1rem;
-    width: 100%;
-}
-
-.tab-button {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    border: none;
-    border-radius: 0.75rem;
-    background: transparent;
-    color: #64748b;
-    font-size: 0.875rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.tab-button:hover:not(:disabled) {
-    color: #475569;
-    background: rgba(255, 255, 255, 0.5);
-}
-
-.tab-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.tab-button-active {
-    background: white;
-    color: var(--brand-primary, #e11d48);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.tab-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    gap: 0.375rem;
-    animation: fadeInUp 0.3s ease-out;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Rich Editor Outer styling */
+/* Base Editor Styles */
 .editor-container-outer {
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    background: #ffffff;
-    overflow: hidden;
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-height: 80px;
-    width: 100%;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
 }
 
 .quill-rich-editor {
@@ -515,160 +410,42 @@ onUnmounted(() => {
     height: 100%;
 }
 
-.editor-container-outer:focus-within {
-    border-color: var(--brand-primary, #4f46e5);
-    box-shadow: inset 0 2px 8px rgba(79, 70, 229, 0.06), 0 0 0 3px rgba(79, 70, 229, 0.08);
-}
-
-.editor-container-outer :deep(.ql-toolbar.ql-snow) {
+.editor-container-outer :deep(.ql-toolbar) {
     border: none;
     border-bottom: 1px solid #f1f5f9;
-    background: #f8fafc;
-    padding: 4px 8px;
+    background: #f8f9fa;
+    padding: 8px 12px;
     display: flex;
+    justify-content: flex-end;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
 }
 
-.editor-container-outer :deep(.ql-container.ql-snow) {
+.editor-container-outer :deep(.ql-toolbar .ql-formats) {
+    margin-right: 0;
+    margin-left: 15px;
+}
+
+.editor-container-outer :deep(.ql-container) {
     border: none;
     flex: 1;
     overflow-y: auto;
-    font-size: 1.1rem;
-    font-family: inherit;
+    font-size: 24px; /* Larger font size internally for Arabic typing */
 }
 
 .editor-container-outer :deep(.ql-editor) {
-    padding: 8px 12px;
-    line-height: 1.5;
-    text-align: right;
+    padding: 16px 20px;
+    line-height: 1.8;
     min-height: 100%;
-    direction: rtl;
+    /* Let the editor take over font choices automatically based on the wrapper */
 }
 
 .editor-container-outer :deep(.ql-editor.ql-blank::before) {
     left: auto;
-    right: 12px;
+    right: 20px;
     font-style: normal;
     color: #94a3b8;
+    font-family: inherit;
     content: attr(data-placeholder);
 }
-
-.writing-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 5px 8px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-}
-
-.toolbar-stats {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.stat-badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 800;
-    color: #475569;
-    letter-spacing: 0.04em;
-}
-
-.stat-badge i {
-    font-size: 9px;
-    color: #94a3b8;
-}
-
-.stat-badge.target {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-    color: var(--brand-primary, #4f46e5);
-}
-
-.stat-badge.target i {
-    color: var(--brand-primary, #4f46e5);
-}
-
-.toolbar-controls {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.kb-lang-btn {
-    height: 28px;
-    padding: 0 10px;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 800;
-    color: #475569;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.kb-lang-btn:hover {
-    border-color: var(--brand-primary, #4f46e5);
-    color: var(--brand-primary, #4f46e5);
-}
-
-.kb-toggle-btn {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #94a3b8;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.kb-toggle-btn:hover {
-    border-color: var(--brand-primary, #4f46e5);
-    color: var(--brand-primary, #4f46e5);
-}
-
-.kb-toggle-btn.active {
-    background: var(--brand-primary, #4f46e5);
-    border-color: var(--brand-primary, #4f46e5);
-    color: #fff;
-}
-
-.image-prompt-container {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-}
-
-.prompt-image {
-    max-width: 100%;
-    max-height: 85px; /* Scaled down from 120px to save significant vertical height */
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-    border: 2px solid #ffffff;
-    transition: transform 0.2s ease-in-out;
-}
-
-.prompt-image:hover {
-    transform: scale(1.03);
-}
 </style>
-
