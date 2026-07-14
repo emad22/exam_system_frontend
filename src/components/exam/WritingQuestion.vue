@@ -56,6 +56,10 @@ const wordCount = computed(() => {
     return words.length;
 });
 
+const charCount = computed(() => {
+    return plainTextContent.value.length;
+});
+
 const cleanHtml = (html) => {
     if (!html) return '';
     let clean = html.replace(/&nbsp;/g, ' ');
@@ -134,13 +138,8 @@ watch(hasStartedWriting, async (isWriting) => {
                     toolbar: [
                         ['undo', 'redo'],
                         ['bold', 'italic', 'underline'],
-<<<<<<< HEAD
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'direction': 'rtl' }, { 'align': [] }],
-=======
                         [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                        [{ 'direction': [] }, { 'align': [] }],
->>>>>>> b006798 ( update speakingQuestion vue)
+                        [{ 'direction': 'rtl' }, { 'align': [] }],
                         ['clean']
                     ],
                     keyboard: {
@@ -223,31 +222,18 @@ onUnmounted(() => {
             dir="ltr">
 
             <!-- Instructions Banner -->
-<<<<<<< HEAD
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col overflow-hidden">
-                <div class="flex items-center gap-2 p-3 border-b border-slate-100 bg-slate-50/50">
-                    <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-                        <i class="pi pi-info text-[10px] font-black"></i>
-=======
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col overflow-hidden">
                 <div class="flex items-center gap-2 p-4 border-b border-slate-100 bg-slate-50/50">
                     <div
                         class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
                         <i class="pi pi-info text-xs font-black"></i>
->>>>>>> b006798 ( update speakingQuestion vue)
                     </div>
                     <span class="font-black text-slate-800 text-sm tracking-wide">Instructions</span>
                 </div>
-<<<<<<< HEAD
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 bg-white">
-                    <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
-=======
 
                 <div
                     class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 bg-white">
                     <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
->>>>>>> b006798 ( update speakingQuestion vue)
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-check-square"></i> 1. Choose ONE topic only.
                         </div>
@@ -255,13 +241,10 @@ onUnmounted(() => {
                             Select the topic you want to write about from the list.
                         </p>
                     </div>
-<<<<<<< HEAD
-                    
-                    <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
-=======
+
 
                     <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
->>>>>>> b006798 ( update speakingQuestion vue)
+
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-pencil"></i> 2. Write your answer.
                         </div>
@@ -269,13 +252,11 @@ onUnmounted(() => {
                             You may write your answer directly in the text box using the Arabic keyboard.
                         </p>
                     </div>
-<<<<<<< HEAD
-                    
-                    <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
-=======
 
+                    
+                    
                     <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
->>>>>>> b006798 ( update speakingQuestion vue)
+
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-cloud-upload"></i> 3. Upload your answer (optional).
                         </div>
@@ -351,14 +332,9 @@ onUnmounted(() => {
             </div>
 
             <!-- Tab Content: Write -->
-<<<<<<< HEAD
-            <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[360px]">
-                <div class="editor-container-outer flex-1 border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all">
-=======
             <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[400px]">
                 <div
                     class="editor-container-outer flex-1 border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all">
->>>>>>> b006798 ( update speakingQuestion vue)
                     <div ref="editorRef" class="quill-rich-editor w-full h-full font-arabic text-right"></div>
                 </div>
 
@@ -376,10 +352,6 @@ onUnmounted(() => {
                     </button>
 
                     <!-- Stats / Word Count -->
-<<<<<<< HEAD
-                    <div class="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-slate-500">
-                        <span class="flex items-center gap-2">Words: <span class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{ wordCount }}</span></span>
-=======
                     <div
                         class="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-slate-500">
                         <span class="flex items-center gap-2">Words: <span
@@ -388,7 +360,6 @@ onUnmounted(() => {
                         <span class="flex items-center gap-2">Characters: <span
                                 class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{
                                 charCount }}</span></span>
->>>>>>> b006798 ( update speakingQuestion vue)
                     </div>
                 </div>
             </div>
@@ -418,14 +389,9 @@ onUnmounted(() => {
 
 /* Prompt Content Styling to match design */
 .writing-prompt-content {
-<<<<<<< HEAD
-    font-size: 25px; /* slightly smaller to fit vertically */
-    line-height: 1.4 !important; /* Compact spacing */
-=======
     font-size: 26px;
     /* slightly smaller than 30px to fit multiple topics nicely */
     line-height: 2 !important;
->>>>>>> b006798 ( update speakingQuestion vue)
     color: #1e293b;
     /* text-align: center; */
 }
