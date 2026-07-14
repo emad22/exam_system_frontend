@@ -100,15 +100,15 @@ const pollSessionStatus = async () => {
         const activeSkillId = currentSkill.value?.id ?? (skillId ? Number(skillId) : null)
 
         if (status === 'ended' || status === 'cancelled') {
-           
+
             await handleSessionInterruption(
                 'Your proctoring session has been ended by the admin.',
                 true
             );
         } else if (status === 'paused') {
-        
+
             await handleSessionInterruption(
-            'This skill exam has been stopped by the admin. You will be redirected to skill selection.',
+                'This skill exam has been stopped by the admin. You will be redirected to skill selection.',
                 false
             );
         } else if (activeSkillId && completedSkills.includes(activeSkillId)) {
@@ -124,7 +124,7 @@ const pollSessionStatus = async () => {
 
 const startSessionPolling = () => {
     if (sessionPollInterval) return
-    sessionPollInterval = setInterval(pollSessionStatus, 8000) 
+    sessionPollInterval = setInterval(pollSessionStatus, 8000)
 }
 
 const stopSessionPolling = () => {
@@ -1356,7 +1356,8 @@ onUnmounted(() => {
                                         class="mb-4 flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-xl animate-in fade-in slide-in-from-top-2 duration-500">
                                         <div class="flex items-center gap-2">
                                             <i class="pi pi-exclamation-triangle text-rose-500 text-sm"></i>
-                                            <span class="text-sm font-bold text-rose-700">Click to start listening</span>
+                                            <span class="text-sm font-bold text-rose-700">Click to start
+                                                listening</span>
                                         </div>
                                         <button @click="toggleAudioManual"
                                             class="px-5 py-2 bg-rose-600 text-white rounded-lg text-sm font-black hover:bg-rose-700 transition-all shadow-sm">
@@ -1382,7 +1383,8 @@ onUnmounted(() => {
                                         <i class="pi pi-headphones text-2xl"></i>
                                     </div>
                                     <p class="text-sm font-semibold text-slate-500"></p>
-                                    <p class="text-xs text-slate-400 italic">Listen to the full audio to unlock the questions</p>
+                                    <p class="text-xs text-slate-400 italic">Listen to the full audio to unlock the
+                                        questions</p>
                                 </div>
                             </div>
                         </template>
@@ -1431,8 +1433,9 @@ onUnmounted(() => {
                         class="flex flex-col-reverse lg:flex-row bg-white border-t border-slate-200 flex-1 min-h-0 overflow-hidden animate-in fade-in duration-500">
 
                         <!-- Questions Pane (Left side) — 45% -->
-                        <div class="w-full lg:w-[45%] bg-white flex flex-col h-full border-t lg:border-t-0 lg:border-r border-slate-200/80 overflow-y-auto p-4 md:p-5 space-y-2">
-                            
+                        <div
+                            class="w-full lg:w-[45%] bg-white flex flex-col h-full border-t lg:border-t-0 lg:border-r border-slate-200/80 overflow-y-auto p-4 md:p-5 space-y-2">
+
                             <!-- Static Instruction (Read carefully...) at the top -->
                             <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
                                 class="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-100 w-fit text-xs font-semibold select-none"
@@ -1464,24 +1467,18 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Stimulus Pane (passage - Right side) — 55% -->
-                        <div class="w-full lg:w-[55%] bg-white flex flex-col min-h-0 h-full overflow-y-auto passage-scrollbar-container p-4 md:p-5 lg:p-6">
+                        <div
+                            class="w-full lg:w-[55%] bg-white flex flex-col min-h-0 h-full overflow-y-auto passage-scrollbar-container p-4 md:p-5 lg:p-6">
                             <div class="flex-grow prose prose-slate max-w-none">
-<<<<<<< HEAD
-                                <div v-if="currentQ.passage" class="space-y-4">
+                                <div v-if="currentQ.passage"
+                                    class="space-y-4 mb-6 pb-6 border-b border-slate-100 border-dashed">
                                     <!-- Passage Title: RTL with icon on its right end -->
                                     <div v-if="currentQ.passage.title" class="flex items-center gap-2 mb-3" dir="rtl">
                                         <i class="pi pi-file-edit text-slate-400 text-lg shrink-0"></i>
-                                        <h3 class="text-[25px] font-bold text-slate-800 leading-snug"
-                                            dir="rtl">{{ currentQ.passage.title }}</h3>
+                                        <h3 class="text-[25px] font-bold text-slate-800 leading-snug" dir="rtl">{{
+                                            currentQ.passage.title }}
+                                        </h3>
                                     </div>
-=======
-                                <div v-if="currentQ.passage"
-                                    class="space-y-4 mb-6 pb-6 border-b border-slate-100 border-dashed">
-                                    <h3 v-if="currentQ.passage.title"
-                                        class="text-xl font-black text-slate-900 tracking-tight leading-tight"
-                                        dir="auto">{{ currentQ.passage.title }}
-                                    </h3>
->>>>>>> 8e5655157bfe07af872d1bc3c0731c8711e6c704
                                     <div v-if="currentQ.passage.image_url || currentQ.passage.image_path"
                                         class="w-full mb-4 flex justify-center">
                                         <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
@@ -1489,7 +1486,8 @@ onUnmounted(() => {
                                             :class="!currentQ.passage.image_width && !currentQ.passage.image_height ? 'w-full h-auto' : 'max-w-full'"
                                             :style="currentQ.passage.image_width || currentQ.passage.image_height ? {
                                                 width: currentQ.passage.image_width ? `${currentQ.passage.image_width}px` : 'auto',
-                                                height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'  } : {}" />
+                                                height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'
+                                            } : {}" />
                                     </div>
                                     <div v-if="currentQ.passage.content"
                                         class="text-[25px] text-slate-700 leading-[1.8] font-normal text-justify ql-content rtl-support"
@@ -1511,7 +1509,8 @@ onUnmounted(() => {
                                         :class="!currentQ.image_width && !currentQ.image_height ? 'max-w-full h-auto' : 'max-w-full'"
                                         :style="currentQ.image_width || currentQ.image_height ? {
                                             width: currentQ.image_width ? `${currentQ.image_width}px` : 'auto',
-                                            height: currentQ.image_height ? `${currentQ.image_height}px` : 'auto'  } : {}" />
+                                            height: currentQ.image_height ? `${currentQ.image_height}px` : 'auto'
+                                        } : {}" />
                                 </div>
                             </div>
                         </div>
@@ -1537,12 +1536,14 @@ onUnmounted(() => {
                                     <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
                                         class="flex items-start gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm"
                                         dir="ltr">
-                                        <div class="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
                                             <i class="pi pi-info text-white text-sm font-black"></i>
                                         </div>
                                         <div class="flex flex-col gap-0.5">
                                             <span class="text-sm font-black text-slate-900">Instructions</span>
-                                            <span class="text-sm text-slate-600 leading-snug" v-html="displayInstructions"></span>
+                                            <span class="text-sm text-slate-600 leading-snug"
+                                                v-html="displayInstructions"></span>
                                         </div>
                                     </div>
 
@@ -1578,142 +1579,143 @@ onUnmounted(() => {
                 </main>
 
 
-    <!-- Timeout Modal -->
-    <div v-if="showTimeoutModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-        <div
-            class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
-            <div
-                class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
-                <i class="pi pi-clock text-4xl text-rose-500 animate-pulse"></i>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-3xl font-black text-slate-900 tracking-tight"> TIMEOUT! </h2>
-                <p class="text-slate-500 font-bold leading-relaxed">The time allocated for this part of the
-                    exam
-                    has
-                    expired. Your answers will be saved and you will be directed automatically.</p>
-            </div>
-            <button @click="handleTimeout"
-                class="w-full py-5 bg-brand-primary text-white rounded-2xl font-black text-lg hover:bg-brand-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-100">
-                OK
-            </button>
-        </div>
-    </div>
-
-    <!-- Exit Confirmation Modal -->
-    <div v-if="showExitModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-        <div
-            class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
-            <div
-                class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
-                <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-3xl font-black text-slate-900 tracking-tight">ARE YOU SURE?</h2>
-                <p class="text-slate-500 font-bold leading-relaxed">Are you sure you want to exit? The exam
-                    will
-                    be ended
-                    and your current progress will be saved and you will not be able to return.</p>
-            </div>
-            <div class="grid grid-cols-2 gap-4 pt-2">
-                <button @click="showExitModal = false"
-                    class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
-                    CANCEL
-                </button>
-                <button @click="confirmExit"
-                    class="py-4 bg-rose-600 text-white rounded-2xl font-black text-sm hover:bg-rose-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-rose-100">
-                    CONFIRM EXIT
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- System Requirement Tester Modal -->
-    <RequirementTester v-if="activeTesterReq" :requirement="activeTesterReq" @close="activeTesterReq = null"
-        @passed="handleTestPassed" />
-
-    <!-- Confirm Answer Modal -->
-    <div v-if="showConfirmAnswerModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-        <div
-            class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
-            <div
-                class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
-                <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-3xl font-black text-slate-900 tracking-tight">Please complete the task
-                    before
-                    continuing.
-                </h2>
-                <p class="text-slate-500 font-bold leading-relaxed">Please complete the task before
-                    continuing.
-                </p>
-            </div>
-            <div class="grid grid-cols-1 gap-4 pt-2">
-                <button @click="showConfirmAnswerModal = false"
-                    class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
-                    ok
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cheat Warning Modal -->
-    <div v-if="showCheatModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-        <div
-            class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
-            <div
-                class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
-                <i class="pi pi-shield text-4xl text-rose-500"></i>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">{{
-                    cheatMessage.title }}</h2>
-                <p class="text-slate-500 font-bold leading-relaxed">{{ cheatMessage.body }}</p>
-                <div class="pt-2">
-                    <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} </p>
+                <!-- Timeout Modal -->
+                <div v-if="showTimeoutModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
+                            <i class="pi pi-clock text-4xl text-rose-500 animate-pulse"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight"> TIMEOUT! </h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">The time allocated for this part of the
+                                exam
+                                has
+                                expired. Your answers will be saved and you will be directed automatically.</p>
+                        </div>
+                        <button @click="handleTimeout"
+                            class="w-full py-5 bg-brand-primary text-white rounded-2xl font-black text-lg hover:bg-brand-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-100">
+                            OK
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="grid grid-cols-1 gap-4 pt-2">
-                <button @click="showCheatModal = false"
-                    class="py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-lg">
-                    Understood, I will adhere to the instructions
-                </button>
-            </div>
-        </div>
+
+                <!-- Exit Confirmation Modal -->
+                <div v-if="showExitModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
+                            <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight">ARE YOU SURE?</h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">Are you sure you want to exit? The exam
+                                will
+                                be ended
+                                and your current progress will be saved and you will not be able to return.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <button @click="showExitModal = false"
+                                class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
+                                CANCEL
+                            </button>
+                            <button @click="confirmExit"
+                                class="py-4 bg-rose-600 text-white rounded-2xl font-black text-sm hover:bg-rose-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-rose-100">
+                                CONFIRM EXIT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Requirement Tester Modal -->
+                <RequirementTester v-if="activeTesterReq" :requirement="activeTesterReq" @close="activeTesterReq = null"
+                    @passed="handleTestPassed" />
+
+                <!-- Confirm Answer Modal -->
+                <div v-if="showConfirmAnswerModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
+                            <i class="pi pi-exclamation-triangle text-4xl text-amber-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Please complete the task
+                                before
+                                continuing.
+                            </h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">Please complete the task before
+                                continuing.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 pt-2">
+                            <button @click="showConfirmAnswerModal = false"
+                                class="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">
+                                ok
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cheat Warning Modal -->
+                <div v-if="showCheatModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-rose-100/50">
+                            <i class="pi pi-shield text-4xl text-rose-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">{{
+                                cheatMessage.title }}</h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">{{ cheatMessage.body }}</p>
+                            <div class="pt-2">
+                                <p class="text-rose-600 font-black text-lg">Warning {{ cheatWarnings }} </p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 pt-2">
+                            <button @click="showCheatModal = false"
+                                class="py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-lg">
+                                Understood, I will adhere to the instructions
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inactivity Modal -->
+                <div v-if="showInactivityModal"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div
+                            class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
+                            <i class="pi pi-clock text-4xl text-amber-500"></i>
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Inactivity Alert
+                            </h2>
+                            <p class="text-slate-500 font-bold leading-relaxed">You have been inactive for too long.
+                                Your
+                                session will
+                                be terminated in a few seconds.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </template>
+
+            <!-- Proctoring Camera Widget -->
+            <ProctorCamera v-if="proctoringRequired && proctoringSessionId && proctoringComplete"
+                :session-id="proctoringSessionId" :student-id="studentId" :is-checking="!enteredExam"
+                @ready="handleCameraReady" @error="handleCameraError" />
+        </template>
     </div>
-
-    <!-- Inactivity Modal -->
-    <div v-if="showInactivityModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-        <div
-            class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center space-y-6 border border-slate-100 animate-in zoom-in-95 duration-300">
-            <div
-                class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-100/50">
-                <i class="pi pi-clock text-4xl text-amber-500"></i>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-3xl font-black text-slate-900 tracking-tight uppercase">Inactivity Alert
-                </h2>
-                <p class="text-slate-500 font-bold leading-relaxed">You have been inactive for too long.
-                    Your
-                    session will
-                    be terminated in a few seconds.</p>
-            </div>
-        </div>
-    </div>
-
-</template>
-
-<!-- Proctoring Camera Widget -->
-<ProctorCamera v-if="proctoringRequired && proctoringSessionId && proctoringComplete" :session-id="proctoringSessionId"
-    :student-id="studentId" :is-checking="!enteredExam" @ready="handleCameraReady" @error="handleCameraError" />
-</template>
-</div>
 </template>
 
 <style scoped>
