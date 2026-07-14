@@ -65,8 +65,8 @@ const cleanHtml = (html) => {
     return clean;
 };
 
-const { 
-    showVirtualKeyboard, 
+const {
+    showVirtualKeyboard,
     registerKeyPressListener,
     unregisterKeyPressListener
 } = useVirtualKeyboard();
@@ -106,7 +106,7 @@ const handleVirtualKeyboardKeyPress = (button) => {
         quillInstance.insertText(index, button);
         quillInstance.setSelection(index + button.length);
     }
-    
+
     textAnswer.value = quillInstance.root.innerHTML;
     forceUpdateCounter.value++;
 };
@@ -134,14 +134,19 @@ watch(hasStartedWriting, async (isWriting) => {
                     toolbar: [
                         ['undo', 'redo'],
                         ['bold', 'italic', 'underline'],
+<<<<<<< HEAD
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                         [{ 'direction': 'rtl' }, { 'align': [] }],
+=======
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'direction': [] }, { 'align': [] }],
+>>>>>>> b006798 ( update speakingQuestion vue)
                         ['clean']
                     ],
                     keyboard: {
                         bindings: {
-                            undo: { key: 'Z', shortKey: true, handler: function() { this.quill.history.undo(); } },
-                            redo: { key: 'Y', shortKey: true, handler: function() { this.quill.history.redo(); } }
+                            undo: { key: 'Z', shortKey: true, handler: function () { this.quill.history.undo(); } },
+                            redo: { key: 'Y', shortKey: true, handler: function () { this.quill.history.redo(); } }
                         }
                     }
                 },
@@ -159,7 +164,7 @@ watch(hasStartedWriting, async (isWriting) => {
                 quillInstance.enable(false);
             }
         }
-        
+
         // Add custom undo/redo icons
         const toolbar = quillInstance.getModule('toolbar');
         if (toolbar) {
@@ -167,7 +172,7 @@ watch(hasStartedWriting, async (isWriting) => {
             const redoBtn = toolbar.container.querySelector('.ql-redo');
             if (undoBtn) undoBtn.innerHTML = '<svg viewBox="0 0 18 18"><path class="ql-fill ql-stroke" d="M8.5,4L5,7.5L8.5,11V8c3.5,0,5,2.5,5,5c0-1-1-5-6-5V4z"></path></svg>';
             if (redoBtn) redoBtn.innerHTML = '<svg viewBox="0 0 18 18"><path class="ql-fill ql-stroke" d="M9.5,4l3.5,3.5L9.5,11V8c-3.5,0-5,2.5-5,5c0-1,1-5,6-5V4z"></path></svg>';
-            
+
             if (undoBtn) undoBtn.addEventListener('click', () => quillInstance.history.undo());
             if (redoBtn) redoBtn.addEventListener('click', () => quillInstance.history.redo());
         }
@@ -210,23 +215,39 @@ onUnmounted(() => {
 
 <template>
     <div class="writing-question-wrapper" dir="ltr">
-        
+
         <!-- ============================================== -->
         <!-- STATE 1: TOPICS AND INSTRUCTIONS PANEL         -->
         <!-- ============================================== -->
-        <div v-show="!hasStartedWriting" class="topics-view animate-in fade-in zoom-in-95 duration-300 w-full" dir="ltr">
-            
+        <div v-show="!hasStartedWriting" class="topics-view animate-in fade-in zoom-in-95 duration-300 w-full"
+            dir="ltr">
+
             <!-- Instructions Banner -->
+<<<<<<< HEAD
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col overflow-hidden">
                 <div class="flex items-center gap-2 p-3 border-b border-slate-100 bg-slate-50/50">
                     <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
                         <i class="pi pi-info text-[10px] font-black"></i>
+=======
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col overflow-hidden">
+                <div class="flex items-center gap-2 p-4 border-b border-slate-100 bg-slate-50/50">
+                    <div
+                        class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                        <i class="pi pi-info text-xs font-black"></i>
+>>>>>>> b006798 ( update speakingQuestion vue)
                     </div>
                     <span class="font-black text-slate-800 text-sm tracking-wide">Instructions</span>
                 </div>
+<<<<<<< HEAD
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 bg-white">
                     <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
+=======
+
+                <div
+                    class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 bg-white">
+                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+>>>>>>> b006798 ( update speakingQuestion vue)
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-check-square"></i> 1. Choose ONE topic only.
                         </div>
@@ -234,8 +255,13 @@ onUnmounted(() => {
                             Select the topic you want to write about from the list.
                         </p>
                     </div>
+<<<<<<< HEAD
                     
                     <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
+=======
+
+                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+>>>>>>> b006798 ( update speakingQuestion vue)
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-pencil"></i> 2. Write your answer.
                         </div>
@@ -243,8 +269,13 @@ onUnmounted(() => {
                             You may write your answer directly in the text box using the Arabic keyboard.
                         </p>
                     </div>
+<<<<<<< HEAD
                     
                     <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
+=======
+
+                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+>>>>>>> b006798 ( update speakingQuestion vue)
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-cloud-upload"></i> 3. Upload your answer (optional).
                         </div>
@@ -264,19 +295,17 @@ onUnmounted(() => {
                     </div>
                     <span class="text-xs font-black tracking-widest text-[#1e293b] uppercase">Writing Topics</span>
                 </div>
-                
+
                 <!-- The actual topics from content -->
-                <div v-if="question.content" 
-                     class="writing-prompt-content w-full"
-                     dir="auto" 
-                     v-html="cleanHtml(question.content)">
+                <div v-if="question.content" class="writing-prompt-content ql-content w-full" dir="auto"
+                    v-html="cleanHtml(question.content)">
                 </div>
             </div>
 
             <!-- Start Writing Button -->
             <div class="flex justify-center pb-4">
-                <button @click="hasStartedWriting = true" 
-                        class="bg-[#2563EB] hover:bg-blue-700 active:scale-95 text-white font-black text-xs uppercase tracking-widest px-14 py-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-3">
+                <button @click="hasStartedWriting = true"
+                    class="bg-[#2563EB] hover:bg-blue-700 active:scale-95 text-white font-black text-xs uppercase tracking-widest px-14 py-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-3">
                     <span>Start Writing</span>
                     <i class="pi pi-pencil"></i>
                 </button>
@@ -286,14 +315,16 @@ onUnmounted(() => {
         <!-- ============================================== -->
         <!-- STATE 2: EDITOR PANEL                          -->
         <!-- ============================================== -->
-        <div v-show="hasStartedWriting" class="editor-view flex flex-col w-full h-full animate-in fade-in duration-300" dir="ltr">
-            
+        <div v-show="hasStartedWriting" class="editor-view flex flex-col w-full h-full animate-in fade-in duration-300"
+            dir="ltr">
+
             <!-- Top Controls (Show Topics + Tabs) -->
-            <div class="flex flex-col md:flex-row items-center justify-between mb-4 border-b border-slate-200 pb-2 gap-4">
-                
+            <div
+                class="flex flex-col md:flex-row items-center justify-between mb-4 border-b border-slate-200 pb-2 gap-4">
+
                 <!-- Back Button -->
-                <button @click="hasStartedWriting = false; showVirtualKeyboard = false" 
-                        class="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-bold text-xs uppercase tracking-wider px-3 py-2 rounded-lg hover:bg-slate-100 transition-all self-start md:self-auto">
+                <button @click="hasStartedWriting = false; showVirtualKeyboard = false"
+                    class="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-bold text-xs uppercase tracking-wider px-3 py-2 rounded-lg hover:bg-slate-100 transition-all self-start md:self-auto">
                     <i class="pi pi-arrow-left"></i> Show Topics
                 </button>
 
@@ -303,55 +334,69 @@ onUnmounted(() => {
                         class="pb-3 text-sm font-black flex items-center gap-2 transition-all relative"
                         :class="activeTab === 'write' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'">
                         <i class="pi pi-pen-to-square text-base"></i> Write Text
-                        <div v-if="activeTab === 'write'" class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+                        <div v-if="activeTab === 'write'"
+                            class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
                     </button>
                     <button @click="activeTab = 'upload'"
                         class="pb-3 text-sm font-black flex items-center gap-2 transition-all relative"
                         :class="activeTab === 'upload' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'">
                         <i class="pi pi-cloud-upload text-base"></i> Upload File
-                        <div v-if="activeTab === 'upload'" class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+                        <div v-if="activeTab === 'upload'"
+                            class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
                     </button>
                 </div>
-                
+
                 <!-- Empty div for centering balance on desktop -->
                 <div class="hidden md:block w-[130px]"></div>
             </div>
 
             <!-- Tab Content: Write -->
+<<<<<<< HEAD
             <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[360px]">
                 <div class="editor-container-outer flex-1 border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all">
+=======
+            <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[400px]">
+                <div
+                    class="editor-container-outer flex-1 border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all">
+>>>>>>> b006798 ( update speakingQuestion vue)
                     <div ref="editorRef" class="quill-rich-editor w-full h-full font-arabic text-right"></div>
                 </div>
-                
+
                 <!-- Bottom Toolbar (Keyboard Toggle & Counts) -->
-                <div class="flex items-center justify-between bg-white border border-t-0 border-slate-200 rounded-b-xl px-4 py-3 shadow-sm">
+                <div
+                    class="flex items-center justify-between bg-white border border-t-0 border-slate-200 rounded-b-xl px-4 py-3 shadow-sm">
                     <!-- Keyboard Toggle -->
-                    <button 
-                        @click="showVirtualKeyboard = !showVirtualKeyboard"
+                    <button @click="showVirtualKeyboard = !showVirtualKeyboard"
                         class="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md border transition-all"
-                        :class="showVirtualKeyboard 
-                                ? 'bg-[#EDF3FF]/30 border-blue-600 outline outline-1 outline-blue-600 text-blue-700 shadow-sm' 
-                                : 'bg-transparent border-slate-300 text-slate-700 hover:bg-slate-50'">
+                        :class="showVirtualKeyboard
+                            ? 'bg-[#EDF3FF]/30 border-blue-600 outline outline-1 outline-blue-600 text-blue-700 shadow-sm'
+                            : 'bg-transparent border-slate-300 text-slate-700 hover:bg-slate-50'">
                         <i class="pi pi-keyboard text-lg"></i>
                         Arabic Keyboard
                     </button>
 
                     <!-- Stats / Word Count -->
+<<<<<<< HEAD
                     <div class="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-slate-500">
                         <span class="flex items-center gap-2">Words: <span class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{ wordCount }}</span></span>
+=======
+                    <div
+                        class="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                        <span class="flex items-center gap-2">Words: <span
+                                class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{
+                                wordCount }}</span></span>
+                        <span class="flex items-center gap-2">Characters: <span
+                                class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{
+                                charCount }}</span></span>
+>>>>>>> b006798 ( update speakingQuestion vue)
                     </div>
                 </div>
             </div>
 
             <!-- Tab Content: Upload -->
             <div v-show="activeTab === 'upload'" class="flex flex-col flex-1 pb-4">
-                <FileUpload 
-                    class="w-full"
-                    :accepted-types="['image', 'document']"
-                    :max-size="50 * 1024 * 1024"
-                    :disabled="disabled"
-                    @file-selected="handleFileSelected"
-                    @file-removed="handleFileRemoved" />
+                <FileUpload class="w-full" :accepted-types="['image', 'document']" :max-size="50 * 1024 * 1024"
+                    :disabled="disabled" @file-selected="handleFileSelected" @file-removed="handleFileRemoved" />
             </div>
 
         </div>
@@ -373,10 +418,16 @@ onUnmounted(() => {
 
 /* Prompt Content Styling to match design */
 .writing-prompt-content {
+<<<<<<< HEAD
     font-size: 25px; /* slightly smaller to fit vertically */
     line-height: 1.4 !important; /* Compact spacing */
+=======
+    font-size: 26px;
+    /* slightly smaller than 30px to fit multiple topics nicely */
+    line-height: 2 !important;
+>>>>>>> b006798 ( update speakingQuestion vue)
     color: #1e293b;
-    text-align: center;
+    /* text-align: center; */
 }
 
 .writing-prompt-content :deep(p),
@@ -425,7 +476,8 @@ onUnmounted(() => {
     border: none;
     flex: 1;
     overflow-y: auto;
-    font-size: 24px; /* Larger font size internally for Arabic typing */
+    font-size: 24px;
+    /* Larger font size internally for Arabic typing */
 }
 
 .editor-container-outer :deep(.ql-editor) {

@@ -837,7 +837,7 @@ const editorModules = {
                                         class="flex justify-between text-[8px] text-slate-400 font-black mt-2 uppercase tracking-widest ml-1 mr-1">
                                         <span>{{ t[currentLang].beginnerText }}</span>
                                         <span>{{ t[currentLang].expertText.replace('{max}', currentSkillMaxLevel)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                 </div>
 
@@ -873,7 +873,7 @@ const editorModules = {
                                         <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest">{{
                                             t[currentLang].noCapTitle }}</p>
                                         <p class="text-[10px] text-amber-500 font-bold mt-1">{{ t[currentLang].noCapDesc
-                                        }}</p>
+                                            }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1397,7 +1397,7 @@ const editorModules = {
                                             <!-- Correct toggle + Index -->
                                             <div class="flex items-center gap-2 shrink-0 mt-1">
                                                 <span class="text-[8px] font-black text-slate-400">#{{ oIdx + 1
-                                                }}</span>
+                                                    }}</span>
                                                 <button v-if="q.type !== 'short_answer'" type="button"
                                                     @click="setCorrect(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all"
@@ -1561,9 +1561,7 @@ const editorModules = {
                                                             'Note: Word count is saved automatically' }}
                                                     </p>
                                                     <p class="text-[8px] text-blue-600 mt-1.5 leading-relaxed">
-                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة
-                                                        تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be
-                                                        calculated and displayed to the teacher during grading' }}
+                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be calculated and displayed to the teacher during grading' }}
                                                     </p>
                                                 </div>
                                             </div>

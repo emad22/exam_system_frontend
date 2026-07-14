@@ -147,7 +147,7 @@ export function useAntiCheat(attemptId: any, options: { onFinalWarning: () => vo
         document.addEventListener('paste', preventCopyPaste);
         document.addEventListener('contextmenu', preventCopyPaste);
         window.addEventListener('blur', handleWindowBlur);
-        window.addEventListener('keydown', handleKeyDown);
+        // window.addEventListener('keydown', handleKeyDown);
     };
 
     const destroyAntiCheat = () => {
@@ -156,7 +156,7 @@ export function useAntiCheat(attemptId: any, options: { onFinalWarning: () => vo
         document.removeEventListener('paste', preventCopyPaste);
         document.removeEventListener('contextmenu', preventCopyPaste);
         window.removeEventListener('blur', handleWindowBlur);
-        window.removeEventListener('keydown', handleKeyDown);
+        // window.removeEventListener('keydown', handleKeyDown);
     };
 
     onUnmounted(() => {

@@ -4,7 +4,7 @@
 @theme {
   --font-sans: "Inter", "Nunito Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-display: "Inter", "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
-  
+
   --color-brand-primary: hsl(359, 68%, 36%);
   --color-brand-secondary: hsl(359, 70%, 25%);
   --color-brand-accent: hsl(30, 74%, 55%);
@@ -15,7 +15,12 @@
     @apply bg-slate-50 font-sans text-slate-900 antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-display font-black;
   }
 }
@@ -51,9 +56,11 @@
   ::-webkit-scrollbar {
     width: 8px;
   }
+
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
+
   ::-webkit-scrollbar-thumb {
     @apply bg-slate-200 rounded-full border-4 border-transparent bg-clip-content hover:bg-slate-300;
   }
@@ -61,24 +68,51 @@
 
 /* Animations */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 @keyframes animate-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes zoom-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-float {
@@ -98,35 +132,103 @@
 }
 
 /* Quill / Editor Styles for v-html */
-.ql-content .ql-align-right, .ql-editor-preview .ql-align-right {
+.ql-content .ql-align-right,
+.ql-editor-preview .ql-align-right {
   text-align: right !important;
 }
-.ql-content .ql-align-center, .ql-editor-preview .ql-align-center {
+
+.ql-content .ql-align-center,
+.ql-editor-preview .ql-align-center {
   text-align: center !important;
 }
-.ql-content .ql-align-left, .ql-editor-preview .ql-align-left {
+
+.ql-content .ql-align-left,
+.ql-editor-preview .ql-align-left {
   text-align: left !important;
 }
-.ql-content .ql-direction-rtl, .ql-editor-preview .ql-direction-rtl {
+
+/* .ql-content .ql-direction-rtl,
+.ql-editor-preview .ql-direction-rtl {
   direction: rtl !important;
   text-align: right !important;
-}
-.ql-content ul, .ql-editor-preview ul {
+} */
+
+.ql-content ul,
+.ql-editor-preview ul {
   list-style-type: disc;
   padding-left: 1.5rem;
 }
-.ql-content ol, .ql-editor-preview ol {
+
+.ql-content ol,
+.ql-editor-preview ol {
   list-style-type: decimal;
   padding-left: 1.5rem;
 }
-.ql-content h1, .ql-editor-preview h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-.ql-content h2, .ql-editor-preview h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-.ql-content h3, .ql-editor-preview h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
-.ql-content p, .ql-editor-preview p { margin-bottom: 0.5rem; }
+
+.ql-content h1,
+.ql-editor-preview h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.ql-content h2,
+.ql-editor-preview h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ql-content h3,
+.ql-editor-preview h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ql-content p,
+.ql-editor-preview p {
+  margin-bottom: 0.5rem;
+}
 
 /* Quill inline style passthrough — color, font-size, background */
-.ql-content span[style], .ql-editor-preview span[style],
-.ql-content p[style], .ql-editor-preview p[style] {
+.ql-content span[style],
+.ql-editor-preview span[style] {
   display: inline;
 }
 
+/* Ensure inline-styled spans in Quill alignment/direction contexts display as block elements so alignment/direction works */
+.ql-content span[style*="text-align"],
+.ql-editor-preview span[style*="text-align"],
+.ql-content span[style*="direction"],
+.ql-editor-preview span[style*="direction"] {
+  display: block;
+}
+
+/* Fix Bidirectional text rendering for paragraphs and block elements to prevent mixed Arabic/English text displacement */
+.ql-content p,
+.ql-content li,
+.ql-content h1,
+.ql-content h2,
+.ql-content h3,
+.ql-content h4,
+.ql-content h5,
+.ql-content h6,
+.ql-content div,
+.ql-editor-preview p,
+.ql-editor-preview li,
+.ql-editor-preview h1,
+.ql-editor-preview h2,
+.ql-editor-preview h3,
+.ql-editor-preview h4,
+.ql-editor-preview h5,
+.ql-editor-preview h6,
+.ql-editor-preview div,
+.rtl-support p,
+.rtl-support li,
+.rtl-support h1,
+.rtl-support h2,
+.rtl-support h3,
+.rtl-support h4,
+.rtl-support h5,
+.rtl-support h6,
+.rtl-support div {
+  unicode-bidi: plaintext;
+}

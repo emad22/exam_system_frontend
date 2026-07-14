@@ -119,38 +119,32 @@ onUnmounted(() => {
 <template>
     <div class="space-y-6 py-2" dir="ltr">
         <!-- Main Area Container -->
-        <div class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden flex flex-col gap-6">
-            
+        <div
+            class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden flex flex-col gap-6">
+
             <!-- Content / Instruction if any -->
-            <div v-if="question.content" class="text-right max-w-3xl w-full mx-auto">
+            <div v-if="question.content" class="text-right max-w-3xl w-full mx-auto ql-content">
                 <div class="text-lg font-bold text-slate-800 leading-relaxed" v-html="question.content"></div>
             </div>
 
             <!-- Premium Mode Switcher (Tabs) -->
-            <div v-if="!disabled" class="flex justify-center w-full max-w-sm mx-auto bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
-                <button 
-                    @click="activeMode = 'record'"
-                    type="button"
-                    :class="[
-                        'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-black transition-all duration-300',
-                        activeMode === 'record' 
-                            ? 'bg-white text-brand-primary shadow-sm scale-[1.02]' 
-                            : 'text-slate-500 hover:text-slate-800'
-                    ]"
-                >
+            <div v-if="!disabled"
+                class="flex justify-center w-full max-w-sm mx-auto bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
+                <button @click="activeMode = 'record'" type="button" :class="[
+                    'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-black transition-all duration-300',
+                    activeMode === 'record'
+                        ? 'bg-white text-brand-primary shadow-sm scale-[1.02]'
+                        : 'text-slate-500 hover:text-slate-800'
+                ]">
                     <i class="pi pi-microphone"></i>
                     <span>Record Audio</span>
                 </button>
-                <button 
-                    @click="activeMode = 'upload'"
-                    type="button"
-                    :class="[
-                        'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-black transition-all duration-300',
-                        activeMode === 'upload' 
-                            ? 'bg-white text-brand-primary shadow-sm scale-[1.02]' 
-                            : 'text-slate-500 hover:text-slate-800'
-                    ]"
-                >
+                <button @click="activeMode = 'upload'" type="button" :class="[
+                    'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-black transition-all duration-300',
+                    activeMode === 'upload'
+                        ? 'bg-white text-brand-primary shadow-sm scale-[1.02]'
+                        : 'text-slate-500 hover:text-slate-800'
+                ]">
                     <i class="pi pi-upload"></i>
                     <span>Upload Audio</span>
                 </button>
@@ -160,66 +154,55 @@ onUnmounted(() => {
             <div class="w-full flex justify-center min-h-[220px]">
                 <!-- Mode: Record -->
                 <div v-if="activeMode === 'record'" class="w-full max-w-md animate-fade">
-                    <AudioRecorder 
-                        ref="audioRecorderRef"
-                        @recorded="handleRecording"
+                    <AudioRecorder ref="audioRecorderRef" @recorded="handleRecording"
                         :initial-audio="props.answer.recorded_file"
-                        class="!bg-slate-50/50 !border-2 !border-slate-100/80 !shadow-inner !rounded-[2rem] w-full" 
+                        class="!bg-slate-50/50 !border-2 !border-slate-100/80 !shadow-inner !rounded-[2rem] w-full"
                         :disabled="disabled" />
                 </div>
 
                 <!-- Mode: Upload -->
                 <div v-else class="w-full max-w-md flex flex-col justify-center animate-fade">
                     <!-- Dropzone -->
-                    <div 
-                        v-if="!props.answer.recorded_file"
-                        @click="triggerFileInput"
-                        class="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-primary/5 rounded-[2rem] p-8 text-center cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center gap-4 h-[200px]"
-                    >
-                        <div class="w-16 h-16 rounded-2xl bg-white text-slate-400 group-hover:text-brand-primary group-hover:scale-110 flex items-center justify-center text-2xl shadow-sm border border-slate-100 transition-all duration-300">
+                    <div v-if="!props.answer.recorded_file" @click="triggerFileInput"
+                        class="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-primary/5 rounded-[2rem] p-8 text-center cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center gap-4 h-[200px]">
+                        <div
+                            class="w-16 h-16 rounded-2xl bg-white text-slate-400 group-hover:text-brand-primary group-hover:scale-110 flex items-center justify-center text-2xl shadow-sm border border-slate-100 transition-all duration-300">
                             <i class="pi pi-cloud-upload"></i>
                         </div>
                         <div class="space-y-1">
                             <p class="text-sm font-black text-slate-700">Click here to select Audio File</p>
                             <p class="text-[10px] font-bold text-slate-400 uppercase">Supports MP3, WAV, M4A, WEBM</p>
                         </div>
-                        <input 
-                            type="file" 
-                            ref="fileInput" 
-                            accept="audio/*" 
-                            class="hidden" 
-                            @change="handleFileUpload" 
-                            :disabled="disabled" 
-                        />
+                        <input type="file" ref="fileInput" accept="audio/*" class="hidden" @change="handleFileUpload"
+                            :disabled="disabled" />
                     </div>
 
                     <!-- Uploaded Preview -->
-                    <div 
-                        v-else 
-                        class="bg-slate-50 border border-slate-100 rounded-[2rem] p-6 w-full space-y-4 shadow-inner flex flex-col items-center justify-center"
-                    >
-                        <div class="flex items-center gap-4 w-full bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
-                            <div class="w-12 h-12 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xl shrink-0">
+                    <div v-else
+                        class="bg-slate-50 border border-slate-100 rounded-[2rem] p-6 w-full space-y-4 shadow-inner flex flex-col items-center justify-center">
+                        <div
+                            class="flex items-center gap-4 w-full bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xl shrink-0">
                                 <i class="pi pi-file-audio"></i>
                             </div>
                             <div class="flex-grow min-w-0 text-right font-sans">
-                                <p class="text-xs font-black text-slate-800 truncate" dir="ltr">{{ uploadedFileName }}</p>
+                                <p class="text-xs font-black text-slate-800 truncate" dir="ltr">{{ uploadedFileName }}
+                                </p>
                                 <p class="text-[9px] font-extrabold text-slate-400 mt-0.5">{{ uploadedFileSize }}</p>
                             </div>
-                            <button 
-                                v-if="!disabled"
-                                @click="clearUploadedFile" 
-                                type="button"
+                            <button v-if="!disabled" @click="clearUploadedFile" type="button"
                                 class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-colors shrink-0"
-                                title="حذف الملف"
-                            >
+                                title="حذف الملف">
                                 <i class="pi pi-trash text-sm"></i>
                             </button>
                         </div>
 
                         <!-- Audio preview -->
                         <div v-if="uploadedAudioUrl" class="w-full space-y-1.5 pt-2 border-t border-slate-200/50">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-center italic">معاينة الملف الصوتي المرفوع</span>
+                            <span
+                                class="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-center italic">معاينة
+                                الملف الصوتي المرفوع</span>
                             <audio :src="uploadedAudioUrl" controls class="w-full h-10"></audio>
                         </div>
                     </div>
@@ -236,8 +219,16 @@ onUnmounted(() => {
 .animate-fade {
     animation: fadeIn 0.4s ease-out;
 }
+
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
