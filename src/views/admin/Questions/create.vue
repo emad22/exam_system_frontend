@@ -31,6 +31,7 @@ const isSubmitting = ref(false);
 const errorMsg = ref('');
 
 const passageShowHtml = ref(false);
+const passageGeneralShowHtml = ref(false);
 const currentLang = ref(localStorage.getItem('dashboard_lang') || 'en');
 
 // Translation Dictionary
@@ -59,9 +60,9 @@ const t = {
         selectSkillPlaceholder: "اختر المهارة من القائمة...",
         selectPassagePlaceholder: "🔍 اختر قطعة قراءة  ...",
         modes: [
-            { id: 'none',     label: 'سؤال بدون نص قرائي',     desc: 'سؤال مستقل لا يرتبط بأي مادة قراءة',         icon: 'pi-file-minus' },
+            { id: 'none', label: 'سؤال بدون نص قرائي', desc: 'سؤال مستقل لا يرتبط بأي مادة قراءة', icon: 'pi-file-minus' },
             // { id: 'existing', label: 'ربط بنص قرائي موجود',      desc: 'اختر مادة قراءة محفوظة مسبقاً من المكتبة',   icon: 'pi-folder-open' },
-            { id: 'new',      label: 'إنشاء نص قرائي جديد',      desc: 'أضف مادة قراءة جديدة وأرفق الأسئلة بها',     icon: 'pi-file-plus' }
+            { id: 'new', label: 'إنشاء نص قرائي جديد', desc: 'أضف مادة قراءة جديدة وأرفق الأسئلة بها', icon: 'pi-file-plus' }
         ],
         passageTitleLabel: "عنوان المادة / النص القرائي",
         passageTitlePlaceholder: "مثال: قطعة الفهم والاستيعاب حول الفضاء...",
@@ -152,9 +153,9 @@ const t = {
         selectSkillPlaceholder: "Select Skill from list...",
         selectPassagePlaceholder: "🔍 Select paragraph from library...",
         modes: [
-            { id: 'none',     label: 'Standalone Question',      desc: 'A single question with no reading passage',          icon: 'pi-shopping-bag' },
+            { id: 'none', label: 'Standalone Question', desc: 'A single question with no reading passage', icon: 'pi-shopping-bag' },
             // { id: 'existing', label: 'Link Existing Paragraph',     desc: 'Pick a saved reading paragraph from the library',       icon: 'pi-folder-open' },
-            { id: 'new',      label: 'Create New Paragraph',        desc: 'Write a new reading text and attach questions to it', icon: 'pi-file-plus' }
+            { id: 'new', label: 'Create New Paragraph', desc: 'Write a new reading text and attach questions to it', icon: 'pi-file-plus' }
         ],
         passageTitleLabel: "Title of the Material / Text",
         passageTitlePlaceholder: "e.g. Reading Comprehension: Solar System...",
@@ -362,6 +363,7 @@ const createEmptyQuestion = () => ({
     content_mode: 'text',  // 'text' | 'media'
     content: '',
     instructions: '',
+    general_instructions: '',
     points: 1,
     sort_order: 0,
     q_media: null,
@@ -373,10 +375,11 @@ const createEmptyQuestion = () => ({
     q_image_width: null,
     q_image_height: null,
     showHtml: false,
+    showGeneralHtml: false,
     options: [
-    { option_text: '', is_correct: true,  dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
-    { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
-]
+        { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+        { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
+    ]
 });
 
 const addQuestion = async () => {
@@ -462,10 +465,10 @@ const handleQAudioChange = async (e, index) => {
 // };
 
 const addOption = async (qIdx) => {
-    form.value.questions[qIdx].options.push({ 
-        option_text: '', is_correct: false, 
+    form.value.questions[qIdx].options.push({
+        option_text: '', is_correct: false,
         dir: 'ltr', image: null, image_preview: null,
-        audio: null, audio_preview: null  
+        audio: null, audio_preview: null
     });
 };
 
@@ -532,57 +535,57 @@ const handleTypeChange = async (qIdx) => {
     if (q.type === 'true_false') {
         q.instructions = currentLang.value === 'ar' ? "اختر صح أم خطأ." : "Choose True or False.";
         q.options = [
-            { option_text: 'True', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
-            { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+            { option_text: 'True', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+            { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
     } else if (['writing', 'speaking', 'upload'].includes(q.type)) {
         q.instructions = currentLang.value === 'ar' ? "يرجى تقديم إجابتك." : "Please provide your answer.";
         q.options = [];
     } else if (q.type === 'short_answer') {
         q.instructions = currentLang.value === 'ar' ? "يرجى كتابة الإجابة." : "Please type the correct answer.";
-        q.options = [{ option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}];
+        q.options = [{ option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }];
     } else if (q.type === 'drag_drop') {
         q.instructions = currentLang.value === 'ar' ? "اسحب الكلمات إلى المربعات الصحيحة لإكمال الجملة." : "Drag the correct words to complete the sentence.";
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
     } else if (q.type === 'fill_blank') {
         q.instructions = currentLang.value === 'ar' ? "املأ الفراغات بالكلمات الصحيحة." : "Fill in the blanks with the correct answers.";
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
     } else if (['word_selection', 'click_word', 'highlight'].includes(q.type)) {
-        q.instructions = q.type === 'highlight' 
+        q.instructions = q.type === 'highlight'
             ? (currentLang.value === 'ar' ? "قم بتمييز الأجزاء الصحيحة في النص." : "Highlight the correct parts in the text.")
             : (currentLang.value === 'ar' ? "اختر الكلمات المطلوبة في النص." : "Select the required words in the text.");
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
     } else if (q.type === 'matching') {
         q.instructions = currentLang.value === 'ar' ? "قم بتوصيل العناصر في العمود الأول بما يناسبها في العمود الثاني." : "Match each item in the first column with the correct option in the second column.";
         q.options = [
-            { option_text: 'Source 1 | Target 1', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
-            { option_text: 'Source 2 | Target 2', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+            { option_text: 'Source 1 | Target 1', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+            { option_text: 'Source 2 | Target 2', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
     } else if (q.type === 'ordering') {
         q.instructions = currentLang.value === 'ar' ? "قم بترتيب العناصر التالية بالترتيب الصحيح." : "Arrange the items below in the correct order.";
         q.options = [
-            { option_text: 'Item 1', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
-            { option_text: 'Item 2', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+            { option_text: 'Item 1', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+            { option_text: 'Item 2', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
     } else if (q.type === 'listening') {
         q.instructions = currentLang.value === 'ar' ? "استمع إلى المقطع الصوتي وأجب على السؤال." : "Listen to the audio clip and answer the question.";
         q.options = [
-            { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
-            { option_text: '', is_correct: false , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+            { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+            { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
     } else {
         if (q.options.length < 2) {
             q.instructions = currentLang.value === 'ar' ? "يرجى اختيار الإجابة الصحيحة." : "Please select the correct option.";
             q.options = [
-                { option_text: '', is_correct: true , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null},
-                { option_text: '', is_correct: false , dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null}
+                { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
+                { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
             ];
         }
     }
@@ -597,7 +600,7 @@ const saveBatch = async () => {
     // ✅ Log عشان تتأكد
     //console.log('Submitting with exam_id:', form.value.exam_id, typeof form.value.exam_id);
 
-    
+
     if (!form.value.skill_id) {
         showAlert(t[currentLang.value].validationSkill, t[currentLang.value].activeSystem, 'warning');
         return;
@@ -636,8 +639,8 @@ const saveBatch = async () => {
             fd.append('passage_general_instructions', form.value.passage_general_instructions || '');
             if (form.value.passage_questions_limit) fd.append('passage_questions_limit', form.value.passage_questions_limit);
             fd.append('passage_is_random', form.value.passage_is_random ? 1 : 0);
-            
-            
+
+
             if (form.value.p_media instanceof File) fd.append('p_media_file', form.value.p_media);
             if (form.value.p_audio instanceof File) fd.append('p_audio_file', form.value.p_audio);
             if (form.value.p_image instanceof File) fd.append('p_image_file', form.value.p_image);
@@ -651,6 +654,7 @@ const saveBatch = async () => {
             type: q.type,
             content: q.content || '',
             instructions: q.instructions || '',
+            general_instructions: q.general_instructions || '',
             points: q.points,
             sort_order: q.sort_order,
             image_width: q.q_image_width || null,
@@ -658,7 +662,7 @@ const saveBatch = async () => {
             options: q.options.map(opt => ({
                 option_text: opt.option_text,
                 is_correct: opt.is_correct,
-                dir: opt.dir || 'ltr' 
+                dir: opt.dir || 'ltr'
             }))
         }));
         fd.append('questions', JSON.stringify(cleanQuestions));
@@ -667,11 +671,11 @@ const saveBatch = async () => {
             if (q.q_media) fd.append(`questions[${qIdx}][q_media_file]`, q.q_media);
             if (q.q_audio) fd.append(`questions[${qIdx}][q_audio_file]`, q.q_audio);
             if (q.q_image) fd.append(`questions[${qIdx}][q_image_file]`, q.q_image);
-             q.options.forEach((opt, oIdx) => {
+            q.options.forEach((opt, oIdx) => {
                 if (opt.image instanceof File) {
                     fd.append(`questions[${qIdx}][options][${oIdx}][image]`, opt.image);
                 }
-                if (opt.audio instanceof File) {  
+                if (opt.audio instanceof File) {
                     fd.append(`questions[${qIdx}][options][${oIdx}][audio]`, opt.audio);
                 }
 
@@ -717,21 +721,29 @@ const editorModules = {
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
-            
+        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'"
+            class="w-full">
+
             <div class="space-y-8 pb-32 mt-6 px-4 md:px-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-                
+
                 <!-- Unified Premium Header Card -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 w-64 h-64 bg-rose-50/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-rose-100/30 transition-all duration-1000"></div>
-                    <div class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000"></div>
-                    
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
+                    <div
+                        class="absolute right-0 top-0 w-64 h-64 bg-rose-50/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-rose-100/30 transition-all duration-1000">
+                    </div>
+                    <div
+                        class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000">
+                    </div>
+
                     <div class="relative z-10 flex items-center gap-6">
-                        <Button :icon="currentLang === 'ar' ? 'pi pi-arrow-right' : 'pi pi-arrow-left'" severity="secondary" outlined rounded
+                        <Button :icon="currentLang === 'ar' ? 'pi pi-arrow-right' : 'pi pi-arrow-left'"
+                            severity="secondary" outlined rounded
                             @click="router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions' : 'admin.questions' })"
                             class="w-12 h-12 flex items-center justify-center border border-slate-200 hover:border-slate-300 shadow-sm bg-white" />
                         <div>
-                            <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
+                            <div
+                                class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
                                 <i class="pi pi-sparkles text-brand-accent animate-pulse"></i>
                                 <span>{{ t[currentLang].activeSystem }}</span>
                             </div>
@@ -743,29 +755,35 @@ const editorModules = {
                             </p>
                         </div>
                     </div>
-                    
+
                     <!-- Header Action buttons -->
-                    <Button :label="t[currentLang].saveAllBtn" icon="pi pi-check-circle" :loading="isSubmitting" @click="saveBatch"
+                    <Button :label="t[currentLang].saveAllBtn" icon="pi pi-check-circle" :loading="isSubmitting"
+                        @click="saveBatch"
                         class="rounded-2xl px-8 py-3.5 font-black shadow-lg shadow-rose-100 bg-brand-primary text-white border-none hover:bg-rose-800 transition-all hover:scale-[1.02] active:scale-95 z-10" />
                 </div>
 
-                <Message v-if="errorMsg" severity="error" :closable="false" class="rounded-2xl shadow-sm border border-rose-100">{{ errorMsg }}</Message>
+                <Message v-if="errorMsg" severity="error" :closable="false"
+                    class="rounded-2xl shadow-sm border border-rose-100">{{ errorMsg }}</Message>
 
                 <!-- 1. Exam & Skill Settings Matrix -->
                 <Card class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden bg-white">
                     <template #content>
                         <div class="p-8 space-y-6">
                             <div class="flex items-center gap-3 pb-4 border-b border-slate-50">
-                                <div class="w-9 h-9 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-rose-200">
+                                <div
+                                    class="w-9 h-9 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-rose-200">
                                     <i class="pi pi-cog text-sm"></i>
                                 </div>
-                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">{{ t[currentLang].examSkillSettings }}</h3>
+                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">{{
+                                    t[currentLang].examSkillSettings }}</h3>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <!-- Linked Exam -->
                                 <div class="flex flex-col space-y-1.5">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].linkedExam }}</label>
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].linkedExam }}</label>
                                     <Select v-model="form.exam_id" :options="exams" optionLabel="title" optionValue="id"
                                         :placeholder="t[currentLang].selectExamPlaceholder"
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
@@ -773,7 +791,9 @@ const editorModules = {
 
                                 <!-- Target Skill -->
                                 <div class="flex flex-col space-y-1.5">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].targetSkill }}</label>
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].targetSkill }}</label>
                                     <Select v-model="form.skill_id" :options="filteredSkills" optionLabel="name"
                                         optionValue="id" :placeholder="t[currentLang].selectSkillPlaceholder"
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm"
@@ -782,9 +802,11 @@ const editorModules = {
 
                                 <!-- Difficulty Level - hidden for productive skills -->
                                 <div v-if="!isProductiveSkill" class="flex flex-col space-y-1.5">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">
                                         {{ t[currentLang].difficultyLevel }}
-                                        <span v-if="form.level_id" class="text-brand-primary font-extrabold">({{ form.level_id }})</span>
+                                        <span v-if="form.level_id" class="text-brand-primary font-extrabold">({{
+                                            form.level_id }})</span>
                                         <span v-else class="text-rose-500 font-extrabold">*</span>
                                     </label>
                                     <div class="flex flex-wrap gap-2 pt-1 rtl:space-x-reverse">
@@ -795,15 +817,19 @@ const editorModules = {
                                             {{ lvl }}
                                         </button>
                                     </div>
-                                    <div class="flex justify-between text-[8px] text-slate-400 font-black mt-2 uppercase tracking-widest ml-1 mr-1">
+                                    <div
+                                        class="flex justify-between text-[8px] text-slate-400 font-black mt-2 uppercase tracking-widest ml-1 mr-1">
                                         <span>{{ t[currentLang].beginnerText }}</span>
-                                        <span>{{ t[currentLang].expertText.replace('{max}', currentSkillMaxLevel) }}</span>
+                                        <span>{{ t[currentLang].expertText.replace('{max}', currentSkillMaxLevel)
+                                            }}</span>
                                     </div>
                                 </div>
 
                                 <!-- Points Budget Panel - Productive skills only -->
-                                <div v-if="isProductiveSkill && form.skill_id" class="flex flex-col space-y-1.5 justify-center">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">
+                                <div v-if="isProductiveSkill && form.skill_id"
+                                    class="flex flex-col space-y-1.5 justify-center">
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">
                                         {{ t[currentLang].pointsBudget }}
                                     </label>
                                     <div v-if="selectedSkillMaxPoints > 0"
@@ -812,21 +838,26 @@ const editorModules = {
                                         <div>
                                             <p class="text-[8px] font-black uppercase tracking-widest"
                                                 :class="remainingPointsBudget < 0 ? 'text-rose-500' : 'text-emerald-600'">
-                                                {{ remainingPointsBudget < 0 ? t[currentLang].budgetOver : t[currentLang].budgetOk }}
-                                            </p>
-                                            <p class="text-xl font-black mt-0.5 leading-none"
-                                                :class="remainingPointsBudget < 0 ? 'text-rose-600' : 'text-emerald-700'">
-                                                {{ remainingPointsBudget }} <span class="text-xs font-bold">pts</span>
-                                            </p>
+                                                {{ remainingPointsBudget < 0 ? t[currentLang].budgetOver :
+                                                    t[currentLang].budgetOk }} </p>
+                                                    <p class="text-xl font-black mt-0.5 leading-none"
+                                                        :class="remainingPointsBudget < 0 ? 'text-rose-600' : 'text-emerald-700'">
+                                                        {{ remainingPointsBudget }} <span
+                                                            class="text-xs font-bold">pts</span>
+                                                    </p>
                                         </div>
                                         <div class="text-right rtl:text-left">
-                                            <p class="text-[8px] font-black text-slate-400 uppercase">{{ t[currentLang].skillCap }}</p>
-                                            <p class="text-sm font-black text-slate-600 mt-0.5">{{ selectedSkillMaxPoints }} pts</p>
+                                            <p class="text-[8px] font-black text-slate-400 uppercase">{{
+                                                t[currentLang].skillCap }}</p>
+                                            <p class="text-sm font-black text-slate-600 mt-0.5">{{
+                                                selectedSkillMaxPoints }} pts</p>
                                         </div>
                                     </div>
                                     <div v-else class="rounded-2xl p-4 bg-amber-50/50 border border-amber-200/60">
-                                        <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest">{{ t[currentLang].noCapTitle }}</p>
-                                        <p class="text-[10px] text-amber-500 font-bold mt-1">{{ t[currentLang].noCapDesc }}</p>
+                                        <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest">{{
+                                            t[currentLang].noCapTitle }}</p>
+                                        <p class="text-[10px] text-amber-500 font-bold mt-1">{{ t[currentLang].noCapDesc
+                                            }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -839,31 +870,34 @@ const editorModules = {
                     <template #content>
                         <div class="p-8 space-y-6">
                             <div class="flex items-center gap-3 pb-4 border-b border-slate-50">
-                                <div class="w-9 h-9 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-rose-200">
+                                <div
+                                    class="w-9 h-9 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-rose-200">
                                     <i class="pi pi-book text-sm"></i>
                                 </div>
-                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">{{ t[currentLang].readingMaterial }}</h3>
+                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">{{
+                                    t[currentLang].readingMaterial }}</h3>
                             </div>
 
                             <!-- Mode Selector pills -->
                             <div class="flex flex-col sm:flex-row bg-slate-50 p-1.5 rounded-2xl gap-1.5">
-                                <button
-                                    v-for="mode in t[currentLang].modes"
-                                    :key="mode.id" type="button" @click="form.passage_mode = mode.id"
-                                    :class="form.passage_mode === mode.id
+                                <button v-for="mode in t[currentLang].modes" :key="mode.id" type="button"
+                                    @click="form.passage_mode = mode.id" :class="form.passage_mode === mode.id
                                         ? 'bg-white shadow-md text-slate-800 border-slate-200/80'
                                         : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-white/60'"
                                     class="flex-1 flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all duration-300">
                                     <!-- Icon badge -->
                                     <div :class="form.passage_mode === mode.id ? 'bg-brand-primary text-white shadow-md shadow-rose-200' : 'bg-slate-200 text-slate-500'"
-                                         class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300">
+                                        class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300">
                                         <i :class="'pi ' + mode.icon" class="text-sm"></i>
                                     </div>
                                     <!-- Text -->
                                     <div class="text-left rtl:text-right">
                                         <p :class="form.passage_mode === mode.id ? 'text-slate-800 font-black' : 'text-slate-600 font-bold'"
-                                           class="text-[11px] uppercase tracking-wide leading-tight">{{ mode.label }}</p>
-                                        <p class="text-[9px] font-medium text-slate-400 mt-0.5 leading-snug normal-case tracking-normal">{{ mode.desc }}</p>
+                                            class="text-[11px] uppercase tracking-wide leading-tight">{{ mode.label }}
+                                        </p>
+                                        <p
+                                            class="text-[9px] font-medium text-slate-400 mt-0.5 leading-snug normal-case tracking-normal">
+                                            {{ mode.desc }}</p>
                                     </div>
                                 </button>
                             </div>
@@ -871,24 +905,28 @@ const editorModules = {
                             <!-- Existing Passage Library select -->
                             <div v-if="form.passage_mode === 'existing'"
                                 class="animate-in fade-in slide-in-from-bottom-2 duration-300 pt-2">
-                                <Select v-model="form.passage_id" :options="passages" optionLabel="title" optionValue="id"
-                                    :placeholder="t[currentLang].selectPassagePlaceholder"
+                                <Select v-model="form.passage_id" :options="passages" optionLabel="title"
+                                    optionValue="id" :placeholder="t[currentLang].selectPassagePlaceholder"
                                     class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" filter />
                             </div>
 
                             <!-- New Passage Material editor -->
                             <div v-if="form.passage_mode === 'new'"
                                 class="p-6 bg-slate-50/50 rounded-[1.8rem] border border-slate-100 space-y-6 animate-in zoom-in-98 duration-400">
-                                
+
                                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                                     <div class="md:col-span-8 flex flex-col space-y-1.5">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].passageTitleLabel }}</label>
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                                t[currentLang].passageTitleLabel }}</label>
                                         <InputText v-model="form.passage_title"
                                             :placeholder="t[currentLang].passageTitlePlaceholder"
                                             class="w-full rounded-xl bg-white border-slate-100 font-bold text-slate-800" />
                                     </div>
                                     <div class="md:col-span-4 flex flex-col space-y-1.5">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].passageTypeLabel }}</label>
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                                t[currentLang].passageTypeLabel }}</label>
                                         <Select v-model="form.passage_type"
                                             :options="[{ label: t[currentLang].passageTypes.text, value: 'text' }, { label: t[currentLang].passageTypes.image, value: 'image' }, { label: t[currentLang].passageTypes.audio, value: 'audio' }, { label: t[currentLang].passageTypes.video, value: 'video' }]"
                                             optionLabel="label" optionValue="value"
@@ -900,16 +938,20 @@ const editorModules = {
                                 <div class="flex flex-col space-y-1.5">
                                     <div class="flex items-center justify-between ml-1 mr-1">
                                         <div>
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].passageContentLabel }}</label>
-                                            <p class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">{{ t[currentLang].passageContentDesc }}</p>
+                                            <label
+                                                class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
+                                                    t[currentLang].passageContentLabel }}</label>
+                                            <p class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">{{
+                                                t[currentLang].passageContentDesc }}</p>
                                         </div>
-                                        
+
                                         <!-- Visual / HTML Source Switcher -->
                                         <div class="flex bg-slate-100 rounded-xl p-1 gap-1 border border-slate-200/50">
                                             <button type="button" @click="passageShowHtml = false"
                                                 :class="!passageShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
                                                 class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
-                                                <i class="pi pi-align-left text-[10px]"></i> {{ t[currentLang].visualTab }}
+                                                <i class="pi pi-align-left text-[10px]"></i> {{ t[currentLang].visualTab
+                                                }}
                                             </button>
                                             <button type="button" @click="passageShowHtml = true"
                                                 :class="passageShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
@@ -918,7 +960,7 @@ const editorModules = {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <div v-if="!passageShowHtml">
                                         <Editor v-model="form.passage_content" editorStyle="height: 250px"
                                             :modules="editorModules"
@@ -933,63 +975,100 @@ const editorModules = {
                                 </div>
 
                                 <div class="space-y-3 mt-4">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].generalInstructionsLabel }}</label>
-                                    <Editor v-model="form.passage_general_instructions"
-                                        editorStyle="height: 140px"
-                                        :modules="editorModules"
-                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
-                                        :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                    <div class="flex items-center justify-between gap-3">
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                                t[currentLang].generalInstructionsLabel }}</label>
+                                        <div class="flex bg-slate-100 rounded-xl p-1 gap-1 border border-slate-200/50">
+                                            <button type="button" @click="passageGeneralShowHtml = false"
+                                                :class="!passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                                <i class="pi pi-align-left text-[10px]"></i> {{ t[currentLang].visualTab
+                                                }}
+                                            </button>
+                                            <button type="button" @click="passageGeneralShowHtml = true"
+                                                :class="passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                                <i class="pi pi-code text-[10px]"></i> {{ t[currentLang].sourceTab }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-if="!passageGeneralShowHtml">
+                                        <Editor v-model="form.passage_general_instructions" editorStyle="height: 140px"
+                                            :modules="editorModules"
+                                            class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                            :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                    </div>
+                                    <div v-else>
+                                        <textarea v-model="form.passage_general_instructions" rows="5"
+                                            class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
+                                            :placeholder="t[currentLang].generalInstructionsPlaceholder"></textarea>
+                                    </div>
                                 </div>
 
                                 <!-- Media Assets Grid -->
                                 <div class="space-y-3">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].mediaAssetsLabel }}</label>
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].mediaAssetsLabel }}</label>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <!-- Image Attachment -->
-                                        <ImageResizeUploader
-                                            v-model="form.p_image"
-                                            v-model:width="form.p_image_width"
-                                            v-model:height="form.p_image_height"
-                                            :initialUrl="form.p_image_preview?.url"
-                                            :label="t[currentLang].imageAttach"
-                                            icon="pi-image"
-                                            @clear="form.p_image = null; form.p_image_preview = null; form.p_image_width = null; form.p_image_height = null;"
-                                        />
+                                        <ImageResizeUploader v-model="form.p_image" v-model:width="form.p_image_width"
+                                            v-model:height="form.p_image_height" :initialUrl="form.p_image_preview?.url"
+                                            :label="t[currentLang].imageAttach" icon="pi-image"
+                                            @clear="form.p_image = null; form.p_image_preview = null; form.p_image_width = null; form.p_image_height = null;" />
 
                                         <!-- Audio Attachment -->
                                         <div class="relative group border-2 border-dashed rounded-2xl p-4 transition-all"
                                             :class="form.p_audio_preview ? 'border-brand-primary/20 bg-rose-50/10' : 'border-slate-100 bg-white hover:border-brand-primary/30'">
                                             <div v-if="!form.p_audio_preview" @click="$refs.pAudInput.click()"
                                                 class="flex items-center gap-4 cursor-pointer py-2">
-                                                <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-brand-primary group-hover:bg-rose-50/50 transition-colors shadow-sm">
+                                                <div
+                                                    class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-brand-primary group-hover:bg-rose-50/50 transition-colors shadow-sm">
                                                     <i class="pi pi-volume-up text-lg"></i>
                                                 </div>
                                                 <div class="flex flex-col">
-                                                    <span class="text-[11px] font-black text-slate-700 uppercase tracking-wide">{{ t[currentLang].attachListening }}</span>
-                                                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].mp3Support }}</span>
+                                                    <span
+                                                        class="text-[11px] font-black text-slate-700 uppercase tracking-wide">{{
+                                                            t[currentLang].attachListening }}</span>
+                                                    <span
+                                                        class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{{
+                                                            t[currentLang].mp3Support }}</span>
                                                 </div>
                                             </div>
                                             <div v-else class="flex flex-col gap-2.5">
-                                                <div class="flex items-center justify-between pb-1 border-b border-slate-100">
-                                                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{ t[currentLang].audioLinked }}</span>
+                                                <div
+                                                    class="flex items-center justify-between pb-1 border-b border-slate-100">
+                                                    <span
+                                                        class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{
+                                                            t[currentLang].audioLinked }}</span>
                                                     <Button icon="pi pi-trash" text severity="danger" size="small"
-                                                        @click="form.p_audio = null; form.p_audio_preview = null" class="w-7 h-7 flex items-center justify-center" />
+                                                        @click="form.p_audio = null; form.p_audio_preview = null"
+                                                        class="w-7 h-7 flex items-center justify-center" />
                                                 </div>
-                                                <audio :src="form.p_audio_preview.url" controls class="h-8 w-full"></audio>
+                                                <audio :src="form.p_audio_preview.url" controls
+                                                    class="h-8 w-full"></audio>
                                             </div>
-                                            <input type="file" ref="pAudInput" class="hidden" @change="handlePAudioChange" accept="audio/*" />
+                                            <input type="file" ref="pAudInput" class="hidden"
+                                                @change="handlePAudioChange" accept="audio/*" />
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Supplemental Other Files Fallback -->
-                                <div class="pt-2 flex items-center gap-3 opacity-70 hover:opacity-100 transition-opacity">
+                                <div
+                                    class="pt-2 flex items-center gap-3 opacity-70 hover:opacity-100 transition-opacity">
                                     <i class="pi pi-info-circle text-slate-400 text-xs"></i>
-                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].needVideo }}</p>
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
+                                        t[currentLang].needVideo }}</p>
                                     <button type="button" @click="$refs.pFileInput.click()"
-                                        class="text-[9px] font-black text-brand-primary uppercase tracking-widest underline decoration-dotted">{{ t[currentLang].clickHere }}</button>
-                                    <input type="file" ref="pFileInput" class="hidden" @change="handlePFileChange" accept="video/*" />
-                                    <span v-if="pMediaPreview" class="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded shadow-sm border border-emerald-100">{{ t[currentLang].fileAttached }}</span>
+                                        class="text-[9px] font-black text-brand-primary uppercase tracking-widest underline decoration-dotted">{{
+                                            t[currentLang].clickHere }}</button>
+                                    <input type="file" ref="pFileInput" class="hidden" @change="handlePFileChange"
+                                        accept="video/*" />
+                                    <span v-if="pMediaPreview"
+                                        class="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded shadow-sm border border-emerald-100">{{
+                                            t[currentLang].fileAttached }}</span>
                                 </div>
                             </div>
                         </div>
@@ -998,21 +1077,26 @@ const editorModules = {
 
                 <!-- 3. Question List Drafts -->
                 <div class="space-y-6">
-                    <div class="flex items-center justify-between bg-white px-8 py-5 rounded-[2rem] shadow-sm border border-slate-50">
+                    <div
+                        class="flex items-center justify-between bg-white px-8 py-5 rounded-[2rem] shadow-sm border border-slate-50">
                         <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-rose-200">
-                                    <i class="pi pi-list text-sm"></i>
+                            <div
+                                class="w-9 h-9 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-rose-200">
+                                <i class="pi pi-list text-sm"></i>
                             </div>
-                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">{{ t[currentLang].draftQuestions }}</h3>
+                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">{{
+                                t[currentLang].draftQuestions }}
+                            </h3>
                         </div>
                     </div>
 
                     <!-- Single Question layout -->
                     <div v-for="(q, qIdx) in form.questions" :key="qIdx"
                         class="group relative bg-white border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-500 rounded-[2.5rem] p-8 md:p-12 animate-in slide-in-from-bottom-4">
-                        
+
                         <!-- Question Step Number Label -->
-                        <div :class="[currentLang === 'ar' ? '-right-4' : '-left-4', 'absolute top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-2 border-slate-100 text-slate-800 rounded-2xl flex items-center justify-center font-black shadow-lg group-hover:bg-brand-primary group-hover:border-brand-primary group-hover:text-white transition-all duration-300 z-10']">
+                        <div
+                            :class="[currentLang === 'ar' ? '-right-4' : '-left-4', 'absolute top-1/2 -translate-y-1/2 w-12 h-12 bg-white border-2 border-slate-100 text-slate-800 rounded-2xl flex items-center justify-center font-black shadow-lg group-hover:bg-brand-primary group-hover:border-brand-primary group-hover:text-white transition-all duration-300 z-10']">
                             {{ qIdx + 1 }}
                         </div>
 
@@ -1025,27 +1109,66 @@ const editorModules = {
                         <div class="space-y-8">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="flex flex-col space-y-1.5">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].questionTypeLabel }}</label>
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].questionTypeLabel }}</label>
                                     <Select v-model="q.type" @change="handleTypeChange(qIdx)" :options="questionTypes"
                                         optionLabel="label" optionValue="value"
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 px-3 shadow-sm h-12 flex items-center" />
                                 </div>
                                 <div class="flex flex-col space-y-1.5">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].instructionsLabel }}</label>
-                                    <InputText v-model="q.instructions"
-                                        placeholder="e.g. Choose the correct answer..."
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].instructionsLabel }}</label>
+                                    <InputText v-model="q.instructions" placeholder="e.g. Choose the correct answer..."
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold" />
                                 </div>
-                                
+
                             </div>
+
+                            <!-- General Instructions (per single question, especially standalone questions without a passage) -->
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].generalInstructionsLabel }}</label>
+                                    <div class="flex bg-slate-50 rounded-lg p-0.5 gap-0.5 border border-slate-200/30">
+                                        <button type="button" @click="q.showGeneralHtml = false"
+                                            :class="!q.showGeneralHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wide transition-all flex items-center gap-1">
+                                            <i class="pi pi-align-left text-[9px]"></i> {{ t[currentLang].visualTab
+                                            }}
+                                        </button>
+                                        <button type="button" @click="q.showGeneralHtml = true"
+                                            :class="q.showGeneralHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wide transition-all flex items-center gap-1">
+                                            <i class="pi pi-code text-[9px]"></i> {{ t[currentLang].sourceTab }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="!q.showGeneralHtml">
+                                    <Editor v-model="q.general_instructions" editorStyle="height: 120px"
+                                        :modules="editorModules"
+                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                        :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                </div>
+                                <div v-else>
+                                    <textarea v-model="q.general_instructions" rows="4"
+                                        class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
+                                        :placeholder="t[currentLang].generalInstructionsPlaceholder"></textarea>
+                                </div>
+                            </div>
+
                             <!-- Question Content Input: Text or Media mode -->
                             <div class="space-y-4">
                                 <div class="flex items-center gap-3">
                                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                        {{ q.type === 'writing' ? t[currentLang].questionPrompt : t[currentLang].questionPrompt }}
+                                        {{ q.type === 'writing' ? t[currentLang].questionPrompt :
+                                            t[currentLang].questionPrompt }}
                                     </span>
                                     <div class="flex bg-slate-50 rounded-xl p-1 gap-1 border border-slate-200/50">
-                                        <button type="button" @click="q.content_mode = 'text'; q.q_media = null; q.q_media_preview = null"
+                                        <button type="button"
+                                            @click="q.content_mode = 'text'; q.q_media = null; q.q_media_preview = null"
                                             :class="q.content_mode === 'text' ? 'bg-white shadow-sm text-slate-800 font-black' : 'text-slate-400 hover:text-slate-600 font-bold'"
                                             class="px-3.5 py-1.5 rounded-lg text-[9px] uppercase tracking-wide transition-all flex items-center gap-1.5">
                                             <i class="pi pi-align-left text-[10px]"></i> {{ t[currentLang].textTab }}
@@ -1061,11 +1184,13 @@ const editorModules = {
                                 <!-- Text Mode input -->
                                 <div v-if="q.content_mode === 'text'" class="space-y-2">
                                     <div class="flex justify-end mb-1">
-                                        <div class="flex bg-slate-50 rounded-lg p-0.5 gap-0.5 border border-slate-200/30">
+                                        <div
+                                            class="flex bg-slate-50 rounded-lg p-0.5 gap-0.5 border border-slate-200/30">
                                             <button type="button" @click="q.showHtml = false"
                                                 :class="!q.showHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
                                                 class="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wide transition-all flex items-center gap-1">
-                                                <i class="pi pi-align-left text-[9px]"></i> {{ t[currentLang].visualTab }}
+                                                <i class="pi pi-align-left text-[9px]"></i> {{ t[currentLang].visualTab
+                                                }}
                                             </button>
                                             <button type="button" @click="q.showHtml = true"
                                                 :class="q.showHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
@@ -1074,7 +1199,7 @@ const editorModules = {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <div v-if="!q.showHtml">
                                         <Editor v-model="q.content" editorStyle="height: 180px" :modules="editorModules"
                                             class="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50/30"
@@ -1087,53 +1212,75 @@ const editorModules = {
                                     </div>
 
                                     <!-- Arabic and English helpful Guides depending on selected type -->
-                                    <div v-if="q.type === 'writing'" class="bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100/50">
-                                        <p class="text-[10px] font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2">
+                                    <div v-if="q.type === 'writing'"
+                                        class="bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100/50">
+                                        <p
+                                            class="text-[10px] font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2">
                                             <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.writingTitle }}
                                         </p>
-                                        <p class="text-[11px] font-medium text-indigo-500 mt-1 leading-relaxed">{{ t[currentLang].guides.writingText }}</p>
+                                        <p class="text-[11px] font-medium text-indigo-500 mt-1 leading-relaxed">{{
+                                            t[currentLang].guides.writingText }}</p>
                                     </div>
 
-                                    <div v-if="q.type === 'drag_drop'" class="bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100/50">
-                                        <p class="text-[10px] font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2">
+                                    <div v-if="q.type === 'drag_drop'"
+                                        class="bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100/50">
+                                        <p
+                                            class="text-[10px] font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2">
                                             <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.dragDropTitle }}
                                         </p>
-                                        <p class="text-[11px] font-medium text-indigo-500 mt-1 leading-relaxed" v-html="t[currentLang].guides.dragDropText"></p>
+                                        <p class="text-[11px] font-medium text-indigo-500 mt-1 leading-relaxed"
+                                            v-html="t[currentLang].guides.dragDropText"></p>
                                     </div>
 
-                                    <div v-if="q.type === 'word_selection' || q.type === 'click_word'" class="bg-amber-50/40 p-4 rounded-2xl border border-amber-100/50">
-                                        <p class="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
-                                            <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.wordSelectTitle }}
+                                    <div v-if="q.type === 'word_selection' || q.type === 'click_word'"
+                                        class="bg-amber-50/40 p-4 rounded-2xl border border-amber-100/50">
+                                        <p
+                                            class="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
+                                            <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.wordSelectTitle
+                                            }}
                                         </p>
-                                        <p class="text-[11px] font-medium text-amber-500 mt-1 leading-relaxed" v-html="t[currentLang].guides.wordSelectText"></p>
+                                        <p class="text-[11px] font-medium text-amber-500 mt-1 leading-relaxed"
+                                            v-html="t[currentLang].guides.wordSelectText"></p>
                                     </div>
 
-                                    <div v-if="q.type === 'fill_blank'" class="bg-rose-50/30 p-4 rounded-2xl border border-rose-100/50">
-                                        <p class="text-[10px] font-black text-rose-700 uppercase tracking-widest flex items-center gap-2">
+                                    <div v-if="q.type === 'fill_blank'"
+                                        class="bg-rose-50/30 p-4 rounded-2xl border border-rose-100/50">
+                                        <p
+                                            class="text-[10px] font-black text-rose-700 uppercase tracking-widest flex items-center gap-2">
                                             <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.fillBlankTitle }}
                                         </p>
-                                        <p class="text-[11px] font-medium text-slate-500 mt-1 leading-relaxed" v-html="t[currentLang].guides.fillBlankText"></p>
+                                        <p class="text-[11px] font-medium text-slate-500 mt-1 leading-relaxed"
+                                            v-html="t[currentLang].guides.fillBlankText"></p>
                                     </div>
 
-                                    <div v-if="q.type === 'matching'" class="bg-purple-50/40 p-4 rounded-2xl border border-purple-100/50">
-                                        <p class="text-[10px] font-black text-purple-700 uppercase tracking-widest flex items-center gap-2">
+                                    <div v-if="q.type === 'matching'"
+                                        class="bg-purple-50/40 p-4 rounded-2xl border border-purple-100/50">
+                                        <p
+                                            class="text-[10px] font-black text-purple-700 uppercase tracking-widest flex items-center gap-2">
                                             <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.matchingTitle }}
                                         </p>
-                                        <p class="text-[11px] font-medium text-purple-500 mt-1 leading-relaxed" v-html="t[currentLang].guides.matchingText"></p>
+                                        <p class="text-[11px] font-medium text-purple-500 mt-1 leading-relaxed"
+                                            v-html="t[currentLang].guides.matchingText"></p>
                                     </div>
 
-                                    <div v-if="q.type === 'ordering'" class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                        <p class="text-[10px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                                    <div v-if="q.type === 'ordering'"
+                                        class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <p
+                                            class="text-[10px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
                                             <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.orderingTitle }}
                                         </p>
-                                        <p class="text-[11px] font-medium text-slate-500 mt-1 leading-relaxed" v-html="t[currentLang].guides.orderingText"></p>
+                                        <p class="text-[11px] font-medium text-slate-500 mt-1 leading-relaxed"
+                                            v-html="t[currentLang].guides.orderingText"></p>
                                     </div>
 
-                                    <div v-if="q.type === 'highlight'" class="bg-yellow-50/40 p-4 rounded-2xl border border-yellow-100/50">
-                                        <p class="text-[10px] font-black text-yellow-700 uppercase tracking-widest flex items-center gap-2">
+                                    <div v-if="q.type === 'highlight'"
+                                        class="bg-yellow-50/40 p-4 rounded-2xl border border-yellow-100/50">
+                                        <p
+                                            class="text-[10px] font-black text-yellow-700 uppercase tracking-widest flex items-center gap-2">
                                             <i class="pi pi-info-circle"></i> {{ t[currentLang].guides.highlightTitle }}
                                         </p>
-                                        <p class="text-[11px] font-medium text-yellow-700 mt-1 leading-relaxed" v-html="t[currentLang].guides.highlightText"></p>
+                                        <p class="text-[11px] font-medium text-yellow-700 mt-1 leading-relaxed"
+                                            v-html="t[currentLang].guides.highlightText"></p>
                                     </div>
                                 </div>
 
@@ -1142,34 +1289,39 @@ const editorModules = {
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <!-- Image Attachment -->
                                         <div class="flex flex-col space-y-1.5">
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].imageAttachment }}</label>
-                                            <ImageResizeUploader
-                                                v-model="q.q_image"
-                                                v-model:width="q.q_image_width"
-                                                v-model:height="q.q_image_height"
-                                                :initialUrl="q.q_image_preview?.url"
-                                                :label="t[currentLang].imageSelect"
-                                                icon="pi-image"
-                                                @clear="q.q_image = null; q.q_image_preview = null; q.q_image_width = null; q.q_image_height = null;"
-                                            />
+                                            <label
+                                                class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                                    t[currentLang].imageAttachment }}</label>
+                                            <ImageResizeUploader v-model="q.q_image" v-model:width="q.q_image_width"
+                                                v-model:height="q.q_image_height" :initialUrl="q.q_image_preview?.url"
+                                                :label="t[currentLang].imageSelect" icon="pi-image"
+                                                @clear="q.q_image = null; q.q_image_preview = null; q.q_image_width = null; q.q_image_height = null;" />
                                         </div>
 
                                         <!-- Audio Attachment -->
                                         <div class="flex flex-col space-y-1.5">
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].audioAttachment }}</label>
+                                            <label
+                                                class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                                    t[currentLang].audioAttachment }}</label>
                                             <div class="flex flex-col gap-3">
                                                 <div @click="triggerQAudio(qIdx)"
                                                     class="w-full h-20 border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 cursor-pointer transition-all group"
                                                     :class="q.q_audio_preview ? 'border-brand-primary/20 bg-rose-50/10' : 'border-slate-100 bg-white hover:border-brand-primary/30'">
-                                                    <input type="file" :id="`qAudio_${qIdx}`" class="hidden" @change="(e) => handleQAudioChange(e, qIdx)" accept="audio/*" />
-                                                    <i v-if="!q.q_audio_preview" class="pi pi-volume-up text-xl text-slate-300 group-hover:text-brand-primary transition-colors"></i>
+                                                    <input type="file" :id="`qAudio_${qIdx}`" class="hidden"
+                                                        @change="(e) => handleQAudioChange(e, qIdx)" accept="audio/*" />
+                                                    <i v-if="!q.q_audio_preview"
+                                                        class="pi pi-volume-up text-xl text-slate-300 group-hover:text-brand-primary transition-colors"></i>
                                                     <i v-else class="pi pi-check-circle text-xl text-emerald-500"></i>
-                                                    <span class="text-[9px] font-black uppercase tracking-widest" :class="q.q_audio_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-brand-primary'">
-                                                        {{ q.q_audio_preview ? t[currentLang].audioLinked : t[currentLang].selectAudioFile }}
+                                                    <span class="text-[9px] font-black uppercase tracking-widest"
+                                                        :class="q.q_audio_preview ? 'text-emerald-600' : 'text-slate-400 group-hover:text-brand-primary'">
+                                                        {{ q.q_audio_preview ? t[currentLang].audioLinked :
+                                                            t[currentLang].selectAudioFile }}
                                                     </span>
                                                 </div>
-                                                <div v-if="q.q_audio_preview" class="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                                    <audio :src="q.q_audio_preview.url" controls class="h-8 grow"></audio>
+                                                <div v-if="q.q_audio_preview"
+                                                    class="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                    <audio :src="q.q_audio_preview.url" controls
+                                                        class="h-8 grow"></audio>
                                                     <button @click="q.q_audio = null; q.q_audio_preview = null"
                                                         class="w-7 h-7 text-rose-500 hover:bg-rose-50 rounded-lg transition-all flex items-center justify-center shrink-0">
                                                         <i class="pi pi-trash text-xs"></i>
@@ -1181,15 +1333,25 @@ const editorModules = {
                                         <!-- Supplemental generic videos upload -->
                                         <div class="md:col-span-2 pt-3 border-t border-slate-50">
                                             <div class="flex items-center gap-3">
-                                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].otherMediaLabel }}</label>
+                                                <label
+                                                    class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
+                                                        t[currentLang].otherMediaLabel }}</label>
                                                 <div class="grow h-[1px] bg-slate-50"></div>
-                                                <Button icon="pi pi-plus" :label="t[currentLang].needVideo" text class="text-[9px] font-black" @click="triggerQFile(qIdx)" />
-                                                <input type="file" :id="`qFile_${qIdx}`" class="hidden" @change="(e) => handleQFileChange(e, qIdx)" accept="video/*" />
+                                                <Button icon="pi pi-plus" :label="t[currentLang].needVideo" text
+                                                    class="text-[9px] font-black" @click="triggerQFile(qIdx)" />
+                                                <input type="file" :id="`qFile_${qIdx}`" class="hidden"
+                                                    @change="(e) => handleQFileChange(e, qIdx)" accept="video/*" />
                                             </div>
-                                            <div v-if="q.q_media_preview" class="mt-3 p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
-                                                <video v-if="q.q_media_preview.type.startsWith('video/')" :src="q.q_media_preview.url" controls class="max-h-20 rounded-lg"></video>
-                                                <span v-else class="text-[10px] font-black text-slate-500 uppercase">{{ q.q_media_preview.type }}</span>
-                                                <button @click="q.q_media = null; q.q_media_preview = null" class="text-rose-500 font-black text-[9px] uppercase hover:underline">{{ t[currentLang].modes.none }}</button>
+                                            <div v-if="q.q_media_preview"
+                                                class="mt-3 p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                                                <video v-if="q.q_media_preview.type.startsWith('video/')"
+                                                    :src="q.q_media_preview.url" controls
+                                                    class="max-h-20 rounded-lg"></video>
+                                                <span v-else class="text-[10px] font-black text-slate-500 uppercase">{{
+                                                    q.q_media_preview.type }}</span>
+                                                <button @click="q.q_media = null; q.q_media_preview = null"
+                                                    class="text-rose-500 font-black text-[9px] uppercase hover:underline">{{
+                                                        t[currentLang].modes.none }}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1198,23 +1360,30 @@ const editorModules = {
 
                             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
                                 <!-- Options list for questions (MCQ/etc) -->
-                                <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)" class="lg:col-span-8 space-y-4">
+                                <div v-if="!['writing', 'speaking', 'upload'].includes(q.type)"
+                                    class="lg:col-span-8 space-y-4">
                                     <div class="flex items-center justify-between pb-1">
-                                        <label class="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].optionsMatrix }}</label>
-                                        <Button v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type)"
-                                            icon="pi pi-plus" :label="t[currentLang].addOptionBtn" text rounded @click="addOption(qIdx)"
+                                        <label
+                                            class="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1 mr-1">{{
+                                                t[currentLang].optionsMatrix }}</label>
+                                        <Button
+                                            v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type)"
+                                            icon="pi pi-plus" :label="t[currentLang].addOptionBtn" text rounded
+                                            @click="addOption(qIdx)"
                                             class="text-[9px] font-black text-emerald-600 hover:bg-emerald-50" />
                                     </div>
-                                    
+
                                     <div class="space-y-2.5">
                                         <div v-for="(opt, oIdx) in q.options" :key="oIdx"
                                             class="flex items-start gap-3 p-4 rounded-2xl border transition-all bg-white"
                                             :class="opt.is_correct ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100 shadow-sm'">
-                                            
+
                                             <!-- Correct toggle + Index -->
                                             <div class="flex items-center gap-2 shrink-0 mt-1">
-                                                <span class="text-[8px] font-black text-slate-400">#{{ oIdx + 1 }}</span>
-                                                <button v-if="q.type !== 'short_answer'" type="button" @click="setCorrect(qIdx, oIdx)"
+                                                <span class="text-[8px] font-black text-slate-400">#{{ oIdx + 1
+                                                    }}</span>
+                                                <button v-if="q.type !== 'short_answer'" type="button"
+                                                    @click="setCorrect(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all"
                                                     :class="opt.is_correct ? 'bg-emerald-500 border-emerald-600 text-white shadow-sm' : 'bg-white border-slate-200 text-transparent'">
                                                     <i class="pi pi-check text-[9px] font-black"></i>
@@ -1234,7 +1403,8 @@ const editorModules = {
                                                     <!-- Thumbnail or upload button -->
                                                     <div v-if="opt.image_preview"
                                                         class="relative w-16 h-12 rounded-xl overflow-hidden border border-slate-100 shrink-0 group/img">
-                                                        <img :src="opt.image_preview" class="w-full h-full object-cover" />
+                                                        <img :src="opt.image_preview"
+                                                            class="w-full h-full object-cover" />
                                                         <button type="button"
                                                             @click="opt.image = null; opt.image_preview = null"
                                                             class="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-all">
@@ -1251,31 +1421,33 @@ const editorModules = {
                                                         accept="audio/*"
                                                         @change="(e) => handleOptionAudioChange(e, qIdx, oIdx)" />
 
-                                                    <button v-if="!opt.audio_preview" type="button" 
+                                                    <button v-if="!opt.audio_preview" type="button"
                                                         @click="triggerOptionAudio(qIdx, oIdx)"
                                                         class="w-10 h-10 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:text-brand-primary hover:border-brand-primary/40 transition-all shrink-0">
                                                         <i class="pi pi-volume-up text-sm"></i>
                                                     </button>
-                                                    <div v-else class="flex items-center gap-2 bg-slate-50 px-2 rounded-xl border border-slate-100">
-                                                        <audio :src="opt.audio_preview" controls class="h-8 w-32"></audio>
-                                                        <button type="button" @click="opt.audio = null; opt.audio_preview = null"
+                                                    <div v-else
+                                                        class="flex items-center gap-2 bg-slate-50 px-2 rounded-xl border border-slate-100">
+                                                        <audio :src="opt.audio_preview" controls
+                                                            class="h-8 w-32"></audio>
+                                                        <button type="button"
+                                                            @click="opt.audio = null; opt.audio_preview = null"
                                                             class="text-rose-400 hover:text-rose-600 transition-colors">
                                                             <i class="pi pi-trash text-xs"></i>
                                                         </button>
                                                     </div>
 
-                                                    
+
 
                                                     <!-- Text input with dir -->
                                                     <InputText v-model="opt.option_text"
-                                                        :disabled="q.type === 'true_false'"
-                                                        :dir="opt.dir"
+                                                        :disabled="q.type === 'true_false'" :dir="opt.dir"
                                                         :placeholder="q.type === 'short_answer' ? t[currentLang].acceptedVariation : t[currentLang].optionValuePlaceholder"
                                                         class="grow border-none bg-transparent font-bold text-slate-800 focus:ring-0 py-1.5 min-w-0" />
                                                 </div>
 
-                                                
-                                                
+
+
 
                                             </div>
 
@@ -1283,7 +1455,8 @@ const editorModules = {
                                             <div class="flex items-center gap-1 shrink-0 mt-1">
 
                                                 <!-- RTL/LTR Toggle -->
-                                                <button type="button" @click="opt.dir = opt.dir === 'ltr' ? 'rtl' : 'ltr'"
+                                                <button type="button"
+                                                    @click="opt.dir = opt.dir === 'ltr' ? 'rtl' : 'ltr'"
                                                     :title="opt.dir === 'rtl' ? 'RTL — انقر للتحويل إلى LTR' : 'LTR — Click to switch to RTL'"
                                                     class="h-7 px-2.5 rounded-lg border text-[8px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
                                                     :class="opt.dir === 'rtl'
@@ -1299,12 +1472,14 @@ const editorModules = {
                                                     <i class="pi pi-chevron-up text-[9px]"></i>
                                                 </button>
                                                 <!-- Move down -->
-                                                <button v-if="oIdx < q.options.length - 1" type="button" @click="moveOptionDown(qIdx, oIdx)"
+                                                <button v-if="oIdx < q.options.length - 1" type="button"
+                                                    @click="moveOptionDown(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-md hover:bg-slate-50 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">
                                                     <i class="pi pi-chevron-down text-[9px]"></i>
                                                 </button>
                                                 <!-- Delete -->
-                                                <button v-if="['mcq','short_answer','drag_drop','word_selection','click_word','fill_blank','matching','ordering','highlight','listening'].includes(q.type) && q.options.length > 1"
+                                                <button
+                                                    v-if="['mcq', 'short_answer', 'drag_drop', 'word_selection', 'click_word', 'fill_blank', 'matching', 'ordering', 'highlight', 'listening'].includes(q.type) && q.options.length > 1"
                                                     @click="removeOption(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
                                                     <i class="pi pi-trash text-[9px]"></i>
@@ -1319,22 +1494,29 @@ const editorModules = {
                                     class="flex flex-col space-y-6 bg-slate-50/50 p-6 rounded-[1.8rem] border border-slate-100 shadow-sm">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2.5">
-                                            <div class="w-8.5 h-8.5 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center">
+                                            <div
+                                                class="w-8.5 h-8.5 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center">
                                                 <i class="pi pi-calculator text-sm"></i>
                                             </div>
                                             <div>
-                                                <label class="text-xs font-black text-slate-800 uppercase block">{{ t[currentLang].scoringParams }}</label>
-                                                <span class="text-[8px] font-bold text-slate-400 uppercase tracking-wide">{{ t[currentLang].defineWeight }}</span>
+                                                <label class="text-xs font-black text-slate-800 uppercase block">{{
+                                                    t[currentLang].scoringParams }}</label>
+                                                <span
+                                                    class="text-[8px] font-bold text-slate-400 uppercase tracking-wide">{{
+                                                        t[currentLang].defineWeight }}</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6' : 'grid grid-cols-1 gap-5'">
+                                    <div
+                                        :class="['writing', 'speaking', 'upload'].includes(q.type) ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6' : 'grid grid-cols-1 gap-5'">
                                         <!-- Sort Order -->
                                         <div class="flex flex-col space-y-1.5">
                                             <div class="flex items-center gap-1.5 ml-1 mr-1">
                                                 <i class="pi pi-sort-alt text-[9px] text-slate-400"></i>
-                                                <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{ t[currentLang].displayOrder }}</label>
+                                                <label
+                                                    class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{
+                                                        t[currentLang].displayOrder }}</label>
                                             </div>
                                             <InputNumber v-model="q.sort_order" :min="0" class="w-full h-10.5"
                                                 inputClass="w-full text-center font-black text-slate-700 bg-white border border-slate-150 rounded-xl px-4 focus:border-brand-primary transition-all" />
@@ -1344,7 +1526,9 @@ const editorModules = {
                                         <div class="flex flex-col space-y-1.5">
                                             <div class="flex items-center gap-1.5 ml-1 mr-1">
                                                 <i class="pi pi-star text-[9px] text-brand-primary animate-pulse"></i>
-                                                <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{ t[currentLang].questionPoints }}</label>
+                                                <label
+                                                    class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{
+                                                        t[currentLang].questionPoints }}</label>
                                             </div>
                                             <InputNumber v-model="q.points" :min="1" class="w-full h-10.5"
                                                 inputClass="w-full text-center font-black text-brand-primary bg-rose-50/20 border border-slate-150 rounded-xl px-4 focus:border-brand-primary transition-all" />
@@ -1354,12 +1538,14 @@ const editorModules = {
                                         <template v-if="q.type === 'writing'">
                                             <div class="flex flex-col space-y-1.5 md:col-span-2">
                                                 <div class="bg-blue-50/60 border border-blue-100 rounded-xl p-3">
-                                                    <p class="text-[9px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
+                                                    <p
+                                                        class="text-[9px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
                                                         <i class="pi pi-info-circle text-[10px]"></i>
-                                                        {{ currentLang === 'ar' ? 'ملاحظة: عدد الكلمات يُحفظ تلقائياً' : 'Note: Word count is saved automatically' }}
+                                                        {{ currentLang === 'ar' ? 'ملاحظة: عدد الكلمات يُحفظ تلقائياً' :
+                                                            'Note: Word count is saved automatically' }}
                                                     </p>
                                                     <p class="text-[8px] text-blue-600 mt-1.5 leading-relaxed">
-                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be calculated and displayed to the teacher during grading' }}
+                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة  تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be calculated and displayed to the teacher during grading' }}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1373,14 +1559,14 @@ const editorModules = {
 
                 <!-- Add another question button -->
                 <div class="flex pt-4">
-                    <Button :label="t[currentLang].addAnotherBtn" icon="pi pi-plus" severity="success" rounded @click="addQuestion"
-                        class="font-black text-xs px-6 py-3.5 shadow-sm rounded-xl" />
+                    <Button :label="t[currentLang].addAnotherBtn" icon="pi pi-plus" severity="success" rounded
+                        @click="addQuestion" class="font-black text-xs px-6 py-3.5 shadow-sm rounded-xl" />
                 </div>
 
                 <!-- Publish questions footer -->
                 <div class="flex justify-center pt-10 border-t border-slate-100/80">
-                    <Button type="button" :loading="isSubmitting" :label="t[currentLang].publishBtn" icon="pi pi-cloud-upload"
-                        @click="saveBatch"
+                    <Button type="button" :loading="isSubmitting" :label="t[currentLang].publishBtn"
+                        icon="pi pi-cloud-upload" @click="saveBatch"
                         class="rounded-[2rem] px-20 py-5.5 font-black text-lg bg-slate-900 border-none hover:bg-emerald-600 text-white shadow-2xl transition-all hover:scale-[1.02] active:scale-95 z-10 uppercase tracking-wider" />
                 </div>
 
@@ -1410,6 +1596,7 @@ const editorModules = {
     text-align: center;
     border-radius: 0.75rem;
 }
+
 :deep(.p-editor-toolbar) {
     display: none !important;
 }

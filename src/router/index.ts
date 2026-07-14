@@ -2,228 +2,164 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { authStorage } from '@/services/authStorage';
 import { PROCTORING_ENABLED } from '@/config/features';
 
-
-import DashboardView from '@/views/student/DashboardView.vue'
-import LoginView from '@/views/LoginView.vue'
-import AdminDashboard from '@/views/admin/AdminDashboard.vue'
-import Students from '@/views/student/Students.vue'
-
-import ExamView from '@/views/student/ExamView.vue'
-import ResultView from '@/views/student/ResultView.vue'
-import ParentPortal from '@/views/student/ParentPortal.vue'
-
-import AdminStudents from '@/views/admin/Students/index.vue'
-import AdminStudentCreate from '@/views/admin/Students/create.vue'
-import AdminStudentsBatch from '@/views/admin/Students/batch.vue'
-import AdminStudentEdit from '@/views/admin/Students/edit.vue'
-import AdminStudentShow from '@/views/admin/Students/show.vue'
-
-import AdminExams from '@/views/admin/Exams/index.vue'
-import AdminExamCreate from '@/views/admin/Exams/create.vue'
-import AdminExamImport from '@/views/admin/Exams/import.vue'
-import AdminExamCategoriesIndex from '@/views/admin/ExamCategories/index.vue'
-import AdminExamCategoriesCreate from '@/views/admin/ExamCategories/create.vue'
-import AdminExamCategoriesEdit from '@/views/admin/ExamCategories/edit.vue'
-
-import AdminQuestions from '@/views/admin/Questions/index.vue'
-import AdminQuestionCreate from '@/views/admin/Questions/create.vue'
-import AdminQuestionEdit from '@/views/admin/Questions/edit.vue'
-
-import AdminSkills from '@/views/admin/Skills/index.vue'
-import AdminSkillCreate from '@/views/admin/Skills/create.vue'
-import AdminSkillEdit from '@/views/admin/Skills/edit.vue'
-
-import AdminReports from '@/views/admin/AdminReports.vue'
-import AdminReportShow from '@/views/admin/AdminReportShow.vue'
-
-import AdminPayments from '@/views/admin/AdminPayments.vue'
-
-
-import AdminStaff from '@/views/admin/Staff/index.vue'
-import AdminStaffCreate from '@/views/admin/Staff/create.vue'
-
-
-import AdminLevels from '@/views/admin/Levels/index.vue'
-import AdminLevelCreate from '@/views/admin/Levels/create.vue'
-import AdminLevelEdit from '@/views/admin/Levels/edit.vue'
-
-import AdminPartners from '@/views/admin/Partners/index.vue'
-import AdminPartnerCreate from '@/views/admin/Partners/create.vue'
-import AdminPartnerEdit from '@/views/admin/Partners/edit.vue'
-import AdminPartnerShow from '@/views/admin/Partners/show.vue'
-import AdminPackagesIndex from '@/views/admin/Packages/index.vue'
-import AdminPackagesCreate from '@/views/admin/Packages/create.vue'
-import AdminPackagesEdit from '@/views/admin/Packages/edit.vue'
-import AdminSystemRequirements from '@/views/admin/SystemRequirements/index.vue'
-import AdminSystemRequirementsCreate from '@/views/admin/SystemRequirements/create.vue'
-import AdminSystemRequirementsEdit from '@/views/admin/SystemRequirements/edit.vue'
-import PublicRegisterWizard from '@/views/student/PublicRegisterWizard.vue'
-import ProfileView from '@/views/ProfileView.vue'
-import AdminActivityLogs from '@/views/admin/ActivityLogs/index.vue'
-
-import PartnerDashboard from '@/views/partner/Dashboard.vue'
-import PartnerReports from '@/views/partner/Reports/index.vue'
-import PartnerReportShow from '@/views/partner/Reports/show.vue'
-import PartnerCertificates from '@/views/partner/Certificates.vue'
-
 const adminRoutes = [
   {
     path: '/admin',
     name: 'admin',
-    component: AdminDashboard,
+    component: () => import('@/views/admin/AdminDashboard.vue'),
     meta: { title: 'Admin Command Center' }
   },
   {
     path: '/admin/packages',
     name: 'admin.packages.index',
-    component: AdminPackagesIndex,
+    component: () => import('@/views/admin/Packages/index.vue'),
     meta: { title: 'Package Management' }
   },
   {
     path: '/admin/packages/create',
     name: 'admin.packages.create',
-    component: AdminPackagesCreate
+    component: () => import('@/views/admin/Packages/create.vue')
   },
   {
     path: '/admin/packages/:id/edit',
     name: 'admin.packages.edit',
-    component: AdminPackagesEdit
+    component: () => import('@/views/admin/Packages/edit.vue')
   },
   {
     path: '/admin/students',
     name: 'admin.students',
-    component: AdminStudents,
+    component: () => import('@/views/admin/Students/index.vue'),
     meta: { title: 'Student Registry' }
   },
   {
     path: '/admin/students/create',
     name: 'admin.students.create',
-    component: AdminStudentCreate
+    component: () => import('@/views/admin/Students/create.vue')
   },
   {
     path: '/admin/students/batch',
     name: 'admin.students.batch',
-    component: AdminStudentsBatch
+    component: () => import('@/views/admin/Students/batch.vue')
   },
   {
     path: '/admin/students/:id/edit',
     name: 'admin.students.edit',
-    component: AdminStudentEdit
+    component: () => import('@/views/admin/Students/edit.vue')
   },
   {
     path: '/admin/students/:id/show',
     name: 'admin.students.show',
-    component: AdminStudentShow
+    component: () => import('@/views/admin/Students/show.vue')
   },
   {
     path: '/admin/exams',
     name: 'admin.exams',
-    component: AdminExams,
+    component: () => import('@/views/admin/Exams/index.vue'),
     meta: { title: 'Assessment Templates' }
   },
   {
     path: '/admin/partners',
     name: 'admin.partners',
-    component: AdminPartners
+    component: () => import('@/views/admin/Partners/index.vue')
   },
   {
     path: '/admin/partners/create',
     name: 'admin.partners.create',
-    component: AdminPartnerCreate
+    component: () => import('@/views/admin/Partners/create.vue')
   },
   {
     path: '/admin/exams/import',
     name: 'admin.exams.import',
-    component: AdminExamImport
+    component: () => import('@/views/admin/Exams/import.vue')
   },
   {
     path: '/admin/exams/create',
     name: 'admin.exams.create',
-    component: AdminExamCreate,
+    component: () => import('@/views/admin/Exams/create.vue'),
     meta: { title: 'Initialize Assessment' }
   },
   {
     path: '/admin/exams/:id/edit',
     name: 'admin.exams.edit',
-    component: AdminExamCreate,
+    component: () => import('@/views/admin/Exams/create.vue'),
     props: true
   },
   {
     path: '/admin/exam-categories',
     name: 'admin.exams.categories',
-    component: AdminExamCategoriesIndex
+    component: () => import('@/views/admin/ExamCategories/index.vue')
   },
   {
     path: '/admin/exam-categories/create',
     name: 'admin.exams.categories.create',
-    component: AdminExamCategoriesCreate
+    component: () => import('@/views/admin/ExamCategories/create.vue')
   },
   {
     path: '/admin/exam-categories/:id/edit',
     name: 'admin.exams.categories.edit',
-    component: AdminExamCategoriesEdit
+    component: () => import('@/views/admin/ExamCategories/edit.vue')
   },
   {
     path: '/admin/questions',
     name: 'admin.questions',
-    component: AdminQuestions,
+    component: () => import('@/views/admin/Questions/index.vue'),
     meta: { title: 'Central Bank Query' }
   },
   {
     path: '/admin/questions/create',
     name: 'admin.questions.create',
-    component: AdminQuestionCreate
+    component: () => import('@/views/admin/Questions/create.vue')
   },
   {
     path: '/admin/questions/:id/edit',
     name: 'admin.questions.edit',
-    component: AdminQuestionEdit,
+    component: () => import('@/views/admin/Questions/edit.vue'),
     props: true
   },
   {
     path: '/admin/skills',
     name: 'admin.skills',
-    component: AdminSkills
+    component: () => import('@/views/admin/Skills/index.vue')
   },
   {
     path: '/admin/skills/create',
     name: 'admin.skills.create',
-    component: AdminSkillCreate
+    component: () => import('@/views/admin/Skills/create.vue')
   },
   {
     path: '/admin/skills/:id/edit',
     name: 'admin.skills.edit',
-    component: AdminSkillEdit
+    component: () => import('@/views/admin/Skills/edit.vue')
   },
   {
     path: '/admin/levels',
     name: 'admin.levels',
-    component: AdminLevels
+    component: () => import('@/views/admin/Levels/index.vue')
   },
   {
     path: '/admin/levels/create',
     name: 'admin.levels.create',
-    component: AdminLevelCreate
+    component: () => import('@/views/admin/Levels/create.vue')
   },
   {
     path: '/admin/levels/:id/edit',
     name: 'admin.levels.edit',
-    component: AdminLevelEdit
+    component: () => import('@/views/admin/Levels/edit.vue')
   },
   {
     path: '/admin/skills/:id/levels',
     name: 'admin.skills.levels',
-    component: AdminLevels
+    component: () => import('@/views/admin/Levels/index.vue')
   },
   {
     path: '/admin/reports',
     name: 'admin.reports',
-    component: AdminReports
+    component: () => import('@/views/admin/AdminReports.vue')
   },
   {
     path: '/admin/reports/:id/show',
     name: 'admin.reports.show',
-    component: AdminReportShow
+    component: () => import('@/views/admin/AdminReportShow.vue')
   },
   {
     path: '/admin/grading',
@@ -240,48 +176,48 @@ const adminRoutes = [
   {
     path: '/admin/payments',
     name: 'admin.payments',
-    component: AdminPayments
+    component: () => import('@/views/admin/AdminPayments.vue')
   },
   {
     path: '/admin/system-requirements',
     name: 'admin.system-requirements',
-    component: AdminSystemRequirements
+    component: () => import('@/views/admin/SystemRequirements/index.vue')
   },
   {
     path: '/admin/system-requirements/create',
     name: 'admin.system-requirements.create',
-    component: AdminSystemRequirementsCreate
+    component: () => import('@/views/admin/SystemRequirements/create.vue')
   },
   {
     path: '/admin/system-requirements/:id/edit',
     name: 'admin.system-requirements.edit',
-    component: AdminSystemRequirementsEdit
+    component: () => import('@/views/admin/SystemRequirements/edit.vue')
   },
   {
     path: '/admin/staff',
     name: 'admin.staff',
-    component: AdminStaff
+    component: () => import('@/views/admin/Staff/index.vue')
   },
   {
     path: '/admin/staff/create',
     name: 'admin.staff.create',
-    component: AdminStaffCreate
+    component: () => import('@/views/admin/Staff/create.vue')
   },
   {
     path: '/admin/staff/:id/edit',
     name: 'admin.staff.edit',
-    component: AdminStaffCreate,
+    component: () => import('@/views/admin/Staff/create.vue'),
     props: true
   },
   {
     path: '/admin/partners/:id/edit',
     name: 'admin.partners.edit',
-    component: AdminPartnerEdit
+    component: () => import('@/views/admin/Partners/edit.vue')
   },
   {
     path: '/admin/partners/:id/show',
     name: 'admin.partners.show',
-    component: AdminPartnerShow
+    component: () => import('@/views/admin/Partners/show.vue')
   },
   {
     path: '/admin/certificates',
@@ -311,13 +247,13 @@ const adminRoutes = [
   {
     path: '/admin/profile',
     name: 'admin.profile',
-    component: ProfileView,
+    component: () => import('@/views/ProfileView.vue'),
     meta: { title: 'Security & Identity' }
   },
   {
     path: '/admin/activity-logs',
     name: 'admin.logs',
-    component: AdminActivityLogs,
+    component: () => import('@/views/admin/ActivityLogs/index.vue'),
     meta: { title: 'System Activity Logs' }
   },
   {
@@ -351,25 +287,25 @@ const partnerRoutes = [
   {
     path: '/partner',
     name: 'partner',
-    component: PartnerDashboard,
+    component: () => import('@/views/partner/Dashboard.vue'),
     meta: { title: 'Partner Dashboard' }
   },
   {
     path: '/partner/reports',
     name: 'partner.reports',
-    component: PartnerReports,
+    component: () => import('@/views/partner/Reports/index.vue'),
     meta: { title: 'Student Reports' }
   },
   {
     path: '/partner/reports/:id/show',
     name: 'partner.reports.show',
-    component: PartnerReportShow,
+    component: () => import('@/views/partner/Reports/show.vue'),
     meta: { title: 'Report Details' }
   },
   {
     path: '/partner/certificates',
     name: 'partner.certificates',
-    component: PartnerCertificates,
+    component: () => import('@/views/partner/Certificates.vue'),
     meta: { title: 'Student Certificates' }
   }
 ];
@@ -382,19 +318,19 @@ const routes = [
   {
     path: '/login',
     name: 'login',
-    component: LoginView,
+    component: () => import('@/views/LoginView.vue'),
     meta: { title: 'Login ALPT' }
   },
   {
     path: '/register',
     name: 'register',
-    component: PublicRegisterWizard,
+    component: () => import('@/views/student/PublicRegisterWizard.vue'),
     meta: { title: 'Student Registration' }
   },
   {
     path: '/parent',
     name: 'parent',
-    component: ParentPortal
+    component: () => import('@/views/student/ParentPortal.vue')
   },
   {
     path: '/verify-certificate/:code',
@@ -405,32 +341,32 @@ const routes = [
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: DashboardView,
+    component: () => import('@/views/student/DashboardView.vue'),
     meta: { title: 'Student Dashboard' }
   },
   {
     path: '/exam/:id',
     name: 'exam',
-    component: ExamView
+    component: () => import('@/views/student/ExamView.vue')
   },
   {
     path: '/exam/setup/:examId/:skillId/:levelId?',
     name: 'exam.setup',
-    component: ExamView
+    component: () => import('@/views/student/ExamView.vue')
   },
   {
     path: '/exam/:id/result',
     name: 'result',
-    component: ResultView
+    component: () => import('@/views/student/ResultView.vue')
   },
   {
     path: '/students',
-    component: Students
+    component: () => import('@/views/student/Students.vue')
   },
   {
     path: '/profile',
     name: 'profile',
-    component: ProfileView,
+    component: () => import('@/views/ProfileView.vue'),
     meta: { title: 'My Profile' }
   },
   {

@@ -1466,6 +1466,7 @@ onUnmounted(() => {
                         <!-- Stimulus Pane (passage - Right side) — 55% -->
                         <div class="w-full lg:w-[55%] bg-white flex flex-col min-h-0 h-full overflow-y-auto passage-scrollbar-container p-4 md:p-5 lg:p-6">
                             <div class="flex-grow prose prose-slate max-w-none">
+<<<<<<< HEAD
                                 <div v-if="currentQ.passage" class="space-y-4">
                                     <!-- Passage Title: RTL with icon on its right end -->
                                     <div v-if="currentQ.passage.title" class="flex items-center gap-2 mb-3" dir="rtl">
@@ -1473,6 +1474,14 @@ onUnmounted(() => {
                                         <h3 class="text-[25px] font-bold text-slate-800 leading-snug"
                                             dir="rtl">{{ currentQ.passage.title }}</h3>
                                     </div>
+=======
+                                <div v-if="currentQ.passage"
+                                    class="space-y-4 mb-6 pb-6 border-b border-slate-100 border-dashed">
+                                    <h3 v-if="currentQ.passage.title"
+                                        class="text-xl font-black text-slate-900 tracking-tight leading-tight"
+                                        dir="auto">{{ currentQ.passage.title }}
+                                    </h3>
+>>>>>>> 8e5655157bfe07af872d1bc3c0731c8711e6c704
                                     <div v-if="currentQ.passage.image_url || currentQ.passage.image_path"
                                         class="w-full mb-4 flex justify-center">
                                         <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
@@ -1480,8 +1489,7 @@ onUnmounted(() => {
                                             :class="!currentQ.passage.image_width && !currentQ.passage.image_height ? 'w-full h-auto' : 'max-w-full'"
                                             :style="currentQ.passage.image_width || currentQ.passage.image_height ? {
                                                 width: currentQ.passage.image_width ? `${currentQ.passage.image_width}px` : 'auto',
-                                                height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'
-                                            } : {}" />
+                                                height: currentQ.passage.image_height ? `${currentQ.passage.image_height}px` : 'auto'  } : {}" />
                                     </div>
                                     <div v-if="currentQ.passage.content"
                                         class="text-[25px] text-slate-700 leading-[1.8] font-normal text-justify ql-content rtl-support"
@@ -1503,8 +1511,7 @@ onUnmounted(() => {
                                         :class="!currentQ.image_width && !currentQ.image_height ? 'max-w-full h-auto' : 'max-w-full'"
                                         :style="currentQ.image_width || currentQ.image_height ? {
                                             width: currentQ.image_width ? `${currentQ.image_width}px` : 'auto',
-                                            height: currentQ.image_height ? `${currentQ.image_height}px` : 'auto'
-                                        } : {}" />
+                                            height: currentQ.image_height ? `${currentQ.image_height}px` : 'auto'  } : {}" />
                                 </div>
                             </div>
                         </div>
