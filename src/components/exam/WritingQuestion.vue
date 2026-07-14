@@ -191,6 +191,8 @@ watch(() => activeTab.value, async (newTab) => {
     if (newTab === 'write' && quillInstance) {
         await nextTick();
         quillInstance.focus();
+    } else if (newTab === 'upload') {
+        showVirtualKeyboard.value = false;
     }
 });
 
@@ -243,8 +245,7 @@ onUnmounted(() => {
                     </div>
 
 
-                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
-
+                    <div class="p-6 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-pencil"></i> 2. Write your answer.
                         </div>
@@ -253,10 +254,9 @@ onUnmounted(() => {
                         </p>
                     </div>
 
-                    
-                    
-                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
 
+
+                    <div class="p-6 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-cloud-upload"></i> 3. Upload your answer (optional).
                         </div>
@@ -268,7 +268,8 @@ onUnmounted(() => {
             </div>
 
             <!-- Topics Container -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm py-5 px-8 mb-5 flex flex-col items-center">
+            <div
+                class="bg-white rounded-xl border border-slate-200 shadow-sm py-5 px-8 mb-5 flex flex-col items-center">
                 <div class="flex flex-col items-center justify-center gap-1 mb-3">
                     <div class="flex items-center gap-2 font-black text-lg text-slate-800">
                         <span class="font-arabic">موضوعات الكتابة</span>
@@ -356,10 +357,10 @@ onUnmounted(() => {
                         class="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-slate-500">
                         <span class="flex items-center gap-2">Words: <span
                                 class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{
-                                wordCount }}</span></span>
+                                    wordCount }}</span></span>
                         <span class="flex items-center gap-2">Characters: <span
                                 class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{
-                                charCount }}</span></span>
+                                    charCount }}</span></span>
                     </div>
                 </div>
             </div>
