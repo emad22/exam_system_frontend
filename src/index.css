@@ -99,13 +99,17 @@
 
 /* Quill / Editor Styles for v-html */
 .ql-content .ql-align-right, .ql-editor-preview .ql-align-right {
-  text-align: right;
+  text-align: right !important;
 }
 .ql-content .ql-align-center, .ql-editor-preview .ql-align-center {
-  text-align: center;
+  text-align: center !important;
 }
 .ql-content .ql-align-left, .ql-editor-preview .ql-align-left {
-  text-align: left;
+  text-align: left !important;
+}
+.ql-content .ql-direction-rtl, .ql-editor-preview .ql-direction-rtl {
+  direction: rtl !important;
+  text-align: right !important;
 }
 .ql-content ul, .ql-editor-preview ul {
   list-style-type: disc;
@@ -119,4 +123,10 @@
 .ql-content h2, .ql-editor-preview h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
 .ql-content h3, .ql-editor-preview h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
 .ql-content p, .ql-editor-preview p { margin-bottom: 0.5rem; }
+
+/* Quill inline style passthrough — color, font-size, background */
+.ql-content span[style], .ql-editor-preview span[style],
+.ql-content p[style], .ql-editor-preview p[style] {
+  display: inline;
+}
 
