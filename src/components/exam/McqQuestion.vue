@@ -202,49 +202,59 @@ watch(
         <!-- ══════════════════════════════════════
              LAYOUT 3 — Default (text / mixed)
         ══════════════════════════════════════ -->
-        <div v-else class="space-y-1 py-1 overflow-x-hidden">
+        <div v-else class="space-y-2 py-1 overflow-x-hidden">
 
             <button v-for="(opt, oIdx) in question.options" :key="opt.id"
                 @click="selectedOptionId = opt.id"
                 :disabled="disabled"
-                class="w-full p-4 rounded-2xl border-2 transition-all duration-300
-                       flex flex-row-reverse items-center gap-4 group relative overflow-hidden"
+                dir="rtl"
+                class="w-full p-4 rounded-xl transition-all duration-300 flex flex-row items-center justify-between gap-4 group relative overflow-hidden select-none bg-white font-normal"
                 :class="selectedOptionId === opt.id
-                    ? 'border-brand-primary bg-indigo-50/40 ring-4 ring-indigo-500/5 shadow-md'
-                    : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50 bg-white shadow-sm hover:shadow-md'">
+                    ? 'border-[#2563EB] bg-[#EDF3FF]/20 shadow-sm'
+                    : 'border-slate-100 hover:border-[#2563EB] hover:bg-[#F8FAFC]/55 bg-white border border-slate-100'"
+                style="border-width: 1.5px;">
 
-                <!-- Selection dot -->
-                <div v-if="selectedOptionId === opt.id"
-                    class="absolute top-2 left-2 w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse">
+                <!-- Radio circle (appears on the right in RTL flex-row) -->
+                <div class="shrink-0 flex items-center justify-center">
+                    <div v-if="selectedOptionId === opt.id"
+                        class="w-5 h-5 rounded-full border-2 border-[#2563EB] flex items-center justify-center">
+                        <div class="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
+                    </div>
+                    <div v-else
+                        class="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-[#2563EB]/60">
+                    </div>
                 </div>
 
                 <!-- Option Content -->
-                <div class="flex items-center gap-3 grow">
-
-                    <!-- صورة الاختيار لو موجودة مع نص -->
+                <div class="flex items-center gap-3 grow" :dir="opt.dir || 'rtl'">
+                    <!-- Option Image if present -->
                     <img v-if="opt.image_url" :src="resolveUrl(opt.image_url)"
                         class="w-20 h-16 object-cover rounded-xl border border-slate-100 shadow-sm shrink-0" />
 
-                    <!-- النص لو موجود -->
-                    <div v-if="opt.option_text" :dir="opt.dir || 'ltr'"
-                        class="font-bold tracking-tight leading-snug text-lg transition-colors duration-300 grow whitespace-normal break-words"
+                    <!-- Option Text -->
+                    <div v-if="opt.option_text"
+                        class="font-normal tracking-wide leading-snug text-[24px] transition-colors duration-300 grow whitespace-normal break-words text-right"
                         :class="[
-                            selectedOptionId === opt.id ? 'text-indigo-950' : 'text-slate-700 group-hover:text-slate-900',
-                            opt.dir === 'rtl' ? 'text-right' : 'text-left'
+                            selectedOptionId === opt.id ? 'text-[#1E3A8A]' : 'text-[#334155] group-hover:text-slate-800'
                         ]"
                         v-html="opt.option_text">
                     </div>
-
-                    <!-- لو صورة بس بدون نص — grow فاضي -->
-                    <span v-if="!opt.option_text && opt.image_url" class="grow"></span>
-                </div>
-
-                <!-- Hover shimmer -->
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-50/10 to-transparent
-                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none">
                 </div>
             </button>
         </div>
 
     </div>
 </template>
+
+<style scoped>
+/* Force option text in the default MCQ layout to Myriad Arabic / Lotus Linotype and normal weight (no bold) */
+.space-y-2 :deep(*),
+.space-y-2 :deep(strong),
+.space-y-2 :deep(b),
+.space-y-2 :deep(span),
+.space-y-2 :deep(p) {
+    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-weight: 400 !important;
+    font-size: 24px !important;
+}
+</style>

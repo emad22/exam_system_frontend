@@ -67,8 +67,6 @@ const levelId = route.params.levelId;
 
 
 let sessionPollInterval = null
-
-// Ø¯Ø§Ù„Ø© Ù„Ù„Ù…Ù„Ø§Ø­Ø© Ø§Ù„Ø¢Ù…Ù†Ø© (router.push Ù…Ø¹ fallback Ø¥Ù„Ù‰ location.href)
 const navigateSafely = async (path) => {
     try {
         await router.push(path);
@@ -78,7 +76,6 @@ const navigateSafely = async (path) => {
     }
 };
 
-// Ø¯Ø§Ù„Ø© Ù…Ø³Ø§Ø¹Ø¯Ø© Ù„Ù„ØªØ¹Ø§Ù…Ù„ Ù…Ø¹ Ø§Ù†Ù‚Ø·Ø§Ø¹ Ø§Ù„Ø¬Ù„Ø³Ø© ÙˆØ§Ù„Ù…Ù„Ø§Ø­Ø©
 const handleSessionInterruption = async (messageAr, messageEn, shouldEndSession = false) => {
     stopSessionPolling();
     await showAlert(currentLang.value === 'ar' ? messageAr : messageEn);
@@ -91,7 +88,7 @@ const handleSessionInterruption = async (messageAr, messageEn, shouldEndSession 
     await navigateSafely('/skill-selection');
 };
 
-// Ø¯Ø§Ù„Ø© Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø­Ø§Ù„Ø© Ø§Ù„Ø¬Ù„Ø³Ø©
+
 const pollSessionStatus = async () => {
     const sessionId = proctoringSessionId.value
     if (!sessionId || !proctoringRequired.value) return
@@ -103,23 +100,19 @@ const pollSessionStatus = async () => {
         const activeSkillId = currentSkill.value?.id ?? (skillId ? Number(skillId) : null)
 
         if (status === 'ended' || status === 'cancelled') {
-            // Ø§Ù„Ø£Ø¯Ù…Ù† Ø£Ù†Ù‡Ù‰ Ø§Ù„Ø¬Ù„Ø³Ø© Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹
+           
             await handleSessionInterruption(
-                'ØªÙ… Ø¥Ù†Ù‡Ø§Ø¡ Ø¬Ù„Ø³Ø© Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ù…Ù† Ù‚ÙØ¨Ù„ Ø§Ù„Ù…Ø´Ø±Ù.',
                 'Your proctoring session has been ended by the admin.',
                 true
             );
         } else if (status === 'paused') {
-            // Ø§Ù„Ø£Ø¯Ù…Ù† Ø£ÙˆÙ‚Ù Ø§Ù…ØªØ­Ø§Ù† Ø§Ù„Ù…Ù‡Ø§Ø±Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ© Ù…Ø¤Ù‚ØªØ§Ù‹
+        
             await handleSessionInterruption(
-                'ØªÙ… Ø¥ÙŠÙ‚Ø§Ù Ø§Ù…ØªØ­Ø§Ù† Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù‡Ø§Ø±Ø© Ù…Ù† Ù‚ÙØ¨Ù„ Ø§Ù„Ù…Ø´Ø±Ù. Ø³ÙŠØªÙ… ØªÙˆØ¬ÙŠÙ‡Ùƒ Ù„Ø§Ø®ØªÙŠØ§Ø± Ù…Ù‡Ø§Ø±Ø© Ø£Ø®Ø±Ù‰.',
-                'This skill exam has been stopped by the admin. You will be redirected to skill selection.',
+            'This skill exam has been stopped by the admin. You will be redirected to skill selection.',
                 false
             );
         } else if (activeSkillId && completedSkills.includes(activeSkillId)) {
-            // Ø§Ù„Ø£Ø¯Ù…Ù† Ø£Ù†Ù‡Ù‰ Ø§Ù„Ù…Ù‡Ø§Ø±Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ© ÙÙ‚Ø· Ø¯ÙˆÙ† Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ø¬Ù„Ø³Ø© Ø§Ù„ÙƒÙ„ÙŠØ©
             await handleSessionInterruption(
-                'ØªÙ… Ø¥Ù†Ù‡Ø§Ø¡ Ø§Ù…ØªØ­Ø§Ù† Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù‡Ø§Ø±Ø© Ù…Ù† Ù‚ÙØ¨Ù„ Ø§Ù„Ù…Ø´Ø±Ù. Ø³ÙŠØªÙ… ØªÙˆØ¬ÙŠÙ‡Ùƒ Ù„Ø§Ø®ØªÙŠØ§Ø± Ù…Ù‡Ø§Ø±Ø© Ø£Ø®Ø±Ù‰.',
                 'This skill exam has been stopped by the admin. You will be redirected to skill selection.',
                 false
             );
@@ -131,7 +124,7 @@ const pollSessionStatus = async () => {
 
 const startSessionPolling = () => {
     if (sessionPollInterval) return
-    sessionPollInterval = setInterval(pollSessionStatus, 8000) // ÙƒÙ„ 8 Ø«ÙˆØ§Ù†ÙŠ
+    sessionPollInterval = setInterval(pollSessionStatus, 8000) 
 }
 
 const stopSessionPolling = () => {
@@ -1130,7 +1123,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
+    <div class="h-screen bg-white font-sans text-slate-900 flex flex-col overflow-hidden">
 
         <!-- === PROCTORING INITIALIZER MODAL === -->
         <!-- Shown when partner requires proctoring and it hasn't been completed yet -->
@@ -1245,7 +1238,7 @@ onUnmounted(() => {
                 </div>
             </div> -->
 
-                <main class="flex-1 relative">
+                <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
 
                     <!-- Retry Notification Overlay -->
                     <div v-if="showRetryNotification"
@@ -1430,26 +1423,56 @@ onUnmounted(() => {
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- CASE 2: Passage WITHOUT audio â†’ 50/50 Split Screen           -->
-                    <!-- Left pane (lg:w-1/2): passage text / media                   -->
-                    <!-- Right pane (lg:w-1/2): question + answer                     -->
+                    <!-- CASE 2: Passage WITHOUT audio → 45/55 Split Screen           -->
+                    <!-- Left pane (lg:w-[45%]): question + answers + instructions    -->
+                    <!-- Right pane (lg:w-[55%]): passage text                        -->
                     <!-- ============================================================ -->
                     <div v-else-if="currentQ && hasStimulusContent"
-                        class="flex flex-col lg:flex-row gap-px bg-slate-300 border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0">
+                        class="flex flex-col-reverse lg:flex-row bg-white border-t border-slate-200 flex-1 min-h-0 overflow-hidden animate-in fade-in duration-500">
 
-                        <!-- Stimulus Pane (passage) â€” 50% -->
-                        <div class="w-full lg:w-1/2 bg-white flex flex-col h-full overflow-y-auto order-1 p-5">
-                            <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100" dir="rtl">
-                                <i class="pi pi-file-edit text-slate-400"></i>
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Ø§Ù„Ù†Øµ</span>
+                        <!-- Questions Pane (Left side) — 45% -->
+                        <div class="w-full lg:w-[45%] bg-white flex flex-col h-full border-t lg:border-t-0 lg:border-r border-slate-200/80 overflow-y-auto p-4 md:p-5 space-y-2">
+                            
+                            <!-- Static Instruction (Read carefully...) at the top -->
+                            <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                                class="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-100 w-fit text-xs font-semibold select-none"
+                                dir="ltr">
+                                <i class="pi pi-book text-sm text-[#2563EB]"></i>
+                                <span class="text-slate-800">Read carefully then answer the questions</span>
                             </div>
+
+                            <div class="flex flex-col min-h-0 space-y-2">
+                                <!-- Question Content -->
+                                <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
+                                    class="text-[25px] font-normal leading-snug rtl-support text-slate-800 text-right block question-title-text"
+                                    v-html="cleanHtml(currentQ.content)" dir="auto">
+                                </div>
+
+                                <!-- Choices / options -->
+                                <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
+                                    :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
+                                    :hasStimulusContent="true" />
+                            </div>
+
+                            <!-- Virtual Keyboard -->
+                            <transition name="slide-up">
+                                <div v-if="showVirtualKeyboard && answers[currentIndex] && (currentQ.type === 'writing' || currentQ.type === 'short_answer')"
+                                    class="w-full border-t border-slate-200 bg-slate-50 shrink-0 z-40 py-1.5 px-3">
+                                    <VirtualKeyboard v-model="answers[currentIndex].text_answer" layout="arabic" />
+                                </div>
+                            </transition>
+                        </div>
+
+                        <!-- Stimulus Pane (passage - Right side) — 55% -->
+                        <div class="w-full lg:w-[55%] bg-white flex flex-col min-h-0 h-full overflow-y-auto passage-scrollbar-container p-4 md:p-5 lg:p-6">
                             <div class="flex-grow prose prose-slate max-w-none">
-                                <div v-if="currentQ.passage"
-                                    class="space-y-4 mb-6 pb-6 border-b border-slate-100 border-dashed">
-                                    <h3 v-if="currentQ.passage.title"
-                                        class="text-xl font-black text-slate-900 tracking-tight leading-tight"
-                                        dir="auto">{{
-                                        currentQ.passage.title }}</h3>
+                                <div v-if="currentQ.passage" class="space-y-4">
+                                    <!-- Passage Title: RTL with icon on its right end -->
+                                    <div v-if="currentQ.passage.title" class="flex items-center gap-2 mb-3" dir="rtl">
+                                        <i class="pi pi-file-edit text-slate-400 text-lg shrink-0"></i>
+                                        <h3 class="text-[25px] font-bold text-slate-800 leading-snug"
+                                            dir="rtl">{{ currentQ.passage.title }}</h3>
+                                    </div>
                                     <div v-if="currentQ.passage.image_url || currentQ.passage.image_path"
                                         class="w-full mb-4 flex justify-center">
                                         <img :src="resolveUrl(currentQ.passage.image_url || currentQ.passage.image_path)"
@@ -1461,8 +1484,9 @@ onUnmounted(() => {
                                             } : {}" />
                                     </div>
                                     <div v-if="currentQ.passage.content"
-                                        class="text-lg text-slate-700 leading-relaxed font-serif text-justify ql-content rtl-support"
-                                        v-html="cleanHtml(currentQ.passage.content)" dir="auto"></div>
+                                        class="text-[25px] text-slate-700 leading-[1.8] font-normal text-justify ql-content rtl-support"
+                                        v-html="cleanHtml(currentQ.passage.content)" dir="auto">
+                                    </div>
                                 </div>
                                 <!-- Video in stimulus -->
                                 <div v-if="(currentQ.media_url || currentQ.media_path) && (currentQ.media_url || currentQ.media_path).includes('.mp4')"
@@ -1485,37 +1509,6 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <!-- Questions Pane â€” 50% -->
-                        <div
-                            class="w-full lg:w-1/2 bg-slate-50 flex flex-col h-full border-b lg:border-l border-slate-200 shadow-inner order-2">
-                            <div class="flex-1 overflow-y-auto p-5">
-                                <div :class="[
-                                    'flex flex-col min-h-0',
-                                    ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4'
-                                ]">
-                                    <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
-                                        v-html="cleanHtml(currentQ.content)" dir="auto">
-                                    </div>
-                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
-                                        class="bg-white border border-slate-100 p-3 rounded-lg" dir="rtl">
-                                        <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto"
-                                            v-html="displayInstructions"></p>
-                                    </div>
-                                    <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
-                                        :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
-                                        :hasStimulusContent="true" />
-                                </div>
-                            </div>
-
-                            <!-- Virtual Keyboard -->
-                            <transition name="slide-up">
-                                <div v-if="showVirtualKeyboard && answers[currentIndex] && (currentQ.type === 'writing' || currentQ.type === 'short_answer')"
-                                    class="w-full border-t border-slate-200 bg-slate-50 shrink-0 z-40 py-1.5 px-3">
-                                    <VirtualKeyboard v-model="answers[currentIndex].text_answer" layout="arabic" />
-                                </div>
-                            </transition>
-                        </div>
                     </div>
 
                     <!-- ============================================================ -->
@@ -1532,15 +1525,27 @@ onUnmounted(() => {
                                     'flex flex-col',
                                     ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4'
                                 ]">
+
+                                    <!-- Instructions Banner (matches design in image 2) -->
+                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                                        class="flex items-start gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm"
+                                        dir="ltr">
+                                        <div class="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
+                                            <i class="pi pi-info text-white text-sm font-black"></i>
+                                        </div>
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-sm font-black text-slate-900">Instructions</span>
+                                            <span class="text-sm text-slate-600 leading-snug" v-html="displayInstructions"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Question Content inside a light gray box -->
                                     <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
+                                        class="rounded-xl px-5 py-4 rtl-support interactive-content-area"
+                                        style="background-color: #f8f9fa; border: 1px solid #eef0f2; font-size: 26px; font-weight: 400; color: #1e293b; line-height: 1.7;"
                                         v-html="cleanHtml(currentQ.content)" dir="auto">
                                     </div>
-                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
-                                        class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
-                                        <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto"
-                                            v-html="displayInstructions"></p>
-                                    </div>
+
                                     <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
                                         :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
                                         :hasStimulusContent="false" />
@@ -1821,13 +1826,70 @@ onUnmounted(() => {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Hide all scrollbars visually from any child div inside the exam */
-:deep(div) {
+/* Hide all scrollbars visually from any child div inside the exam (except passage scrollbar) */
+:deep(div:not(.passage-scrollbar-container)) {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
 }
 
-:deep(div::-webkit-scrollbar) {
+:deep(div:not(.passage-scrollbar-container)::-webkit-scrollbar) {
     display: none !important;
+}
+
+/* Passage scrollbar — override the hide-all rule above */
+.passage-scrollbar-container {
+    scrollbar-width: thin !important;
+    scrollbar-color: #94a3b8 #e2e8f0 !important;
+    overflow-y: auto !important;
+}
+
+.passage-scrollbar-container::-webkit-scrollbar {
+    width: 8px !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+.passage-scrollbar-container::-webkit-scrollbar-track {
+    background: #e2e8f0 !important;
+    border-radius: 9999px !important;
+}
+
+.passage-scrollbar-container::-webkit-scrollbar-thumb {
+    background: #94a3b8 !important;
+    border-radius: 9999px !important;
+    min-height: 40px !important;
+}
+
+.passage-scrollbar-container::-webkit-scrollbar-thumb:hover {
+    background: #64748b !important;
+}
+
+/* Force Myriad Arabic / Lotus Linotype / Cairo Sans with normal weight and styling overrides on passage text, questions, and option contents to keep them clean and un-bolded */
+.ql-content,
+.ql-content :deep(p),
+.ql-content :deep(span),
+.ql-content :deep(strong),
+.ql-content :deep(b),
+.rtl-support,
+.rtl-support :deep(*),
+.question-title-text,
+.question-title-text :deep(*),
+.interactive-content-area,
+.interactive-content-area :deep(*) {
+    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-weight: 400 !important;
+}
+
+.ql-content :deep(p),
+.ql-content :deep(span),
+.ql-content :deep(strong),
+.ql-content :deep(b) {
+    color: #334155 !important;
+}
+
+.question-title-text,
+.question-title-text :deep(*) {
+    color: #1e293b !important;
+    /* font-size is controlled by Tailwind utility class on the element */
 }
 </style>
