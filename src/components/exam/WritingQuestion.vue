@@ -56,10 +56,6 @@ const wordCount = computed(() => {
     return words.length;
 });
 
-const charCount = computed(() => {
-    return plainTextContent.value.replace(/\s+/g, '').length;
-});
-
 const cleanHtml = (html) => {
     if (!html) return '';
     let clean = html.replace(/&nbsp;/g, ' ');
@@ -139,7 +135,7 @@ watch(hasStartedWriting, async (isWriting) => {
                         ['undo', 'redo'],
                         ['bold', 'italic', 'underline'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'direction': [] }, { 'align': [] }],
+                        [{ 'direction': 'rtl' }, { 'align': [] }],
                         ['clean']
                     ],
                     keyboard: {
@@ -221,38 +217,38 @@ onUnmounted(() => {
         <div v-show="!hasStartedWriting" class="topics-view animate-in fade-in zoom-in-95 duration-300 w-full" dir="ltr">
             
             <!-- Instructions Banner -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col overflow-hidden">
-                <div class="flex items-center gap-2 p-4 border-b border-slate-100 bg-slate-50/50">
-                    <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-                        <i class="pi pi-info text-xs font-black"></i>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col overflow-hidden">
+                <div class="flex items-center gap-2 p-3 border-b border-slate-100 bg-slate-50/50">
+                    <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                        <i class="pi pi-info text-[10px] font-black"></i>
                     </div>
-                    <span class="font-black text-slate-800 text-[15px] tracking-wide">Instructions</span>
+                    <span class="font-black text-slate-800 text-sm tracking-wide">Instructions</span>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 bg-white">
-                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+                    <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-check-square"></i> 1. Choose ONE topic only.
                         </div>
-                        <p class="text-xs text-slate-500 font-semibold leading-relaxed">
+                        <p class="text-xs text-slate-500 font-semibold leading-snug">
                             Select the topic you want to write about from the list.
                         </p>
                     </div>
                     
-                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+                    <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-pencil"></i> 2. Write your answer.
                         </div>
-                        <p class="text-xs text-slate-500 font-semibold leading-relaxed">
+                        <p class="text-xs text-slate-500 font-semibold leading-snug">
                             You may write your answer directly in the text box using the Arabic keyboard.
                         </p>
                     </div>
                     
-                    <div class="p-6 flex flex-col gap-3 hover:bg-slate-50/30 transition-colors">
+                    <div class="p-4 flex flex-col gap-1.5 hover:bg-slate-50/30 transition-colors">
                         <div class="flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide">
                             <i class="pi pi-cloud-upload"></i> 3. Upload your answer (optional).
                         </div>
-                        <p class="text-xs text-slate-500 font-semibold leading-relaxed">
+                        <p class="text-xs text-slate-500 font-semibold leading-snug">
                             You can upload your answer as a file<br>(DOC, DOCX, PDF, PNG, JPG).
                         </p>
                     </div>
@@ -260,8 +256,8 @@ onUnmounted(() => {
             </div>
 
             <!-- Topics Container -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 mb-8 flex flex-col items-center">
-                <div class="flex flex-col items-center justify-center gap-1 mb-8">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm py-5 px-8 mb-5 flex flex-col items-center">
+                <div class="flex flex-col items-center justify-center gap-1 mb-3">
                     <div class="flex items-center gap-2 font-black text-lg text-slate-800">
                         <span class="font-arabic">موضوعات الكتابة</span>
                         <i class="pi pi-clipboard text-blue-600 text-lg"></i>
@@ -322,7 +318,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Tab Content: Write -->
-            <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[400px]">
+            <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[360px]">
                 <div class="editor-container-outer flex-1 border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all">
                     <div ref="editorRef" class="quill-rich-editor w-full h-full font-arabic text-right"></div>
                 </div>
@@ -343,7 +339,6 @@ onUnmounted(() => {
                     <!-- Stats / Word Count -->
                     <div class="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-slate-500">
                         <span class="flex items-center gap-2">Words: <span class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{ wordCount }}</span></span>
-                        <span class="flex items-center gap-2">Characters: <span class="text-slate-900 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded">{{ charCount }}</span></span>
                     </div>
                 </div>
             </div>
@@ -378,8 +373,8 @@ onUnmounted(() => {
 
 /* Prompt Content Styling to match design */
 .writing-prompt-content {
-    font-size: 26px; /* slightly smaller than 30px to fit multiple topics nicely */
-    line-height: 2 !important;
+    font-size: 25px; /* slightly smaller to fit vertically */
+    line-height: 1.4 !important; /* Compact spacing */
     color: #1e293b;
     text-align: center;
 }
@@ -391,7 +386,7 @@ onUnmounted(() => {
 }
 
 .writing-prompt-content :deep(p) {
-    margin-bottom: 0.3rem;
+    margin-bottom: 0;
     display: block;
 }
 

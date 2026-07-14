@@ -42,11 +42,11 @@ const acceptAttribute = computed(() => {
 // Format accepted types for display
 const displayAcceptedTypes = computed(() => {
     return props.acceptedTypes.map(type => {
-        if (type === 'audio') return 'ملفات صوتية (MP3, WAV, WebM...)';
-        if (type === 'image') return 'صور (PNG, JPG, JPEG...)';
-        if (type === 'document') return 'مستندات (PDF, DOCX, DOC...)';
+        if (type === 'audio') return 'Audio files (MP3, WAV, WebM...)';
+        if (type === 'image') return 'Images (PNG, JPG, JPEG...)';
+        if (type === 'document') return 'Documents (PDF, DOCX, DOC...)';
         return type;
-    }).join(' أو ');
+    }).join(' or ');
 });
 
 // Get file icon and preview
@@ -65,11 +65,11 @@ const getFileTypeLabel = () => {
     if (!uploadedFile.value) return '';
     const ext = uploadedFile.value.name.split('.').pop().toLowerCase();
     
-    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'صوتي';
-    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'صورة';
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'Audio';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'Image';
     if (['pdf'].includes(ext)) return 'PDF';
-    if (['doc', 'docx'].includes(ext)) return 'وثيقة';
-    return 'ملف';
+    if (['doc', 'docx'].includes(ext)) return 'Document';
+    return 'File';
 };
 
 const formatFileSize = (bytes) => {
@@ -111,7 +111,7 @@ const handleFileInputChange = (e) => {
 const handleFileSelect = (file) => {
     // Validate file size
     if (file.size > props.maxSize) {
-        alert(`حجم الملف يتجاوز الحد الأقصى المسموح (${formatFileSize(props.maxSize)})`);
+        alert(`File size exceeds the maximum allowed limit (${formatFileSize(props.maxSize)})`);
         return;
     }
 
@@ -125,7 +125,7 @@ const handleFileSelect = (file) => {
     });
 
     if (!allowedExts.includes(ext)) {
-        alert(`صيغة الملف غير مدعومة. الصيغ المدعومة: ${allowedExts.join(', ')}`);
+        alert(`Unsupported file format. Supported formats: ${allowedExts.join(', ')}`);
         return;
     }
 
@@ -169,13 +169,13 @@ const getImagePreview = () => {
                 
                 <div class="text-center space-y-2">
                     <p class="text-sm font-bold text-slate-600">
-                        اسحب الملف هنا أو انقر للاختيار
+                        Drag and drop file here or click to browse
                     </p>
                     <p class="text-xs text-slate-400">
                         {{ displayAcceptedTypes }}
                     </p>
                     <p class="text-xs text-slate-400">
-                        الحد الأقصى: {{ formatFileSize(maxSize) }}
+                        Max size: {{ formatFileSize(maxSize) }}
                     </p>
                 </div>
 
