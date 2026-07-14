@@ -1396,7 +1396,7 @@ onUnmounted(() => {
                                     :class="['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'gap-3' : 'gap-5'">
 
                                     <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        :class="['text-lg font-black text-slate-900 leading-snug rtl-support', 'interactive-content-area']"
+                                        :class="['text-lg font-black text-slate-900 leading-snug rtl-support ql-content', 'interactive-content-area']"
                                         v-html="cleanHtml(currentQ.content)" dir="auto">
                                     </div>
 
@@ -1447,7 +1447,7 @@ onUnmounted(() => {
                             <div class="flex flex-col min-h-0 space-y-2">
                                 <!-- Question Content -->
                                 <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                    class="text-[25px] font-normal leading-snug rtl-support text-slate-800 text-right block question-title-text"
+                                    class="text-[25px] font-normal leading-snug rtl-support text-slate-800 block question-title-text ql-content"
                                     v-html="cleanHtml(currentQ.content)" dir="auto">
                                 </div>
 
@@ -1520,12 +1520,14 @@ onUnmounted(() => {
                     <!-- ============================================================ -->
                     <!-- CASE 3: No passage content â†’ Single full-width pane          -->
                     <!-- ============================================================ -->
-                    <div v-else-if="currentQ" class="flex flex-col border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0 bg-slate-50">
+                    <div v-else-if="currentQ"
+                        class="flex flex-col border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0 bg-slate-50">
                         <div class="flex-1 overflow-y-auto">
                             <div class="max-w-5xl mx-auto w-full flex flex-col transition-all duration-300"
                                 :class="currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer') ? 'my-2 p-4' : 'my-4 p-6'">
 
-                                <div :class="[ 'flex flex-col', ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4']">
+                                <div
+                                    :class="['flex flex-col', ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4']">
 
                                     <!-- Instructions Banner (matches design in image 2) -->
                                     <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
@@ -1544,7 +1546,7 @@ onUnmounted(() => {
 
                                     <!-- Question Content inside a white box -->
                                     <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        class="rounded-xl px-5 py-4 rtl-support interactive-content-area bg-white border border-slate-200 shadow-sm"
+                                        class="rounded-xl px-5 py-4 rtl-support interactive-content-area ql-content bg-white border border-slate-200 shadow-sm"
                                         style="border-width: 1.5px; font-size: 30px; font-weight: 400; color: #1e293b; line-height: 1.7;"
                                         v-html="cleanHtml(currentQ.content)" dir="auto">
                                     </div>
@@ -1777,12 +1779,29 @@ onUnmounted(() => {
 
 .interactive-content-area :deep(*) {
     text-indent: 0 !important;
-    display: inline;
 }
 
 .interactive-content-area :deep(p) {
     display: block;
     margin-bottom: 0.5rem;
+}
+
+/* Quill alignment & direction support inside interactive areas */
+.interactive-content-area :deep(.ql-align-right) {
+    text-align: right !important;
+}
+
+.interactive-content-area :deep(.ql-align-center) {
+    text-align: center !important;
+}
+
+.interactive-content-area :deep(.ql-align-left) {
+    text-align: left !important;
+}
+
+.interactive-content-area :deep(.ql-direction-rtl) {
+    direction: rtl !important;
+    text-align: right !important;
 }
 
 /* Slide Up Transition for Virtual Keyboard */
@@ -1870,30 +1889,30 @@ onUnmounted(() => {
 
 /* Force Myriad Arabic / Lotus Linotype / Cairo Sans with normal weight and styling overrides on passage text, questions, and option contents to keep them clean and un-bolded */
 .ql-content,
-.ql-content :deep(p),
-.ql-content :deep(span),
-.ql-content :deep(strong),
-.ql-content :deep(b),
 .rtl-support,
-.rtl-support :deep(*),
 .question-title-text,
-.question-title-text :deep(*),
-.interactive-content-area,
-.interactive-content-area :deep(*) {
-    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
-    font-weight: 400 !important;
+.interactive-content-area {
+    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
 }
 
+/* Allow children to inherit font-family but not force-override their font-weight */
+.ql-content :deep(*),
+.rtl-support :deep(*),
+.question-title-text :deep(*),
+.interactive-content-area :deep(*) {
+    font-family: inherit;
+}
+
+/* Fallback colors without !important so inline styles can override them */
 .ql-content :deep(p),
-.ql-content :deep(span),
-.ql-content :deep(strong),
-.ql-content :deep(b) {
-    color: #334155 !important;
+.ql-content :deep(span) {
+    color: #334155;
 }
 
 .question-title-text,
 .question-title-text :deep(*) {
-    color: #1e293b !important;
+    color: #1e293b;
     /* font-size is controlled by Tailwind utility class on the element */
 }
 </style>

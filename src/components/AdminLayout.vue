@@ -13,6 +13,8 @@ const route = useRoute()
 const router = useRouter()
 const adminStore = useAdminStore()
 
+const mobileMenuOpen = ref(false);
+
 const allNavigation = [
     { name: 'Dashboard', href: '/admin', icon: 'pi pi-home' },
     { name: 'Exam Categories', href: '/admin/exam-categories', icon: 'pi pi-tags' },
@@ -177,6 +179,72 @@ const { resolveUrl } = useMediaUrl();
     <div
         class="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-rose-100 selection:text-indigo-900 overflow-hidden">
 
+        <!-- Mobile Sidebar Overlay & drawer -->
+        <transition name="fade">
+            <div v-if="mobileMenuOpen" @click="mobileMenuOpen = false"
+                class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden">
+            </div>
+        </transition>
+
+        <transition name="slide-right">
+            <aside v-if="mobileMenuOpen"
+                class="fixed top-0 left-0 w-[280px] h-full bg-white shadow-2xl flex flex-col z-50 lg:hidden"
+                v-click-outside="() => mobileMenuOpen = false">
+                <!-- Top Section (Logo + Nav) -->
+                <div class="flex-1 flex flex-col min-h-0">
+                    <!-- Logo Section -->
+                    <div
+                        class="h-24 flex items-center justify-between px-6 shrink-0 border-b border-slate-100 bg-slate-50/50">
+                        <img src="/logo.png" alt="Arab Academy" class="h-14 w-auto max-w-[170px] object-contain" />
+                        <Button @click="mobileMenuOpen = false" icon="pi pi-times" severity="secondary" rounded text />
+                    </div>
+
+                    <!-- Navigation -->
+                    <nav class="flex-1 px-4 py-8 space-y-1.5 overflow-y-auto no-scrollbar">
+                        <template v-for="item in filteredNavigation" :key="item.name">
+                            <router-link :to="item.href" @click="mobileMenuOpen = false" :class="[
+                                isActive(item.href) ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',
+                                'group flex items-center px-4 py-3.5 text-xs font-bold rounded-xl transition-all duration-300 border border-transparent hover:border-slate-100'
+                            ]">
+                                <i :class="[item.icon, isActive(item.href) ? 'text-white' : 'text-slate-400 group-hover:text-brand-secondary']"
+                                    class="text-lg mr-4 transition-colors"></i>
+                                {{ item.name }}
+                                <div v-if="isActive(item.href)"
+                                    class="ml-auto w-1.5 h-1.5 bg-brand-accent rounded-full">
+                                </div>
+                            </router-link>
+                        </template>
+                    </nav>
+                </div>
+
+                <!-- User Profile / Bottom Section -->
+                <div class="p-6 shrink-0 border-t border-slate-100 bg-slate-50/50">
+                    <div @click="router.push('/profile'); mobileMenuOpen = false"
+                        class="bg-white rounded-2xl p-4 mb-4 group cursor-pointer hover:bg-slate-50 transition-colors duration-300 border border-slate-200 shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <div
+                                class="w-9 h-9 rounded-lg bg-brand-primary flex items-center justify-center text-white shadow-md">
+                                <i class="pi pi-user text-sm"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-black text-slate-800 truncate">{{ currentUser?.first_name }} {{
+                                    currentUser?.last_name }}
+                                </p>
+                                <p
+                                    class="text-[10px] font-bold text-slate-400 group-hover:text-brand-primary transition-colors uppercase tracking-widest">
+                                    {{ currentUser?.role }} Portal</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button @click="logout"
+                        class="w-full flex items-center justify-center space-x-2 px-4 py-3 text-[10px] font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-xl transition-all active:scale-95 uppercase tracking-widest">
+                        <i class="pi pi-sign-out text-sm"></i>
+                        <span>Secure Sign Out</span>
+                    </button>
+                </div>
+            </aside>
+        </transition>
+
         <!-- Sidebar -->
         <aside
             class="w-[280px] h-full bg-white border-r border-slate-200 shadow-xl flex flex-col hidden lg:flex relative z-20">
@@ -246,16 +314,20 @@ const { resolveUrl } = useMediaUrl();
 
             <!-- Top header -->
             <header
-                class="h-24 bg-white/40 backdrop-blur-xl border-b border-white/20 flex items-center justify-between px-10 z-10 sticky top-0">
-                <div>
-                    <div
-                        class="flex items-center space-x-2 text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] mb-1">
-                        <span class="w-2 h-2 bg-brand-accent rounded-full animate-pulse"></span>
-                        <span>Operational Hub</span>
+                class="h-24 bg-white/40 backdrop-blur-xl border-b border-white/20 flex items-center justify-between px-4 md:px-10 z-10 sticky top-0">
+                <div class="flex items-center gap-3 md:gap-4">
+                    <Button @click="mobileMenuOpen = !mobileMenuOpen" icon="pi pi-bars" class="lg:hidden shrink-0"
+                        severity="secondary" rounded text />
+                    <div>
+                        <div
+                            class="flex items-center space-x-2 text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] mb-1">
+                            <span class="w-2 h-2 bg-brand-accent rounded-full animate-pulse"></span>
+                            <span>Operational Hub</span>
+                        </div>
+                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">
+                            {{ route.name ? route.name.replace('admin.', '').toUpperCase() : 'SYSTEM OVERVIEW' }}
+                        </h2>
                     </div>
-                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">
-                        {{ route.name ? route.name.replace('admin.', '').toUpperCase() : 'SYSTEM OVERVIEW' }}
-                    </h2>
                 </div>
 
                 <div class="flex items-center space-x-6">
@@ -384,5 +456,26 @@ const { resolveUrl } = useMediaUrl();
 .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Transitions for Mobile Drawer */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+    transform: translateX(-100%);
 }
 </style>

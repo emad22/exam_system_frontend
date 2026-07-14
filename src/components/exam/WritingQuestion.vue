@@ -139,7 +139,7 @@ watch(hasStartedWriting, async (isWriting) => {
                         ['undo', 'redo'],
                         ['bold', 'italic', 'underline'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'direction': 'rtl' }, { 'align': [] }],
+                        [{ 'direction': [] }, { 'align': [] }],
                         ['clean']
                     ],
                     keyboard: {
@@ -149,7 +149,7 @@ watch(hasStartedWriting, async (isWriting) => {
                         }
                     }
                 },
-                placeholder: 'ابدأ الكتابة هنا...'
+                placeholder: 'Start Writing Here...'
             });
 
             quillInstance.root.innerHTML = textAnswer.value;
@@ -391,7 +391,7 @@ onUnmounted(() => {
 }
 
 .writing-prompt-content :deep(p) {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.3rem;
     display: block;
 }
 

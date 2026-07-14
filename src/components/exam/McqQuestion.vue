@@ -4,7 +4,7 @@ import { useMediaUrl } from '@/composables/useMediaUrl';
 
 const props = defineProps({
     question: { type: Object, required: true },
-    answer:   { type: Object, required: true },
+    answer: { type: Object, required: true },
     disabled: { type: Boolean, default: false }
 });
 
@@ -29,7 +29,7 @@ const hasSoundOptions = computed(() =>
 );
 
 /* ── audio playback ── */
-const playingId  = ref(null);
+const playingId = ref(null);
 const currentAudio = ref(null);
 
 function playSound(opt) {
@@ -54,7 +54,7 @@ function playSound(opt) {
     currentAudio.value = audio;
     playingId.value = opt.id;
 
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
     audio.onended = () => { playingId.value = null; currentAudio.value = null; };
     audio.onerror = () => { playingId.value = null; currentAudio.value = null; };
 }
@@ -83,23 +83,20 @@ watch(
         <!-- ══════════════════════════════════════
              LAYOUT 1 — Image-only grid
         ══════════════════════════════════════ -->
-        <div v-if="isImageGrid"
-             class="grid gap-3 py-1"
-             :class="question.options.length <= 2 ? 'grid-cols-2' : 'grid-cols-2'">
+        <div v-if="isImageGrid" class="grid gap-3 py-1"
+            :class="question.options.length <= 2 ? 'grid-cols-2' : 'grid-cols-2'">
 
-            <button v-for="(opt, oIdx) in question.options" :key="opt.id"
-                @click="selectedOptionId = opt.id"
+            <button v-for="(opt, oIdx) in question.options" :key="opt.id" @click="selectedOptionId = opt.id"
                 :disabled="disabled"
                 class="relative rounded-2xl overflow-hidden border-2 transition-all duration-300 group shadow-sm"
-                style="aspect-ratio: 4/3;"
-                :class="selectedOptionId === opt.id
+                style="aspect-ratio: 4/3;" :class="selectedOptionId === opt.id
                     ? 'border-brand-primary ring-4 ring-indigo-500/25 shadow-lg scale-[1.02]'
                     : 'border-slate-200 hover:border-indigo-400 hover:shadow-lg hover:scale-[1.02]'">
 
                 <!-- الصورة -->
                 <img :src="resolveUrl(opt.image_url)"
-                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                     :alt="`option ${oIdx + 1}`" />
+                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    :alt="`option ${oIdx + 1}`" />
 
                 <!-- overlay عند hover -->
                 <div class="absolute inset-0 bg-gradient-to-t from-indigo-900/50 via-transparent to-transparent
@@ -107,25 +104,22 @@ watch(
                 </div>
 
                 <!-- overlay عند الاختيار -->
-                <div v-if="selectedOptionId === opt.id"
-                     class="absolute inset-0 bg-indigo-500/10 pointer-events-none">
+                <div v-if="selectedOptionId === opt.id" class="absolute inset-0 bg-indigo-500/10 pointer-events-none">
                 </div>
 
                 <!-- علامة الصح لما يتاختار -->
-                <div v-if="selectedOptionId === opt.id"
-                     class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+                <div v-if="selectedOptionId === opt.id" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
                             w-12 h-12 rounded-full bg-brand-primary/90 flex items-center justify-center shadow-xl">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
 
                 <!-- رقم الاختيار (A B C D) -->
                 <div class="absolute top-2 right-2 w-7 h-7 rounded-full text-xs font-black
-                            flex items-center justify-center shadow-md transition-all duration-300"
-                     :class="selectedOptionId === opt.id
-                        ? 'bg-brand-primary text-white scale-110'
-                        : 'bg-white/85 text-slate-600 group-hover:bg-white'">
+                            flex items-center justify-center shadow-md transition-all duration-300" :class="selectedOptionId === opt.id
+                                ? 'bg-brand-primary text-white scale-110'
+                                : 'bg-white/85 text-slate-600 group-hover:bg-white'">
                     {{ String.fromCharCode(65 + oIdx) }}
                 </div>
             </button>
@@ -134,66 +128,60 @@ watch(
         <!-- ══════════════════════════════════════
              LAYOUT 2 — Sound options
         ══════════════════════════════════════ -->
-        <div v-else-if="hasSoundOptions"
-             class="grid grid-cols-2 gap-3 py-1">
+        <div v-else-if="hasSoundOptions" class="grid grid-cols-2 gap-3 py-1">
 
-            <button v-for="(opt, oIdx) in question.options" :key="opt.id"
-                @click="playSound(opt)"
-                :disabled="disabled"
+            <button v-for="(opt, oIdx) in question.options" :key="opt.id" @click="playSound(opt)" :disabled="disabled"
                 class="relative rounded-2xl border-2 p-5 transition-all duration-300 group
-                       flex flex-col items-center gap-3 overflow-hidden"
-                :class="selectedOptionId === opt.id
-                    ? 'border-brand-primary bg-indigo-50/60 shadow-md ring-4 ring-indigo-500/10'
-                    : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 bg-white shadow-sm hover:shadow-md'">
+                       flex flex-col items-center gap-3 overflow-hidden" :class="selectedOptionId === opt.id
+                        ? 'border-brand-primary bg-indigo-50/60 shadow-md ring-4 ring-indigo-500/10'
+                        : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 bg-white shadow-sm hover:shadow-md'">
 
                 <!-- دائرة الأيقونة -->
                 <div class="relative w-16 h-16 rounded-full flex items-center justify-center
-                            transition-all duration-300 shrink-0"
-                     :class="selectedOptionId === opt.id
-                        ? 'bg-brand-primary shadow-lg shadow-indigo-300/50'
-                        : 'bg-slate-100 group-hover:bg-indigo-100'">
+                            transition-all duration-300 shrink-0" :class="selectedOptionId === opt.id
+                                ? 'bg-brand-primary shadow-lg shadow-indigo-300/50'
+                                : 'bg-slate-100 group-hover:bg-indigo-100'">
 
                     <!-- حلقات النبض لما بيشتغل -->
                     <template v-if="playingId === opt.id">
                         <span class="absolute inset-0 rounded-full bg-brand-primary/30 animate-ping"></span>
-                        <span class="absolute inset-[-5px] rounded-full border-2 border-brand-primary/20 animate-pulse"></span>
+                        <span
+                            class="absolute inset-[-5px] rounded-full border-2 border-brand-primary/20 animate-pulse"></span>
                     </template>
 
                     <!-- أيقونة إيقاف مؤقت -->
-                    <svg v-if="playingId === opt.id"
-                         class="w-7 h-7 text-white relative z-10"
-                         fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    <svg v-if="playingId === opt.id" class="w-7 h-7 text-white relative z-10" fill="currentColor"
+                        viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
 
                     <!-- أيقونة تشغيل -->
-                    <svg v-else
-                         class="w-7 h-7 relative z-10 transition-colors duration-300"
-                         :class="selectedOptionId === opt.id ? 'text-white' : 'text-slate-500 group-hover:text-indigo-500'"
-                         fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
+                    <svg v-else class="w-7 h-7 relative z-10 transition-colors duration-300"
+                        :class="selectedOptionId === opt.id ? 'text-white' : 'text-slate-500 group-hover:text-indigo-500'"
+                        fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
                     </svg>
                 </div>
 
                 <!-- نص الاختيار أو حرفه -->
                 <div class="text-sm font-bold text-center leading-tight transition-colors duration-300 whitespace-normal break-words"
-                      :class="selectedOptionId === opt.id
+                    :class="selectedOptionId === opt.id
                         ? 'text-indigo-700'
                         : 'text-slate-500 group-hover:text-indigo-500'"
-                      v-html="opt.option_text || `اختيار ${String.fromCharCode(65 + oIdx)}`">
+                    v-html="opt.option_text || `اختيار ${String.fromCharCode(65 + oIdx)}`">
                 </div>
 
                 <!-- علامة الاختيار -->
-                <div v-if="selectedOptionId === opt.id"
-                     class="absolute top-2 left-2 w-5 h-5 rounded-full bg-brand-primary
+                <div v-if="selectedOptionId === opt.id" class="absolute top-2 left-2 w-5 h-5 rounded-full bg-brand-primary
                             flex items-center justify-center shadow-md">
                     <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
 
                 <!-- shimmer -->
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-50/20 to-transparent
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-50/20 to-transparent
                             translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none">
                 </div>
             </button>
@@ -204,10 +192,8 @@ watch(
         ══════════════════════════════════════ -->
         <div v-else class="space-y-2 py-1 overflow-x-hidden">
 
-            <button v-for="(opt, oIdx) in question.options" :key="opt.id"
-                @click="selectedOptionId = opt.id"
-                :disabled="disabled"
-                dir="rtl"
+            <button v-for="(opt, oIdx) in question.options" :key="opt.id" @click="selectedOptionId = opt.id"
+                :disabled="disabled" dir="rtl"
                 class="w-full p-4 rounded-xl transition-all duration-300 flex flex-row items-center justify-between gap-4 group relative overflow-hidden select-none bg-white font-normal"
                 :class="selectedOptionId === opt.id
                     ? 'border-[#2563EB] bg-[#EDF3FF]/20 shadow-sm'
@@ -220,8 +206,7 @@ watch(
                         class="w-5 h-5 rounded-full border-2 border-[#2563EB] flex items-center justify-center">
                         <div class="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
                     </div>
-                    <div v-else
-                        class="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-[#2563EB]/60">
+                    <div v-else class="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-[#2563EB]/60">
                     </div>
                 </div>
 
@@ -236,8 +221,7 @@ watch(
                         class="font-normal tracking-wide leading-snug text-[24px] transition-colors duration-300 grow whitespace-normal break-words text-right"
                         :class="[
                             selectedOptionId === opt.id ? 'text-[#1E3A8A]' : 'text-[#334155] group-hover:text-slate-800'
-                        ]"
-                        v-html="opt.option_text">
+                        ]" v-html="opt.option_text">
                     </div>
                 </div>
             </button>
@@ -247,14 +231,14 @@ watch(
 </template>
 
 <style scoped>
-/* Force option text in the default MCQ layout to Myriad Arabic / Lotus Linotype and normal weight (no bold) */
-.space-y-2 :deep(*),
-.space-y-2 :deep(strong),
-.space-y-2 :deep(b),
-.space-y-2 :deep(span),
-.space-y-2 :deep(p) {
-    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
-    font-weight: 400 !important;
-    font-size: 24px !important;
+/* Force option text in the default MCQ layout to Myriad Arabic / Lotus Linotype and normal size, but allow inline styles to override them */
+.space-y-2 {
+    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+}
+
+.space-y-2 :deep(*) {
+    font-family: inherit;
+    font-size: 24px;
 }
 </style>
