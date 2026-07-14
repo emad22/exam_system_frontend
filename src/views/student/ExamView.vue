@@ -1870,30 +1870,30 @@ onUnmounted(() => {
 
 /* Force Myriad Arabic / Lotus Linotype / Cairo Sans with normal weight and styling overrides on passage text, questions, and option contents to keep them clean and un-bolded */
 .ql-content,
-.ql-content :deep(p),
-.ql-content :deep(span),
-.ql-content :deep(strong),
-.ql-content :deep(b),
 .rtl-support,
-.rtl-support :deep(*),
 .question-title-text,
-.question-title-text :deep(*),
-.interactive-content-area,
-.interactive-content-area :deep(*) {
-    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
-    font-weight: 400 !important;
+.interactive-content-area {
+    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
 }
 
+/* Allow children to inherit font-family but not force-override their font-weight */
+.ql-content :deep(*),
+.rtl-support :deep(*),
+.question-title-text :deep(*),
+.interactive-content-area :deep(*) {
+    font-family: inherit;
+}
+
+/* Fallback colors without !important so inline styles can override them */
 .ql-content :deep(p),
-.ql-content :deep(span),
-.ql-content :deep(strong),
-.ql-content :deep(b) {
-    color: #334155 !important;
+.ql-content :deep(span) {
+    color: #334155;
 }
 
 .question-title-text,
 .question-title-text :deep(*) {
-    color: #1e293b !important;
+    color: #1e293b;
     /* font-size is controlled by Tailwind utility class on the element */
 }
 </style>
