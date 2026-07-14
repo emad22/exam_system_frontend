@@ -211,7 +211,7 @@ watch(
                 class="w-full p-4 rounded-xl transition-all duration-300 flex flex-row items-center justify-between gap-4 group relative overflow-hidden select-none bg-white font-normal"
                 :class="selectedOptionId === opt.id
                     ? 'border-[#2563EB] bg-[#EDF3FF]/20 shadow-sm'
-                    : 'border-slate-100 hover:border-[#2563EB] hover:bg-[#F8FAFC]/55 bg-white border border-slate-100'"
+                    : 'border-slate-200 shadow-sm hover:border-[#2563EB] hover:bg-[#F8FAFC]/55 bg-white border'"
                 style="border-width: 1.5px;">
 
                 <!-- Radio circle (appears on the right in RTL flex-row) -->

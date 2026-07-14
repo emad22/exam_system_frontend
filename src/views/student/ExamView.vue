@@ -1522,14 +1522,14 @@ onUnmounted(() => {
                     <!-- ============================================================ -->
                     <div v-else-if="currentQ" class="flex flex-col border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0 bg-slate-50">
                         <div class="flex-1 overflow-y-auto">
-                            <div class="max-w-5xl mx-auto w-full bg-white border border-slate-100 flex flex-col transition-all duration-300"
-                                :class="currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer') ? 'my-2 rounded-xl p-4' : 'my-4 rounded-2xl shadow-xl p-6'">
+                            <div class="max-w-5xl mx-auto w-full flex flex-col transition-all duration-300"
+                                :class="currentQ && (currentQ.type === 'writing' || currentQ.type === 'short_answer') ? 'my-2 p-4' : 'my-4 p-6'">
 
                                 <div :class="[ 'flex flex-col', ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4']">
 
                                     <!-- Instructions Banner (matches design in image 2) -->
                                     <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
-                                        class="flex items-start gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm"
+                                        class="flex items-start gap-3 border border-slate-200 rounded-xl px-4 py-3 shadow-sm bg-[#f4f7fb]"
                                         dir="ltr">
                                         <div
                                             class="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
@@ -1542,10 +1542,10 @@ onUnmounted(() => {
                                         </div>
                                     </div>
 
-                                    <!-- Question Content inside a light gray box -->
+                                    <!-- Question Content inside a white box -->
                                     <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        class="rounded-xl px-5 py-4 rtl-support interactive-content-area"
-                                        style="background-color: #f8f9fa; border: 1px solid #eef0f2; font-size: 26px; font-weight: 400; color: #1e293b; line-height: 1.7;"
+                                        class="rounded-xl px-5 py-4 rtl-support interactive-content-area bg-white border border-slate-200 shadow-sm"
+                                        style="border-width: 1.5px; font-size: 30px; font-weight: 400; color: #1e293b; line-height: 1.7;"
                                         v-html="cleanHtml(currentQ.content)" dir="auto">
                                     </div>
 
