@@ -6,6 +6,9 @@ import api from '@/services/api'
 import AdminLayout from '@/components/AdminLayout.vue'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
+import Dialog from 'primevue/dialog'
+// @ts-ignore
+import { useModal } from '@/composables/useModal'
 
 const router = useRouter()
 const route = useRoute()
@@ -60,6 +63,18 @@ const t = {
         mediumRisk: 'متوسط',
         highRisk: 'مرتفع',
         criticalRisk: 'حرج',
+        deleteConfirmTitle: 'حذف جلسة المراقبة',
+        deleteConfirmMessage: 'هل أنت متأكد من رغبتك في حذف جلسة المراقبة هذه نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيتم مسح سجل الانتهاكات واللقطات الخاصة بها.',
+        deleteSuccess: 'تم حذف جلسة المراقبة بنجاح.',
+        deleteError: 'فشل حذف جلسة المراقبة.',
+        bulkDeleteTitle: 'حذف جماعي لجلسات المراقبة',
+        bulkDeleteMessage: 'هل أنت متأكد من رغبتك في حذف {count} من جلسات المراقبة المحددة نهائياً؟',
+        bulkDeleteSuccess: 'تم حذف جلسات المراقبة المحددة بنجاح.',
+        bulkDeleteError: 'فشل حذف جلسات المراقبة المحددة.',
+        deleteAllTitle: 'حذف جميع جلسات الطالب',
+        deleteAllMessage: 'هل أنت متأكد من رغبتك في حذف جميع جلسات المراقبة لهذا الطالب نهائياً؟ سيتم مسح كل المخالفات والسجلات المرتبطة بها.',
+        deleteAllSuccess: 'تم حذف جميع جلسات الطالب بنجاح.',
+        deleteAllError: 'فشل حذف جلسات الطالب.',
     },
     en: {
         loading: 'Loading student data...',
@@ -103,7 +118,41 @@ const t = {
         mediumRisk: 'Medium',
         highRisk: 'High',
         criticalRisk: 'Critical',
+        deleteConfirmTitle: 'Delete Proctoring Session',
+        deleteConfirmMessage: 'Are you sure you want to permanently delete this proctoring session? This action cannot be undone and all associated violations and logs will be deleted.',
+        deleteSuccess: 'Proctoring session deleted successfully.',
+        deleteError: 'Failed to delete proctoring session.',
+        bulkDeleteTitle: 'Bulk Delete Sessions',
+        bulkDeleteMessage: 'Are you sure you want to permanently delete the {count} selected proctoring sessions?',
+        bulkDeleteSuccess: 'Selected proctoring sessions deleted successfully.',
+        bulkDeleteError: 'Failed to delete selected proctoring sessions.',
+        deleteAllTitle: 'Delete All Student Sessions',
+        deleteAllMessage: 'Are you sure you want to permanently delete ALL proctoring sessions for this student? All violations and logs will also be deleted.',
+        deleteAllSuccess: 'All proctoring sessions for this student have been deleted successfully.',
+        deleteAllError: 'Failed to delete all student sessions.',
     },
+}
+
+const { showAlert, showConfirm, modalConfig, handleModalConfirm, handleModalCancel } = useModal()
+
+const selectedSessions = ref<number[]>([])
+
+const toggleSelectAll = () => {
+    if (!studentData.value) return
+    if (selectedSessions.value.length === studentData.value.sessions.length) {
+        selectedSessions.value = []
+    } else {
+        selectedSessions.value = studentData.value.sessions.map(s => s.id)
+    }
+}
+
+const toggleSelectSession = (id: number) => {
+    const idx = selectedSessions.value.indexOf(id)
+    if (idx > -1) {
+        selectedSessions.value.splice(idx, 1)
+    } else {
+        selectedSessions.value.push(id)
+    }
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -297,6 +346,73 @@ const toggleBypass = async () => {
     }
 }
 
+const confirmDeleteSession = async (sessionId: number) => {
+    const confirmed = await showConfirm(
+        t[currentLang.value].deleteConfirmMessage,
+        t[currentLang.value].deleteConfirmTitle,
+        'danger',
+        currentLang.value === 'ar' ? 'نعم، احذف' : 'Yes, Delete'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await api.delete(`/admin/proctoring/${sessionId}`);
+        selectedSessions.value = selectedSessions.value.filter(id => id !== sessionId);
+        await fetchStudentSessions();
+        await showAlert(t[currentLang.value].deleteSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+    } catch (error) {
+        console.error('Failed to delete session:', error);
+        await showAlert(t[currentLang.value].deleteError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+    }
+}
+
+const deleteSelectedSessions = async () => {
+    if (selectedSessions.value.length === 0) return;
+
+    const confirmed = await showConfirm(
+        t[currentLang.value].bulkDeleteMessage.replace('{count}', selectedSessions.value.length.toString()),
+        t[currentLang.value].bulkDeleteTitle,
+        'danger',
+        currentLang.value === 'ar' ? 'نعم، احذف المحدد' : 'Yes, Delete Selected'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await api.post('/admin/proctoring/bulk-delete', { ids: selectedSessions.value });
+        selectedSessions.value = [];
+        await fetchStudentSessions();
+        await showAlert(t[currentLang.value].bulkDeleteSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+    } catch (error) {
+        console.error('Failed to delete selected sessions:', error);
+        await showAlert(t[currentLang.value].bulkDeleteError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+    }
+}
+
+const deleteAllStudentSessions = async () => {
+    if (!studentData.value?.student?.id) return;
+
+    const confirmed = await showConfirm(
+        t[currentLang.value].deleteAllMessage,
+        t[currentLang.value].deleteAllTitle,
+        'danger',
+        currentLang.value === 'ar' ? 'نعم، احذف الكل' : 'Yes, Delete All'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await api.delete(`/admin/proctoring/student/${studentData.value.student.id}/all`);
+        selectedSessions.value = [];
+        await fetchStudentSessions();
+        await showAlert(t[currentLang.value].deleteAllSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+    } catch (error) {
+        console.error('Failed to delete all student sessions:', error);
+        await showAlert(t[currentLang.value].deleteAllError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+    }
+}
+
 onMounted(fetchStudentSessions)
 </script>
 
@@ -374,7 +490,16 @@ onMounted(fetchStudentSessions)
                                     :class="studentData.student?.bypass_identity_verification ? 'bg-emerald-500 hover:bg-emerald-630 text-white' : 'bg-slate-100/80 hover:bg-slate-200 text-slate-600 border border-slate-200/50'"
                                     class="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all duration-300 cursor-pointer disabled:opacity-60">
                                     <i :class="isTogglingBypass ? 'pi pi-spin pi-spinner' : 'pi pi-shield'"></i>
-                                    <span>{{ studentData.student?.bypass_identity_verification ? (currentLang === 'ar' ?'إلغاء تخطي الهوية' : 'Disable Identity Bypass') : (currentLang === 'ar' ? 'تخطيالتحقق من الهوية' : 'Bypass Identity Verification') }}</span>
+                                    <span>{{ studentData.student?.bypass_identity_verification ? (currentLang === 'ar'
+                                        ? 'إلغاء تخطي الهوية' : 'Disable Identity Bypass') : (currentLang === 'ar' ?
+                                            'تخطيالتحقق من الهوية' : 'Bypass Identity Verification') }}</span>
+                                </button>
+
+                                <!-- Delete All Sessions Button -->
+                                <button v-if="studentData.sessions.length > 0" @click="deleteAllStudentSessions"
+                                    class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-all duration-300 cursor-pointer">
+                                    <i class="pi pi-trash"></i>
+                                    <span>{{ currentLang === 'ar' ? 'حذف كل الجلسات' : 'Delete All Sessions' }}</span>
                                 </button>
                             </div>
 
@@ -404,7 +529,7 @@ onMounted(fetchStudentSessions)
                             <!-- Max Risk -->
                             <div class="text-center border-x border-slate-100">
                                 <div class="text-xl font-black" :style="{ color: getRiskColor(maxRisk).hex }">{{ maxRisk
-                                    }}%</div>
+                                }}%</div>
                                 <div class="text-[9px] font-black text-slate-400 uppercase tracking-wider mt-0.5">{{
                                     t[currentLang].statMaxRisk }}</div>
                             </div>
@@ -431,14 +556,33 @@ onMounted(fetchStudentSessions)
 
                 <!-- ── Sessions List ── -->
                 <div v-else-if="studentData" class="space-y-4">
-                    <div class="flex items-center gap-2 px-1">
-                        <i class="pi pi-video text-brand-primary text-sm"></i>
-                        <h2 class="text-sm font-black text-slate-700 uppercase tracking-wider">{{
-                            t[currentLang].sessionLogs }}</h2>
-                        <span
-                            class="ml-auto text-[10px] font-black text-slate-400 bg-slate-100 rounded-full px-2.5 py-1">
-                            {{ studentData.sessions.length }}
-                        </span>
+                    <div class="flex flex-wrap items-center justify-between gap-3 px-1">
+                        <div class="flex items-center gap-2">
+                            <i class="pi pi-video text-brand-primary text-sm"></i>
+                            <h2 class="text-sm font-black text-slate-700 uppercase tracking-wider">{{
+                                t[currentLang].sessionLogs }}</h2>
+                            <span class="text-[10px] font-black text-slate-400 bg-slate-100 rounded-full px-2.5 py-1">
+                                {{ studentData.sessions.length }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <!-- Select All toggle button -->
+                            <button @click="toggleSelectAll"
+                                class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-200 cursor-pointer">
+                                <i
+                                    :class="selectedSessions.length === studentData.sessions.length ? 'pi pi-check-square text-brand-primary' : 'pi pi-square'"></i>
+                                <span>{{ currentLang === 'ar' ? 'تحديد الكل' : 'Select All' }}</span>
+                            </button>
+
+                            <!-- Delete Selected (Bulk Delete) -->
+                            <button v-if="selectedSessions.length > 0" @click="deleteSelectedSessions"
+                                class="flex items-center gap-1.5 text-[10px] font-black text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-200 cursor-pointer animate-in fade-in slide-in-from-right-2 duration-300">
+                                <i class="pi pi-trash"></i>
+                                <span>{{ currentLang === 'ar' ? 'حذف المحدد' : 'Delete Selected' }} ({{
+                                    selectedSessions.length }})</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div v-for="(session, index) in studentData.sessions" :key="session.id"
@@ -457,6 +601,12 @@ onMounted(fetchStudentSessions)
                             <!-- ── Card Header ── -->
                             <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
                                 <div class="flex items-start gap-3">
+                                    <!-- Selection Checkbox -->
+                                    <div class="flex items-center h-9">
+                                        <input type="checkbox" :checked="selectedSessions.includes(session.id)"
+                                            @change="toggleSelectSession(session.id)"
+                                            class="w-4.5 h-4.5 text-brand-primary border-slate-300 rounded focus:ring-brand-primary/20 accent-rose-500 cursor-pointer" />
+                                    </div>
                                     <!-- Session number badge -->
                                     <div
                                         class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-[11px] font-black text-slate-400 shrink-0 mt-0.5">
@@ -483,7 +633,7 @@ onMounted(fetchStudentSessions)
                                     <span class="w-1.5 h-1.5 rounded-full"
                                         :class="getStatusStyle(session.status).dot"></span>
                                     <span :class="getStatusStyle(session.status).text">{{ getStatusLabel(session.status)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
 
@@ -552,7 +702,7 @@ onMounted(fetchStudentSessions)
                                         <div class="w-2 h-2 rounded-full bg-brand-primary shrink-0"></div>
                                         <div class="flex-1 min-w-0">
                                             <span class="text-xs font-black text-slate-700 truncate block">{{ skill.name
-                                                }}</span>
+                                            }}</span>
                                         </div>
                                         <div
                                             class="flex items-center gap-3 text-[9px] font-bold text-slate-400 shrink-0 flex-wrap justify-end">
@@ -590,6 +740,11 @@ onMounted(fetchStudentSessions)
                                     class="flex items-center gap-2 text-[11px] font-black text-sky-600 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer group-hover:bg-sky-100">
                                     <i class="pi pi-eye text-[10px]"></i>
                                     {{ t[currentLang].viewSessionDetails }}
+                                </button>
+                                <button @click="confirmDeleteSession(session.id)"
+                                    class="flex items-center gap-2 text-[11px] font-black text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer hover:bg-rose-100">
+                                    <i class="pi pi-trash text-[10px]"></i>
+                                    {{ currentLang === 'ar' ? 'حذف' : 'Delete' }}
                                 </button>
                             </div>
 
@@ -654,6 +809,54 @@ onMounted(fetchStudentSessions)
             </div>
         </div>
     </Teleport>
+
+    <!-- Custom Beautiful Modal -->
+    <Dialog v-model:visible="modalConfig.visible" modal :closable="false" :style="{ width: '450px' }"
+        class="rounded-[2rem] overflow-hidden border-0 shadow-2xl z-50">
+        <template #header>
+            <div class="flex items-center gap-4 px-2 pt-2" :class="{
+                'text-emerald-500': modalConfig.type === 'success',
+                'text-rose-500': modalConfig.type === 'danger',
+                'text-amber-500': modalConfig.type === 'warning',
+                'text-indigo-500': modalConfig.type === 'info',
+                'flex-row-reverse': currentLang === 'ar'
+            }">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm shrink-0" :class="{
+                    'bg-emerald-50 border-emerald-100 text-emerald-600': modalConfig.type === 'success',
+                    'bg-rose-50 border-rose-100 text-rose-600': modalConfig.type === 'danger',
+                    'bg-amber-50 border-amber-100 text-amber-600': modalConfig.type === 'warning',
+                    'bg-indigo-50 border-indigo-100 text-indigo-600': modalConfig.type === 'info'
+                }">
+                    <i class="text-2xl" :class="{
+                        'pi pi-check-circle': modalConfig.type === 'success',
+                        'pi pi-times-circle': modalConfig.type === 'danger',
+                        'pi pi-exclamation-triangle': modalConfig.type === 'warning',
+                        'pi pi-info-circle': modalConfig.type === 'info'
+                    }"></i>
+                </div>
+                <h3 class="font-black text-2xl tracking-tight text-slate-800"
+                    :class="currentLang === 'ar' ? 'text-right' : 'text-left'">{{ modalConfig.title }}</h3>
+            </div>
+        </template>
+        <div class="px-2 py-4 text-slate-600 font-medium leading-relaxed text-base"
+            :class="currentLang === 'ar' ? 'text-right' : 'text-left'">
+            {{ modalConfig.message }}
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-3 w-full px-2 pb-2 mt-4"
+                :class="currentLang === 'ar' ? 'flex-row-reverse' : ''">
+                <Button v-if="modalConfig.showCancel" :label="modalConfig.cancelText" text severity="secondary"
+                    @click="handleModalCancel" class="font-bold px-6 py-3 rounded-xl hover:bg-slate-100" />
+                <Button :label="modalConfig.confirmText" @click="handleModalConfirm"
+                    class="font-black px-6 py-3 rounded-xl border-none shadow-md hover:shadow-lg transition-all" :class="{
+                        'bg-emerald-500 hover:bg-emerald-600 text-white': modalConfig.type === 'success',
+                        'bg-rose-500 hover:bg-rose-600 text-white': modalConfig.type === 'danger',
+                        'bg-amber-500 hover:bg-amber-600 text-white': modalConfig.type === 'warning',
+                        'bg-indigo-500 hover:bg-indigo-600 text-white': modalConfig.type === 'info'
+                    }" />
+            </div>
+        </template>
+    </Dialog>
 </template>
 
 <style scoped>

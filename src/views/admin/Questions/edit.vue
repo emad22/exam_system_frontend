@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useModal } from '@/composables/useModal';
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -443,6 +443,7 @@ watch(() => form.value.passage_mode, (newVal) => {
 
 const pFileInput = ref(null);
 const pMediaPreview = ref(null);
+const passageGeneralShowHtml = ref(false);
 
 const revokeIfBlob = (url) => {
     if (url && typeof url === 'string' && url.startsWith('blob:')) {
@@ -455,6 +456,7 @@ const createEmptyQuestion = () => ({
     content_mode: 'text',
     content: '',
     instructions: '',
+    general_instructions: '',
     points: 1,
     sort_order: 0,
     q_media: null,
@@ -465,7 +467,11 @@ const createEmptyQuestion = () => ({
     q_image_preview: null,
     q_image_width: null,
     q_image_height: null,
+    clear_q_image: false,
+    clear_q_audio: false,
+    clear_q_media: false,
     showHtml: false,
+    showGeneralHtml: false,
     options: [
         { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
         { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
@@ -550,7 +556,11 @@ const loadInitialData = async () => {
                 q_image_preview: sq.image_url ? { url: sq.image_url, type: 'image' } : null,
                 q_image_width: sq.image_width || null,
                 q_image_height: sq.image_height || null,
+                clear_q_image: false,
+                clear_q_audio: false,
+                clear_q_media: false,
                 showHtml: false,
+                showGeneralHtml: false,
 
                 options: (sq.options || []).map(o => ({
                     id: o.id || null,
@@ -571,6 +581,7 @@ const loadInitialData = async () => {
                 content_mode: (q.media_url || q.audio_url || q.image_url) ? 'media' : 'text',
                 content: q.content,
                 instructions: q.instructions || '',
+                general_instructions: q.general_instructions || '',
                 points: q.points,
                 sort_order: q.sort_order || 0,
                 q_media: null,
@@ -581,7 +592,11 @@ const loadInitialData = async () => {
                 q_image_preview: q.image_url ? { url: q.image_url, type: 'image' } : null,
                 q_image_width: q.image_width || null,
                 q_image_height: q.image_height || null,
+                clear_q_image: false,
+                clear_q_audio: false,
+                clear_q_media: false,
                 showHtml: false,
+                showGeneralHtml: false,
                 options: (q.options || []).map(o => ({
                     id: o.id || null,
                     option_text: o.option_text,
@@ -651,6 +666,7 @@ const handleQFileChange = (e, index) => {
     revokeIfBlob(form.value.questions[index].q_media_preview?.url);
     form.value.questions[index].q_media = file;
     form.value.questions[index].q_media_preview = { url: URL.createObjectURL(file), type: file.type };
+    form.value.questions[index].clear_q_media = false;
 };
 
 const triggerQImage = (idx) => document.getElementById(`qImage_${idx}`)?.click();
@@ -663,6 +679,7 @@ const handleQAudioChange = (e, index) => {
     revokeIfBlob(form.value.questions[index].q_audio_preview?.url);
     form.value.questions[index].q_audio = file;
     form.value.questions[index].q_audio_preview = { url: URL.createObjectURL(file), type: file.type };
+    form.value.questions[index].clear_q_audio = false;
 };
 
 const handleQImageChange = (e, index) => {
@@ -671,6 +688,7 @@ const handleQImageChange = (e, index) => {
     revokeIfBlob(form.value.questions[index].q_image_preview?.url);
     form.value.questions[index].q_image = file;
     form.value.questions[index].q_image_preview = { url: URL.createObjectURL(file), type: file.type };
+    form.value.questions[index].clear_q_image = false;
 };
 
 const addOption = (qIdx) => {
@@ -874,10 +892,14 @@ const updateBatch = async () => {
             type: q.type,
             content: q.content || '',
             instructions: q.instructions || '',
+            general_instructions: (form.value.passage_mode === 'none') ? (q.general_instructions || '') : '',
             points: q.points,
             sort_order: q.sort_order,
             image_width: q.q_image_width || null,
             image_height: q.q_image_height || null,
+            clear_q_image: q.clear_q_image || false,
+            clear_q_audio: q.clear_q_audio || false,
+            clear_q_media: q.clear_q_media || false,
             options: q.options.map(opt => ({
                 id: opt.id || null,
                 option_text: opt.option_text,
@@ -907,7 +929,7 @@ const updateBatch = async () => {
         await api.post(`/admin/questions/${questionId}`, fd, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        await showAlert(t[currentLang.value].saveSuccessMsg, currentLang.value === 'ar' ? 'تم التعديل' : 'Saved', 'success');
+        await showAlert(t[currentLang.value].saveSuccessMsg, currentLang.value === 'ar' ? 'ØªÙ… Ø§Ù„ØªØ¹Ø¯ÙŠÙ„' : 'Saved', 'success');
         const isTeacher = adminStore.user?.role === 'teacher';
         router.push({ name: isTeacher ? 'teacher.questions' : 'admin.questions' });
     } catch (err) {
@@ -1080,7 +1102,7 @@ const editorModules = {
                                         class="flex justify-between text-[8px] text-slate-400 font-black mt-2 uppercase tracking-widest ml-1 mr-1">
                                         <span>{{ t[currentLang].beginnerText }}</span>
                                         <span>{{ t[currentLang].expertText.replace('{max}', currentSkillMaxLevel)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                 </div>
 
@@ -1116,7 +1138,7 @@ const editorModules = {
                                         <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest">{{
                                             t[currentLang].noCapTitle }}</p>
                                         <p class="text-[10px] text-amber-500 font-bold mt-1">{{ t[currentLang].noCapDesc
-                                            }}</p>
+                                        }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1213,26 +1235,48 @@ const editorModules = {
                                     </div>
 
                                     <div v-if="!passageShowHtml">
-                                        <Editor v-model="form.passage_content" editorStyle="height: 250px"
+                                        <Editor v-model="form.passage_content" editorStyle="height: 350px"
                                             :modules="editorModules"
                                             class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
                                             placeholder="Enter formatted passage contents..." />
                                     </div>
                                     <div v-else>
-                                        <textarea v-model="form.passage_content" rows="6"
+                                        <textarea v-model="form.passage_content" rows="12"
                                             class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
                                             placeholder="Write your raw HTML here (e.g. <b>Hello</b> World)..."></textarea>
                                     </div>
                                 </div>
 
                                 <div class="space-y-3 mt-4">
-                                    <label
-                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                            t[currentLang].generalInstructionsLabel }}</label>
-                                    <Editor v-model="form.passage_general_instructions" editorStyle="height: 140px"
-                                        :modules="editorModules"
-                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
-                                        :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                    <div class="flex items-center justify-between gap-3">
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                                t[currentLang].generalInstructionsLabel }}</label>
+                                        <div class="flex bg-slate-100 rounded-xl p-1 gap-1 border border-slate-200/50">
+                                            <button type="button" @click="passageGeneralShowHtml = false"
+                                                :class="!passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                                <i class="pi pi-align-left text-[10px]"></i> {{ t[currentLang].visualTab
+                                                }}
+                                            </button>
+                                            <button type="button" @click="passageGeneralShowHtml = true"
+                                                :class="passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                                <i class="pi pi-code text-[10px]"></i> {{ t[currentLang].sourceTab }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-if="!passageGeneralShowHtml">
+                                        <Editor v-model="form.passage_general_instructions" editorStyle="height: 240px"
+                                            :modules="editorModules"
+                                            class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                            :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                    </div>
+                                    <div v-else>
+                                        <textarea v-model="form.passage_general_instructions" rows="8"
+                                            class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
+                                            :placeholder="t[currentLang].generalInstructionsPlaceholder"></textarea>
+                                    </div>
                                 </div>
 
                                 <!-- Media Assets Grid -->
@@ -1351,7 +1395,38 @@ const editorModules = {
                                         placeholder="e.g. Listen carefully to the prompt and select the correct matching pair."
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-800 px-4" />
                                 </div>
+                            </div>
 
+                            <!-- General Instructions -->
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].generalInstructionsLabel }}</label>
+                                    <div class="flex bg-slate-50 rounded-lg p-0.5 gap-0.5 border border-slate-200/30">
+                                        <button type="button" @click="q.showGeneralHtml = false"
+                                            :class="!q.showGeneralHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wide transition-all flex items-center gap-1">
+                                            <i class="pi pi-align-left text-[9px]"></i> {{ t[currentLang].visualTab }}
+                                        </button>
+                                        <button type="button" @click="q.showGeneralHtml = true"
+                                            :class="q.showGeneralHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                            class="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wide transition-all flex items-center gap-1">
+                                            <i class="pi pi-code text-[9px]"></i> {{ t[currentLang].sourceTab }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="!q.showGeneralHtml">
+                                    <Editor v-model="q.general_instructions" editorStyle="height: 240px"
+                                        :modules="editorModules"
+                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                        :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                </div>
+                                <div v-else>
+                                    <textarea v-model="q.general_instructions" rows="8"
+                                        class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
+                                        :placeholder="t[currentLang].generalInstructionsPlaceholder"></textarea>
+                                </div>
                             </div>
 
                             <!-- Question prompt wrapper (Text vs Media Toggle) -->
@@ -1395,12 +1470,12 @@ const editorModules = {
                                         </div>
                                     </div>
                                     <div v-if="!q.showHtml" class="animate-in fade-in-20 duration-300">
-                                        <Editor v-model="q.content" editorStyle="height: 160px" :modules="editorModules"
+                                        <Editor v-model="q.content" editorStyle="height: 280px" :modules="editorModules"
                                             class="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50/20"
                                             placeholder="Type or format your prompt content..." />
                                     </div>
                                     <div v-else class="animate-in fade-in-20 duration-300">
-                                        <textarea v-model="q.content" rows="4"
+                                        <textarea v-model="q.content" rows="8"
                                             class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-slate-50/10 text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner"
                                             placeholder="Write raw HTML code for the question prompt..."></textarea>
                                     </div>
@@ -1489,7 +1564,7 @@ const editorModules = {
                                             <ImageResizeUploader v-model="q.q_image" v-model:width="q.q_image_width"
                                                 v-model:height="q.q_image_height" :initialUrl="q.q_image_preview?.url"
                                                 :label="t[currentLang].imageSelect" icon="pi-image"
-                                                @clear="q.q_image = null; q.q_image_preview = null; q.q_image_width = null; q.q_image_height = null;" />
+                                                @clear="q.q_image = null; q.q_image_preview = null; q.q_image_width = null; q.q_image_height = null; q.clear_q_image = true;" />
                                         </div>
 
                                         <!-- Audio Attachment -->
@@ -1516,7 +1591,8 @@ const editorModules = {
                                                     class="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                                                     <audio :src="q.q_audio_preview.url" controls
                                                         class="h-8 grow"></audio>
-                                                    <button @click="q.q_audio = null; q.q_audio_preview = null"
+                                                    <button
+                                                        @click="q.q_audio = null; q.q_audio_preview = null; q.clear_q_audio = true;"
                                                         class="w-7 h-7 text-rose-500 hover:bg-rose-50 rounded-lg transition-all flex items-center justify-center shrink-0">
                                                         <i class="pi pi-trash text-xs"></i>
                                                     </button>
@@ -1543,7 +1619,8 @@ const editorModules = {
                                                     class="max-h-20 rounded-lg"></video>
                                                 <span v-else class="text-[10px] font-black text-slate-500 uppercase">{{
                                                     q.q_media_preview.type }}</span>
-                                                <button @click="q.q_media = null; q.q_media_preview = null"
+                                                <button
+                                                    @click="q.q_media = null; q.q_media_preview = null; q.clear_q_media = true;"
                                                     class="text-rose-500 font-black text-[9px] uppercase hover:underline">{{
                                                         t[currentLang].modes.none }}</button>
                                             </div>
@@ -1575,7 +1652,7 @@ const editorModules = {
                                             <!-- Index + Correct toggle -->
                                             <div class="flex items-center gap-2 shrink-0 mt-1">
                                                 <span class="text-[8px] font-black text-slate-400">#{{ oIdx + 1
-                                                    }}</span>
+                                                }}</span>
                                                 <button v-if="q.type !== 'short_answer'" type="button"
                                                     @click="setCorrect(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all"
@@ -1728,7 +1805,7 @@ const editorModules = {
                                                             'Note: Word count is saved automatically' }}
                                                     </p>
                                                     <p class="text-[8px] text-blue-600 mt-1.5 leading-relaxed">
-                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة  تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be  calculated and displayed to the teacher during grading' }}
+                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be calculated and displayed to the teacher during grading' }}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1806,5 +1883,47 @@ const editorModules = {
 
 .animate-in {
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Prevent images from overflowing the editor box */
+:deep(.ql-editor img) {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+
+/* Custom Styles to fix Quill toolbar picker visibility and scroll issues */
+:deep(.ql-snow .ql-picker) {
+    color: #1e293b !important;
+}
+
+:deep(.ql-snow .ql-picker.ql-header .ql-picker-label::before),
+:deep(.ql-snow .ql-picker.ql-header .ql-picker-item::before) {
+    color: #1e293b !important;
+}
+
+:deep(.ql-snow .ql-picker-options) {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+    border-radius: 0.5rem !important;
+    padding: 8px !important;
+    max-height: 250px !important;
+    overflow-y: auto !important;
+    z-index: 50 !important;
+}
+
+:deep(.ql-snow .ql-picker-item) {
+    color: #334155 !important;
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+    border-radius: 0.25rem !important;
+    display: block !important;
+}
+
+:deep(.ql-snow .ql-picker-item:hover),
+:deep(.ql-snow .ql-picker-item.ql-selected) {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
 }
 </style>

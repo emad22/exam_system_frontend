@@ -1254,8 +1254,7 @@ onUnmounted(() => {
                             </h3>
                             <p class="text-slate-600 text-base font-medium leading-relaxed mb-8">
                                 You did not meet the minimum score requirement. A second evaluation cycle with new
-                                content
-                                is about to
+                                content is about to
                                 begin...
                             </p>
                             <button @click="showRetryNotification = false"
@@ -1314,7 +1313,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- CASE 1: Passage WITH audio â†’ Full-screen sequential layout   -->
+                    <!-- CASE 1: Passage WITH audio  Full-screen sequential layout   -->
                     <!-- Phase A (!shouldShowContent): audio + general instructions   -->
                     <!-- Phase B (shouldShowContent):  questions only                 -->
                     <!-- ============================================================ -->
@@ -1328,17 +1327,17 @@ onUnmounted(() => {
                                     class="max-w-3xl w-full bg-white border border-slate-100 rounded-[2rem] shadow-xl p-8 sm:p-10 flex flex-col items-center text-center gap-6 animate-in fade-in duration-500">
 
                                     <!-- Headphone Icon -->
-                                    <div
+                                    <!-- <div
                                         class="w-16 h-16 rounded-full bg-rose-100/60 flex items-center justify-center text-rose-600 shrink-0 shadow-sm">
                                         <i class="pi pi-headphones text-2xl"></i>
-                                    </div>
+                                    </div> -->
 
                                     <!-- Title -->
                                     <!-- <h2 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Listening Test</h2> -->
 
                                     <!-- General Instructions -->
                                     <div v-if="passageGeneralInstructions"
-                                        class="text-slate-600 text-sm font-medium leading-relaxed max-w-2xl ql-content rtl-support"
+                                        class="text-slate-600 text-sm font-medium leading-relaxed max-w-2xl ql-content rtl-support general-instructions-content"
                                         v-html="cleanHtml(passageGeneralInstructions)" dir="auto">
                                     </div>
 
@@ -1391,15 +1390,26 @@ onUnmounted(() => {
                                 <div class="max-w-4xl mx-auto w-full flex flex-col p-6 animate-in fade-in duration-500"
                                     :class="['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'gap-3' : 'gap-5'">
 
-                                    <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        :class="['text-lg font-black text-slate-900 leading-snug rtl-support ql-content', 'interactive-content-area']"
-                                        v-html="cleanHtml(currentQ.content)" dir="auto">
+                                    <!-- Instructions Banner (matches design in image 2) -->
+                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                                        class="flex items-start gap-3 border border-slate-200 rounded-xl px-4 py-3 shadow-sm bg-[#f4f7fb]"
+                                        dir="ltr">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
+                                            <i class="pi pi-info text-white text-sm font-black"></i>
+                                        </div>
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-sm font-black text-slate-900">Instructions</span>
+                                            <span class="text-sm text-slate-600 leading-snug"
+                                                v-html="displayInstructions"></span>
+                                        </div>
                                     </div>
 
-                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
-                                        class="bg-slate-50 border border-slate-100 p-3 rounded-lg" dir="rtl">
-                                        <p class="text-[10px] font-bold text-slate-600 leading-relaxed" dir="auto"
-                                            v-html="displayInstructions"></p>
+                                    <!-- Question Content inside a white box -->
+                                    <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
+                                        class="rounded-xl px-5 py-4 rtl-support interactive-content-area ql-content bg-white border border-slate-200 shadow-sm"
+                                        style="border-width: 1.5px; font-size: 30px; font-weight: 400; color: #1e293b; line-height: 1.7;"
+                                        v-html="cleanHtml(currentQ.content)" dir="auto">
                                     </div>
 
                                     <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
@@ -1514,7 +1524,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- CASE 3: No passage content â†’ Single full-width pane          -->
+                    <!-- CASE 3: No passage content  Single full-width pane          -->
                     <!-- ============================================================ -->
                     <div v-else-if="currentQ"
                         class="flex flex-col border-t border-slate-300 animate-in fade-in duration-500 flex-1 min-h-0 bg-slate-50">
@@ -1524,6 +1534,13 @@ onUnmounted(() => {
 
                                 <div
                                     :class="['flex flex-col', ['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'space-y-2' : 'space-y-4']">
+
+
+                                    <!-- General Instructions Banner (displayed for standalone questions) -->
+                                    <div v-if="currentQ.general_instructions && currentQ.general_instructions.trim()"
+                                        class="ql-content rtl-support text-slate-700 leading-relaxed bg-amber-50/60 border border-amber-200/60 rounded-xl px-5 py-4 shadow-sm general-instructions-content"
+                                        v-html="cleanHtml(currentQ.general_instructions)" dir="auto">
+                                    </div>
 
                                     <!-- Instructions Banner (matches design in image 2) -->
                                     <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
@@ -1910,5 +1927,27 @@ onUnmounted(() => {
 .question-title-text :deep(*) {
     color: #1e293b;
     /* font-size is controlled by Tailwind utility class on the element */
+}
+
+/* Force centering on all elements (text, images, audio, video) inside general instructions box */
+.general-instructions-content,
+.general-instructions-content :deep(*) {
+    text-align: center !important;
+}
+
+.general-instructions-content :deep(img),
+.general-instructions-content :deep(video),
+.general-instructions-content :deep(audio),
+.general-instructions-content :deep(iframe) {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+}
+
+.general-instructions-content :deep(p),
+.general-instructions-content :deep(div) {
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 </style>

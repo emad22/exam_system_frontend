@@ -102,7 +102,7 @@ const handleContainerClick = (e) => {
         <!-- Question Content Box — light gray background, large font, Myriad Arabic -->
         <div
             ref="containerRef"
-            class="rounded-2xl px-8 py-6 rtl-support word-selection-container relative overflow-hidden"
+            class="rounded-2xl px-8 py-6  word-selection-container relative overflow-hidden"
             style="
                 background-color: #f8f9fa;
                 border: 1px solid #eaecef;

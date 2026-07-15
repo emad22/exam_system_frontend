@@ -132,9 +132,10 @@ watch(
 
             <button v-for="(opt, oIdx) in question.options" :key="opt.id" @click="playSound(opt)" :disabled="disabled"
                 class="relative rounded-2xl border-2 p-5 transition-all duration-300 group
-                       flex flex-col items-center gap-3 overflow-hidden" :class="selectedOptionId === opt.id
-                        ? 'border-brand-primary bg-indigo-50/60 shadow-md ring-4 ring-indigo-500/10'
-                        : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 bg-white shadow-sm hover:shadow-md'">
+                       flex flex-col items-center gap-3 overflow-hidden"
+                :class="selectedOptionId === opt.id
+                    ? 'border-brand-primary bg-indigo-50/60 shadow-md ring-4 ring-indigo-500/10'
+                    : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 bg-white shadow-sm hover:shadow-md'">
 
                 <!-- دائرة الأيقونة -->
                 <div class="relative w-16 h-16 rounded-full flex items-center justify-center
@@ -193,7 +194,7 @@ watch(
         <div v-else class="space-y-2 py-1 overflow-x-hidden">
 
             <button v-for="(opt, oIdx) in question.options" :key="opt.id" @click="selectedOptionId = opt.id"
-                :disabled="disabled" dir="rtl"
+                :disabled="disabled"
                 class="w-full p-4 rounded-xl transition-all duration-300 flex flex-row items-center justify-between gap-4 group relative overflow-hidden select-none bg-white font-normal"
                 :class="selectedOptionId === opt.id
                     ? 'border-[#2563EB] bg-[#EDF3FF]/20 shadow-sm'
@@ -201,7 +202,7 @@ watch(
                 style="border-width: 1.5px;">
 
                 <!-- Radio circle (appears on the right in RTL flex-row) -->
-                <div class="shrink-0 flex items-center justify-center">
+                <div class="shrink-0 flex items-center justify-center order-2 rtl:order-1">
                     <div v-if="selectedOptionId === opt.id"
                         class="w-5 h-5 rounded-full border-2 border-[#2563EB] flex items-center justify-center">
                         <div class="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
@@ -211,14 +212,14 @@ watch(
                 </div>
 
                 <!-- Option Content -->
-                <div class="flex items-center gap-3 grow" :dir="opt.dir || 'rtl'">
+                <div class="flex items-center gap-3 grow order-1 rtl:order-2" :dir="opt.dir || 'rtl'">
                     <!-- Option Image if present -->
                     <img v-if="opt.image_url" :src="resolveUrl(opt.image_url)"
                         class="w-20 h-16 object-cover rounded-xl border border-slate-100 shadow-sm shrink-0" />
 
                     <!-- Option Text -->
                     <div v-if="opt.option_text"
-                        class="font-normal tracking-wide leading-snug text-[24px] transition-colors duration-300 grow whitespace-normal break-words text-right"
+                        class="font-normal tracking-wide leading-snug text-[24px] transition-colors duration-300 grow whitespace-normal break-words text-right rtl:text-right ltr:text-left"
                         :class="[
                             selectedOptionId === opt.id ? 'text-[#1E3A8A]' : 'text-[#334155] group-hover:text-slate-800'
                         ]" v-html="opt.option_text">

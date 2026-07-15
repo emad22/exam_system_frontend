@@ -215,13 +215,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="writing-question-wrapper" dir="ltr">
+    <div class="writing-question-wrapper" >
 
         <!-- ============================================== -->
         <!-- STATE 1: TOPICS AND INSTRUCTIONS PANEL         -->
         <!-- ============================================== -->
         <div v-show="!hasStartedWriting" class="topics-view animate-in fade-in zoom-in-95 duration-300 w-full"
-            dir="ltr">
+            >
 
             <!-- Instructions Banner -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col overflow-hidden">
@@ -279,7 +279,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- The actual topics from content -->
-                <div v-if="question.content" class="writing-prompt-content ql-content w-full" dir="auto"
+                <div v-if="question.content" class="writing-prompt-content ql-content w-full" 
                     v-html="cleanHtml(question.content)">
                 </div>
             </div>
@@ -298,7 +298,7 @@ onUnmounted(() => {
         <!-- STATE 2: EDITOR PANEL                          -->
         <!-- ============================================== -->
         <div v-show="hasStartedWriting" class="editor-view flex flex-col w-full h-full animate-in fade-in duration-300"
-            dir="ltr">
+           >
 
             <!-- Top Controls (Show Topics + Tabs) -->
             <div
@@ -327,7 +327,6 @@ onUnmounted(() => {
                             class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
                     </button>
                 </div>
-
                 <!-- Empty div for centering balance on desktop -->
                 <div class="hidden md:block w-[130px]"></div>
             </div>
@@ -451,7 +450,8 @@ onUnmounted(() => {
     padding: 16px 20px;
     line-height: 1.8;
     min-height: 100%;
-    /* Let the editor take over font choices automatically based on the wrapper */
+    direction: rtl;
+    text-align: right;
 }
 
 .editor-container-outer :deep(.ql-editor.ql-blank::before) {

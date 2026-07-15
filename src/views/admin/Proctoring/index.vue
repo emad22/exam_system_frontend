@@ -8,8 +8,13 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import ProgressSpinner from 'primevue/progressspinner'
 import Tooltip from 'primevue/tooltip'
+import Dialog from 'primevue/dialog'
+// @ts-ignore
+import { useModal } from '@/composables/useModal'
 
 const vTooltip = Tooltip
+
+const { showConfirm, showAlert, modalConfig, handleModalConfirm, handleModalCancel } = useModal()
 
 interface GroupedStudent {
   student_id: number
@@ -307,6 +312,37 @@ const fetchStatistics = async () => {
     console.error('Failed to fetch statistics:', error)
   }
 }
+
+const deleteAllStudentSessions = async (studentId: number, studentName: string, event: Event) => {
+  event.stopPropagation()
+
+  const msg = currentLang.value === 'ar'
+    ? `هل أنت متأكد من حذف جميع جلسات "${studentName}" نهائياً؟ ستُحذف كل المخالفات والسجلات المرتبطة.`
+    : `Are you sure you want to permanently delete all sessions for "${studentName}"? All violations and logs will be deleted.`
+  const title = currentLang.value === 'ar' ? 'حذف كل جلسات الطالب' : 'Delete All Student Sessions'
+  const confirmLabel = currentLang.value === 'ar' ? 'نعم، احذف الكل' : 'Yes, Delete All'
+
+  const confirmed = await showConfirm(msg, title, 'danger', confirmLabel)
+  if (!confirmed) return
+
+  try {
+    await api.delete(`/admin/proctoring/student/${studentId}/all`)
+    await fetchSessions()
+    await fetchStatistics()
+    await showAlert(
+      currentLang.value === 'ar' ? 'تم حذف جميع جلسات الطالب بنجاح.' : 'All student sessions deleted successfully.',
+      currentLang.value === 'ar' ? 'تم بنجاح' : 'Success',
+      'success'
+    )
+  } catch (error) {
+    console.error('Failed to delete all student sessions:', error)
+    await showAlert(
+      currentLang.value === 'ar' ? 'فشل حذف جلسات الطالب.' : 'Failed to delete student sessions.',
+      currentLang.value === 'ar' ? 'خطأ' : 'Error',
+      'danger'
+    )
+  }
+}
 </script>
 
 
@@ -549,10 +585,16 @@ const fetchStatistics = async () => {
                   {{ formatDate(item.created_at) }}
                 </td>
                 <td class="p-6 text-right-lang">
-                  <Button icon="pi pi-eye" rounded severity="info" outlined size="small"
-                    class="h-9 w-9 border-blue-200 bg-blue-50/20 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 cursor-pointer transition-all duration-300"
-                    @click.stop="router.push(`/admin/proctoring/student/${item.student_id}`)"
-                    v-tooltip.top="t[currentLang].viewDetails" />
+                  <div class="flex items-center gap-2 justify-end">
+                    <Button icon="pi pi-eye" rounded severity="info" outlined size="small"
+                      class="h-9 w-9 border-blue-200 bg-blue-50/20 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 cursor-pointer transition-all duration-300"
+                      @click.stop="router.push(`/admin/proctoring/student/${item.student_id}`)"
+                      v-tooltip.top="t[currentLang].viewDetails" />
+                    <Button icon="pi pi-trash" rounded severity="danger" outlined size="small"
+                      class="h-9 w-9 border-rose-200 bg-rose-50/20 text-rose-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-all duration-300"
+                      @click="deleteAllStudentSessions(item.student_id, item.student?.user?.name ?? '', $event)"
+                      v-tooltip.top="currentLang === 'ar' ? 'حذف كل الجلسات' : 'Delete All Sessions'" />
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -573,6 +615,53 @@ const fetchStatistics = async () => {
       </div>
     </div>
   </AdminLayout>
+
+  <!-- Custom Modal Dialog -->
+  <Dialog v-model:visible="modalConfig.visible" modal :closable="false" :style="{ width: '450px' }"
+    class="rounded-[2rem] overflow-hidden border-0 shadow-2xl">
+    <template #header>
+      <div class="flex items-center gap-4 px-2 pt-2" :class="{
+        'text-emerald-500': modalConfig.type === 'success',
+        'text-rose-500': modalConfig.type === 'danger',
+        'text-amber-500': modalConfig.type === 'warning',
+        'text-indigo-500': modalConfig.type === 'info',
+        'flex-row-reverse': currentLang === 'ar'
+      }">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm shrink-0" :class="{
+          'bg-emerald-50 border-emerald-100 text-emerald-600': modalConfig.type === 'success',
+          'bg-rose-50 border-rose-100 text-rose-600': modalConfig.type === 'danger',
+          'bg-amber-50 border-amber-100 text-amber-600': modalConfig.type === 'warning',
+          'bg-indigo-50 border-indigo-100 text-indigo-600': modalConfig.type === 'info'
+        }">
+          <i class="text-2xl" :class="{
+            'pi pi-check-circle': modalConfig.type === 'success',
+            'pi pi-times-circle': modalConfig.type === 'danger',
+            'pi pi-exclamation-triangle': modalConfig.type === 'warning',
+            'pi pi-info-circle': modalConfig.type === 'info'
+          }"></i>
+        </div>
+        <h3 class="font-black text-xl tracking-tight text-slate-800">{{ modalConfig.title }}</h3>
+      </div>
+    </template>
+    <p class="text-sm text-slate-600 leading-relaxed px-2 pb-2">{{ modalConfig.message }}</p>
+    <template #footer>
+      <div class="flex gap-3 px-2 pb-2">
+        <button v-if="modalConfig.showCancel" @click="handleModalCancel"
+          class="flex-1 py-3 rounded-xl text-xs font-black text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all duration-200">
+          {{ modalConfig.cancelText }}
+        </button>
+        <button @click="handleModalConfirm"
+          class="flex-1 py-3 rounded-xl text-xs font-black text-white transition-all duration-200" :class="{
+            'bg-emerald-500 hover:bg-emerald-600': modalConfig.type === 'success',
+            'bg-rose-500 hover:bg-rose-600': modalConfig.type === 'danger',
+            'bg-amber-500 hover:bg-amber-600': modalConfig.type === 'warning',
+            'bg-indigo-500 hover:bg-indigo-600': modalConfig.type === 'info'
+          }">
+          {{ modalConfig.confirmText }}
+        </button>
+      </div>
+    </template>
+  </Dialog>
 </template>
 
 

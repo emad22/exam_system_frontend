@@ -117,13 +117,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6 py-2" dir="ltr">
+    <div class="space-y-6 py-2">
         <!-- Main Area Container -->
         <div
             class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden flex flex-col gap-6">
 
             <!-- Content / Instruction if any -->
-            <div v-if="question.content" class="text-right max-w-3xl w-full mx-auto ql-content">
+            <div v-if="question.content" class=" max-w-3xl w-full mx-auto ql-content">
                 <div class="text-lg font-bold text-slate-800 leading-relaxed" v-html="question.content"></div>
             </div>
 

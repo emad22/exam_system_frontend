@@ -950,6 +950,38 @@ const editorModules = {
                                     </div>
                                 </div>
 
+                                <div class="space-y-3 mt-4">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <label
+                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                                t[currentLang].generalInstructionsLabel }}</label>
+                                        <div class="flex bg-slate-100 rounded-xl p-1 gap-1 border border-slate-200/50">
+                                            <button type="button" @click="passageGeneralShowHtml = false"
+                                                :class="!passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                                <i class="pi pi-align-left text-[10px]"></i> {{ t[currentLang].visualTab
+                                                }}
+                                            </button>
+                                            <button type="button" @click="passageGeneralShowHtml = true"
+                                                :class="passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
+                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
+                                                <i class="pi pi-code text-[10px]"></i> {{ t[currentLang].sourceTab }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-if="!passageGeneralShowHtml">
+                                        <Editor v-model="form.passage_general_instructions" editorStyle="height: 240px"
+                                            :modules="editorModules"
+                                            class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                            :placeholder="t[currentLang].generalInstructionsPlaceholder" />
+                                    </div>
+                                    <div v-else>
+                                        <textarea v-model="form.passage_general_instructions" rows="8"
+                                            class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
+                                            :placeholder="t[currentLang].generalInstructionsPlaceholder"></textarea>
+                                    </div>
+                                </div>
+
                                 <!-- Text Editor Section -->
                                 <div class="flex flex-col space-y-1.5">
                                     <div class="flex items-center justify-between ml-1 mr-1">
@@ -978,49 +1010,19 @@ const editorModules = {
                                     </div>
 
                                     <div v-if="!passageShowHtml">
-                                        <Editor v-model="form.passage_content" editorStyle="height: 250px"
+                                        <Editor v-model="form.passage_content" editorStyle="height: 350px"
                                             :modules="editorModules"
                                             class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
                                             placeholder="Enter formatted passage contents..." />
                                     </div>
                                     <div v-else>
-                                        <textarea v-model="form.passage_content" rows="6"
+                                        <textarea v-model="form.passage_content" rows="12"
                                             class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
                                             placeholder="Write your raw HTML here (e.g. <b>Hello</b> World)..."></textarea>
                                     </div>
                                 </div>
 
-                                <div class="space-y-3 mt-4">
-                                    <div class="flex items-center justify-between gap-3">
-                                        <label
-                                            class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].generalInstructionsLabel }}</label>
-                                        <div class="flex bg-slate-100 rounded-xl p-1 gap-1 border border-slate-200/50">
-                                            <button type="button" @click="passageGeneralShowHtml = false"
-                                                :class="!passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
-                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
-                                                <i class="pi pi-align-left text-[10px]"></i> {{ t[currentLang].visualTab
-                                                }}
-                                            </button>
-                                            <button type="button" @click="passageGeneralShowHtml = true"
-                                                :class="passageGeneralShowHtml ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'"
-                                                class="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5">
-                                                <i class="pi pi-code text-[10px]"></i> {{ t[currentLang].sourceTab }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div v-if="!passageGeneralShowHtml">
-                                        <Editor v-model="form.passage_general_instructions" editorStyle="height: 140px"
-                                            :modules="editorModules"
-                                            class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
-                                            :placeholder="t[currentLang].generalInstructionsPlaceholder" />
-                                    </div>
-                                    <div v-else>
-                                        <textarea v-model="form.passage_general_instructions" rows="5"
-                                            class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
-                                            :placeholder="t[currentLang].generalInstructionsPlaceholder"></textarea>
-                                    </div>
-                                </div>
+
 
                                 <!-- Media Assets Grid -->
                                 <div class="space-y-3">
@@ -1123,25 +1125,6 @@ const editorModules = {
                         </button>
 
                         <div class="space-y-8">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="flex flex-col space-y-1.5">
-                                    <label
-                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                            t[currentLang].questionTypeLabel }}</label>
-                                    <Select v-model="q.type" @change="handleTypeChange(qIdx)" :options="questionTypes"
-                                        optionLabel="label" optionValue="value"
-                                        class="w-full rounded-xl bg-slate-50 border-slate-100 px-3 shadow-sm h-12 flex items-center" />
-                                </div>
-                                <div class="flex flex-col space-y-1.5">
-                                    <label
-                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                            t[currentLang].instructionsLabel }}</label>
-                                    <InputText v-model="q.instructions" placeholder="e.g. Choose the correct answer..."
-                                        class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold" />
-                                </div>
-
-                            </div>
-
                             <!-- General Instructions (per single question, especially standalone questions without a passage) -->
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between gap-3">
@@ -1163,17 +1146,37 @@ const editorModules = {
                                     </div>
                                 </div>
                                 <div v-if="!q.showGeneralHtml">
-                                    <Editor v-model="q.general_instructions" editorStyle="height: 120px"
+                                    <Editor v-model="q.general_instructions" editorStyle="height: 240px"
                                         :modules="editorModules"
-                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-white"
+                                        class="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50/30"
                                         :placeholder="t[currentLang].generalInstructionsPlaceholder" />
                                 </div>
                                 <div v-else>
-                                    <textarea v-model="q.general_instructions" rows="4"
+                                    <textarea v-model="q.general_instructions" rows="8"
                                         class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
                                         :placeholder="t[currentLang].generalInstructionsPlaceholder"></textarea>
                                 </div>
                             </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="flex flex-col space-y-1.5">
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].questionTypeLabel }}</label>
+                                    <Select v-model="q.type" @change="handleTypeChange(qIdx)" :options="questionTypes"
+                                        optionLabel="label" optionValue="value"
+                                        class="w-full rounded-xl bg-slate-50 border-slate-100 px-3 shadow-sm h-12 flex items-center" />
+                                </div>
+                                <div class="flex flex-col space-y-1.5">
+                                    <label
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
+                                            t[currentLang].instructionsLabel }}</label>
+                                    <InputText v-model="q.instructions" placeholder="e.g. Choose the correct answer..."
+                                        class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold" />
+                                </div>
+
+                            </div>
+
+
 
                             <!-- Question Content Input: Text or Media mode -->
                             <div class="space-y-4">
@@ -1217,12 +1220,12 @@ const editorModules = {
                                     </div>
 
                                     <div v-if="!q.showHtml">
-                                        <Editor v-model="q.content" editorStyle="height: 180px" :modules="editorModules"
+                                        <Editor v-model="q.content" editorStyle="height: 280px" :modules="editorModules"
                                             class="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50/30"
                                             placeholder="Type your formatted question here..." />
                                     </div>
                                     <div v-else>
-                                        <textarea v-model="q.content" rows="4"
+                                        <textarea v-model="q.content" rows="8"
                                             class="w-full rounded-2xl p-4 font-mono text-xs border border-slate-100 bg-white text-slate-900 focus:outline-none focus:border-brand-primary transition-all shadow-inner placeholder-slate-400"
                                             placeholder="Write raw HTML code for the question here..."></textarea>
                                     </div>
@@ -1561,7 +1564,7 @@ const editorModules = {
                                                             'Note: Word count is saved automatically' }}
                                                     </p>
                                                     <p class="text-[8px] text-blue-600 mt-1.5 leading-relaxed">
-                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will be calculated and displayed to the teacher during grading' }}
+                                                        {{ currentLang === 'ar' ? 'سيتم حساب عدد الكلمات المكتوبة  تلقائياً وعرضها للمدرس عند التصحيح' : 'Word count will becalculated and displayed to the teacher during grading' }}
                                                     </p>
                                                 </div>
                                             </div>
