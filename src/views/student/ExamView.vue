@@ -1324,67 +1324,72 @@ onUnmounted(() => {
                         <!-- Phase A: Audio + General Instructions (full screen) -->
                         <template v-if="!shouldShowContent">
                             <div
-                                class="max-w-3xl mx-auto w-full flex flex-col gap-6 p-8 animate-in fade-in duration-500">
+                                class="flex-1 flex items-center justify-center py-8 px-4 animate-in fade-in duration-500">
+                                <div
+                                    class="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
 
-                                <!-- General Instructions Banner -->
-                                <div v-if="passageGeneralInstructions"
-                                    class="p-5 bg-amber-50 border border-amber-200 rounded-2xl shadow-sm" dir="auto">
-                                    <div class="flex items-start gap-3">
+                                    <!-- Card Header: Headphones Icon -->
+                                    <div class="flex flex-col items-center pt-8 pb-4 px-8">
                                         <div
-                                            class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
-                                            <i class="pi pi-info-circle text-base"></i>
+                                            class="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-5 shadow-md border border-red-100 animate-pulse">
+                                            <i class="pi pi-headphones text-5xl text-red-400"></i>
                                         </div>
-                                        <p class="text-base font-semibold text-amber-900 leading-relaxed"
-                                            v-html="cleanHtml(passageGeneralInstructions)"></p>
-                                    </div>
-                                </div>
 
-                                <!-- Audio Player (large, centered) -->
-                                <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-inner p-6">
-                                    <div class="flex items-center gap-3 mb-4" dir="rtl">
+                                        <!-- General Instructions from DB (title + content) -->
+                                        <div v-if="passageGeneralInstructions"
+                                            class="listening-instructions text-center space-y-2 mb-4 w-full" dir="auto"
+                                            v-html="cleanHtml(passageGeneralInstructions)">
+                                        </div>
+                                    </div>
+
+                                    <!-- Audio Player Section -->
+                                    <div class="px-8 pb-6">
+                                        <!-- Autoplay failed: show play button -->
+                                        <div v-if="autoplayFailed && !isAudioPlaying && !hasListened"
+                                            class="mb-4 flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-xl animate-in fade-in duration-500">
+                                            <div class="flex items-center gap-2">
+                                                <i class="pi pi-exclamation-triangle text-rose-500 text-sm"></i>
+                                                <span class="text-sm font-bold text-rose-700">Click to start
+                                                    listening</span>
+                                            </div>
+                                            <button @click="toggleAudioManual"
+                                                class="px-5 py-2 bg-rose-600 text-white rounded-lg text-sm font-black hover:bg-rose-700 transition-all shadow-sm">
+                                                Play audio
+                                            </button>
+                                        </div>
+
+                                        <!-- Audio playing indicator -->
+                                        <div v-if="isAudioPlaying"
+                                            class="flex items-center justify-center gap-1.5 mb-3">
+                                            <span class="w-1 h-4 bg-brand-primary rounded-full animate-bounce"
+                                                style="animation-delay: 0ms"></span>
+                                            <span class="w-1 h-6 bg-brand-primary rounded-full animate-bounce"
+                                                style="animation-delay: 100ms"></span>
+                                            <span class="w-1 h-4 bg-brand-primary rounded-full animate-bounce"
+                                                style="animation-delay: 200ms"></span>
+                                            <span class="w-1 h-5 bg-brand-primary rounded-full animate-bounce"
+                                                style="animation-delay: 150ms"></span>
+                                            <span class="w-1 h-3 bg-brand-primary rounded-full animate-bounce"
+                                                style="animation-delay: 50ms"></span>
+                                        </div>
+
+                                        <!-- Progress bar -->
+                                        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                            <div class="bg-brand-primary h-full transition-all duration-150 ease-linear"
+                                                :style="{ width: audioProgress + '%' }"></div>
+                                        </div>
                                         <div
-                                            class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-brand-primary">
-                                            <i class="pi pi-volume-up text-base"
-                                                :class="isAudioPlaying ? 'animate-pulse' : ''"></i>
+                                            class="flex justify-between mt-2 text-xs font-bold text-slate-400 font-mono">
+                                            <span class="text-brand-primary">{{ audioCurrentTime }}</span>
+                                            <span>{{ audioDuration }}</span>
                                         </div>
-                                        <span
-                                            class="text-sm font-black text-slate-500 uppercase tracking-widest">Audio</span>
+
+                                        <!-- Listening hint -->
+                                        <p class="text-center text-xs text-slate-400 mt-4 italic">
+                                            You will go to the questions after the audio ends.
+                                        </p>
                                     </div>
 
-                                    <!-- Autoplay failed banner -->
-                                    <div v-if="autoplayFailed && !isAudioPlaying && !hasListened"
-                                        class="mb-4 flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-xl animate-in fade-in slide-in-from-top-2 duration-500">
-                                        <div class="flex items-center gap-2">
-                                            <i class="pi pi-exclamation-triangle text-rose-500 text-sm"></i>
-                                            <span class="text-sm font-bold text-rose-700">Click to start
-                                                listening</span>
-                                        </div>
-                                        <button @click="toggleAudioManual"
-                                            class="px-5 py-2 bg-rose-600 text-white rounded-lg text-sm font-black hover:bg-rose-700 transition-all shadow-sm">
-                                            Play audio
-                                        </button>
-                                    </div>
-
-                                    <!-- Progress bar -->
-                                    <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                                        <div class="bg-brand-primary h-full transition-all duration-150 ease-linear"
-                                            :style="{ width: audioProgress + '%' }"></div>
-                                    </div>
-                                    <div class="flex justify-between mt-2 text-xs font-bold text-slate-400 font-mono">
-                                        <span class="text-brand-primary">{{ audioCurrentTime }}</span>
-                                        <span>{{ audioDuration }}</span>
-                                    </div>
-                                </div>
-
-                                <!-- Waiting message -->
-                                <div class="flex flex-col items-center justify-center py-6 text-center space-y-3">
-                                    <div
-                                        class="w-14 h-14 bg-brand-primary/5 rounded-[1.25rem] flex items-center justify-center text-brand-primary animate-bounce">
-                                        <i class="pi pi-headphones text-2xl"></i>
-                                    </div>
-                                    <p class="text-sm font-semibold text-slate-500"></p>
-                                    <p class="text-xs text-slate-400 italic">Listen to the full audio to unlock the
-                                        questions</p>
                                 </div>
                             </div>
                         </template>
@@ -1914,5 +1919,48 @@ onUnmounted(() => {
 .question-title-text :deep(*) {
     color: #1e293b;
     /* font-size is controlled by Tailwind utility class on the element */
+}
+
+/* Listening instructions card: style the general_instructions HTML content */
+.listening-instructions :deep(h1),
+.listening-instructions :deep(h2),
+.listening-instructions :deep(h3) {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.75rem;
+}
+
+.listening-instructions :deep(p) {
+    font-size: 0.875rem;
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 0.5rem;
+}
+
+.listening-instructions :deep(ul),
+.listening-instructions :deep(ol) {
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.listening-instructions :deep(li) {
+    font-size: 0.875rem;
+    color: #475569;
+    line-height: 1.7;
+}
+
+.listening-instructions :deep(.info-box),
+.listening-instructions :deep(blockquote) {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    color: #1e40af;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
 }
 </style>
