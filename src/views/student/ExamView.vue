@@ -229,6 +229,7 @@ const cheatAttempts = ref([]);
 const showExitModal = ref(false);
 const showConfirmAnswerModal = ref(false);
 const showInactivityModal = ref(false);
+const isUploadingAnswer = ref(false);
 const activeTesterReq = ref(null);
 const { keyboardLayout, showVirtualKeyboard } = useVirtualKeyboard();
 const timerConfig = ref(null);
@@ -614,8 +615,15 @@ const advanceQuestion = async () => {
         hasListened.value = false;
         window.scrollTo(0, 0);
     } else {
-        await saveCurrentAnswerDraft(prevAns, prevQ); // await last draft before submitting
-        await submitCurrentBatch();
+        // Show upload overlay if there is an audio file to upload
+        const hasAudio = prevAns?.recorded_file && !prevAns?.is_media_uploaded;
+        if (hasAudio) isUploadingAnswer.value = true;
+        try {
+            await saveCurrentAnswerDraft(prevAns, prevQ); // await last draft before submitting
+            await submitCurrentBatch();
+        } finally {
+            isUploadingAnswer.value = false;
+        }
     }
 };
 
@@ -1672,6 +1680,41 @@ onUnmounted(() => {
                     </div>
                 </div>
 
+                <!-- Upload Loading Overlay -->
+                <Teleport to="body">
+                    <Transition name="upload-fade">
+                        <div v-if="isUploadingAnswer || isSubmittingBatch"
+                            class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/75 backdrop-blur-md">
+                            <div
+                                class="bg-white rounded-[2.5rem] shadow-2xl max-w-sm w-full mx-4 p-10 text-center space-y-6 border border-slate-100">
+                                <!-- Animated upload icon -->
+                                <div class="relative flex items-center justify-center mx-auto w-28 h-28">
+                                    <div
+                                        class="absolute inset-0 rounded-full border-4 border-brand-primary/20 animate-ping">
+                                    </div>
+                                    <div
+                                        class="w-24 h-24 rounded-full bg-gradient-to-br from-brand-primary/10 to-emerald-500/10 flex items-center justify-center border-2 border-brand-primary/30">
+                                        <i class="pi pi-cloud-upload text-4xl text-brand-primary upload-bounce"></i>
+                                    </div>
+                                </div>
+                                <!-- Text -->
+                                <div class="space-y-2">
+                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">Uploading Your Response</h2>
+                                    <p class="text-slate-500 font-bold text-sm leading-relaxed">Please wait while we securely save your audio recording.<br />
+                                        <span class="text-xs text-slate-400">Do not close or refresh this page.</span>
+                                    </p>
+                                </div>
+                                <!-- Progress bar -->
+                                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                    <div
+                                        class="h-full bg-gradient-to-r from-brand-primary to-emerald-500 rounded-full upload-progress-bar">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Transition>
+                </Teleport>
+
                 <!-- Cheat Warning Modal -->
                 <div v-if="showCheatModal"
                     class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -1949,5 +1992,48 @@ onUnmounted(() => {
     text-align: center !important;
     margin-left: auto !important;
     margin-right: auto !important;
+}
+
+/* ===== Upload Loading Overlay Animations ===== */
+@keyframes upload-bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.upload-bounce {
+    animation: upload-bounce 1.2s ease-in-out infinite;
+}
+
+@keyframes upload-progress {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+.upload-progress-bar {
+    width: 50%;
+    animation: upload-progress 1.5s ease-in-out infinite;
+}
+
+/* Vue Transition classes for the upload overlay */
+.upload-fade-enter-active,
+.upload-fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.upload-fade-enter-from,
+.upload-fade-leave-to {
+    opacity: 0;
 }
 </style>

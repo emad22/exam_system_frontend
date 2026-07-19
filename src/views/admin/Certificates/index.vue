@@ -197,8 +197,8 @@ const deleteCertificate = async (cert) => {
                         responsiveLayout="scroll">
 
                         <!-- ID Column -->
-                        <Column field="certificate_number" :header="t[currentLang].colCertId"
-                            class="font-mono text-xs font-extrabold text-slate-500"></Column>
+                        <!-- <Column field="certificate_number" :header="t[currentLang].colCertId"
+                            class="font-mono text-xs font-extrabold text-slate-500"></Column> -->
 
                         <!-- Student Column -->
                         <Column :header="t[currentLang].colStudent">
