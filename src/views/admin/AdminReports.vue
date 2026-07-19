@@ -114,26 +114,38 @@ const scoreColor = (score) => {
 const getCalculatedSkillScore = (skillResult) => {
     if (!skillResult || skillResult.score === null || skillResult.score === undefined) return null;
     const levelsCount = skillResult.skill?.levels_count || 1;
- //   showAlert('levelsCount****************** '+ levelsCount);
     return Math.round(Number(skillResult.score) * levelsCount);
 };
 
+const getValidSkills = (attempt) => {
+    if (!attempt || !attempt.attempt_skills) return [];
+    return attempt.attempt_skills.filter(skillResult => {
+        const skillName = skillResult.skill?.name?.toLowerCase() || '';
+        return (
+            skillName.includes('read') ||
+            skillName.includes('listen') ||
+            skillName.includes('struct') ||
+            skillName.includes('struc')
+        );
+    });
+};
+
+const getValidSkillsCount = (attempt) => {
+    const validSkills = getValidSkills(attempt);
+    return validSkills.length > 0 ? validSkills.length : (attempt.skills_count || 1);
+};
+
+const getValidTotalLevels = (attempt) => {
+    const validSkills = getValidSkills(attempt);
+    if (validSkills.length === 0) return attempt.total_levels || 1;
+    return validSkills.reduce((sum, skillResult) => sum + (skillResult.skill?.levels_count || 1), 0);
+};
 
 const getTotalScore = (attempt) => {
-    if (!attempt || !attempt.attempt_skills) return 0;
-    // showAlert("************"+ attempt.skills_count);
-    return attempt.attempt_skills
-        .filter(skillResult => {
-            const skillName = skillResult.skill?.name?.toLowerCase() || '';
-            return (
-                skillName.includes('read') ||
-                skillName.includes('listen') ||
-                skillName.includes('struct')
-            );
-        })
-        .reduce((sum, skillResult) => {
-            return sum + (getCalculatedSkillScore(skillResult) || 0);
-        }, 0);
+    const validSkills = getValidSkills(attempt);
+    return validSkills.reduce((sum, skillResult) => {
+        return sum + (getCalculatedSkillScore(skillResult) || 0);
+    }, 0);
 };
 
 
@@ -211,11 +223,11 @@ onMounted(() => {
                                         {{ attempt.overall_score*800 }}
                                     </span> -->
                                     <span :class="scoreColor(attempt.overall_score)" class="text-2xl font-black italic tracking-tighter">
-                                       {{ Number((Number(getTotalScore(attempt)) / attempt.skills_count).toFixed(2)) }}</span>
+                                       {{ Number((Number(getTotalScore(attempt)) / getValidSkillsCount(attempt)).toFixed(2)) }}</span>
                                     
                                     <!-- <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2"></span> -->
                                     <!-- <span class="text-xl font-black text-slate-500"> / {{ Number((getTotalLevels(attempt) * 100 / attempt.skills_count).toFixed(2)) }}</span> -->
-                                    <span class="text-xl font-black text-slate-500"> / {{Number(attempt.total_levels* 100 / attempt.skills_count , 2)}} </span>
+                                    <span class="text-xl font-black text-slate-500"> / {{Number(getValidTotalLevels(attempt)* 100 / getValidSkillsCount(attempt) , 2)}} </span>
                                 </td>
                                 <td class="p-6 text-center">
                                     <Tag :value="attempt.status" 

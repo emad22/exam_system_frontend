@@ -61,25 +61,38 @@ const handleModalCancel = () => {
 };
 
 
+const getValidSkills = (attempt) => {
+    if (!attempt || !attempt.attempt_skills) return [];
+    return attempt.attempt_skills.filter(skillResult => {
+        const skillName = skillResult.skill?.name?.toLowerCase() || '';
+        return (
+            skillName.includes('read') ||
+            skillName.includes('listen') ||
+            skillName.includes('struct') ||
+            skillName.includes('struc')
+        );
+    });
+};
+
+const getValidSkillsCount = (attempt) => {
+    const validSkills = getValidSkills(attempt);
+    return validSkills.length > 0 ? validSkills.length : (attempt.skills_count || 1);
+};
+
+const getValidTotalLevels = (attempt) => {
+    const validSkills = getValidSkills(attempt);
+    if (validSkills.length === 0) return attempt.total_levels || 1;
+    return validSkills.reduce((sum, skillResult) => sum + (skillResult.skill?.levels_count || 1), 0);
+};
+
 const getTotalScore = (attempt) => {
-
     if (!attempt || !attempt.attempt_skills) return 0;
-    // alert("************"+ attempt.skills_count);
     totalLevels = 0;
-    return attempt.attempt_skills
-        .filter(skillResult => {
-            const skillName = skillResult.skill?.name?.toLowerCase() || '';
-
-            return (
-                skillName.includes('read') ||
-                skillName.includes('listen') ||
-                skillName.includes('struct')
-            );
-        })
-        .reduce((sum, skillResult) => {
-            totalLevels += skillResult.skill?.levels_count || 1;
-            return sum + (getCalculatedSkillScore(skillResult) || 0);
-        }, 0);
+    const validSkills = getValidSkills(attempt);
+    return validSkills.reduce((sum, skillResult) => {
+        totalLevels += skillResult.skill?.levels_count || 1;
+        return sum + (getCalculatedSkillScore(skillResult) || 0);
+    }, 0);
 };
 
 
@@ -937,10 +950,10 @@ onMounted(fetchDetails);
                             Index</p>
                         <div class="flex items-baseline gap-2">
                             <span class="text-5xl font-black italic tracking-tighter text-brand-primary">
-                                {{ Math.round(Number(getTotalScore(selectedAttempt)) / selectedAttempt.skills_count, 2)
+                                {{ Math.round(Number(getTotalScore(selectedAttempt)) / getValidSkillsCount(selectedAttempt), 2)
                                 }}</span>
-                            <span class="text-xl font-black text-slate-500"> / {{ Number(selectedAttempt.total_levels *
-                                100 / selectedAttempt.skills_count, 2) }} </span>
+                            <span class="text-xl font-black text-slate-500"> / {{ Number(getValidTotalLevels(selectedAttempt) *
+                                100 / getValidSkillsCount(selectedAttempt), 2) }} </span>
 
                         </div>
                         <div class="flex items-baseline gap-2 mt-2">
