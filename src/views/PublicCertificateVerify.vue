@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '@/services/api';
 
@@ -8,6 +8,28 @@ const code = route.params.code;
 const certData = ref(null);
 const isLoading = ref(true);
 const error = ref(null);
+
+// Compute the QR image URL using the full origin + path to avoid using `window` in the template
+const qrDataUrl = computed(() => {
+    const path = route.fullPath || (route.path || ('/verify-certificate/' + code));
+    const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
+    return 'https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' + encodeURIComponent(origin + path);
+});
+
+// Compute a safe logo URL. If backend provides an absolute or relative `/storage` path,
+// prefer using the configured backend base URL via `VITE_BACKEND_URL`. Otherwise fall back
+// to a local frontend public asset `/my-logo.png`.
+const logoSrc = computed(() => {
+    const backendBase = import.meta.env.VITE_BACKEND_URL || '';
+    const v = certData.value?.logo_url || '';
+    if (!v) return '/my-logo.png';
+    if (v.startsWith('http://') || v.startsWith('https://')) return v;
+    if (v.startsWith('/')) {
+        // if it's a storage path like /storage/..., prepend backend base when available
+        return backendBase ? backendBase.replace(/\/$/, '') + v : v;
+    }
+    return v;
+});
 
 onMounted(async () => {
     try {
@@ -48,7 +70,7 @@ onMounted(async () => {
             <div class="cert-container">
                 <!-- Logos & Photos -->
                 <div class="header-logo">
-                    <img src="https://www.arabacademy.com/wp-content/uploads/2021/04/arab-academy-logo.png" style="width: 150px;" />
+                    <img :src="logoSrc" style="width: 150px;" alt="Organization logo" />
                 </div>
                 <div class="student-photo">PHOTO</div>
 
@@ -104,7 +126,7 @@ onMounted(async () => {
                         <p class="signature-title">Program Director</p>
                     </div>
                     <div class="signature-box flex flex-col items-center">
-                        <img src="https://www.arabacademy.com/wp-content/uploads/2021/04/arab-academy-logo.png" style="width: 60px;" />
+                        <!-- <img src="https://www.arabacademy.com/wp-content/uploads/2021/04/arab-academy-logo.png" style="width: 60px;" /> -->
                         <p style="font-size: 7px; margin: 0; color: #64748b;">3 alif Al-Nabataat Street,</p>
                         <p style="font-size: 7px; margin: 0; color: #64748b;">Garden City, Cairo, Egypt</p>
                     </div>
@@ -119,7 +141,7 @@ onMounted(async () => {
                 <div class="footer flex justify-between items-end px-10">
                     <div class="flex items-center gap-4">
                         <div class="qr-code-box">
-                            <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' + $route.fullPath" class="w-full h-full" />
+                            <img :src="qrDataUrl" class="w-full h-full" />
                         </div>
                         <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                             Certificate S.N.: {{ certData.certificate_number }}
@@ -191,8 +213,8 @@ onMounted(async () => {
 .signature-name { font-weight: 900; font-size: 12px; margin: 0; border-top: 1px solid #cbd5e1; padding-top: 4px; }
 .signature-title { font-size: 10px; color: #64748b; font-weight: bold; }
 
-.footer { position: absolute; bottom: 30px; width: calc(100% - 60px); }
-.qr-code-box { width: 60px; height: 60px; }
+.footer { position: absolute; bottom: 30px; width: calc(100% - 60px); padding-left: 110px; }
+.qr-code-box { width: 60px; height: 60px; position: absolute; left: 30px; bottom: 30px; z-index: 10; }
 
 @media (max-width: 1024px) {
     .cert-page-wrapper {

@@ -141,24 +141,30 @@ const idFaceStatus = ref('');         // 'matched' | 'mismatch' | 'no_face'
 
 // const canVerify = computed(() => capturedFace.value && idNumber.value.trim().length >= 3);
 const canVerify = computed(() =>
-    capturedFace.value &&
-    uploadedId.value &&
-    idNumber.value.trim().length >= 3
+    isIdentityBypassed.value
+        ? true  // bypass: no photos/id needed
+        : capturedFace.value &&
+        uploadedId.value &&
+        idNumber.value.trim().length >= 3
 );
 const identityDone = computed(() => verifySuccess.value);
 
 const loadIdentityBypassState = async () => {
     const storedUser = authStorage.getUser();
     const storedBypass = storedUser?.student?.bypass_identity_verification;
+    
+    // استخدم القيمة المحلية كـ fallback مبدئي فقط
     if (typeof storedBypass === 'boolean') {
         isIdentityBypassed.value = storedBypass;
-        return;
     }
 
+    // دايمًا اتأكد من السيرفر — القيمة المحلية ممكن تكون قديمة (cached من login قديم)
     try {
         const { data } = await api.get('/user');
+        // console.log('fresh /user response:', data);
         const bypassFromProfile = data?.student?.bypass_identity_verification;
-        isIdentityBypassed.value = !!bypassFromProfile;
+        // console.log('bypass from /user:', bypassFromProfile, typeof bypassFromProfile);
+        isIdentityBypassed.value = !!bypassFromProfile && bypassFromProfile !== '0';
         if (data?.student) {
             authStorage.setUser(data);
         }
@@ -318,6 +324,30 @@ const verifyIdentity = async () => {
     idMatchStatus.value = '';
 
     try {
+        // ── BYPASS MODE: skip all verification and proceed directly ──
+        if (isIdentityBypassed.value) {
+            verifySuccess.value = true;
+            stopFaceCamera();
+            // Try to get session from backend, but don't block on it
+            try {
+                const res = await api.post('/proctoring/verify-identity', {
+                    id_number: idNumber.value.trim() || null,
+                });
+                if (res.data.session_id) {
+                    sessionStorage.setItem('proctoring_session_id', res.data.session_id);
+                }
+            } catch (e) {
+                console.warn('Could not fetch session ID:', e);
+            }
+            isVerifying.value = false;
+            // Proceed to next step automatically
+            setTimeout(() => {
+                goNext();
+            }, 300);
+            return;
+        }
+
+        // ── NORMAL MODE ──────────────────────────────────────────────────────────
         // 1. تأكد إن الـ models محملة
         if (!faceModelsLoaded.value) {
             await loadFaceModels();
@@ -349,14 +379,13 @@ const verifyIdentity = async () => {
             faceVsIdScore = Math.round((1 - Math.min(faceVsIdDistance, 1)) * 100);
 
             // Check if face match is good enough (distance < 0.6 is good)
-            if (shouldBlockLocalFaceMismatch({ bypassEnabled: isIdentityBypassed.value, distance: faceVsIdDistance })) {
+            if (shouldBlockLocalFaceMismatch({ bypassEnabled: false, distance: faceVsIdDistance })) {
                 verifyError.value = 'Face does not match the ID card image. Please ensure you are the person in the ID.';
                 return;
             }
         }
 
         // 4. ضغط الصور قبل الإرسال للـ backend (تقليل الـ payload)
-        // face-api comparison فوق استخدم النسخة الكاملة، هنا بس بنضغط للنت
         const [compressedFace, compressedId] = await Promise.all([
             compressImage(capturedFace.value, 480, 360, 0.7),
             uploadedId.value ? compressImage(uploadedId.value, 800, 600, 0.75) : Promise.resolve(null),
@@ -707,7 +736,7 @@ onUnmounted(() => { stopCamMic(); stopFaceCamera(); });
                                                         Camera</p>
                                                     <p class="text-[8px] font-bold mt-0.5"
                                                         :class="cameraActive ? 'text-emerald-600' : cameraError ? 'text-rose-400' : 'text-slate-400'">
-                                                        {{ cameraActive ? 'Active & Working ✓' : cameraError || 'Click to start' }}</p>
+                                                        {{ cameraActive ? 'Active & Working ✓' : cameraError || 'Click  to start' }}</p>
                                                 </div>
                                                 <button @click="startCamera" v-if="!cameraActive"
                                                     class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-violet-100 hover:text-violet-600 transition-all text-sm"><i
@@ -739,7 +768,7 @@ onUnmounted(() => { stopCamMic(); stopFaceCamera(); });
                                                     <div class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse">
                                                     </div>
                                                     <span class="text-[8px] font-black text-white">{{ audioLevel
-                                                        }}%</span>
+                                                    }}%</span>
                                                 </div>
                                             </div>
                                             <div class="p-4 bg-white">
@@ -757,7 +786,7 @@ onUnmounted(() => { stopCamMic(); stopFaceCamera(); });
                                                             Microphone</p>
                                                         <p class="text-[8px] font-bold mt-0.5"
                                                             :class="micActive ? 'text-emerald-600' : micError ? 'text-rose-400' : 'text-slate-400'">
-                                                            {{ micActive ? 'Active & Working ✓' : micError || 'Click to   start' }}</p>
+                                                            {{ micActive ? 'Active & Working ✓' : micError || 'Click to  start' }}</p>
                                                     </div>
                                                     <button @click="startMic" v-if="!micActive"
                                                         class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-violet-100 hover:text-violet-600 transition-all text-sm"><i

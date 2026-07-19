@@ -84,6 +84,20 @@ const downloadCertificate = (cert) => {
         });
 };
 
+const regenerateCertificate = async (cert) => {
+    try {
+        const res = await api.post(`/admin/certificates/create-for-attempt/${cert.exam_attempt_id}`);
+        // replace certificate data in the current list if returned
+        if (res.data.certificate) {
+            certificates.value.data = certificates.value.data.map(c => c.id === res.data.certificate.id ? res.data.certificate : c);
+        }
+        alert('Certificate regenerated. You can now download the updated PDF.');
+    } catch (err) {
+        console.error('Failed to regenerate certificate', err);
+        alert('Failed to regenerate certificate.');
+    }
+};
+
 const onPage = (event) => {
     fetchCertificates(event.page + 1);
 };
@@ -99,6 +113,18 @@ const toggleVisibility = async (cert) => {
         cert.is_visible_to_student = res.data.is_visible_to_student;
     } catch (err) {
         console.error('Failed to toggle visibility', err);
+    }
+};
+
+const deleteCertificate = async (cert) => {
+    if (!confirm('Delete this certificate? This action cannot be undone.')) return;
+    try {
+        await api.delete(`/admin/certificates/${cert.id}`);
+        // remove from current list
+        certificates.value.data = certificates.value.data.filter(c => c.id !== cert.id);
+    } catch (err) {
+        console.error('Failed to delete certificate', err);
+        alert('Failed to delete certificate.');
     }
 };
 </script>
@@ -245,10 +271,12 @@ const toggleVisibility = async (cert) => {
                                 <div class="flex justify-end gap-1.5">
                                     <Button icon="pi pi-download" text rounded severity="info" size="small"
                                         @click="downloadCertificate(data)" v-tooltip="t[currentLang].downloadPdf" />
+                                    <Button icon="pi pi-refresh" text rounded severity="warning" size="small" @click="regenerateCertificate(data)" v-tooltip="'Regenerate PDF'" />
                                     <a :href="'/verify-certificate/' + data.verification_code" target="_blank">
                                         <Button icon="pi pi-external-link" text rounded severity="secondary"
                                             size="small" v-tooltip="t[currentLang].verifyLink" />
                                     </a>
+                                    <Button icon="pi pi-trash" text rounded severity="danger" size="small" @click="deleteCertificate(data)" v-tooltip="'Delete Certificate'" />
                                 </div>
                             </template>
                         </Column>

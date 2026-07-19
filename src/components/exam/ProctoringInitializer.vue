@@ -9,15 +9,16 @@
         </h1>
       </div>
       <p class="text-sm text-slate-600 mt-2">
-        {{ currentLang === 'ar' 
-          ? 'يجب أن تمر بعملية المراقبة قبل بدء الامتحان' 
+        {{ currentLang === 'ar'
+          ? 'يجب أن تمر بعملية المراقبة قبل بدء الامتحان'
           : 'You must complete the proctoring setup before starting the exam' }}
       </p>
     </div>
 
     <!-- Steps Tracker -->
     <div class="steps-tracker">
-      <div v-for="(step, index) in steps" :key="index" class="step" :class="{ active: currentStep === index, done: completedSteps > index }">
+      <div v-for="(step, index) in steps" :key="index" class="step"
+        :class="{ active: currentStep === index, done: completedSteps > index }">
         <div class="step-number">
           <span v-if="completedSteps > index" class="text-success">
             <i class="pi pi-check"></i>
@@ -31,33 +32,17 @@
     <!-- Step Content (scrollable) -->
     <div class="step-content">
       <!-- Step 1: System Requirements -->
-      <SystemRequirementsCheck 
-        v-if="currentStep === 0"
-        @complete="completeStep(0)"
-        :current-lang="currentLang"
-      />
+      <SystemRequirementsCheck v-if="currentStep === 0" @complete="completeStep(0)" :current-lang="currentLang" />
 
       <!-- Step 2: Camera & Microphone Test -->
-      <CameraAndMicrophoneTest 
-        v-else-if="currentStep === 1"
-        @complete="completeStep(1)"
-        :current-lang="currentLang"
-      />
+      <CameraAndMicrophoneTest v-else-if="currentStep === 1" @complete="completeStep(1)" :current-lang="currentLang" />
 
       <!-- Step 3: Identity Verification -->
-      <IdentityVerification 
-        v-else-if="currentStep === 2"
-        @complete="completeStep(2)"
-        :attempt-id="attemptId"
-        :current-lang="currentLang"
-      />
+      <IdentityVerification v-else-if="currentStep === 2" @complete="completeStep(2)" :attempt-id="attemptId"
+        :current-lang="currentLang" :bypass-enabled="bypassIdentityVerification" />
 
       <!-- Step 4: Review & Confirm -->
-      <ReviewAndConfirm 
-        v-else-if="currentStep === 3"
-        @complete="startExam"
-        :current-lang="currentLang"
-      />
+      <ReviewAndConfirm v-else-if="currentStep === 3" @complete="startExam" :current-lang="currentLang" />
     </div>
 
     <!-- Loading Overlay -->
@@ -71,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import SystemRequirementsCheck from './ProctoringSteps/SystemRequirementsCheck.vue'
@@ -89,6 +74,17 @@ const currentStep = ref(0)
 const completedSteps = ref(0)
 const isLoading = ref(false)
 const loadingMessage = ref('')
+const bypassIdentityVerification = ref(false)
+
+// Fetch student profile to check bypass flag
+onMounted(async () => {
+  try {
+    const res = await api.get('/user')
+    bypassIdentityVerification.value = !!res.data?.student?.bypass_identity_verification
+  } catch (e) {
+    bypassIdentityVerification.value = false
+  }
+})
 
 const steps = ref([
   {
@@ -120,8 +116,8 @@ const completeStep = (stepIndex) => {
 const startExam = async () => {
   try {
     isLoading.value = true
-    loadingMessage.value = currentLang.value === 'ar' 
-      ? 'جاري بدء جلسة المراقبة...' 
+    loadingMessage.value = currentLang.value === 'ar'
+      ? 'جاري بدء جلسة المراقبة...'
       : 'Starting proctoring session...'
 
     // Initiate proctoring session
@@ -148,7 +144,7 @@ const startExam = async () => {
     loadingMessage.value = currentLang.value === 'ar'
       ? 'حدث خطأ، يرجى المحاولة مرة أخرى'
       : 'An error occurred, please try again'
-    
+
     console.error('Failed to start proctoring:', error)
   } finally {
     isLoading.value = false
@@ -226,7 +222,7 @@ const startExam = async () => {
 .step.active .step-number {
   background: #3b82f6;
   color: white;
-  box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
 .step.done .step-number {
@@ -276,7 +272,7 @@ const startExam = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;

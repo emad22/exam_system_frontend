@@ -1,128 +1,120 @@
 <template>
   <div class="identity-verification compact" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'">
-    <!-- Instructions - Compact -->
-    <div class="instruction-card compact">
-      <i class="pi pi-info-circle"></i>
-      <div class="instruction-content">
-        <h3>{{ currentLang === 'ar' ? 'تحقق من هويتك' : 'Verify Identity' }}</h3>
-        <p>{{ currentLang === 'ar' 
-          ? 'التقط صورة واضحة لوجهك مع رقم الهوية'
-          : 'Take a clear photo with your ID' }}</p>
-      </div>
+
+    <!-- Bypass Mode -->
+    <div v-if="bypassEnabled" class="bypass-notice">
+      <i class="pi pi-shield-check bypass-icon"></i>
+      <h3>{{ currentLang === 'ar' ? 'تم تفعيل التجاوز' : 'Verification Bypassed' }}</h3>
+      <p>{{ currentLang === 'ar'
+        ? 'تم إعفاؤك من التحقق من الهوية بواسطة الإدارة.'
+        : 'You have been exempted from identity verification by the administration.' }}</p>
+      <button @click="verifyIdentity" class="btn-primary bypass-btn" :disabled="isVerifying">
+        <i :class="isVerifying ? 'pi pi-spin pi-spinner' : 'pi pi-arrow-right'"></i>
+        {{ isVerifying
+          ? (currentLang === 'ar' ? 'جاري المعالجة...' : 'Processing...')
+          : (currentLang === 'ar' ? 'متابعة' : 'Continue') }}
+      </button>
     </div>
 
-    <!-- Compact Grid Layout -->
-    <div class="verification-grid">
-      <!-- Camera Section -->
-      <div class="verification-card compact">
-        <h2>
-          <i class="pi pi-camera"></i>
-          {{ currentLang === 'ar' ? 'الوجه' : 'Face' }}
-        </h2>
+    <!-- Normal Mode -->
+    <template v-else>
+      <!-- Instructions - Compact -->
+      <div class="instruction-card compact">
+        <i class="pi pi-info-circle"></i>
+        <div class="instruction-content">
+          <h3>{{ currentLang === 'ar' ? 'تحقق من هويتك' : 'Verify Identity' }}</h3>
+          <p>{{ currentLang === 'ar'
+            ? 'التقط صورة واضحة لوجهك مع رقم الهوية'
+            : 'Take a clear photo with your ID' }}</p>
+        </div>
+      </div>
 
-        <div class="video-container compact">
-          <video 
-            ref="videoElement" 
-            autoplay 
-            playsinline 
-            class="video-preview"
-          ></video>
+      <!-- Compact Grid Layout -->
+      <div class="verification-grid">
+        <!-- Camera Section -->
+        <div class="verification-card compact">
+          <h2>
+            <i class="pi pi-camera"></i>
+            {{ currentLang === 'ar' ? 'الوجه' : 'Face' }}
+          </h2>
+
+          <div class="video-container compact">
+            <video ref="videoElement" autoplay playsinline class="video-preview"></video>
+          </div>
+
+          <button @click="capturePhoto" class="btn-capture compact" :disabled="isCapturing">
+            <i class="pi pi-camera"></i>
+            {{ currentLang === 'ar' ? 'التقط' : 'Capture' }}
+          </button>
+
+          <div v-if="capturedPhoto" class="photo-preview compact">
+            <img :src="capturedPhoto" :alt="currentLang === 'ar' ? 'صورتك' : 'Your photo'" />
+            <button @click="retakePhoto" class="btn-small">
+              <i class="pi pi-refresh"></i>
+            </button>
+          </div>
         </div>
 
-        <button 
-          @click="capturePhoto"
-          class="btn-capture compact"
-          :disabled="isCapturing"
-        >
-          <i class="pi pi-camera"></i>
-          {{ currentLang === 'ar' ? 'التقط' : 'Capture' }}
+        <!-- ID Section -->
+        <div class="verification-card compact">
+          <h2>
+            <i class="pi pi-id-card"></i>
+            {{ currentLang === 'ar' ? 'البطاقة' : 'ID' }}
+          </h2>
+
+          <div v-if="!uploadedID" class="upload-area compact">
+            <input ref="fileInput" type="file" accept="image/*" @change="handleIDUpload" style="display: none" />
+            <button @click="$refs.fileInput.click()" class="btn-upload compact">
+              <i class="pi pi-upload"></i>
+              {{ currentLang === 'ar' ? 'رفع' : 'Upload' }}
+            </button>
+          </div>
+
+          <div v-if="uploadedID" class="id-preview compact">
+            <img :src="uploadedID" :alt="currentLang === 'ar' ? 'البطاقة' : 'ID'" />
+            <button @click="clearID" class="btn-clear">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ID Number Section -->
+        <div class="verification-card compact">
+          <h2>
+            <i class="pi pi-key"></i>
+            {{ currentLang === 'ar' ? 'الرقم' : 'ID #' }}
+          </h2>
+
+          <input v-model="idNumber" type="text" class="id-input compact"
+            :placeholder="currentLang === 'ar' ? 'الرقم' : 'ID No.'" maxlength="20" />
+        </div>
+      </div>
+
+      <!-- Status Message -->
+      <div v-if="verificationStatus" class="status-message compact" :class="verificationStatus.type">
+        <i :class="verificationStatus.icon"></i>
+        {{ verificationStatus.message }}
+      </div>
+
+      <!-- Loading -->
+      <div v-if="isVerifying" class="loading-overlay">
+        <i class="pi pi-spin pi-spinner"></i>
+        <p>{{ currentLang === 'ar' ? 'جاري التحقق...' : 'Verifying...' }}</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button @click="goBack" class="btn-secondary">
+          <i class="pi pi-arrow-left"></i>
+          {{ currentLang === 'ar' ? 'رجوع' : 'Back' }}
         </button>
 
-        <div v-if="capturedPhoto" class="photo-preview compact">
-          <img :src="capturedPhoto" :alt="currentLang === 'ar' ? 'صورتك' : 'Your photo'" />
-          <button @click="retakePhoto" class="btn-small">
-            <i class="pi pi-refresh"></i>
-          </button>
-        </div>
+        <button @click="verifyIdentity" class="btn-primary" :disabled="!canVerify">
+          <i class="pi pi-check"></i>
+          {{ currentLang === 'ar' ? 'تحقق' : 'Verify' }}
+        </button>
       </div>
-
-      <!-- ID Section -->
-      <div class="verification-card compact">
-        <h2>
-          <i class="pi pi-id-card"></i>
-          {{ currentLang === 'ar' ? 'البطاقة' : 'ID' }}
-        </h2>
-
-        <div v-if="!uploadedID" class="upload-area compact">
-          <input 
-            ref="fileInput"
-            type="file" 
-            accept="image/*"
-            @change="handleIDUpload"
-            style="display: none"
-          />
-          <button @click="$refs.fileInput.click()" class="btn-upload compact">
-            <i class="pi pi-upload"></i>
-            {{ currentLang === 'ar' ? 'رفع' : 'Upload' }}
-          </button>
-        </div>
-
-        <div v-if="uploadedID" class="id-preview compact">
-          <img :src="uploadedID" :alt="currentLang === 'ar' ? 'البطاقة' : 'ID'" />
-          <button @click="clearID" class="btn-clear">
-            <i class="pi pi-trash"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- ID Number Section -->
-      <div class="verification-card compact">
-        <h2>
-          <i class="pi pi-key"></i>
-          {{ currentLang === 'ar' ? 'الرقم' : 'ID #' }}
-        </h2>
-
-        <input 
-          v-model="idNumber"
-          type="text"
-          class="id-input compact"
-          :placeholder="currentLang === 'ar' ? 'الرقم' : 'ID No.'"
-          maxlength="20"
-        />
-      </div>
-    </div>
-
-    <!-- Status Message -->
-    <div v-if="verificationStatus" class="status-message compact" :class="verificationStatus.type">
-      <i :class="verificationStatus.icon"></i>
-      {{ verificationStatus.message }}
-    </div>
-
-    <!-- Loading -->
-    <div v-if="isVerifying" class="loading-overlay">
-      <i class="pi pi-spin pi-spinner"></i>
-      <p>{{ currentLang === 'ar' ? 'جاري التحقق...' : 'Verifying...' }}</p>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-      <button 
-        @click="goBack"
-        class="btn-secondary"
-      >
-        <i class="pi pi-arrow-left"></i>
-        {{ currentLang === 'ar' ? 'رجوع' : 'Back' }}
-      </button>
-
-      <button 
-        @click="verifyIdentity"
-        class="btn-primary"
-        :disabled="!canVerify"
-      >
-        <i class="pi pi-check"></i>
-        {{ currentLang === 'ar' ? 'تحقق' : 'Verify' }}
-      </button>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -138,6 +130,10 @@ const props = defineProps({
   currentLang: {
     type: String,
     default: 'en'
+  },
+  bypassEnabled: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -157,6 +153,7 @@ let cameraStream = null
 const canvas = ref(null)
 
 const canVerify = computed(() => {
+  if (props.bypassEnabled) return true
   return capturedPhoto.value && uploadedID.value && idNumber.value.trim()
 })
 
@@ -178,7 +175,7 @@ const startCamera = async () => {
     verificationStatus.value = {
       type: 'error',
       icon: 'pi pi-times-circle',
-      message: props.currentLang === 'ar' 
+      message: props.currentLang === 'ar'
         ? 'فشل فتح الكاميرا'
         : 'Failed to open camera'
     }
@@ -263,18 +260,19 @@ const verifyIdentity = async () => {
     isVerifying.value = true
     verificationStatus.value = null
 
-    // Convert images to blobs
-    const faceBlob = dataURLtoBlob(capturedPhoto.value)
-    const idBlob = dataURLtoBlob(uploadedID.value)
-
-    // Create form data
     const formData = new FormData()
     formData.append('exam_attempt_id', props.attemptId)
-    formData.append('face_image', faceBlob, 'face.jpg')
-    formData.append('id_image', idBlob, 'id.jpg')
-    formData.append('id_number', idNumber.value)
 
-    // Send to backend
+    // Only attach images/id_number when not bypassed
+    if (!props.bypassEnabled) {
+      const faceBlob = dataURLtoBlob(capturedPhoto.value)
+      const idBlob = dataURLtoBlob(uploadedID.value)
+      formData.append('face_image', faceBlob, 'face.jpg')
+      formData.append('id_image', idBlob, 'id.jpg')
+      formData.append('id_number', idNumber.value)
+    }
+
+    // Send to backend — backend will auto-approve if bypass is enabled
     const response = await api.post('/proctoring/verify-identity', formData)
 
     if (response.data.verified) {
@@ -329,7 +327,10 @@ const goBack = () => {
 }
 
 onMounted(() => {
-  startCamera()
+  // Don't start camera if verification is bypassed
+  if (!props.bypassEnabled) {
+    startCamera()
+  }
 })
 
 onUnmounted(() => {
@@ -385,7 +386,7 @@ onUnmounted(() => {
   background: white;
   border-radius: 10px;
   padding: 1rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -461,7 +462,7 @@ onUnmounted(() => {
   top: 0.4rem;
   right: 0.4rem;
   padding: 0.3rem 0.5rem;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 4px;
@@ -471,7 +472,7 @@ onUnmounted(() => {
 }
 
 .btn-small:hover {
-  background: rgba(0,0,0,0.85);
+  background: rgba(0, 0, 0, 0.85);
 }
 
 .upload-area {
@@ -526,7 +527,7 @@ onUnmounted(() => {
   left: 50%;
   transform: translate(-50%, -50%);
   padding: 0.5rem 1rem;
-  background: rgba(239,68,68,0.9);
+  background: rgba(239, 68, 68, 0.9);
   color: white;
   border: none;
   border-radius: 6px;
@@ -540,7 +541,7 @@ onUnmounted(() => {
 }
 
 .btn-clear:hover {
-  background: rgba(239,68,68,1);
+  background: rgba(239, 68, 68, 1);
 }
 
 .id-input {
@@ -557,7 +558,7 @@ onUnmounted(() => {
 .id-input:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .status-message {
@@ -587,7 +588,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -642,5 +643,44 @@ onUnmounted(() => {
 
 .btn-secondary:hover {
   background: #cbd5e1;
+}
+
+/* ===== Bypass Mode ===== */
+.bypass-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem 2rem;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 2px solid #86efac;
+  border-radius: 12px;
+  text-align: center;
+  color: #15803d;
+}
+
+.bypass-icon {
+  font-size: 3rem;
+  color: #16a34a;
+}
+
+.bypass-notice h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.bypass-notice p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #166534;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.bypass-btn {
+  margin-top: 0.5rem;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
 }
 </style>
