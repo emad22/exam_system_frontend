@@ -141,6 +141,10 @@ const editForm = ref({
     is_continue: false,
 });
 
+// Flag to indicate user explicitly selected a package (prevent auto-reconcile)
+const manualPackageSelected = ref(false);
+const skillsEdited = ref(false);
+
 const loadData = async () => {
     loading.value = true;
     try {
@@ -182,8 +186,21 @@ const loadData = async () => {
             is_demo: !!student.is_demo,
             is_demo_proctored: !!student.is_demo_proctored,
             is_continue: student.is_continue !== undefined ? !!student.is_continue : false,
+
+            
         };
-        reconcilePackageFromSkills();
+
+        manualPackageSelected.value = true;
+
+        // If server provided a package, respect it and prevent auto-reconciliation.
+        // استدعِ reconcile فقط لو مفيش package_id خالص (يعني بيانات قديمة/فاسدة)
+        // if (!editForm.value.package_id) {
+        //     manualPackageSelected.value = false;
+        //     reconcilePackageFromSkills();
+        //     manualPackageSelected.value = true;
+        // } else {
+        //     manualPackageSelected.value = true;
+        // }
     } catch (err) {
         console.error(err);
         errorMsg.value = 'Failed to load identity data';
@@ -194,6 +211,8 @@ const loadData = async () => {
 
 // Watch package selection to sync skills and category
 watch(() => editForm.value.package_id, (newVal) => {
+    // mark that the user selected a package manually
+    manualPackageSelected.value = true;
     if (newVal && newVal !== 4) { // 4 is Custom Pack
         const pkg = packages.value.find(p => p.id === newVal)
         if (pkg) {
@@ -267,32 +286,14 @@ const normalizeSkills = (skillList) => {
 
 
 
-const reconcilePackageFromSkills = () => {
-    if (packages.value.length === 0) return;
-
-    // If the package is already Custom Package (4), do not auto-override it back to a fixed package
-    if (editForm.value.package_id === 4) return;
-
-    const current = normalizeSkills(editForm.value.assigned_skills).join(',');
-    let match = 4; // Default to Custom
-
-    for (const pkg of packages.value) {
-        if (pkg.id === 4) continue;
-        const target = normalizeSkills(pkg.skills).join(',');
-        if (target && target === current) {
-            match = pkg.id;
-            break;
-        }
-    }
-
-    if (editForm.value.package_id !== match) {
-        editForm.value.package_id = match;
-    }
-};
+// Automatic package reconciliation removed — do not change package_id based on assigned_skills.
+// The previous `reconcilePackageFromSkills` function was intentionally deleted to preserve
+// the package selected by the user or provided by the server.
 
 // Watch manual skill changes to switch to appropriate package or custom
 watch(() => editForm.value.assigned_skills, () => {
-    reconcilePackageFromSkills();
+    // Mark that the user changed the skills so we send them to the server on save.
+    skillsEdited.value = true;
 }, { deep: true });
 
 const saveStudent = async () => {
@@ -305,6 +306,12 @@ const saveStudent = async () => {
         };
         // Remove password if empty to prevent updating it to blank
         if (!payload.password) delete payload.password;
+
+        // If the user did not edit skills in this session, don't send assigned_skills
+        // to avoid backend auto-syncing package based on skills.
+        if (!skillsEdited.value) {
+            delete payload.assigned_skills;
+        }
 
         await api.patch(`/admin/students/${studentId}`, payload);
         showAlert(currentLang.value === 'ar' ? 'تم تحديث هوية الطالب بنجاح!' : 'Identity profile updated successfully.');
