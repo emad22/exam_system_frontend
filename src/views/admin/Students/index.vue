@@ -554,17 +554,19 @@ onMounted(() => {
                 </div>
 
                 <!-- Premium Search Bar -->
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div class="relative w-full max-w-xl">
-                        <i class="pi pi-search absolute text-slate-300 z-10" :class="currentLang === 'ar' ? 'right-4 top-1/2 -translate-y-1/2' : 'left-4 top-1/2 -translate-y-1/2'" />
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-end gap-4">
+                     <div class="w-full sm:w-72 shrink-0">
+                        <Dropdown v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                            :placeholder="t[currentLang].allPartners" showClear 
+                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12 flex items-center" />
+                    </div>
+                    <div class="relative w-full md:w-96 shrink-0">
+                        <i class="pi pi-search absolute text-slate-400 z-10" :class="currentLang === 'ar' ? 'right-4 top-1/2 -translate-y-1/2' : 'left-4 top-1/2 -translate-y-1/2'" />
                         <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder"
-                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm"
+                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm h-12"
                             :class="currentLang === 'ar' ? 'pr-12' : 'pl-12'" />
                     </div>
-                    <div class="w-full md:w-64">
-                        <Dropdown v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
-                            :placeholder="t[currentLang].allPartners" showClear class="w-full shadow-sm rounded-xl" />
-                    </div>
+                   
                 </div>
 
                 <!-- Registry Table Card -->
