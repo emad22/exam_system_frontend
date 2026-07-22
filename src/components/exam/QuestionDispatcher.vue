@@ -10,6 +10,7 @@ import OrderingQuestion from './OrderingQuestion.vue';
 import ShortAnswerQuestion from './ShortAnswerQuestion.vue';
 import TrueFalseQuestion from './TrueFalseQuestion.vue';
 import HighlightQuestion from './HighlightQuestion.vue';
+import SpeakingLiveQuestion from './SpeakingLiveQuestion.vue';
 
 const props = defineProps({
     question: {
@@ -62,6 +63,11 @@ const updateAnswer = (newAnswer) => {
         
         <SpeakingQuestion 
             v-else-if="question.type === 'speaking'" 
+            :key="question.id"
+            :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
+        
+        <SpeakingLiveQuestion 
+            v-else-if="question.type === 'speaking_live'" 
             :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         

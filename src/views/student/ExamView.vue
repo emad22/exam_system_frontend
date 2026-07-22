@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { useModal } from '@/composables/useModal';
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
@@ -37,7 +37,7 @@ const preloadFaceApiModels = () => {
 preloadFaceApiModels();
 
 // Constants
-const QUESTION_TYPES_WITHOUT_OPTIONS = ['speaking', 'fill_blank', 'drag_drop', 'word_selection', 'click_word', 'highlight', 'matching', 'ordering', 'writing', 'short_answer'];
+const QUESTION_TYPES_WITHOUT_OPTIONS = ['speaking', 'speaking_live', 'fill_blank', 'drag_drop', 'word_selection', 'click_word', 'highlight', 'matching', 'ordering', 'writing', 'short_answer'];
 const STIMULUS_QUESTION_TYPES = ['writing', 'short_answer'];
 const INACTIVITY_TIMEOUT = 1000 * 60 * 1000;
 const TIMER_WARNING_THRESHOLD = 300;
@@ -582,6 +582,7 @@ const VALIDATORS = {
     mcq: (ans) => !!ans.option_id,
     true_false: (ans) => !!ans.option_id,
     speaking: (ans) => !!ans.recorded_file,
+    speaking_live: () => true, // always valid — passive question, auto-submits on timeout or exit
     writing: (ans) => !!(ans.text_answer && ans.text_answer.trim().length > 0) || !!ans.recorded_file,
     drag_drop: (ans) => ans.drag_drop_answers.every(a => a !== null && a !== ''),
     fill_blank: (ans) => ans.fill_blank_answers.every(a => a && a.trim().length > 0),
@@ -591,6 +592,27 @@ const VALIDATORS = {
     short_answer: (ans) => ans.text_answer && ans.text_answer.trim().length > 0,
     click_word: (ans) => ans.selected_words.length > 0,
     word_selection: (ans) => ans.selected_words.length > 0,
+};
+
+const formattedSkillName = computed(() => {
+    if (!currentSkill.value?.name) return '';
+    const name = currentSkill.value.name.toLowerCase();
+    if (name.includes('speaking')) return 'SPEAKING';
+    if (name.includes('writing')) return 'WRITING';
+    if (name.includes('reading')) return 'READING';
+    if (name.includes('listening')) return 'LISTENING';
+    if (name.includes('grammar') || name.includes('structure')) return 'STRUCTURE';
+    return currentSkill.value.name.toUpperCase();
+});
+
+const triggerLiveStart = () => {
+    if (!answers.value[currentIndex.value]) return;
+    const ans = answers.value[currentIndex.value];
+    ans.live_status = 'connecting';
+    setTimeout(() => {
+        ans.live_status = 'active';
+        ans.started_at = new Date().toISOString();
+    }, 1500);
 };
 
 const submitAnswer = async () => {
@@ -1161,7 +1183,7 @@ onUnmounted(() => {
                                 <div class="flex items-center">
                                     <span
                                         class="text-[10px] sm:text-xs md:text-mm font-black uppercase tracking-wider text-slate-400 truncate">
-                                        {{ currentSkill?.name }}
+                                        {{ formattedSkillName }}
                                     </span>
                                 </div>
                             </div>
@@ -1187,25 +1209,28 @@ onUnmounted(() => {
                                 {{ displayNumber }} / {{ totalSkillQuestions }}
                             </span>
 
-                            <button @click="submitAnswer" :disabled="!isCurrentAnswerValid || questionSubmitted"
-                                class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-brand-primary text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                title="Confirm">
-                                <i class="pi pi-thumbs-up text-xs"></i>
-                                <span class="hidden sm:inline">CONFIRM</span>
-                            </button>
+                            <!-- speaking_live: no action buttons at all — stays passive until timeout/exit -->
+                            <template v-if="currentQ?.type !== 'speaking_live'">
+                                <button @click="submitAnswer" :disabled="!isCurrentAnswerValid || questionSubmitted"
+                                    class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-brand-primary text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-brand-primary/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                    title="Confirm">
+                                    <i class="pi pi-thumbs-up text-xs"></i>
+                                    <span class="hidden sm:inline">CONFIRM</span>
+                                </button>
 
-                            <button @click="advanceQuestion" :disabled="!questionSubmitted || isSubmittingBatch"
-                                class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-emerald-600 text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-emerald-500 transition-all shadow-lg flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Next">
-                                <span v-if="isSubmittingBatch" class="flex items-center gap-1">
-                                    <i class="pi pi-spin pi-spinner text-[10px]"></i>
-                                    <span class="hidden sm:inline">Saving...</span>
-                                </span>
-                                <template v-else>
-                                    <span class="hidden sm:inline">NEXT</span>
-                                    <i class="pi pi-chevron-right text-[10px]"></i>
-                                </template>
-                            </button>
+                                <button @click="advanceQuestion" :disabled="!questionSubmitted || isSubmittingBatch"
+                                    class="h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-6 bg-emerald-600 text-white rounded-lg font-black text-[10px] sm:text-xs md:text-sm hover:bg-emerald-500 transition-all shadow-lg flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Next">
+                                    <span v-if="isSubmittingBatch" class="flex items-center gap-1">
+                                        <i class="pi pi-spin pi-spinner text-[10px]"></i>
+                                        <span class="hidden sm:inline">Saving...</span>
+                                    </span>
+                                    <template v-else>
+                                        <span class="hidden sm:inline">NEXT</span>
+                                        <i class="pi pi-chevron-right text-[10px]"></i>
+                                    </template>
+                                </button>
+                            </template>
 
                             <div v-if="!isDemo && timerConfig && timerConfig.skillDuration > 0" :class="[
                                 'h-8 sm:h-9 md:h-10 flex items-center gap-1 px-1 sm:px-2 md:px-5 rounded-lg border transition-colors shrink-0',
@@ -1399,7 +1424,7 @@ onUnmounted(() => {
                                     :class="['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'gap-3' : 'gap-5'">
 
                                     <!-- Instructions Banner (matches design in image 2) -->
-                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                                    <div v-if="!['writing', 'short_answer', 'speaking_live'].includes(currentQ.type)"
                                         class="flex items-start gap-3 border border-slate-200 rounded-xl px-4 py-3 shadow-sm bg-[#f4f7fb]"
                                         dir="ltr">
                                         <div
@@ -1451,7 +1476,7 @@ onUnmounted(() => {
                             class="w-full lg:w-[45%] bg-white flex flex-col h-full border-t lg:border-t-0 lg:border-r border-slate-200/80 overflow-y-auto p-4 md:p-5 space-y-2">
 
                             <!-- Static Instruction (Read carefully...) at the top -->
-                            <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                            <div v-if="!['writing', 'short_answer', 'speaking_live'].includes(currentQ.type)"
                                 class="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-100 w-fit text-xs font-semibold select-none"
                                 dir="ltr">
                                 <i class="pi pi-book text-sm text-[#2563EB]"></i>
@@ -1551,7 +1576,7 @@ onUnmounted(() => {
                                     </div>
 
                                     <!-- Instructions Banner (matches design in image 2) -->
-                                    <div v-if="!['writing', 'short_answer'].includes(currentQ.type)"
+                                    <div v-if="!['writing', 'short_answer', 'speaking_live'].includes(currentQ.type)"
                                         class="flex items-start gap-3 border border-slate-200 rounded-xl px-4 py-3 shadow-sm bg-[#f4f7fb]"
                                         dir="ltr">
                                         <div

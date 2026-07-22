@@ -252,6 +252,7 @@ const questionTypes = [
     { label: 'Short Answer', value: 'short_answer', icon: 'pi-pencil' },
     { label: 'Writing Task', value: 'writing', icon: 'pi-file-edit' },
     { label: 'Speaking Task', value: 'speaking', icon: 'pi-microphone' },
+    { label: 'Speaking Task (Live)', value: 'speaking_live', icon: 'pi-comments' },
     { label: 'File Upload', value: 'upload', icon: 'pi-upload' },
     { label: 'Highlight', value: 'highlight', icon: 'pi-eye' },
     { label: 'Word Selection (Legacy)', value: 'word_selection', icon: 'pi-cursor-click' }
@@ -554,7 +555,7 @@ const handleTypeChange = async (qIdx) => {
             { option_text: 'True', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
             { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
-    } else if (['writing', 'speaking', 'upload'].includes(q.type)) {
+    } else if (['writing', 'speaking', 'speaking_live', 'upload'].includes(q.type)) {
         q.instructions = currentLang.value === 'ar' ? "يرجى تقديم إجابتك." : "Please provide your answer.";
         q.options = [];
     } else if (q.type === 'short_answer') {
