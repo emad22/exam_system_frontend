@@ -9,6 +9,7 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import Select from 'primevue/select';
+import DatePicker from 'primevue/datepicker';
 
 const { showAlert, showConfirm } = useModal();
 
@@ -19,6 +20,13 @@ const partners = ref([]);
 const selectedPartner = ref(null);
 const loading = ref(true);
 const search = ref('');
+const startDate = ref(null);
+const endDate = ref(null);
+
+const clearDates = () => {
+    startDate.value = null;
+    endDate.value = null;
+};
 
 const skillMap = {
     'listening': 'Listening',
@@ -101,6 +109,24 @@ const filtered = () => {
         );
     }
     
+    if (startDate.value) {
+        const start = new Date(startDate.value);
+        start.setHours(0, 0, 0, 0);
+        result = result.filter(a => {
+            if (!a.started_at) return false;
+            return new Date(a.started_at) >= start;
+        });
+    }
+
+    if (endDate.value) {
+        const end = new Date(endDate.value);
+        end.setHours(23, 59, 59, 999);
+        result = result.filter(a => {
+            if (!a.started_at) return false;
+            return new Date(a.started_at) <= end;
+        });
+    }
+
     return result;
 };
 
@@ -168,7 +194,11 @@ onMounted(() => {
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Academic Registry</h1>
                 <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Movement reports for completed evaluations</p>
             </div>
-            <div class="flex items-center space-x-3">
+            <div class="flex flex-wrap items-center gap-3 mt-4 md:mt-0 justify-end">
+                <DatePicker v-model="startDate" placeholder="Start Date" dateFormat="dd/mm/yy" class="w-36 bg-slate-50 border-slate-100 rounded-xl text-xs font-bold" />
+                <DatePicker v-model="endDate" placeholder="End Date" dateFormat="dd/mm/yy" class="w-36 bg-slate-50 border-slate-100 rounded-xl text-xs font-bold" />
+                <Button v-if="startDate || endDate" icon="pi pi-times" severity="danger" text rounded aria-label="Clear Dates" @click="clearDates" class="!w-10 !h-10 !p-0" />
+                
                 <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id" placeholder="Filter by Partner" showClear class="w-48 bg-slate-50 border-slate-100 rounded-xl text-xs font-bold" />
                 <span class="relative">
                     <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 text-xs" />
@@ -193,6 +223,7 @@ onMounted(() => {
                             <th class="p-6">Assessment Module</th>
                             <th class="p-6 text-center">Efficiency</th>
                             <th class="p-6 text-center">Status</th>
+                            <th class="p-6 text-center">Start Time</th>
                             <th class="p-6 pr-8 text-right">Completion</th>
                         </tr>
                     </thead>
@@ -234,6 +265,14 @@ onMounted(() => {
                                          :severity="attempt.status === 'completed' ? 'success' : 'warning'" 
                                          class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg" />
                                 </td>
+                                <td class="p-6 text-center">
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {{ attempt.started_at ? new Date(attempt.started_at).toLocaleDateString('en-GB') : '---' }}
+                                    </div>
+                                    <div class="text-[8px] font-bold text-slate-400 uppercase tracking-tight" v-if="attempt.started_at">
+                                        {{ new Date(attempt.started_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }}
+                                    </div>
+                                </td>
                                 <td class="p-6 pr-8 text-right">
                                     <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                         {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString('en-GB') : 'PENDING' }}
@@ -242,7 +281,7 @@ onMounted(() => {
                                 </td>
                             </tr>
                             <tr v-if="attempt.attempt_skills && attempt.attempt_skills.length > 0">
-                                <td colspan="5" class="bg-slate-50/50 px-10 pb-6 pt-2 border-t-0">
+                                <td colspan="6" class="bg-slate-50/50 px-10 pb-6 pt-2 border-t-0">
                                     <div class="flex flex-wrap gap-3 mt-2">
                                         <div 
                                             v-for="skillResult in getSortedSkills(attempt.attempt_skills)" :key="skillResult.id"

@@ -161,6 +161,7 @@ onMounted(() => {
                             <th class="p-6">Assessment Module</th>
                             <th class="p-6 text-center">Score Matrix</th>
                             <th class="p-6 text-center">Status</th>
+                            <th class="p-6 text-center">Start Time</th>
                             <th class="p-6 pr-8 text-right">Completion Date</th>
                         </tr>
                     </thead>
@@ -196,6 +197,14 @@ onMounted(() => {
                                          :severity="attempt.status === 'completed' ? 'success' : 'warning'" 
                                          class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg" />
                                 </td>
+                                <td class="p-6 text-center">
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {{ attempt.started_at ? new Date(attempt.started_at).toLocaleDateString('en-GB') : '---' }}
+                                    </div>
+                                    <div class="text-[8px] font-bold text-slate-400 uppercase tracking-tight" v-if="attempt.started_at">
+                                        {{ new Date(attempt.started_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }}
+                                    </div>
+                                </td>
                                 <td class="p-6 pr-8 text-right">
                                     <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                         {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString('en-GB') : 'PENDING' }}
@@ -204,7 +213,7 @@ onMounted(() => {
                                 </td>
                             </tr>
                             <tr v-if="attempt.attempt_skills && attempt.attempt_skills.length > 0">
-                                <td colspan="5" class="bg-slate-50/50 px-10 pb-6 pt-2 border-t-0">
+                                <td colspan="6" class="bg-slate-50/50 px-10 pb-6 pt-2 border-t-0">
                                     <div class="flex flex-wrap gap-3 mt-2">
                                         <div v-for="skillResult in getSortedSkills(attempt.attempt_skills)" :key="skillResult.id" class="mr-4 group shrink-0">
                                             <div class="flex items-center space-x-3 px-6 py-3 rounded-2xl bg-white border border-slate-100 shadow-sm transition-all hover:border-slate-200">
