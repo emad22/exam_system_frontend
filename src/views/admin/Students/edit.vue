@@ -92,7 +92,7 @@ const t = {
         assignedPartner: "Assigned Partner",
         curriculumPackage: "Curriculum Package",
         adaptiveSelect: "Evaluation System",
-        adaptiveOpt: "Stops at the student's score",
+        adaptiveOpt: "Stops at the student's Level",
         notAdaptiveOpt: "Completes the exam to the end",
         identificationCode: "Identification Code / National ID (Optional)",
         activeEnrollment: "Active Enrollment",
@@ -187,7 +187,7 @@ const loadData = async () => {
             is_demo_proctored: !!student.is_demo_proctored,
             is_continue: student.is_continue !== undefined ? !!student.is_continue : false,
 
-            
+
         };
 
         manualPackageSelected.value = true;
@@ -413,14 +413,14 @@ onMounted(() => {
                                             <div class="flex flex-col space-y-1.5">
                                                 <label
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                    t[currentLang].firstName }}</label>
+                                                        t[currentLang].firstName }}</label>
                                                 <InputText v-model="editForm.first_name" required
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm" />
                                             </div>
                                             <div class="flex flex-col space-y-1.5">
                                                 <label
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                    t[currentLang].lastName }}</label>
+                                                        t[currentLang].lastName }}</label>
                                                 <InputText v-model="editForm.last_name" required
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm" />
                                             </div>
@@ -430,14 +430,14 @@ onMounted(() => {
                                             <div class="flex flex-col space-y-1.5">
                                                 <label
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                    t[currentLang].username }}</label>
+                                                        t[currentLang].username }}</label>
                                                 <InputText v-model="editForm.username" required
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm" />
                                             </div>
                                             <div class="flex flex-col space-y-1.5">
                                                 <label
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                    t[currentLang].email }}</label>
+                                                        t[currentLang].email }}</label>
                                                 <InputText v-model="editForm.email" type="email" required
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm" />
                                             </div>
@@ -446,7 +446,7 @@ onMounted(() => {
                                         <div class="flex flex-col space-y-1.5">
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].phone }}</label>
+                                                    t[currentLang].phone }}</label>
                                             <InputText v-model="editForm.phone"
                                                 class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm"
                                                 placeholder="+XX-XXXX-XXXX" />
@@ -456,7 +456,7 @@ onMounted(() => {
                                             <div class="flex flex-col space-y-1.5">
                                                 <label
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                    t[currentLang].birthDate }}</label>
+                                                        t[currentLang].birthDate }}</label>
                                                 <DatePicker v-model="editForm.birth_date" dateFormat="yy-mm-dd" showIcon
                                                     class="w-full flex-1 rounded-xl bg-slate-50 border-slate-100 shadow-sm"
                                                     inputClass="rounded-xl bg-slate-50 border-slate-100" />
@@ -464,7 +464,7 @@ onMounted(() => {
                                             <div class="flex flex-col space-y-1.5">
                                                 <label
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                    t[currentLang].gender }}</label>
+                                                        t[currentLang].gender }}</label>
                                                 <Select v-model="editForm.gender"
                                                     :options="[{ label: 'Male', value: 'male' }, { label: 'Female', value: 'female' }]"
                                                     optionLabel="label" optionValue="value"
@@ -501,12 +501,12 @@ onMounted(() => {
                                             <span v-if="editForm.package_id === 4"
                                                 class="text-[9px] font-black text-brand-primary uppercase tracking-widest bg-rose-50 px-3.5 py-1.5 rounded-xl border border-rose-100/60 flex items-center shadow-sm">
                                                 <i class="pi pi-unlock mr-1.5 ml-1.5 text-[8px] animate-pulse"></i> {{
-                                                t[currentLang].customAllowed }}
+                                                    t[currentLang].customAllowed }}
                                             </span>
                                             <span v-else
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-200 flex items-center shadow-sm">
                                                 <i class="pi pi-lock mr-1.5 ml-1.5 text-[8px]"></i> {{
-                                                t[currentLang].packageControlled }}
+                                                    t[currentLang].packageControlled }}
                                             </span>
                                         </div>
 
@@ -546,7 +546,7 @@ onMounted(() => {
                                         <div class="flex flex-col space-y-1.5">
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].assignedPartner }}</label>
+                                                    t[currentLang].assignedPartner }}</label>
                                             <Select v-model="editForm.partner_id" :options="partners"
                                                 optionLabel="partner_name" optionValue="id"
                                                 class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
@@ -555,7 +555,7 @@ onMounted(() => {
                                         <div class="flex flex-col space-y-1.5">
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].curriculumPackage }}</label>
+                                                    t[currentLang].curriculumPackage }}</label>
                                             <Select v-model="editForm.package_id" :options="packages" optionLabel="name"
                                                 optionValue="id" :placeholder="t[currentLang].selectPkgPlaceholder"
                                                 class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
@@ -564,7 +564,7 @@ onMounted(() => {
                                         <div class="flex flex-col space-y-1.5">
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].adaptiveSelect }}</label>
+                                                    t[currentLang].adaptiveSelect }}</label>
                                             <Select v-model="editForm.is_continue" :options="[
                                                 { label: t[currentLang].adaptiveOpt, value: false },
                                                 { label: t[currentLang].notAdaptiveOpt, value: true }
@@ -575,7 +575,7 @@ onMounted(() => {
                                         <div class="flex flex-col space-y-1.5">
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                t[currentLang].identificationCode }}</label>
+                                                    t[currentLang].identificationCode }}</label>
                                             <InputText v-model="editForm.student_code"
                                                 class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm"
                                                 :placeholder="currentLang === 'ar' ? 'مثال: 123456 (اختياري)' : 'e.g. 123456 (Optional)'" />
@@ -587,7 +587,7 @@ onMounted(() => {
                                                 <Checkbox v-model="editForm.is_active" :binary="true" />
                                                 <span
                                                     class="ml-3.5 mr-3.5 text-xs font-black text-slate-700 uppercase tracking-widest leading-none">{{
-                                                    t[currentLang].activeEnrollment }}</span>
+                                                        t[currentLang].activeEnrollment }}</span>
                                             </label>
 
                                             <!-- Retry Logic Control -->
@@ -597,10 +597,10 @@ onMounted(() => {
                                                 <div class="ml-3.5 mr-3.5 flex flex-col justify-center">
                                                     <span
                                                         class="text-xs font-black text-slate-800 uppercase tracking-wider leading-none">{{
-                                                        t[currentLang].retryToggle }}</span>
+                                                            t[currentLang].retryToggle }}</span>
                                                     <span
                                                         class="text-[9px] font-bold text-slate-500 mt-1 leading-none">{{
-                                                        t[currentLang].retrySubtitle }}</span>
+                                                            t[currentLang].retrySubtitle }}</span>
                                                 </div>
                                             </label>
 
@@ -611,10 +611,10 @@ onMounted(() => {
                                                 <div class="ml-3.5 mr-3.5 flex flex-col justify-center">
                                                     <span
                                                         class="text-xs font-black text-slate-800 uppercase tracking-wider leading-none">{{
-                                                        t[currentLang].isDemoToggle }}</span>
+                                                            t[currentLang].isDemoToggle }}</span>
                                                     <span
                                                         class="text-[9px] font-bold text-slate-500 mt-1 leading-none">{{
-                                                        t[currentLang].isDemoSubtitle }}</span>
+                                                            t[currentLang].isDemoSubtitle }}</span>
                                                 </div>
                                             </label>
 
@@ -624,10 +624,10 @@ onMounted(() => {
                                                 <div class="ml-3.5 mr-3.5 flex flex-col justify-center">
                                                     <span
                                                         class="text-xs font-black text-slate-800 uppercase tracking-wider leading-none">{{
-                                                        t[currentLang].isDemoProctoredToggle }}</span>
+                                                            t[currentLang].isDemoProctoredToggle }}</span>
                                                     <span
                                                         class="text-[9px] font-bold text-slate-500 mt-1 leading-none">{{
-                                                        t[currentLang].isDemoProctoredSubtitle }}</span>
+                                                            t[currentLang].isDemoProctoredSubtitle }}</span>
                                                 </div>
                                             </label>
                                         </div>

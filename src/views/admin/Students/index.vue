@@ -69,7 +69,7 @@ const t = {
         emptyTitle: "لا يوجد طلاب مسجلين",
         emptySubtitle: "قم بتسجيل الطلاب يدوياً أو عبر ملف استيراد جماعي لبدء تقديم الاختبارات.",
         emptyBtn: "تسجيل أول طالب",
-        
+
         // Modals
         deleteConfirmTitle: "حذف حساب الطالب",
         deleteConfirmMessage: "هل أنت متأكد من رغبتك في حذف حساب الطالب: {name} نهائياً؟ سيؤدي ذلك أيضاً لحذف حسابه الرئيسي وسجل امتحاناته بالكامل ولا يمكن التراجع عن ذلك.",
@@ -118,7 +118,7 @@ const t = {
         colStatus: "Status",
         colActions: "Actions",
         nonAdaptive: "Completes the exam to the end",
-        adaptive: "Stops at the student's score",
+        adaptive: "Stops at the student's Level",
         customAsset: "Custom Asset",
         active: "Active",
         inactive: "Inactive",
@@ -381,7 +381,8 @@ onMounted(() => {
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'"
+            class="w-full">
             <!-- Loading Spinner -->
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
@@ -389,56 +390,70 @@ onMounted(() => {
             </div>
 
             <!-- Main Content -->
-            <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
+            <div v-else
+                class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
 
                 <!-- Premium Standardized Header Card -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 w-64 h-64 bg-rose-50/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-rose-100/30 transition-all duration-1000"></div>
-                    <div class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000"></div>
-                    
-                    <div class="relative z-10 space-y-2">
-                         <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
-                             {{ t[currentLang].title }}
-                         </h1>
-                         <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
-                             {{ t[currentLang].subtitle }}
-                         </p>
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
+                    <div
+                        class="absolute right-0 top-0 w-64 h-64 bg-rose-50/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-rose-100/30 transition-all duration-1000">
                     </div>
-                    
+                    <div
+                        class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000">
+                    </div>
+
+                    <div class="relative z-10 space-y-2">
+                        <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
+                            {{ t[currentLang].title }}
+                        </h1>
+                        <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
+                            {{ t[currentLang].subtitle }}
+                        </p>
+                    </div>
+
                     <div class="flex flex-wrap items-center gap-3 relative z-10">
-                         
-            <!-- Language Selector Toggle -->
-                        <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
+
+                        <!-- Language Selector Toggle -->
+                        <button @click="toggleLang"
+                            class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
                             <i class="pi pi-globe text-brand-primary"></i>
                             <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
                         </button>
-                         <Button v-if="selectedStudents.length > 0" :label="t[currentLang].btnPurge" icon="pi pi-trash"
-                             severity="danger" class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
-                             @click="bulkDelete" />
-                         <Button :label="t[currentLang].btnBulkSkills" icon="pi pi-tags" severity="secondary" outlined
-                             class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
-                             @click="showBulkSkillsModal = true" />
-                         <Button :label="t[currentLang].btnMatrixImport" icon="pi pi-file-excel" severity="secondary" outlined
-                             class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
-                             @click="router.push('/admin/students/batch')" />
-                         <Button :label="t[currentLang].btnRegister" icon="pi pi-plus"
-                             class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all hover:-translate-y-1"
-                             @click="router.push('/admin/students/create')" />
+                        <Button v-if="selectedStudents.length > 0" :label="t[currentLang].btnPurge" icon="pi pi-trash"
+                            severity="danger"
+                            class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
+                            @click="bulkDelete" />
+                        <Button :label="t[currentLang].btnBulkSkills" icon="pi pi-tags" severity="secondary" outlined
+                            class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
+                            @click="showBulkSkillsModal = true" />
+                        <Button :label="t[currentLang].btnMatrixImport" icon="pi pi-file-excel" severity="secondary"
+                            outlined
+                            class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
+                            @click="router.push('/admin/students/batch')" />
+                        <Button :label="t[currentLang].btnRegister" icon="pi pi-plus"
+                            class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all hover:-translate-y-1"
+                            @click="router.push('/admin/students/create')" />
                     </div>
                 </div>
 
                 <!-- Registry Table Card -->
                 <div v-if="students.length > 0 || searchQuery">
-                    <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
+                    <Card
+                        class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                         <template #content>
-                            <DataTable :value="filteredStudents" v-model:selection="selectedStudents" dataKey="id" paginator
-                                :rows="10" class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                            <DataTable :value="filteredStudents" v-model:selection="selectedStudents" dataKey="id"
+                                paginator :rows="10" class="p-datatable-sm text-sm" responsiveLayout="scroll">
 
                                 <template #header>
                                     <div class="flex justify-end p-2 pb-4">
                                         <span class="relative">
-                                            <i class="pi pi-search absolute text-slate-400 z-10" :class="currentLang === 'ar' ? 'right-3 top-1/2 -translate-y-1/2' : 'left-3 top-1/2 -translate-y-1/2'" />
-                                            <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl" :class="currentLang === 'ar' ? 'pr-10' : 'pl-10'" />
+                                            <i class="pi pi-search absolute text-slate-400 z-10"
+                                                :class="currentLang === 'ar' ? 'right-3 top-1/2 -translate-y-1/2' : 'left-3 top-1/2 -translate-y-1/2'" />
+                                            <InputText v-model="searchQuery"
+                                                :placeholder="t[currentLang].searchPlaceholder"
+                                                class="w-full md:w-80 shadow-sm rounded-xl"
+                                                :class="currentLang === 'ar' ? 'pr-10' : 'pl-10'" />
                                         </span>
                                     </div>
                                 </template>
@@ -447,10 +462,12 @@ onMounted(() => {
 
                                 <Column :header="t[currentLang].colIdentity" style="min-width: 280px">
                                     <template #body="{ data }">
-                                        <div class="flex items-center" :class="currentLang === 'ar' ? 'space-x-reverse space-x-4' : 'space-x-4'">
+                                        <div class="flex items-center"
+                                            :class="currentLang === 'ar' ? 'space-x-reverse space-x-4' : 'space-x-4'">
                                             <div
                                                 class="w-11 h-11 rounded-2xl bg-slate-50 text-brand-primary flex items-center justify-center font-black border border-slate-100 shrink-0">
-                                                {{ data.user?.first_name ? data.user.first_name[0].toUpperCase() : 'S' }}
+                                                {{ data.user?.first_name ? data.user.first_name[0].toUpperCase() : 'S'
+                                                }}
                                             </div>
                                             <div>
                                                 <div @click="openView(data)"
@@ -471,7 +488,8 @@ onMounted(() => {
                                         <Tag v-if="data.package" :value="data.package.name" severity="info"
                                             class="text-[9px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg" />
                                         <span v-else
-                                            class="text-[9px] font-extrabold text-slate-300 uppercase tracking-wider italic">{{ t[currentLang].customAsset }}</span>
+                                            class="text-[9px] font-extrabold text-slate-300 uppercase tracking-wider italic">{{
+                                            t[currentLang].customAsset }}</span>
                                     </template>
                                 </Column>
 
@@ -479,8 +497,8 @@ onMounted(() => {
                                     <template #body="{ data }">
                                         <div class="flex flex-col space-y-1">
                                             <Tag :value="data.is_continue ? t[currentLang].nonAdaptive : t[currentLang].adaptive"
-                                                 :severity="data.is_continue ? 'warn' : 'info'"
-                                                 class="text-[9px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg" />
+                                                :severity="data.is_continue ? 'warn' : 'info'"
+                                                class="text-[9px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg" />
                                         </div>
                                     </template>
                                 </Column>
@@ -488,35 +506,33 @@ onMounted(() => {
                                 <Column :header="t[currentLang].colStatus" style="min-width: 100px" class="text-center">
                                     <template #body="{ data }">
                                         <Tag :value="data.user?.is_active ? t[currentLang].active : t[currentLang].inactive"
-                                             :severity="data.user?.is_active ? 'success' : 'danger'"
-                                             class="text-[9px] font-extrabold uppercase tracking-wider px-3" />
+                                            :severity="data.user?.is_active ? 'success' : 'danger'"
+                                            class="text-[9px] font-extrabold uppercase tracking-wider px-3" />
                                     </template>
                                 </Column>
 
-                                <Column :header="t[currentLang].colActions" :exportable="false" style="min-width: 180px">
+                                <Column :header="t[currentLang].colActions" :exportable="false"
+                                    style="min-width: 180px">
                                     <template #body="{ data }">
-                                        <div class="flex items-center space-x-2" :class="currentLang === 'ar' ? 'space-x-reverse' : ''">
-                                            <Button icon="pi pi-eye" text severity="info" size="small" @click="openView(data)"
-                                                v-tooltip.top="t[currentLang].tooltipView" />
-                                            <Button 
-                                                icon="pi pi-refresh" 
-                                                text 
-                                                severity="danger" 
-                                                size="small"
-                                                @click="resetProgress(data)" 
-                                                v-tooltip.top="t[currentLang].tooltipReset"
-                                                :disabled="!data.attempts_count"
-                                            />
+                                        <div class="flex items-center space-x-2"
+                                            :class="currentLang === 'ar' ? 'space-x-reverse' : ''">
+                                            <Button icon="pi pi-eye" text severity="info" size="small"
+                                                @click="openView(data)" v-tooltip.top="t[currentLang].tooltipView" />
+                                            <Button icon="pi pi-refresh" text severity="danger" size="small"
+                                                @click="resetProgress(data)" v-tooltip.top="t[currentLang].tooltipReset"
+                                                :disabled="!data.attempts_count" />
                                             <Button icon="pi pi-pencil" text severity="warning" size="small"
                                                 @click="openEdit(data)" v-tooltip.top="t[currentLang].tooltipEdit" />
                                             <Button icon="pi pi-trash" text severity="danger" size="small"
-                                                @click="deleteStudent(data)" v-tooltip.top="t[currentLang].tooltipDelete" />
+                                                @click="deleteStudent(data)"
+                                                v-tooltip.top="t[currentLang].tooltipDelete" />
                                         </div>
                                     </template>
                                 </Column>
 
                                 <template #empty>
-                                    <div class="p-8 text-center text-slate-400 font-medium">{{ t[currentLang].emptySearch }}</div>
+                                    <div class="p-8 text-center text-slate-400 font-medium">{{
+                                        t[currentLang].emptySearch }}</div>
                                 </template>
                             </DataTable>
                         </template>
@@ -524,25 +540,32 @@ onMounted(() => {
                 </div>
 
                 <!-- Empty Global State -->
-                <div v-else class="bg-white rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.02)] border border-slate-100 p-24 text-center group mt-6">
-                    <div class="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-5xl group-hover:rotate-12 transition-transform duration-500 text-brand-accent">
+                <div v-else
+                    class="bg-white rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.02)] border border-slate-100 p-24 text-center group mt-6">
+                    <div
+                        class="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-5xl group-hover:rotate-12 transition-transform duration-500 text-brand-accent">
                         <i class="pi pi-users"></i>
                     </div>
-                    <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">{{ t[currentLang].emptyTitle }}</h3>
+                    <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">{{ t[currentLang].emptyTitle }}
+                    </h3>
                     <p class="text-slate-500 mb-8 max-w-md mx-auto leading-relaxed">
                         {{ t[currentLang].emptySubtitle }}
                     </p>
-                    <Button :label="t[currentLang].emptyBtn" icon="pi pi-arrow-right" iconPos="right" @click="router.push('/admin/students/create')" />
+                    <Button :label="t[currentLang].emptyBtn" icon="pi pi-arrow-right" iconPos="right"
+                        @click="router.push('/admin/students/create')" />
                 </div>
             </div>
         </div>
 
         <!-- Bulk Skills Modal - Institutional Light mode -->
-        <Dialog v-model:visible="showBulkSkillsModal" :style="{ width: '500px' }" modal class="rounded-[2.5rem] overflow-hidden border-none shadow-2xl">
+        <Dialog v-model:visible="showBulkSkillsModal" :style="{ width: '500px' }" modal
+            class="rounded-[2.5rem] overflow-hidden border-none shadow-2xl">
             <template #header>
                 <div class="flex flex-col" :class="currentLang === 'ar' ? 'text-right' : 'text-left'">
-                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">{{ t[currentLang].bulkModalTitle }}</h3>
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{{ t[currentLang].bulkModalSubtitle }}</p>
+                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">{{
+                        t[currentLang].bulkModalTitle }}</h3>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{{
+                        t[currentLang].bulkModalSubtitle }}</p>
                 </div>
             </template>
 
@@ -569,18 +592,21 @@ onMounted(() => {
                             <div class="w-full border-t border-slate-100"></div>
                         </div>
                         <span
-                            class="relative bg-white px-4 text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ t[currentLang].manualOverride }}</span>
+                            class="relative bg-white px-4 text-[9px] font-black text-slate-300 uppercase tracking-widest">{{
+                                t[currentLang].manualOverride }}</span>
                     </div>
 
                     <div class="space-y-4">
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block" :class="currentLang === 'ar' ? 'mr-1' : 'ml-1'">{{ t[currentLang].labelEmails }}</label>
-                            <textarea v-model="bulkEmails" 
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block"
+                                :class="currentLang === 'ar' ? 'mr-1' : 'ml-1'">{{ t[currentLang].labelEmails }}</label>
+                            <textarea v-model="bulkEmails"
                                 class="w-full h-24 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:bg-white focus:border-brand-primary/20 focus:ring-4 focus:ring-rose-50/50 transition-all outline-none no-scrollbar shadow-sm"
                                 :placeholder="t[currentLang].placeholderEmails"></textarea>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block" :class="currentLang === 'ar' ? 'mr-1' : 'ml-1'">{{ t[currentLang].labelSkills }}</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block"
+                                :class="currentLang === 'ar' ? 'mr-1' : 'ml-1'">{{ t[currentLang].labelSkills }}</label>
                             <input v-model="bulkSkills" type="text"
                                 class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black uppercase text-brand-primary focus:bg-white focus:border-brand-primary/20 focus:ring-4 focus:ring-rose-50/50 transition-all outline-none shadow-sm animate-none"
                                 :placeholder="t[currentLang].placeholderSkills">
@@ -590,11 +616,13 @@ onMounted(() => {
             </div>
 
             <template #footer>
-                <div class="flex justify-end pt-6 border-t border-slate-50 gap-3" :class="currentLang === 'ar' ? 'flex-row-reverse' : ''">
+                <div class="flex justify-end pt-6 border-t border-slate-50 gap-3"
+                    :class="currentLang === 'ar' ? 'flex-row-reverse' : ''">
                     <Button :label="t[currentLang].btnDiscard" outlined severity="secondary"
                         class="text-[10px] font-black uppercase tracking-widest px-8"
                         @click="showBulkSkillsModal = false" />
-                    <Button :label="isBulkSaving ? t[currentLang].btnSyncing : t[currentLang].btnCommit" :loading="isBulkSaving"
+                    <Button :label="isBulkSaving ? t[currentLang].btnSyncing : t[currentLang].btnCommit"
+                        :loading="isBulkSaving"
                         class="bg-brand-primary border-none text-[10px] font-black uppercase tracking-widest px-8 shadow-lg shadow-rose-100"
                         @click="submitBulkSkills" />
                 </div>
@@ -602,7 +630,8 @@ onMounted(() => {
         </Dialog>
 
         <!-- Custom Beautiful Modal -->
-        <Dialog v-model:visible="modalConfig.visible" modal :closable="false" :style="{ width: '450px' }" class="rounded-[2rem] overflow-hidden border-0 shadow-2xl z-50">
+        <Dialog v-model:visible="modalConfig.visible" modal :closable="false" :style="{ width: '450px' }"
+            class="rounded-[2rem] overflow-hidden border-0 shadow-2xl z-50">
             <template #header>
                 <div class="flex items-center gap-4 px-2 pt-2" :class="{
                     'text-emerald-500': modalConfig.type === 'success',
@@ -611,12 +640,13 @@ onMounted(() => {
                     'text-indigo-500': modalConfig.type === 'info',
                     'flex-row-reverse': currentLang === 'ar'
                 }">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm shrink-0" :class="{
-                        'bg-emerald-50 border-emerald-100 text-emerald-600': modalConfig.type === 'success',
-                        'bg-rose-50 border-rose-100 text-rose-600': modalConfig.type === 'danger',
-                        'bg-amber-50 border-amber-100 text-amber-600': modalConfig.type === 'warning',
-                        'bg-indigo-50 border-indigo-100 text-indigo-600': modalConfig.type === 'info'
-                    }">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm shrink-0"
+                        :class="{
+                            'bg-emerald-50 border-emerald-100 text-emerald-600': modalConfig.type === 'success',
+                            'bg-rose-50 border-rose-100 text-rose-600': modalConfig.type === 'danger',
+                            'bg-amber-50 border-amber-100 text-amber-600': modalConfig.type === 'warning',
+                            'bg-indigo-50 border-indigo-100 text-indigo-600': modalConfig.type === 'info'
+                        }">
                         <i class="text-2xl" :class="{
                             'pi pi-check-circle': modalConfig.type === 'success',
                             'pi pi-times-circle': modalConfig.type === 'danger',
@@ -624,24 +654,27 @@ onMounted(() => {
                             'pi pi-info-circle': modalConfig.type === 'info'
                         }"></i>
                     </div>
-                    <h3 class="font-black text-2xl tracking-tight text-slate-800" :class="currentLang === 'ar' ? 'text-right' : 'text-left'">{{ modalConfig.title }}</h3>
+                    <h3 class="font-black text-2xl tracking-tight text-slate-800"
+                        :class="currentLang === 'ar' ? 'text-right' : 'text-left'">{{ modalConfig.title }}</h3>
                 </div>
             </template>
-            <div class="px-2 py-4 text-slate-600 font-medium leading-relaxed text-base" :class="currentLang === 'ar' ? 'text-right' : 'text-left'">
+            <div class="px-2 py-4 text-slate-600 font-medium leading-relaxed text-base"
+                :class="currentLang === 'ar' ? 'text-right' : 'text-left'">
                 {{ modalConfig.message }}
             </div>
             <template #footer>
-                <div class="flex justify-end gap-3 w-full px-2 pb-2 mt-4" :class="currentLang === 'ar' ? 'flex-row-reverse' : ''">
-                    <Button v-if="modalConfig.showCancel" :label="modalConfig.cancelText" text severity="secondary" @click="handleModalCancel" class="font-bold px-6 py-3 rounded-xl hover:bg-slate-100" />
-                    <Button :label="modalConfig.confirmText" @click="handleModalConfirm" 
+                <div class="flex justify-end gap-3 w-full px-2 pb-2 mt-4"
+                    :class="currentLang === 'ar' ? 'flex-row-reverse' : ''">
+                    <Button v-if="modalConfig.showCancel" :label="modalConfig.cancelText" text severity="secondary"
+                        @click="handleModalCancel" class="font-bold px-6 py-3 rounded-xl hover:bg-slate-100" />
+                    <Button :label="modalConfig.confirmText" @click="handleModalConfirm"
                         class="font-black px-6 py-3 rounded-xl border-none shadow-md hover:shadow-lg transition-all"
                         :class="{
                             'bg-emerald-500 hover:bg-emerald-600 text-white': modalConfig.type === 'success',
                             'bg-rose-500 hover:bg-rose-600 text-white': modalConfig.type === 'danger',
                             'bg-amber-500 hover:bg-amber-600 text-white': modalConfig.type === 'warning',
                             'bg-indigo-500 hover:bg-indigo-600 text-white': modalConfig.type === 'info'
-                        }"
-                    />
+                        }" />
                 </div>
             </template>
         </Dialog>
@@ -677,6 +710,7 @@ onMounted(() => {
 .arabic-theme :deep(.p-datatable-thead > tr > th) {
     text-align: right !important;
 }
+
 .arabic-theme :deep(.p-datatable-tbody > tr > td) {
     text-align: right !important;
 }

@@ -13,6 +13,26 @@ const checkedRequirements = ref([]);
 const autoVerifiedIds = ref([]);
 const activeTesterReq = ref(null);
 const isLoading = ref(true);
+const user = ref(null);
+
+// Fetch logged-in user to determine proctoring status
+const fetchUser = async () => {
+    try {
+        const res = await api.get('/user');
+        user.value = res.data;
+    } catch (e) {
+        console.error('Failed to fetch user info', e);
+    }
+};
+
+// Only show banner if PROCTORING_ENABLED AND the current student's partner requires proctoring
+const showProctoringBanner = computed(() => {
+    if (!PROCTORING_ENABLED) return false;
+    if (!user.value) return false;
+    const isDemo = ['demo', 'deom', 'staff'].includes((user.value?.role || '').toLowerCase()) || !!user.value?.student?.is_demo;
+    if (isDemo) return !!(user.value?.student?.is_demo_proctored);
+    return !!(user.value?.student?.partner?.proctoring_required);
+});
 
 const fetchRequirements = async () => {
     isLoading.value = true;
@@ -41,7 +61,7 @@ const autoVerifyRequirements = (reqs) => {
         const cat = req.category?.toLowerCase();
         const title = req.title?.toLowerCase();
         let verified = false;
-        
+
         if (cat === 'internet' || title.includes('internet')) verified = isOnline;
         else if (cat === 'browser' || title.includes('chrome')) verified = (isChrome || isEdge) && isDesktop;
         else if (cat === 'hardware' || title.includes('audio')) verified = hasMediaDevices;
@@ -55,7 +75,7 @@ const autoVerifyRequirements = (reqs) => {
 
 const toggleRequirement = (req) => {
     if (autoVerifiedIds.value.includes(req.id)) return;
-    
+
     // If already checked via test, don't allow unchecking
     if (req.test_type && req.test_type !== 'none' && checkedRequirements.value.includes(req.id)) return;
 
@@ -88,7 +108,10 @@ const proceed = () => {
     router.push('/skill-selection');
 };
 
-onMounted(fetchRequirements);
+onMounted(() => {
+    fetchRequirements();
+    fetchUser();
+});
 </script>
 
 <template>
@@ -97,8 +120,10 @@ onMounted(fetchRequirements);
 
         <!-- Background blobs -->
         <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
-            <div class="absolute -top-[15%] -right-[10%] w-[45%] h-[45%] bg-violet-500/8 rounded-full blur-[140px]"></div>
-            <div class="absolute bottom-[10%] -left-[10%] w-[35%] h-[35%] bg-brand-primary/6 rounded-full blur-[120px]"></div>
+            <div class="absolute -top-[15%] -right-[10%] w-[45%] h-[45%] bg-violet-500/8 rounded-full blur-[140px]">
+            </div>
+            <div class="absolute bottom-[10%] -left-[10%] w-[35%] h-[35%] bg-brand-primary/6 rounded-full blur-[120px]">
+            </div>
         </div>
 
         <main class="flex-grow flex items-center justify-center p-6 relative z-10">
@@ -108,32 +133,50 @@ onMounted(fetchRequirements);
                 <div class="mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <p class="text-[10px] font-black text-violet-600 uppercase tracking-[0.4em] mb-1">Proctoring System</p>
-                            <h1 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Pre-Exam Verification</h1>
+                            <p class="text-[10px] font-black text-violet-600 uppercase tracking-[0.4em] mb-1">Proctoring
+                                System</p>
+                            <h1 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Pre-Exam
+                                Verification</h1>
                         </div>
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200">System Check</span>
+                        <span
+                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200">System
+                            Check</span>
                     </div>
                 </div>
 
                 <!-- Main Card -->
-                <div class="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in duration-700">
+                <div
+                    class="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in duration-700">
                     <div class="flex flex-col md:flex-row min-h-[720px]">
 
                         <!-- Left Panel - Visual/Info -->
-                        <div class="md:w-[40%] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-10 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
-                            <div class="absolute top-0 right-0 w-64 h-64 bg-violet-500/15 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                            <div class="absolute bottom-0 left-0 w-48 h-48 bg-brand-primary/15 rounded-full -ml-24 -mb-24 blur-3xl"></div>
+                        <div
+                            class="md:w-[40%] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-10 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
+                            <div
+                                class="absolute top-0 right-0 w-64 h-64 bg-violet-500/15 rounded-full -mr-32 -mt-32 blur-3xl">
+                            </div>
+                            <div
+                                class="absolute bottom-0 left-0 w-48 h-48 bg-brand-primary/15 rounded-full -ml-24 -mb-24 blur-3xl">
+                            </div>
                             <div class="relative z-10">
-                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-10 shadow-2xl border border-white/10 transition-all duration-500 backdrop-blur-sm bg-white/10">
+                                <div
+                                    class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-10 shadow-2xl border border-white/10 transition-all duration-500 backdrop-blur-sm bg-white/10">
                                     <i class="pi pi-shield"></i>
                                 </div>
-                                <h2 class="text-4xl font-black tracking-tight uppercase mb-5 leading-[1.1]">System<br/>Readiness<br/><span class="text-violet-400">Check</span></h2>
-                                <p class="text-white/60 text-sm font-bold uppercase tracking-widest leading-relaxed">Verify required checks before you proceed to the assessment</p>
+                                <h2 class="text-4xl font-black tracking-tight uppercase mb-5 leading-[1.1]">
+                                    System<br />Readiness<br /><span class="text-violet-400">Check</span></h2>
+                                <p class="text-white/60 text-sm font-bold uppercase tracking-widest leading-relaxed">
+                                    Verify required checks before you proceed to the assessment</p>
                             </div>
                             <div class="relative z-10 space-y-3">
-                                <div v-if="PROCTORING_ENABLED" class="flex items-center gap-3 p-3.5 bg-white/8 rounded-xl border border-white/10 backdrop-blur-sm">
-                                    <div class="w-2 h-2 rounded-full bg-violet-400 animate-pulse shadow-lg shadow-violet-400/50"></div>
-                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/70">Proctoring System Active</span>
+                                <div v-if="showProctoringBanner"
+                                    class="flex items-center gap-3 p-3.5 bg-white/8 rounded-xl border border-white/10 backdrop-blur-sm">
+                                    <div
+                                        class="w-2 h-2 rounded-full bg-violet-400 animate-pulse shadow-lg shadow-violet-400/50">
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/70">
+                                        will proctor you during the exam
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -143,28 +186,33 @@ onMounted(fetchRequirements);
                             <div class="flex flex-col flex-grow min-h-0">
                                 <div class="flex justify-between items-end mb-6 md:mb-10 shrink-0">
                                     <div>
-                                        <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Required Checks</h2>
-                                        <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">Verify all mandatory items to proceed</p>
+                                        <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Required
+                                            Checks</h2>
+                                        <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">
+                                            Verify all mandatory items to proceed</p>
                                     </div>
                                     <div class="text-right">
-                                        <span class="text-3xl font-black text-slate-200">{{ checkedRequirements.length }}/{{ requirements.length }}</span>
+                                        <span class="text-3xl font-black text-slate-200">{{ checkedRequirements.length
+                                        }}/{{ requirements.length }}</span>
                                     </div>
                                 </div>
 
                                 <div v-if="isLoading" class="flex flex-col items-center justify-center py-12 shrink-0">
-                                    <div class="w-12 h-12 border-4 border-slate-100 border-t-violet-500 rounded-full animate-spin"></div>
-                                    <p class="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Analyzing System...</p>
+                                    <div
+                                        class="w-12 h-12 border-4 border-slate-100 border-t-violet-500 rounded-full animate-spin">
+                                    </div>
+                                    <p class="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Analyzing System...</p>
                                 </div>
 
                                 <div v-else class="pr-2 custom-scrollbar">
                                     <div class="flex flex-col gap-4 pb-2">
-                                        <div v-for="req in requirements" :key="req.id" 
-                                            @click="toggleRequirement(req)"
+                                        <div v-for="req in requirements" :key="req.id" @click="toggleRequirement(req)"
                                             class="group flex items-center gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer relative"
-                                            :class="checkedRequirements.includes(req.id) 
-                                                ? 'border-emerald-100 bg-emerald-50/20' 
+                                            :class="checkedRequirements.includes(req.id)
+                                                ? 'border-emerald-100 bg-emerald-50/20'
                                                 : 'border-slate-50 bg-slate-50/50 hover:border-brand-primary/20 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50'">
-                                            
+
                                             <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all duration-500 shrink-0"
                                                 :class="checkedRequirements.includes(req.id) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 group-hover:text-brand-primary group-hover:scale-110 shadow-sm'">
                                                 <i v-if="checkedRequirements.includes(req.id)" class="pi pi-check"></i>
@@ -172,12 +220,19 @@ onMounted(fetchRequirements);
                                             </div>
 
                                             <div class="min-w-0">
-                                                <h3 class="text-xs font-black text-slate-800 uppercase tracking-tight truncate">{{ req.title }}</h3>
-                                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{{ req.category || 'System' }}</p>
+                                                <h3
+                                                    class="text-xs font-black text-slate-800 uppercase tracking-tight truncate">
+                                                    {{ req.title }}</h3>
+                                                <p
+                                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">
+                                                    {{ req.category || 'System' }}</p>
                                             </div>
 
-                                            <div v-if="req.is_mandatory && !checkedRequirements.includes(req.id)" class="absolute top-2 right-2">
-                                                <div class="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-sm shadow-rose-200"></div>
+                                            <div v-if="req.is_mandatory && !checkedRequirements.includes(req.id)"
+                                                class="absolute top-2 right-2">
+                                                <div
+                                                    class="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-sm shadow-rose-200">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -203,12 +258,8 @@ onMounted(fetchRequirements);
         </main>
 
         <!-- Requirement Tester Modal -->
-        <RequirementTester 
-            v-if="activeTesterReq" 
-            :requirement="activeTesterReq"
-            @close="activeTesterReq = null"
-            @passed="handleTestPassed"
-        />
+        <RequirementTester v-if="activeTesterReq" :requirement="activeTesterReq" @close="activeTesterReq = null"
+            @passed="handleTestPassed" />
     </div>
 </template>
 

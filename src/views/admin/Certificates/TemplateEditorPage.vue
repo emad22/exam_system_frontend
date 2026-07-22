@@ -9,6 +9,9 @@ import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Checkbox from 'primevue/checkbox';
 import Message from 'primevue/message';
+import { useMediaUrl } from '@/composables/useMediaUrl';
+
+const { resolveUrl } = useMediaUrl();
 
 const props = defineProps({
   mode: {
@@ -34,7 +37,13 @@ const currentTemplate = ref({
   content_html: '',
   elements_json: '[]',
   is_default: false,
-  background_image: null
+  background_image: null,
+  background_settings: {
+    opacity: 1.0,
+    size: 'cover',
+    position: 'center',
+    custom_css: ''
+  }
 });
 
 const canvasWidth = 1123;
@@ -408,13 +417,31 @@ const resetEditorState = (template = null) => {
   interactionState.value = null;
 
   if (template) {
+    let bgSettings = {
+      opacity: 1.0,
+      size: 'cover',
+      position: 'center',
+      custom_css: ''
+    };
+    if (template.background_settings) {
+      try {
+        const parsed = typeof template.background_settings === 'string'
+          ? JSON.parse(template.background_settings)
+          : template.background_settings;
+        bgSettings = { ...bgSettings, ...parsed };
+      } catch (e) {
+        console.error('Failed to parse background settings', e);
+      }
+    }
+
     currentTemplate.value = {
       ...template,
       name: template.name || '',
       content_html: template.content_html || '',
       elements_json: template.elements_json ?? [],
       is_default: !!template.is_default,
-      background_image: template.background_image || null
+      background_image: template.background_image || null,
+      background_settings: bgSettings
     };
     canvasElements.value = ensureElementIds(parseElements(template.elements_json));
     if (canvasElements.value.length) {
@@ -429,7 +456,13 @@ const resetEditorState = (template = null) => {
       content_html: '',
       elements_json: [],
       is_default: false,
-      background_image: null
+      background_image: null,
+      background_settings: {
+        opacity: 1.0,
+        size: 'cover',
+        position: 'center',
+        custom_css: ''
+      }
     };
     canvasElements.value = ensureElementIds(getDefaultCanvasElements());
     if (canvasElements.value.length) {
@@ -688,17 +721,21 @@ const canvasBackgroundStyle = computed(() => {
     if (currentTemplate.value.background_image instanceof File) {
       backgroundUrl = URL.createObjectURL(currentTemplate.value.background_image);
     } else {
-      const img = String(currentTemplate.value.background_image);
-      backgroundUrl = (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) ? img : '/storage/' + img;
+      backgroundUrl = resolveUrl(currentTemplate.value.background_image);
     }
   }
 
+  const settings = currentTemplate.value.background_settings || {};
+  const opacity = settings.opacity !== undefined ? settings.opacity : 1.0;
+  const size = settings.size || 'cover';
+  const position = settings.position || 'center';
+
   return {
-    backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : 'radial-gradient(circle at top left, #f8fafc, #f1f5f9)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
+    backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : 'none',
+    backgroundSize: size,
+    backgroundPosition: position,
     backgroundRepeat: 'no-repeat',
-    aspectRatio: '1123 / 794'
+    opacity: opacity,
   };
 });
 
@@ -775,6 +812,7 @@ const saveTemplate = async () => {
   formData.append('content_html', currentTemplate.value.content_html || buildContentHtml());
   formData.append('elements_json', JSON.stringify(sanitizedElements));
   formData.append('is_default', currentTemplate.value.is_default ? '1' : '0');
+  formData.append('background_settings', JSON.stringify(currentTemplate.value.background_settings || {}));
 
   if (currentTemplate.value.background_image instanceof File) {
     formData.append('background_image', currentTemplate.value.background_image);
@@ -828,7 +866,7 @@ const generatePreviewHtml = async () => {
     if (currentTemplate.value.background_image instanceof File) {
       backgroundUrl = URL.createObjectURL(currentTemplate.value.background_image);
     } else {
-      backgroundUrl = '/storage/' + currentTemplate.value.background_image;
+      backgroundUrl = resolveUrl(currentTemplate.value.background_image);
     }
   }
 
@@ -1046,17 +1084,26 @@ const debugDump = async () => {
             <span class="text-[9px] bg-slate-200 text-slate-500 font-bold px-2 py-0.5 rounded-full">A4 Landscape ·
               1123×794px</span>
           </div>
-          <div class="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
-            <i class="pi pi-info-circle text-[9px]"></i>
-            <span>Click an element to select → Drag to move → Corner handle to resize</span>
+          <div class="flex items-center gap-2">
+            <button v-if="selectedElementId" @click="selectedElementId = null; selectedElementRef = null"
+              class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition">
+              <i class="pi pi-times text-[8px]"></i> Deselect
+            </button>
+            <div class="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
+              <i class="pi pi-info-circle text-[9px]"></i>
+              <span>Click an element to select → Drag to move → Corner handle to resize</span>
+            </div>
           </div>
         </div>
 
         <!-- The actual canvas board -->
         <div class="w-full max-w-[1200px] shadow-2xl rounded-2xl border border-slate-300 overflow-hidden flex-shrink-0"
           style="aspect-ratio: 1123 / 794;">
-          <div ref="boardRef" class="relative w-full h-full bg-cover bg-center bg-no-repeat overflow-hidden"
-            :style="canvasBackgroundStyle">
+          <div ref="boardRef" class="relative w-full h-full bg-[#f8fafc] overflow-hidden"
+            @click.self="selectedElementId = null; selectedElementRef = null">
+            <!-- Background Image Layer (applied only to image with custom opacity) -->
+            <div class="absolute inset-0 pointer-events-none bg-center bg-no-repeat transition-all"
+              :style="canvasBackgroundStyle"></div>
 
             <!-- Empty state -->
             <div v-if="!canvasElements.length"
@@ -1152,7 +1199,7 @@ const debugDump = async () => {
                   </span>
                 </div>
                 <div class="w-full border-t border-amber-400/60 pt-1 text-center">
-                  <div class="text-[7px] font-black uppercase tracking-wide text-amber-700">{{ el.title || 'Title / Role' }}</div>
+                  <div class="text-[7px] font-black uppercase tracking-wide text-amber-700">{{ el.title || 'Title /  Role' }}</div>
                 </div>
               </div>
 
@@ -1209,7 +1256,9 @@ const debugDump = async () => {
                 'pi-pencil': el.type === 'sign',
                 'pi-qrcode': el.type === 'qr'
               }" style="font-size:8px;"></i>
-              {{ el.type === 'placeholder' ? ('{' + el.placeholder + '}') : el.type === 'text' ? ((el.text || 'text').slice(0, 14) + ((el.text || '').length > 14 ? '…' : '')) : el.type === 'sign' ? (el.name?.slice(0, 10) || 'sign') : el.type }}
+              {{ el.type === 'placeholder' ? ('{' + el.placeholder + '}') : el.type === 'text' ? ((el.text ||
+                'text').slice(0, 14) + ((el.text || '').length > 14 ? '…' : '')) : el.type === 'sign' ? (el.name?.slice(0,
+                  10) || 'sign') : el.type }}
             </button>
           </div>
         </div>
@@ -1217,11 +1266,94 @@ const debugDump = async () => {
 
       <!-- ===== RIGHT PANEL: Property Inspector ===== -->
       <div class="w-72 flex-shrink-0 bg-white border-l border-slate-200 flex flex-col overflow-y-auto">
-        <div v-if="!selectedElementRef" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-            <i class="pi pi-cursor text-slate-300 text-2xl"></i>
+        <div v-if="!selectedElementRef" class="flex flex-col h-full">
+          <!-- Canvas / Template Inspector Header -->
+          <div class="p-4 border-b border-slate-200">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-indigo-600">
+                <i class="pi pi-sliders-h text-xs"></i>
+              </div>
+              <div>
+                <div class="text-xs font-black uppercase tracking-wide text-slate-700">Template Settings</div>
+                <div class="text-[9px] text-slate-400">Canvas & Background</div>
+              </div>
+            </div>
           </div>
-          <p class="text-slate-400 text-sm font-medium">Select an element on the canvas to edit its properties</p>
+
+          <div class="flex-1 overflow-y-auto p-4 space-y-5 animate-in fade-in duration-300">
+            <!-- Template Name -->
+            <div class="space-y-1.5">
+              <label class="text-[9px] font-black uppercase tracking-widest text-slate-400">Template Name</label>
+              <InputText v-model="currentTemplate.name" placeholder="Template name..." class="w-full text-sm h-9" />
+            </div>
+
+            <!-- Set as Default -->
+            <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <Checkbox v-model="currentTemplate.is_default" :binary="true" inputId="is_default_sidebar" />
+              <label for="is_default_sidebar"
+                class="text-xs font-semibold text-slate-650 cursor-pointer select-none">Set as Default Template</label>
+            </div>
+
+            <!-- Background Image Properties -->
+            <div v-if="currentTemplate.background_image"
+              class="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-4">
+              <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Background Styling</p>
+
+              <!-- Opacity -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-center text-[10px] font-semibold text-slate-500">
+                  <span>Opacity</span>
+                  <span class="font-mono text-xs">{{ Math.round((currentTemplate.background_settings?.opacity ?? 1.0) *
+                    100) }}%</span>
+                </div>
+                <input type="range" v-model.number="currentTemplate.background_settings.opacity" min="0" max="1"
+                  step="0.05"
+                  class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+              </div>
+
+              <!-- Fit Mode (Size) -->
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-semibold text-slate-500">Fit Mode</label>
+                <select v-model="currentTemplate.background_settings.size"
+                  class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none">
+                  <option value="cover">Cover (Fill Screen)</option>
+                  <option value="contain">Contain (Fit Screen)</option>
+                  <option value="auto">Auto (Original Size)</option>
+                </select>
+              </div>
+
+              <!-- Position -->
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-semibold text-slate-500">Position</label>
+                <select v-model="currentTemplate.background_settings.position"
+                  class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none">
+                  <option value="center">Center</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                  <option value="top left">Top / Left</option>
+                  <option value="top right">Top / Right</option>
+                  <option value="bottom left">Bottom / Left</option>
+                  <option value="bottom right">Bottom / Right</option>
+                </select>
+              </div>
+
+              <!-- Custom CSS Rules -->
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-semibold text-slate-500">Custom CSS Rules (Optional)</label>
+                <textarea v-model="currentTemplate.background_settings.custom_css"
+                  placeholder="e.g. filter: grayscale(50%);"
+                  class="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs font-mono min-h-[60px] resize-none focus:outline-none"></textarea>
+              </div>
+            </div>
+
+            <div v-else class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <i class="pi pi-image text-slate-300 text-xl mb-1.5 block"></i>
+              <p class="text-[11px] font-semibold text-slate-400">Upload a background image on the left to customize its
+                style properties.</p>
+            </div>
+          </div>
         </div>
 
         <div v-else class="flex flex-col h-full">
