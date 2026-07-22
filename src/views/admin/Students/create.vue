@@ -73,7 +73,7 @@ const t = {
         assignedPartner: "Assigned Partner",
         curriculumPackage: "Curriculum Package",
         adaptiveSelect: "Evaluation System",
-        adaptiveOpt: "Stops at the student's score",
+        adaptiveOpt: "Stops at the student's Level",
         notAdaptiveOpt: "Completes the exam to the end",
         identificationCode: "Identification Code / National ID (Optional)",
         retryToggle: "Allow Level Retry",

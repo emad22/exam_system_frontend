@@ -141,7 +141,7 @@ onUnmounted(() => {
 .simple-keyboard {
   background-color: transparent !important;
   font-family: inherit;
-  padding: 0 !important;
+  padding: 6px !important;
 }
 
 .hg-row {
@@ -153,15 +153,17 @@ onUnmounted(() => {
 }
 
 .hg-button {
-  height: 30px !important;
-  background: white !important;
-  border-bottom: 2px solid #e2e8f0 !important;
-  border-radius: 6px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  background: #ffffff !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  border-radius: 10px !important;
   font-weight: 700 !important;
-  font-size: 11px !important;
-  color: #1e293b !important;
-  margin-right: 4px !important;
-  transition: all 0.1s ease !important;
+  font-size: 14px !important;
+  color: #0f172a !important;
+  margin-right: 5px !important;
+  transition: all 0.15s ease !important;
+  box-shadow: inset 0 -2px 0 rgba(148, 163, 184, 0.25) !important;
 }
 
 .hg-button:last-child {
@@ -178,9 +180,9 @@ onUnmounted(() => {
 }
 
 .hg-button.hg-functionBtn {
-  background-color: #f8fafc !important;
-  color: #64748b !important;
-  font-size: 9px !important;
+  background-color: #eef2ff !important;
+  color: #475569 !important;
+  font-size: 10px !important;
   text-transform: uppercase !important;
 }
 
@@ -192,18 +194,19 @@ onUnmounted(() => {
 
 @media (max-height: 768px) {
   .hg-button {
-    height: 25px !important;
-    font-size: 9px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    font-size: 11px !important;
     border-bottom-width: 1px !important;
-    border-radius: 4px !important;
-    margin-right: 2px !important;
+    border-radius: 6px !important;
+    margin-right: 3px !important;
   }
   .hg-row {
     margin-bottom: 1px !important;
   }
   .virtual-keyboard-wrapper {
-    min-height: 90px !important;
-    padding: 3px !important;
+    min-height: 110px !important;
+    padding: 5px !important;
   }
 }
 </style>

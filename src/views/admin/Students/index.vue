@@ -135,7 +135,7 @@ const t = {
         colStatus: "Status",
         colActions: "Actions",
         nonAdaptive: "Completes the exam to the end",
-        adaptive: "Stops at the student's score",
+        adaptive: "Stops at the student's Level",
         customAsset: "Custom Asset",
         active: "Active",
         inactive: "Inactive",

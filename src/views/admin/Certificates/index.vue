@@ -7,7 +7,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import ProgressSpinner from 'primevue/progressspinner';
-import InputSwitch from 'primevue/inputswitch';
+import ToggleSwitch from 'primevue/toggleswitch';
 
 const certificates = ref({ data: [] });
 const isLoading = ref(false);
@@ -26,7 +26,7 @@ const t = {
         title: "سجل الشهادات الأكاديمية",
         subtitle: "عرض ومراقبة كافة الشهادات الممنوحة للطلاب الناجحين في النظام وتصديرها",
         manageTemplates: "إدارة القوالب",
-        placeholderSearch: "البحث باسم الطالب أو رقم الشهادة...",
+        placeholderSearch: "البحث باسم الطالب، اسم المستخدم أو رقم الشهادة...",
         colCertId: "كود الشهادة",
         colStudent: "الطالب",
         colAssessment: "الاختبار",
@@ -44,7 +44,7 @@ const t = {
         title: "Issued Certificates",
         subtitle: "Monitor and manage all academic credentials issued by the system.",
         manageTemplates: "Manage Templates",
-        placeholderSearch: "Search by student name or certificate number...",
+        placeholderSearch: "Search by student name, username or certificate number...",
         colCertId: "Certificate ID",
         colStudent: "Student",
         colAssessment: "Assessment",
@@ -259,7 +259,7 @@ const deleteCertificate = async (cert) => {
                         <Column :header="t[currentLang].colVisibility" style="width: 100px">
                             <template #body="{ data }">
                                 <div class="flex justify-center">
-                                    <InputSwitch v-model="data.is_visible_to_student"
+                                    <ToggleSwitch v-model="data.is_visible_to_student"
                                         @change="toggleVisibility(data)" />
                                 </div>
                             </template>
@@ -271,12 +271,14 @@ const deleteCertificate = async (cert) => {
                                 <div class="flex justify-end gap-1.5">
                                     <Button icon="pi pi-download" text rounded severity="info" size="small"
                                         @click="downloadCertificate(data)" v-tooltip="t[currentLang].downloadPdf" />
-                                    <Button icon="pi pi-refresh" text rounded severity="warning" size="small" @click="regenerateCertificate(data)" v-tooltip="'Regenerate PDF'" />
+                                    <Button icon="pi pi-refresh" text rounded severity="warning" size="small"
+                                        @click="regenerateCertificate(data)" v-tooltip="'Regenerate PDF'" />
                                     <a :href="'/verify-certificate/' + data.verification_code" target="_blank">
                                         <Button icon="pi pi-external-link" text rounded severity="secondary"
                                             size="small" v-tooltip="t[currentLang].verifyLink" />
                                     </a>
-                                    <Button icon="pi pi-trash" text rounded severity="danger" size="small" @click="deleteCertificate(data)" v-tooltip="'Delete Certificate'" />
+                                    <Button icon="pi pi-trash" text rounded severity="danger" size="small"
+                                        @click="deleteCertificate(data)" v-tooltip="'Delete Certificate'" />
                                 </div>
                             </template>
                         </Column>

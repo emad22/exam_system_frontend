@@ -332,9 +332,9 @@ onUnmounted(() => {
             </div>
 
             <!-- Tab Content: Write -->
-            <div v-show="activeTab === 'write'" class="flex flex-col flex-1 min-h-[400px]">
+            <div v-show="activeTab === 'write'" class="flex flex-col min-h-[320px]">
                 <div
-                    class="editor-container-outer flex-1 border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all">
+                    class="editor-container-outer h-[285px] border border-slate-200 rounded-t-xl bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] transition-all overflow-hidden">
                     <div ref="editorRef" class="quill-rich-editor w-full h-full font-arabic text-right"></div>
                 </div>
 
@@ -442,16 +442,19 @@ onUnmounted(() => {
     border: none;
     flex: 1;
     overflow-y: auto;
-    font-size: 24px;
-    /* Larger font size internally for Arabic typing */
+    font-size: 19px;
+    /* Slightly smaller editor text for better content fit */
 }
 
 .editor-container-outer :deep(.ql-editor) {
-    padding: 16px 20px;
-    line-height: 1.8;
+    padding: 10px 12px;
+    line-height: 1.6;
     min-height: 100%;
     direction: rtl;
     text-align: right;
+}
+.editor-container-outer :deep(.ql-editor) {
+    font-size: 19px;
 }
 
 .editor-container-outer :deep(.ql-editor.ql-blank::before) {

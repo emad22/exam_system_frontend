@@ -77,7 +77,7 @@ const downloadCertificate = (cert) => {
                 <div class="relative w-full max-w-xl">
                     <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
                     <InputText v-model="searchQuery" @input="fetchCertificates(1)"
-                        placeholder="Search by student name or certificate number..."
+                        placeholder="Search by student name, username or certificate number..."
                         class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
                 </div>
             </div>
