@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import { useModal } from '@/composables/useModal';
 import api from '@/services/api';
@@ -8,6 +8,7 @@ import api from '@/services/api';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
+import Dropdown from 'primevue/dropdown';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
@@ -15,16 +16,19 @@ import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 
 const router = useRouter();
+const route = useRoute();
 const { showAlert, showConfirm } = useModal();
 
 const students = ref([]);
 const packages = ref([]);
+const partners = ref([]);
 const loading = ref(true);
 const isSaving = ref(false);
 const skills = ref([]);
 
 const selectedStudents = ref([]);
 const searchQuery = ref('');
+const selectedPartner = ref(null);
 
 // Bulk Skills State
 const showBulkSkillsModal = ref(false);
@@ -69,6 +73,19 @@ const t = {
         emptyTitle: "لا يوجد طلاب مسجلين",
         emptySubtitle: "قم بتسجيل الطلاب يدوياً أو عبر ملف استيراد جماعي لبدء تقديم الاختبارات.",
         emptyBtn: "تسجيل أول طالب",
+        filterByPartner: "تصفية حسب الشريك",
+        allPartners: "جميع الشركاء",
+        confirmHold: "هل أنت متأكد من رغبتك في تعليق حساب هذا الطالب مؤقتاً؟",
+        confirmUnhold: "هل أنت متأكد من رغبتك في إعادة تنشيط هذا الطالب؟",
+        holdPlaced: "تم تعليق حساب الطالب بنجاح.",
+        unholdPlaced: "تمت إعادة تنشيط حساب الطالب بنجاح.",
+        failedHold: "فشل تعليق حساب الطالب.",
+        failedUnhold: "فشل إعادة تنشيط حساب الطالب.",
+        bulkHoldTitle: "تحديث حالة جماعي",
+        bulkHoldConfirm: "هل أنت متأكد من رغبتك في {action} {count} من الطلاب المحددين؟",
+        bulkHoldSuccess: "تم تحديث حالة الطلاب المحددين بنجاح.",
+        bulkHoldError: "فشل تحديث حالة الطلاب المحددين.",
+        btnBulkHold: "تعليق / تنشيط",
         
         // Modals
         deleteConfirmTitle: "حذف حساب الطالب",
@@ -110,7 +127,7 @@ const t = {
         btnRegister: "Register Student",
         btnMatrixImport: "Batch Import",
         btnBulkSkills: "Bulk Skills Mapping",
-        btnPurge: "Purge Selected",
+        btnPurge: "Delete Selected",
         searchPlaceholder: "Search students...",
         colIdentity: "Student Account & Info",
         colSubscription: "Active Package",
@@ -130,6 +147,19 @@ const t = {
         emptyTitle: "No Registered Students",
         emptySubtitle: "Register students manually or via bulk spreadsheet import to start conducting assessments.",
         emptyBtn: "Register First Student",
+        filterByPartner: "Filter by Partner",
+        allPartners: "All Partners",
+        confirmHold: "Are you sure you want to place this student on hold?",
+        confirmUnhold: "Are you sure you want to reactivate this student?",
+        holdPlaced: "Student placed on hold.",
+        unholdPlaced: "Student reactivated.",
+        failedHold: "Failed to hold student.",
+        failedUnhold: "Failed to reactivate student.",
+        bulkHoldTitle: "Bulk Status Update",
+        bulkHoldConfirm: "Are you sure you want to {action} {count} selected students?",
+        bulkHoldSuccess: "Selected students' status updated successfully.",
+        bulkHoldError: "Failed to update students' status.",
+        btnBulkHold: "Hold / Unhold",
 
         // Modals
         deleteConfirmTitle: "Delete Student",
@@ -203,14 +233,23 @@ const handleModalCancel = () => {
 };
 
 const filteredStudents = computed(() => {
-    if (!searchQuery.value) return students.value;
-    const query = searchQuery.value.toLowerCase();
-    return students.value.filter(s => {
-        const name = `${s.user?.first_name || ''} ${s.user?.last_name || ''}`.toLowerCase();
-        const email = (s.user?.email || '').toLowerCase();
-        const code = (s.student_code || '').toLowerCase();
-        return name.includes(query) || email.includes(query) || code.includes(query);
-    });
+    let result = students.value;
+
+    if (selectedPartner.value) {
+        result = result.filter(s => s.partner_id === selectedPartner.value);
+    }
+
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(s => {
+            const name = `${s.user?.first_name || ''} ${s.user?.last_name || ''}`.toLowerCase();
+            const email = (s.user?.email || '').toLowerCase();
+            const code = (s.student_code || '').toLowerCase();
+            return name.includes(query) || email.includes(query) || code.includes(query);
+        });
+    }
+
+    return result;
 });
 
 const fetchStudents = async () => {
@@ -224,6 +263,17 @@ const fetchStudents = async () => {
         showAlert('Failed to load students', 'Error', 'error');
     } finally {
         loading.value = false;
+    }
+};
+
+// URL sync removed to keep it entirely client-side
+
+const fetchPartners = async () => {
+    try {
+        const res = await api.get('/admin/partners');
+        partners.value = res.data;
+    } catch (err) {
+        console.error('Failed to load partners', err);
     }
 };
 
@@ -273,6 +323,37 @@ const deleteStudent = async (student) => {
     }
 };
 
+const toggleHold = async (student) => {
+    const action = student.user?.is_active ? 'hold' : 'unhold';
+    const confirmMsg = action === 'hold' ? t[currentLang.value].confirmHold : t[currentLang.value].confirmUnhold;
+    
+    const confirmed = await showConfirm(
+        confirmMsg,
+        t[currentLang.value].title,
+        action === 'hold' ? 'warning' : 'info',
+        currentLang.value === 'ar' ? 'تأكيد' : 'Confirm'
+    );
+    if (!confirmed) return;
+
+    try {
+        await api.patch(`/admin/students/${student.id}`, { is_active: !student.user?.is_active });
+        if (student.user) student.user.is_active = !student.user.is_active;
+        await showAlert(
+            action === 'hold' ? t[currentLang.value].holdPlaced : t[currentLang.value].unholdPlaced,
+            currentLang.value === 'ar' ? 'نجاح' : 'Success',
+            'success'
+        );
+        fetchStudents();
+    } catch (err) {
+        console.error(err);
+        showAlert(
+            action === 'hold' ? t[currentLang.value].failedHold : t[currentLang.value].failedUnhold,
+            currentLang.value === 'ar' ? 'خطأ' : 'Error',
+            'danger'
+        );
+    }
+};
+
 const resetProgress = async (student) => {
     const fullName = `${student.user?.first_name} ${student.user?.last_name}`;
     const confirmed = await showConfirm(
@@ -313,6 +394,44 @@ const bulkDelete = async () => {
         await showAlert(t[currentLang.value].bulkDeleteSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
     } catch (err) {
         showAlert(t[currentLang.value].bulkDeleteError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+    }
+};
+
+const bulkToggleHold = async () => {
+    if (!selectedStudents.value.length) return;
+
+    const targetIsActive = !selectedStudents.value[0].user?.is_active;
+    const actionTextAr = targetIsActive ? 'إعادة تنشيط' : 'تعليق';
+    const actionTextEn = targetIsActive ? 'reactivate' : 'place on hold';
+    const actionText = currentLang.value === 'ar' ? actionTextAr : actionTextEn;
+    
+    const confirmMsg = t[currentLang.value].bulkHoldConfirm
+        .replace('{action}', actionText)
+        .replace('{count}', selectedStudents.value.length);
+        
+    const confirmed = await showConfirm(
+        confirmMsg,
+        t[currentLang.value].bulkHoldTitle,
+        targetIsActive ? 'info' : 'warning',
+        currentLang.value === 'ar' ? 'تأكيد' : 'Confirm'
+    );
+    
+    if (!confirmed) return;
+
+    isSaving.value = true;
+    try {
+        await Promise.all(selectedStudents.value.map(student => 
+            api.patch(`/admin/students/${student.id}`, { is_active: targetIsActive })
+        ));
+        
+        await showAlert(t[currentLang.value].bulkHoldSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+        selectedStudents.value = [];
+        fetchStudents();
+    } catch (err) {
+        console.error(err);
+        showAlert(t[currentLang.value].bulkHoldError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+    } finally {
+        isSaving.value = false;
     }
 };
 
@@ -376,6 +495,7 @@ onMounted(() => {
     fetchStudents();
     fetchPackages();
     fetchSkills();
+    fetchPartners();
 });
 </script>
 
@@ -412,6 +532,12 @@ onMounted(() => {
                             <i class="pi pi-globe text-brand-primary"></i>
                             <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
                         </button>
+                         <Button v-if="selectedStudents.length > 0" 
+                             :label="t[currentLang].btnBulkHold" 
+                             :icon="selectedStudents[0]?.user?.is_active ? 'pi pi-pause' : 'pi pi-play'"
+                             severity="warning" 
+                             class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
+                             @click="bulkToggleHold" :loading="isSaving" />
                          <Button v-if="selectedStudents.length > 0" :label="t[currentLang].btnPurge" icon="pi pi-trash"
                              severity="danger" class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
                              @click="bulkDelete" />
@@ -427,21 +553,26 @@ onMounted(() => {
                     </div>
                 </div>
 
+                <!-- Premium Search Bar -->
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="relative w-full max-w-xl">
+                        <i class="pi pi-search absolute text-slate-300 z-10" :class="currentLang === 'ar' ? 'right-4 top-1/2 -translate-y-1/2' : 'left-4 top-1/2 -translate-y-1/2'" />
+                        <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder"
+                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm"
+                            :class="currentLang === 'ar' ? 'pr-12' : 'pl-12'" />
+                    </div>
+                    <div class="w-full md:w-64">
+                        <Dropdown v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                            :placeholder="t[currentLang].allPartners" showClear class="w-full shadow-sm rounded-xl" />
+                    </div>
+                </div>
+
                 <!-- Registry Table Card -->
-                <div v-if="students.length > 0 || searchQuery">
+                <div v-if="students.length > 0 || searchQuery || selectedPartner">
                     <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                         <template #content>
                             <DataTable :value="filteredStudents" v-model:selection="selectedStudents" dataKey="id" paginator
                                 :rows="10" class="p-datatable-sm text-sm" responsiveLayout="scroll">
-
-                                <template #header>
-                                    <div class="flex justify-end p-2 pb-4">
-                                        <span class="relative">
-                                            <i class="pi pi-search absolute text-slate-400 z-10" :class="currentLang === 'ar' ? 'right-3 top-1/2 -translate-y-1/2' : 'left-3 top-1/2 -translate-y-1/2'" />
-                                            <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl" :class="currentLang === 'ar' ? 'pr-10' : 'pl-10'" />
-                                        </span>
-                                    </div>
-                                </template>
 
                                 <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
@@ -509,6 +640,7 @@ onMounted(() => {
                                             />
                                             <Button icon="pi pi-pencil" text severity="warning" size="small"
                                                 @click="openEdit(data)" v-tooltip.top="t[currentLang].tooltipEdit" />
+                                            <Button :icon="data.user?.is_active ? 'pi pi-pause' : 'pi pi-play'" text severity="warning" size="small" @click="toggleHold(data)" />
                                             <Button icon="pi pi-trash" text severity="danger" size="small"
                                                 @click="deleteStudent(data)" v-tooltip.top="t[currentLang].tooltipDelete" />
                                         </div>
