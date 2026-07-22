@@ -787,6 +787,7 @@ const isFirstQuestionInPassage = computed(() => {
 });
 const passageGeneralInstructions = computed(() => {
     if (!currentQ.value) return '';
+    if (currentQ.value.type === 'speaking_live') return '';
     if (!isFirstQuestionInPassage.value) return '';
     return (currentQ.value?.passage?.general_instructions || currentQ.value?.general_instructions || '').trim();
 });
@@ -950,6 +951,11 @@ watch(currentQ, (newQ) => {
     if (newQ && newQ.id) {
         api.patch(`/attempts/${attemptId.value}/progress`, { question_id: newQ.id })
             .catch(err => console.warn('Progress update failed', err));
+    }
+    if (newQ && newQ.type === 'speaking_live') {
+        nextTick(() => {
+            saveCurrentAnswerDraft();
+        });
     }
     playCurrentAudio();
 });
@@ -1570,7 +1576,7 @@ onUnmounted(() => {
 
 
                                     <!-- General Instructions Banner (displayed for standalone questions) -->
-                                    <div v-if="currentQ.general_instructions && currentQ.general_instructions.trim()"
+                                    <div v-if="currentQ.general_instructions && currentQ.general_instructions.trim() && currentQ.type !== 'speaking_live'"
                                         class="ql-content rtl-support text-slate-700 leading-relaxed bg-amber-50/60 border border-amber-200/60 rounded-xl px-5 py-4 shadow-sm general-instructions-content"
                                         v-html="cleanHtml(currentQ.general_instructions)" dir="auto">
                                     </div>

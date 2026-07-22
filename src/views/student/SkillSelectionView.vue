@@ -132,6 +132,10 @@ const fetchExamsAndUser = async () => {
 };
 
 const skillMap = {
+    'speaking live': 'Speaking (Live)',
+    'speaking_live': 'Speaking (Live)',
+    'live speaking': 'Speaking (Live)',
+    'live': 'Speaking (Live)',
     'listening': 'Listening',
     'reading': 'Reading',
     'grammar': 'Structure',

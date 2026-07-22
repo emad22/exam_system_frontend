@@ -313,7 +313,7 @@ onMounted(fetchAttempt)
                                     {{ idx + 1 }}
                                 </span>
                                 <Tag :value="ans.question?.type?.toUpperCase()"
-                                    :severity="ans.question?.type === 'speaking' ? 'warning' : 'info'"
+                                    :severity="['speaking', 'speaking_live'].includes(ans.question?.type) ? 'warning' : 'info'"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                             </div>
                             <div class="flex items-center gap-2">

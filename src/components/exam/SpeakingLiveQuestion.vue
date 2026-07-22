@@ -29,6 +29,7 @@ onMounted(() => {
             ...props.answer,
             live_status: 'waiting',
             entered_at: new Date().toISOString(),
+            text_answer: props.answer?.text_answer || 'Live Session',
         });
     }
 });
@@ -42,15 +43,7 @@ onMounted(() => {
 
             <!-- Header Tag -->
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-10 h-10 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-lg font-bold shadow-sm border border-cyan-100">
-                        <i class="pi pi-comments"></i>
-                    </div>
-                    <div>
-                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">SPEAKING</p>
-                    </div>
-                </div>
+                
 
                 <!-- Live Waiting Badge -->
                 <div class="flex items-center gap-2 bg-cyan-50 px-3 py-1.5 rounded-full border border-cyan-200">
@@ -66,37 +59,6 @@ onMounted(() => {
                     v-html="question.content">
                 </div>
             </div>
-
-            <!-- Informational Banner (no action, purely passive) -->
-            <div
-                class="w-full max-w-2xl mx-auto bg-slate-900 rounded-[2rem] p-6 md:p-8 text-white flex flex-col items-center justify-center gap-4 min-h-[200px] shadow-2xl border border-slate-800">
-
-                <!-- Icon -->
-                <div
-                    class="w-20 h-20 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-3xl border border-cyan-500/20 shadow-inner">
-                    <i class="pi pi-phone"></i>
-                </div>
-
-                <!-- Message -->
-                <div class="text-center space-y-2">
-                    <h4 class="text-base font-black text-white">في انتظار المقابلة المباشرة</h4>
-                    <p class="text-sm text-slate-400 max-w-md leading-relaxed">
-                        سيتواصل معك المعلم قريباً لإجراء الاختبار الشفهي المباشر.<br>
-                        يرجى البقاء في هذه الصفحة حتى ينتهي الوقت المخصص.
-                    </p>
-                </div>
-
-                <!-- Pulsing waiting indicator -->
-                <div class="flex items-center gap-2 text-cyan-400/70 text-xs font-bold uppercase tracking-widest">
-                    <span class="flex gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce" style="animation-delay:0ms"></span>
-                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce" style="animation-delay:150ms"></span>
-                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce" style="animation-delay:300ms"></span>
-                    </span>
-                    <span>في الانتظار</span>
-                </div>
-            </div>
-
             <!-- Background subtle glow -->
             <div
                 class="absolute -bottom-20 -left-20 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none">
