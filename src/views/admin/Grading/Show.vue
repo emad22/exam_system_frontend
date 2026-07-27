@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
+import { authStorage } from '@/services/authStorage'
 import { useMediaUrl } from '@/composables/useMediaUrl'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
@@ -16,6 +17,12 @@ const route  = useRoute()
 const router = useRouter()
 const loading = ref(true)
 const saving  = ref(false)
+
+const goBackToGrading = () => {
+    const isTeacher = route.path.startsWith('/teacher') || authStorage.getRole() === 'teacher';
+    const routeName = isTeacher ? 'teacher.grading' : 'admin.grading';
+    router.push({ name: routeName })
+}
 
 const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
 
@@ -175,7 +182,7 @@ const submitGrades = async () => {
         }))
 
         await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
-        router.push({ name: 'admin.grading' })
+        goBackToGrading()
     } catch (err) {
         console.error('Failed to save grades', err)
     } finally {
@@ -218,7 +225,7 @@ onMounted(fetchAttempt)
                     
                     <div class="relative z-10 flex items-center gap-6">
                         <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded 
-                                @click="router.push({ name: 'admin.grading' })" 
+                                @click="goBackToGrading" 
                                 class="w-12 h-12 flex items-center justify-center border border-slate-200 hover:border-slate-300 shadow-sm bg-white" />
                         <div>
                              <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">

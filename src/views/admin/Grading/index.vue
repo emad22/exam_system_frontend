@@ -1,8 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
+import { authStorage } from '@/services/authStorage'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -10,6 +11,7 @@ import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
 
+const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const attempts = ref([])
@@ -82,7 +84,9 @@ const fetchPending = async (page = 1) => {
 const onPage = (event) => fetchPending(event.page + 1)
 
 const goToGrading = (attemptId) => {
-    router.push({ name: 'admin.grading.show', params: { id: attemptId } })
+    const isTeacher = route.path.startsWith('/teacher') || authStorage.getRole() === 'teacher';
+    const routeName = isTeacher ? 'teacher.grading.show' : 'admin.grading.show';
+    router.push({ name: routeName, params: { id: attemptId } })
 }
 
 const pendingWriting = computed(() => attempts.value.reduce((s, a) => s + (a.pending_writing || 0), 0))

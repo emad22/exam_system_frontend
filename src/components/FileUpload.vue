@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import mammoth from 'mammoth';
 
 const props = defineProps({
     acceptedTypes: {
@@ -20,6 +21,9 @@ const emit = defineEmits(['file-selected', 'file-removed']);
 
 const uploadedFile = ref(null);
 const isDragging = ref(false);
+const documentHtmlContent = ref('');
+const isLoadingPreview = ref(false);
+const showPreviewDiv = ref(true);
 
 // Map accepted types to file extensions
 const acceptedExtensions = {
@@ -108,6 +112,58 @@ const handleFileInputChange = (e) => {
     }
 };
 
+const escapeHtml = (text) => {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+};
+
+const loadDocumentPreview = async (file) => {
+    if (!file) {
+        documentHtmlContent.value = '';
+        return;
+    }
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    // 1. Text files (.txt, .csv, .md, .json, .log)
+    if (['txt', 'csv', 'md', 'json', 'log'].includes(ext)) {
+        isLoadingPreview.value = true;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            documentHtmlContent.value = `<div class="font-sans text-sm text-slate-800 whitespace-pre-wrap leading-relaxed dir-auto">${escapeHtml(e.target.result || '')}</div>`;
+            isLoadingPreview.value = false;
+        };
+        reader.onerror = () => {
+            documentHtmlContent.value = '<div class="text-rose-500 text-xs">تعذر قراءة محتوى الملف النصي.</div>';
+            isLoadingPreview.value = false;
+        };
+        reader.readAsText(file);
+    }
+    // 2. Word documents (.docx)
+    else if (ext === 'docx') {
+        isLoadingPreview.value = true;
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            if (result.value) {
+                documentHtmlContent.value = `<div class="document-html-view text-sm text-slate-800 leading-relaxed dir-auto">${result.value}</div>`;
+            } else {
+                documentHtmlContent.value = '<div class="text-slate-500 text-xs italic">الملف فارغ أو لا يحتوي على نصوص قابلة للعرض.</div>';
+            }
+        } catch (err) {
+            console.error('Error parsing docx file:', err);
+            documentHtmlContent.value = '<div class="text-amber-600 text-xs font-semibold">تعذر استخراج النص من ملف الوورد تلقائياً.</div>';
+        } finally {
+            isLoadingPreview.value = false;
+        }
+    } else {
+        documentHtmlContent.value = '';
+    }
+};
+
 const handleFileSelect = (file) => {
     // Validate file size
     if (file.size > props.maxSize) {
@@ -130,27 +186,40 @@ const handleFileSelect = (file) => {
     }
 
     uploadedFile.value = file;
+    showPreviewDiv.value = true;
+    loadDocumentPreview(file);
     emit('file-selected', file);
 };
 
 const removeFile = () => {
     uploadedFile.value = null;
+    documentHtmlContent.value = '';
+    isLoadingPreview.value = false;
     emit('file-removed');
 };
 
-// Show preview for images
+// Preview type checks
 const showImagePreview = () => {
     if (!uploadedFile.value) return false;
     const ext = uploadedFile.value.name.split('.').pop().toLowerCase();
     return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
 };
 
-// Show audio player preview for audio files
 const showAudioPreview = () => {
     if (!uploadedFile.value) return false;
     const ext = uploadedFile.value.name.split('.').pop().toLowerCase();
     return ['mp3', 'wav', 'm4a', 'webm', 'ogg', 'aac', 'flac'].includes(ext);
 };
+
+const showPdfPreview = () => {
+    if (!uploadedFile.value) return false;
+    const ext = uploadedFile.value.name.split('.').pop().toLowerCase();
+    return ext === 'pdf';
+};
+
+const hasHtmlPreview = computed(() => {
+    return !!documentHtmlContent.value && !isLoadingPreview.value;
+});
 
 const getImagePreview = () => {
     if (!uploadedFile.value) return '';
@@ -195,16 +264,12 @@ const getImagePreview = () => {
             </div>
         </div>
 
-        <!-- File Preview -->
+        <!-- File Preview Container -->
         <div v-else class="file-preview-container animate-in fade-in zoom-in-95 duration-500">
-            <!-- Image Preview -->
-            <div v-if="showImagePreview()" class="image-preview mb-4">
-                <img :src="getImagePreview()" alt="Preview" class="rounded-lg border border-slate-200 max-h-48 object-cover" />
-            </div>
-
+            
             <!-- File Info Card -->
             <div class="file-info-card">
-                <div class="flex items-start gap-3">
+                <div class="flex items-center gap-3 w-full">
                     <div class="file-icon">
                         <i :class="['pi', getFileIcon()]"></i>
                     </div>
@@ -214,20 +279,66 @@ const getImagePreview = () => {
                             {{ getFileTypeLabel() }} • {{ formatFileSize(uploadedFile.size) }}
                         </p>
                     </div>
-                    <button
-                        @click="removeFile"
-                        type="button"
-                        class="remove-btn"
-                        :disabled="disabled">
-                        <i class="pi pi-trash"></i>
-                    </button>
+
+                    <div class="flex items-center gap-2">
+                        <!-- Toggle Preview Button -->
+                        <button
+                            v-if="hasHtmlPreview || showPdfPreview() || showImagePreview() || showAudioPreview()"
+                            @click="showPreviewDiv = !showPreviewDiv"
+                            type="button"
+                            class="view-btn"
+                            :title="showPreviewDiv ? 'إخفاء المعاينة' : 'معاينة الملف'">
+                            <i :class="['pi', showPreviewDiv ? 'pi-eye-slash' : 'pi-eye']"></i>
+                            <span class="text-xs font-bold">{{ showPreviewDiv ? 'Hide' : 'Preview' }}</span>
+                        </button>
+
+                        <!-- Delete Button -->
+                        <button
+                            @click="removeFile"
+                            type="button"
+                            class="remove-btn"
+                            :disabled="disabled"
+                            title="حذف الملف">
+                            <i class="pi pi-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Audio Player for Audio Files -->
-            <div v-if="showAudioPreview()" class="space-y-3 mt-4">
-                <audio :src="getImagePreview()" controls class="w-full h-10 rounded-lg border border-slate-200"></audio>
+            <!-- Loading Spinner during conversion -->
+            <div v-if="isLoadingPreview" class="mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-3 text-slate-500">
+                <i class="pi pi-spin pi-spinner text-lg text-blue-600"></i>
+                <span class="text-xs font-bold">جاري استخراج ومعاينة محتوى الملف...</span>
             </div>
+
+            <!-- PREVIEW DIV BOX BELOW CARD -->
+            <div v-if="showPreviewDiv && !isLoadingPreview" class="mt-4 space-y-4">
+                
+                <!-- 1. Text / DOCX Content Preview Div -->
+                <div v-if="documentHtmlContent" class="preview-div-box p-5 bg-white border border-slate-200 rounded-xl shadow-sm text-left">
+                    <div class="flex items-center gap-2 text-xs font-black text-slate-700 mb-3 border-b border-slate-100 pb-2">
+                        <i class="pi pi-file-edit text-blue-600 text-sm"></i>
+                        <span>File Content Preview (معاينة محتوى الملف النصي)</span>
+                    </div>
+                    <div class="document-html-view max-h-96 overflow-y-auto pr-1" v-html="documentHtmlContent"></div>
+                </div>
+
+                <!-- 2. PDF Viewer Preview Div -->
+                <div v-if="showPdfPreview()" class="preview-div-box rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-slate-900">
+                    <iframe :src="getImagePreview()" class="w-full h-96 border-none" title="PDF Preview"></iframe>
+                </div>
+
+                <!-- 3. Image Preview Div -->
+                <div v-if="showImagePreview()" class="preview-div-box p-4 bg-white border border-slate-200 rounded-xl flex justify-center shadow-sm">
+                    <img :src="getImagePreview()" alt="Preview" class="rounded-lg max-h-80 object-contain" />
+                </div>
+
+                <!-- 4. Audio Player Div -->
+                <div v-if="showAudioPreview()" class="preview-div-box p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                    <audio :src="getImagePreview()" controls class="w-full h-10 rounded-lg border border-slate-200"></audio>
+                </div>
+            </div>
+
         </div>
     </div>
 </template>
@@ -326,6 +437,28 @@ const getImagePreview = () => {
     margin: 0.25rem 0 0 0;
 }
 
+.view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.4rem 0.75rem;
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+    color: #2563eb;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.view-btn:hover {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+
 .remove-btn {
     min-width: 2rem;
     width: 2rem;
@@ -351,6 +484,31 @@ const getImagePreview = () => {
 .remove-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.document-html-view {
+    font-family: 'Lotus Linotype', 'Myriad Arabic', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    line-height: 1.8;
+}
+
+.document-html-view :deep(p) {
+    margin-bottom: 0.75rem;
+}
+
+.document-html-view :deep(h1),
+.document-html-view :deep(h2),
+.document-html-view :deep(h3) {
+    font-weight: 800;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #0f172a;
+}
+
+.document-html-view :deep(ul),
+.document-html-view :deep(ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .animate-in {
