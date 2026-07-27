@@ -135,13 +135,19 @@ watch(hasStartedWriting, async (isWriting) => {
             quillInstance = new Quill(editorRef.value, {
                 theme: 'snow',
                 modules: {
-                    toolbar: [
-                        ['undo', 'redo'],
-                        ['bold', 'italic', 'underline'],
-                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                        [{ 'direction': 'rtl' }, { 'align': [] }],
-                        ['clean']
-                    ],
+                    toolbar: {
+                        container: [
+                            ['undo', 'redo'],
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            [{ 'direction': 'rtl' }, { 'align': [] }],
+                            ['clean']
+                        ],
+                        handlers: {
+                            undo: function () { this.quill.history.undo(); },
+                            redo: function () { this.quill.history.redo(); }
+                        }
+                    },
                     keyboard: {
                         bindings: {
                             undo: { key: 'Z', shortKey: true, handler: function () { this.quill.history.undo(); } },

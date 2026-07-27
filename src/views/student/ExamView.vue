@@ -523,6 +523,7 @@ const fetchNextBatch = async () => {
                 option_id: null,
                 text_answer: '',
                 recorded_file: null,
+                pdf_file: null,          // for pdf_annotation type
                 is_media_uploaded: false,
                 drag_drop_answers: [],
                 selected_words: [],
@@ -584,6 +585,7 @@ const VALIDATORS = {
     speaking: (ans) => !!ans.recorded_file,
     speaking_live: () => true, // always valid — passive question, auto-submits on timeout or exit
     writing: (ans) => !!(ans.text_answer && ans.text_answer.trim().length > 0) || !!ans.recorded_file,
+    pdf_annotation: () => true, // always valid — PDF worksheet is submitted with whatever annotations the student drew
     drag_drop: (ans) => ans.drag_drop_answers.every(a => a !== null && a !== ''),
     fill_blank: (ans) => ans.fill_blank_answers.every(a => a && a.trim().length > 0),
     matching: (ans, q) => Object.keys(ans.matching_answers).length === q.options.filter(o => o.is_correct).length,
@@ -663,6 +665,11 @@ const saveCurrentAnswerDraft = async (ansToSave = null, qToSave = null) => {
             const fileName = ans.recorded_file.name || 'voice.webm';
             formData.append('audio_file', ans.recorded_file, fileName);
         }
+        // pdf_annotation: attach generated annotated PDF file
+        if (ans.pdf_file) {
+            formData.append('pdf_file', ans.pdf_file, ans.pdf_file.name || 'answer.pdf');
+            if (!ans.text_answer) formData.append('text_answer', 'PDF_ANNOTATED');
+        }
         const arrayFields = {
             selected_words: ans.selected_words,
             drag_drop_answers: ans.drag_drop_answers,
@@ -703,6 +710,11 @@ const submitCurrentBatch = async (isTimeout = false) => {
             if (ans.recorded_file && !ans.is_media_uploaded) {
                 const fileName = ans.recorded_file.name || 'voice.webm';
                 formData.append(`answers[${index}][audio_file]`, ans.recorded_file, fileName);
+            }
+            // pdf_annotation: attach generated annotated PDF
+            if (ans.pdf_file) {
+                formData.append(`answers[${index}][pdf_file]`, ans.pdf_file, ans.pdf_file.name || 'answer.pdf');
+                if (!ans.text_answer) formData.append(`answers[${index}][text_answer]`, 'PDF_ANNOTATED');
             }
             const arrayFields = {
                 selected_words: ans.selected_words,
@@ -1426,35 +1438,45 @@ onUnmounted(() => {
                         <!-- Phase B: Questions only (full screen, after audio listened) -->
                         <template v-else>
                             <div class="flex-1 overflow-y-auto">
-                                <div class="max-w-4xl mx-auto w-full flex flex-col p-6 animate-in fade-in duration-500"
-                                    :class="['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'gap-3' : 'gap-5'">
-
-                                    <!-- Instructions Banner (matches design in image 2) -->
-                                    <div v-if="!['writing', 'short_answer', 'speaking_live'].includes(currentQ.type)"
-                                        class="flex items-start gap-3 border border-slate-200 rounded-xl px-4 py-3 shadow-sm bg-[#f4f7fb]"
-                                        dir="ltr">
-                                        <div
-                                            class="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
-                                            <i class="pi pi-info text-white text-sm font-black"></i>
-                                        </div>
-                                        <div class="flex flex-col gap-0.5">
-                                            <span class="text-sm font-black text-slate-900">Instructions</span>
-                                            <span class="text-sm text-slate-600 leading-snug"
-                                                v-html="displayInstructions"></span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Question Content inside a white box -->
-                                    <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
-                                        class="rounded-xl px-5 py-4 rtl-support interactive-content-area ql-content bg-white border border-slate-200 shadow-sm"
-                                        style="border-width: 1.5px; font-size: 30px; font-weight: 400; color: #1e293b; line-height: 1.7;"
-                                        v-html="cleanHtml(currentQ.content)" dir="auto">
-                                    </div>
-
+                                <!-- pdf_annotation: full-width, no max-w wrapper so sticky toolbar works -->
+                                <template v-if="currentQ?.type === 'pdf_annotation'">
                                     <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
                                         :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
                                         :hasStimulusContent="false" />
-                                </div>
+                                </template>
+
+                                <!-- All other question types: standard padded max-w-4xl layout -->
+                                <template v-else>
+                                    <div class="max-w-4xl mx-auto w-full flex flex-col p-6 animate-in fade-in duration-500"
+                                        :class="['writing', 'short_answer', 'fill_blank'].includes(currentQ?.type) ? 'gap-3' : 'gap-5'">
+
+                                        <!-- Instructions Banner (matches design in image 2) -->
+                                        <div v-if="!['writing', 'short_answer', 'speaking_live'].includes(currentQ.type)"
+                                            class="flex items-start gap-3 border border-slate-200 rounded-xl px-4 py-3 shadow-sm bg-[#f4f7fb]"
+                                            dir="ltr">
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
+                                                <i class="pi pi-info text-white text-sm font-black"></i>
+                                            </div>
+                                            <div class="flex flex-col gap-0.5">
+                                                <span class="text-sm font-black text-slate-900">Instructions</span>
+                                                <span class="text-sm text-slate-600 leading-snug"
+                                                    v-html="displayInstructions"></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Question Content inside a white box -->
+                                        <div v-if="currentQ.content && !isQuestionTypeWithoutOptions(currentQ.type)"
+                                            class="rounded-xl px-5 py-4 rtl-support interactive-content-area ql-content bg-white border border-slate-200 shadow-sm"
+                                            style="border-width: 1.5px; font-size: 30px; font-weight: 400; color: #1e293b; line-height: 1.7;"
+                                            v-html="cleanHtml(currentQ.content)" dir="auto">
+                                        </div>
+
+                                        <QuestionDispatcher v-if="currentQ && answers[currentIndex]" :key="currentQ.id"
+                                            :question="currentQ" v-model:answer="answers[currentIndex]" :disabled="false"
+                                            :hasStimulusContent="false" />
+                                    </div>
+                                </template>
                             </div>
 
                             <!-- Virtual Keyboard -->

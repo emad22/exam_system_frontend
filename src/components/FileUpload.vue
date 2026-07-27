@@ -145,6 +145,13 @@ const showImagePreview = () => {
     return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
 };
 
+// Show audio player preview for audio files
+const showAudioPreview = () => {
+    if (!uploadedFile.value) return false;
+    const ext = uploadedFile.value.name.split('.').pop().toLowerCase();
+    return ['mp3', 'wav', 'm4a', 'webm', 'ogg', 'aac', 'flac'].includes(ext);
+};
+
 const getImagePreview = () => {
     if (!uploadedFile.value) return '';
     return URL.createObjectURL(uploadedFile.value);
@@ -218,7 +225,7 @@ const getImagePreview = () => {
             </div>
 
             <!-- Audio Player for Audio Files -->
-            <div v-if="!showImagePreview()" class="space-y-3 mt-4">
+            <div v-if="showAudioPreview()" class="space-y-3 mt-4">
                 <audio :src="getImagePreview()" controls class="w-full h-10 rounded-lg border border-slate-200"></audio>
             </div>
         </div>

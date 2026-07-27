@@ -241,6 +241,7 @@ const t = {
 };
 
 const questionTypes = [
+    { label: 'PDF Worksheet (ورقة عمل PDF)', value: 'pdf_annotation', icon: 'pi-file-pdf' },
     { label: 'Multiple Choice (MCQ)', value: 'mcq', icon: 'pi-check-square' },
     { label: 'True / False', value: 'true_false', icon: 'pi-verified' },
     { label: 'Fill in the Blank', value: 'fill_blank', icon: 'pi-pencil' },
@@ -555,8 +556,8 @@ const handleTypeChange = async (qIdx) => {
             { option_text: 'True', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
             { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
         ];
-    } else if (['writing', 'speaking', 'speaking_live', 'upload'].includes(q.type)) {
-        q.instructions = currentLang.value === 'ar' ? "يرجى تقديم إجابتك." : "Please provide your answer.";
+    } else if (['writing', 'speaking', 'speaking_live', 'upload', 'pdf_annotation'].includes(q.type)) {
+        q.instructions = currentLang.value === 'ar' ? "يرجى حل المسألة والرسم أو الكتابة على ورقة الـ PDF." : "Please solve the worksheet by drawing and typing on the PDF.";
         q.options = [];
     } else if (q.type === 'short_answer') {
         q.instructions = currentLang.value === 'ar' ? "يرجى كتابة الإجابة." : "Please type the correct answer.";
@@ -1175,6 +1176,28 @@ const editorModules = {
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold" />
                                 </div>
 
+                            </div>
+
+                            <!-- PDF Worksheet Upload Block -->
+                            <div v-if="q.type === 'pdf_annotation'" class="space-y-2 bg-blue-50/40 p-5 rounded-2xl border border-blue-100">
+                                <div class="flex items-center justify-between">
+                                    <label class="text-[10px] font-black text-blue-800 uppercase tracking-wide flex items-center gap-2">
+                                        <i class="pi pi-file-pdf text-rose-500 text-base"></i>
+                                        <span>ملف ورقة العمل (PDF Worksheet File) *</span>
+                                    </label>
+                                    <span v-if="q.q_media_preview" class="text-[10px] text-emerald-600 font-bold">✓ تم اختيار الملف</span>
+                                </div>
+                                <div @click="triggerQFile(qIdx)"
+                                    class="w-full h-24 border-2 border-dashed border-blue-200 hover:border-blue-400 bg-white rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all">
+                                    <input type="file" :id="`qFile_${qIdx}`" class="hidden"
+                                        @change="(e) => handleQFileChange(e, qIdx)" accept="application/pdf" />
+                                    <i v-if="!q.q_media_preview" class="pi pi-cloud-upload text-2xl text-blue-400"></i>
+                                    <i v-else class="pi pi-file-pdf text-2xl text-rose-500"></i>
+                                    <span class="text-xs font-bold text-slate-700">
+                                        {{ q.q_media_preview ? 'الملف المحدد: ' + (q.q_media?.name || 'ورقة العمل PDF') : 'انقر هنا لإرفاق ملف الـ PDF المطلوب حلّه' }}
+                                    </span>
+                                    <span class="text-[9px] text-slate-400">صيغة PDF فقط</span>
+                                </div>
                             </div>
 
 

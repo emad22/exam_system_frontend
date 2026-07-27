@@ -393,21 +393,32 @@ onMounted(fetchAttempt)
                                     </div>
                                     
                                     <!-- Document/File answer -->
-                                    <div v-if="ans.media_answer && isDocumentFile(ans.media_answer)" class="mt-4">
-                                        <div class="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
-                                            <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 rounded-lg">
-                                                <i :class="['pi', getFileIcon(ans.media_answer), 'text-slate-600']"></i>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-bold text-slate-700 truncate">{{ ans.media_answer.split('/').pop() }}</p>
-                                                <p class="text-xs text-slate-500">{{ getFileTypeLabel(ans.media_answer) }}</p>
+                                    <div v-if="ans.media_answer && isDocumentFile(ans.media_answer)" class="mt-4 space-y-3">
+                                        <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                            <div class="flex items-center gap-3 min-w-0">
+                                                <div class="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-600 rounded-lg">
+                                                    <i :class="['pi', getFileIcon(ans.media_answer), 'text-lg']"></i>
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <p class="text-xs font-bold text-slate-800 truncate">{{ ans.media_answer.split('/').pop() }}</p>
+                                                    <p class="text-[10px] text-slate-400 font-semibold">{{ getFileTypeLabel(ans.media_answer) }}</p>
+                                                </div>
                                             </div>
                                             <a :href="resolveUrl(ans.media_answer)" 
                                                 target="_blank"
-                                                class="flex-shrink-0 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold transition-colors">
-                                                <i class="pi pi-download mr-1"></i>
-                                                تحميل
+                                                class="px-3.5 py-1.5 bg-brand-primary hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                                                <i class="pi pi-external-link"></i>
+                                                فتح في نافذة جديدة
                                             </a>
+                                        </div>
+
+                                        <!-- Inline PDF Embedded Preview for Teacher -->
+                                        <div v-if="isPdfFile(ans.media_answer)" class="rounded-xl border border-slate-200 overflow-hidden shadow-inner bg-slate-900">
+                                            <iframe
+                                                :src="resolveUrl(ans.media_answer)"
+                                                class="w-full h-[450px] border-none"
+                                                title="معاينة إجابة الـ PDF"
+                                            ></iframe>
                                         </div>
                                     </div>
                                     

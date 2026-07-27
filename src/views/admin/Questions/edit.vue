@@ -244,6 +244,7 @@ const t = {
 };
 
 const questionTypes = [
+    { label: 'PDF Worksheet (ورقة عمل PDF)', value: 'pdf_annotation', icon: 'pi-file-pdf' },
     { label: 'Multiple Choice (MCQ)', value: 'mcq', icon: 'pi-check-square' },
     { label: 'True / False', value: 'true_false', icon: 'pi-verified' },
     { label: 'Fill in the Blank', value: 'fill_blank', icon: 'pi-pencil' },
@@ -544,13 +545,13 @@ const loadInitialData = async () => {
             updatedForm.questions = q.passage.questions.map(sq => ({
                 id: sq.id,
                 type: sq.type,
-                content_mode: (sq.media_url || sq.audio_url || sq.image_url) ? 'media' : 'text',
+                content_mode: (sq.pdf_url || sq.media_url || sq.audio_url || sq.image_url) ? 'media' : 'text',
                 content: sq.content,
                 instructions: sq.instructions || '',
                 points: sq.points,
                 sort_order: sq.sort_order || 0,
                 q_media: null,
-                q_media_preview: sq.media_url ? { url: sq.media_url, type: sq.media_path?.split('.').pop() || 'image' } : null,
+                q_media_preview: (sq.pdf_url || sq.media_url) ? { url: sq.pdf_url || sq.media_url, type: (sq.pdf_url || sq.type === 'pdf_annotation') ? 'pdf' : (sq.media_path?.split('.').pop() || 'image') } : null,
                 q_audio: null,
                 q_audio_preview: sq.audio_url ? { url: sq.audio_url, type: 'audio' } : null,
                 q_image: null,
@@ -579,14 +580,14 @@ const loadInitialData = async () => {
             updatedForm.questions = [{
                 id: q.id,
                 type: q.type,
-                content_mode: (q.media_url || q.audio_url || q.image_url) ? 'media' : 'text',
+                content_mode: (q.pdf_url || q.media_url || q.audio_url || q.image_url) ? 'media' : 'text',
                 content: q.content,
                 instructions: q.instructions || '',
                 general_instructions: q.general_instructions || '',
                 points: q.points,
                 sort_order: q.sort_order || 0,
                 q_media: null,
-                q_media_preview: q.media_url ? { url: q.media_url, type: q.media_path?.split('.').pop() || 'image' } : null,
+                q_media_preview: (q.pdf_url || q.media_url) ? { url: q.pdf_url || q.media_url, type: (q.pdf_url || q.type === 'pdf_annotation') ? 'pdf' : (q.media_path?.split('.').pop() || 'image') } : null,
                 q_audio: null,
                 q_audio_preview: q.audio_url ? { url: q.audio_url, type: 'audio' } : null,
                 q_image: null,
@@ -748,8 +749,8 @@ const handleTypeChange = (qIdx) => {
             { option_text: 'True', is_correct: true, dir: 'ltr', image: null, image_preview: null },
             { option_text: 'False', is_correct: false, dir: 'ltr', image: null, image_preview: null }
         ];
-    } else if (['writing', 'speaking', 'speaking_live', 'upload'].includes(q.type)) {
-        q.instructions = currentLang.value === 'ar' ? "يرجى تقديم إجابتك." : "Please provide your answer.";
+    } else if (['writing', 'speaking', 'speaking_live', 'upload', 'pdf_annotation'].includes(q.type)) {
+        q.instructions = currentLang.value === 'ar' ? "يرجى حل المسألة والرسم أو الكتابة على ورقة الـ PDF." : "Please solve the worksheet by drawing and typing on the PDF.";
         q.options = [];
     } else if (q.type === 'short_answer') {
         q.instructions = currentLang.value === 'ar' ? "يرجى كتابة الإجابة." : "Please type the correct answer.";
@@ -1395,6 +1396,33 @@ const editorModules = {
                                     <InputText v-model="q.instructions"
                                         placeholder="e.g. Listen carefully to the prompt and select the correct matching pair."
                                         class="w-full rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-800 px-4" />
+                                </div>
+                            </div>
+
+                            <!-- PDF Worksheet Upload Block -->
+                            <div v-if="q.type === 'pdf_annotation'" class="space-y-3 bg-blue-50/40 p-5 rounded-2xl border border-blue-100">
+                                <div class="flex items-center justify-between">
+                                    <label class="text-[10px] font-black text-blue-800 uppercase tracking-wide flex items-center gap-2">
+                                        <i class="pi pi-file-pdf text-rose-500 text-base"></i>
+                                        <span>ملف ورقة العمل (PDF Worksheet File) *</span>
+                                    </label>
+                                    <div v-if="q.q_media_preview" class="flex items-center gap-2">
+                                        <span class="text-[10px] text-emerald-600 font-bold">✓ تم إرفاق ملف PDF</span>
+                                        <a :href="q.q_media_preview.url" target="_blank" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 transition-all flex items-center gap-1 shadow-sm">
+                                            <i class="pi pi-external-link"></i> معاينة الـ PDF المرفق
+                                        </a>
+                                    </div>
+                                </div>
+                                <div @click="triggerQFile(qIdx)"
+                                    class="w-full h-24 border-2 border-dashed border-blue-200 hover:border-blue-400 bg-white rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all">
+                                    <input type="file" :id="`qFile_${qIdx}`" class="hidden"
+                                        @change="(e) => handleQFileChange(e, qIdx)" accept="application/pdf" />
+                                    <i v-if="!q.q_media_preview" class="pi pi-cloud-upload text-2xl text-blue-400"></i>
+                                    <i v-else class="pi pi-file-pdf text-2xl text-rose-500"></i>
+                                    <span class="text-xs font-bold text-slate-700">
+                                        {{ q.q_media_preview ? 'الملف الحالي: ' + (q.q_media?.name || q.q_media_preview.url?.split('/').pop() || 'ورقة العمل PDF') : 'انقر هنا لإرفاق أو استبدال ملف الـ PDF المطلوب حلّه' }}
+                                    </span>
+                                    <span class="text-[9px] text-slate-400">انقر لاستبدال ملف الـ PDF الحالي بملف جديد</span>
                                 </div>
                             </div>
 

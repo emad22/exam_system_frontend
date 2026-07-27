@@ -11,6 +11,7 @@ import ShortAnswerQuestion from './ShortAnswerQuestion.vue';
 import TrueFalseQuestion from './TrueFalseQuestion.vue';
 import HighlightQuestion from './HighlightQuestion.vue';
 import SpeakingLiveQuestion from './SpeakingLiveQuestion.vue';
+import PdfAnnotatorQuestion from './PdfAnnotatorQuestion.vue';
 
 const props = defineProps({
     question: {
@@ -107,6 +108,11 @@ const updateAnswer = (newAnswer) => {
         
         <HighlightQuestion 
             v-else-if="question.type === 'highlight'" 
+            :key="question.id"
+            :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
+        
+        <PdfAnnotatorQuestion 
+            v-else-if="question.type === 'pdf_annotation'" 
             :key="question.id"
             :question="question" :answer="answer" @update:answer="updateAnswer" :disabled="disabled" />
         
