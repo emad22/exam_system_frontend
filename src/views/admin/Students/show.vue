@@ -240,6 +240,35 @@ const getSkillName = (skillId) => {
     return found ? found.name : skillId;
 };
 
+const downloadAttemptCertificate = async (attempt) => {
+    let certId = attempt.certificate?.id;
+    if (!certId) {
+        try {
+            const res = await api.post(`/admin/certificates/create-for-attempt/${attempt.id}`);
+            if (res.data.certificate) {
+                attempt.certificate = res.data.certificate;
+                certId = res.data.certificate.id;
+            }
+        } catch (e) {
+            showAlert('Failed to generate certificate.', 'Error', 'danger');
+            return;
+        }
+    }
+
+    if (certId) {
+        try {
+            const res = await api.get(`/certificates/${certId}/download`, { responseType: 'blob' });
+            const blob = new Blob([res.data], { type: 'application/pdf' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `Certificate-${attempt.certificate?.certificate_number || attempt.id}.pdf`;
+            link.click();
+        } catch (err) {
+            showAlert('Failed to download certificate.', 'Error', 'danger');
+        }
+    }
+};
+
 onMounted(() => {
     loadData();
 });
@@ -607,6 +636,11 @@ onMounted(() => {
                                                                 <Tag :value="attempt.status"
                                                                     :severity="attempt.status === 'completed' ? 'success' : (attempt.status === 'voided' ? 'danger' : 'warning')"
                                                                     class="text-[9px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-lg" />
+                                                                <div v-if="attempt.status === 'completed' || attempt.certificate" class="mt-2">
+                                                                    <Button icon="pi pi-download" :label="currentLang === 'ar' ? 'الشهادة' : 'Certificate'" severity="info" text size="small"
+                                                                        class="text-[9px] font-black uppercase px-2 py-1"
+                                                                        @click="downloadAttemptCertificate(attempt)" />
+                                                                </div>
                                                             </td>
                                                             <td class="p-6 pr-8 text-end font-black text-slate-400">
                                                                 {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString(currentLang === 'ar' ? 'ar-EG' : 'en-GB') : 'Incomplete' }}

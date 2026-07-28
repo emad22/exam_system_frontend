@@ -58,7 +58,8 @@ const placeholderOptions = [
   { label: 'Date', value: 'date' },
   { label: 'Certificate Number', value: 'number' },
   { label: 'Verification URL', value: 'verification_url' },
-  { label: 'Skills Table', value: 'skills_table' }
+  { label: 'Skills Table (CEFR & ACTFL)', value: 'skills_table' },
+  { label: 'Skills Table (ACTFL)', value: 'skills_table_without_cefr' }
 ];
 
 // Use an editable ref for the selected element to avoid mutating reactive arrays directly
@@ -93,10 +94,10 @@ const ensureElementIds = (items) => {
     if (el.name && !el.text && el.type !== 'image') el.text = el.name;
     if (el.name && el.type === 'sign' && !el.namePlaceholder) el.namePlaceholder = el.name;
 
-    el.width = Number(el.width) || (el.type === 'skills_table' ? 940 : (el.type === 'image' ? 150 : 320));
+    el.width = Number(el.width) || (['skills_table', 'skills_table_without_cefr'].includes(el.type) ? 940 : (el.type === 'image' ? 150 : 320));
     // clamp width/height so elements don't overflow the canvas
     el.width = clamp(el.width, 10, Math.max(10, canvasWidth - el.x));
-    el.height = Number(el.height) || (el.type === 'skills_table' ? 220 : (el.type === 'image' ? 140 : 72));
+    el.height = Number(el.height) || (['skills_table', 'skills_table_without_cefr'].includes(el.type) ? 220 : (el.type === 'image' ? 140 : 72));
     el.height = clamp(el.height, 10, Math.max(10, canvasHeight - el.y));
     el.fontSize = Number(el.fontSize || el.fontsize || el.font_size) || 24;
     el.fontWeight = Number(el.fontWeight) || 600;
@@ -135,12 +136,12 @@ const buildContentHtml = () => {
       <div style="position:absolute; left:${element.x}px; top:${element.y}px; width:${element.width}px; height:${element.height}px;">
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
           <colgroup>
-            <col style=\"width:36%\"> 
-            <col style=\"width:12%\"> 
-            <col style=\"width:12%\"> 
-            <col style=\"width:12%\"> 
-            <col style=\"width:12%\"> 
-            <col style=\"width:16%\"> 
+            <col style="width:36%"> 
+            <col style="width:12%"> 
+            <col style="width:12%"> 
+            <col style="width:12%"> 
+            <col style="width:12%"> 
+            <col style="width:16%"> 
           </colgroup>
           <thead>
             <tr style="background:#f8fafc;">
@@ -153,6 +154,31 @@ const buildContentHtml = () => {
             </tr>
           </thead>
           <tbody>{skills_table}</tbody>
+        </table>
+      </div>`;
+    }
+
+    if (element.type === 'skills_table_without_cefr') {
+      return `
+      <div style="position:absolute; left:${element.x}px; top:${element.y}px; width:${element.width}px; height:${element.height}px;">
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <colgroup>
+            <col style="width:40%"> 
+            <col style="width:15%"> 
+            <col style="width:15%"> 
+            <col style="width:15%"> 
+            <col style="width:15%"> 
+          </colgroup>
+          <thead>
+            <tr style="background:#f8fafc;">
+              <th style="border:1px solid #cbd5e1; padding:6px;">TEST</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">SCORE</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">SCORE%</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">LEVEL (ACTFL)</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">DATE</th>
+            </tr>
+          </thead>
+          <tbody>{skills_table_without_cefr}</tbody>
         </table>
       </div>`;
     }
@@ -324,7 +350,7 @@ const getDefaultCanvasElements = () => [
     y: 440,
     width: 940,
     height: 160,
-    text: 'Skills table'
+    text: 'Skills Table (CEFR & ACTFL)'
   },
   {
     id: createId(),
@@ -533,13 +559,14 @@ const handleLogoUpload = async (event) => {
 };
 
 const addElement = (type) => {
+  const isTable = ['skills_table', 'skills_table_without_cefr'].includes(type);
   const base = {
     id: createId(),
     type,
     x: 80,
     y: 80,
-    width: type === 'skills_table' ? 480 : 320,
-    height: type === 'skills_table' ? 220 : 72,
+    width: isTable ? 940 : 320,
+    height: isTable ? 220 : 72,
     fontSize: 24,
     fontWeight: 600,
     color: '#111827',
@@ -555,8 +582,10 @@ const addElement = (type) => {
     base.width = 180;
     base.height = 180;
     base.imageUrl = '';
+  } else if (type === 'skills_table_without_cefr') {
+    base.text = 'Skills Table (ACTFL)';
   } else {
-    base.text = 'Skills table';
+    base.text = 'Skills Table (CEFR & ACTFL)';
   }
 
   canvasElements.value.push(base);
@@ -800,8 +829,9 @@ const saveTemplate = async () => {
     // coerce numeric fields and clamp to canvas bounds to avoid overflow/page breaks
     copy.x = clamp(Number(copy.x) || 0, 0, canvasWidth - 10);
     copy.y = clamp(Number(copy.y) || 0, 0, canvasHeight - 10);
-    copy.width = clamp(Number(copy.width) || (copy.type === 'skills_table' ? 480 : 320), 10, canvasWidth);
-    copy.height = clamp(Number(copy.height) || (copy.type === 'skills_table' ? 220 : 72), 10, canvasHeight);
+    const isTable = ['skills_table', 'skills_table_without_cefr'].includes(copy.type);
+    copy.width = clamp(Number(copy.width) || (isTable ? 940 : 320), 10, canvasWidth);
+    copy.height = clamp(Number(copy.height) || (isTable ? 220 : 72), 10, canvasHeight);
     copy.fontSize = Number(copy.fontSize) || 24;
     copy.fontWeight = Number(copy.fontWeight) || 600;
     return copy;
@@ -853,6 +883,10 @@ const generatePreviewHtml = async () => {
     '{skills_table}': `
       <tr><td>Section: Composition</td><td>810/900</td><td>90.0%</td><td>C2</td><td>Superior</td><td>25 Aug. 2022</td></tr>
       <tr><td>Section: Speaking</td><td>680/900</td><td>75.6%</td><td>C1.1</td><td>Advanced Mid +</td><td>25 Aug. 2022</td></tr>
+    `,
+    '{skills_table_without_cefr}': `
+      <tr><td>Section: Composition</td><td>810/900</td><td>90.0%</td><td>Superior</td><td>25 Aug. 2022</td></tr>
+      <tr><td>Section: Speaking</td><td>680/900</td><td>75.6%</td><td>Advanced Mid +</td><td>25 Aug. 2022</td></tr>
     `
   };
 
@@ -999,7 +1033,7 @@ const debugDump = async () => {
             </div>
           </button>
 
-          <!-- Skills Table -->
+          <!-- Skills Table (CEFR & ACTFL) -->
           <button @click="addElement('skills_table')"
             class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all group text-left">
             <div
@@ -1008,7 +1042,20 @@ const debugDump = async () => {
             </div>
             <div>
               <div class="text-xs font-bold text-slate-700">Skills Table</div>
-              <div class="text-[9px] text-slate-400">Score results grid</div>
+              <div class="text-[9px] text-slate-400">CEFR &amp; ACTFL grid</div>
+            </div>
+          </button>
+
+          <!-- Skills Table (ACTFL only) -->
+          <button @click="addElement('skills_table_without_cefr')"
+            class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-teal-50 border border-transparent hover:border-teal-200 transition-all group text-left">
+            <div
+              class="w-8 h-8 rounded-lg bg-teal-100 group-hover:bg-teal-200 flex items-center justify-center transition-colors flex-shrink-0">
+              <i class="pi pi-table text-teal-600 text-xs"></i>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-700">Skills Table (ACTFL)</div>
+              <div class="text-[9px] text-slate-400">ACTFL only grid</div>
             </div>
           </button>
 
@@ -1135,6 +1182,7 @@ const debugDump = async () => {
                   'bg-blue-600': el.type === 'placeholder',
                   'bg-violet-600': el.type === 'image',
                   'bg-emerald-600': el.type === 'skills_table',
+                  'bg-teal-600': el.type === 'skills_table_without_cefr',
                   'bg-amber-600': el.type === 'sign',
                   'bg-rose-600': el.type === 'qr'
                 }">
@@ -1142,11 +1190,11 @@ const debugDump = async () => {
                   'pi-align-left': el.type === 'text',
                   'pi-tag': el.type === 'placeholder',
                   'pi-image': el.type === 'image',
-                  'pi-table': el.type === 'skills_table',
+                  'pi-table': el.type === 'skills_table' || el.type === 'skills_table_without_cefr',
                   'pi-pencil': el.type === 'sign',
                   'pi-qrcode': el.type === 'qr'
                 }" style="font-size:7px;"></i>
-                {{ el.type === 'skills_table' ? 'Skills Table' : el.type }}
+                {{ el.type === 'skills_table' ? 'Skills Table (CEFR+ACTFL)' : el.type === 'skills_table_without_cefr' ? 'Skills Table (ACTFL)' : el.type }}
               </div>
 
               <!-- ELEMENT CONTENT RENDERING -->
@@ -1161,13 +1209,12 @@ const debugDump = async () => {
                 </div>
               </div>
 
-              <!-- Skills Table -->
+              <!-- Skills Table (CEFR & ACTFL) -->
               <div v-else-if="el.type === 'skills_table'"
                 class="w-full h-full bg-white/90 backdrop-blur-sm rounded border border-emerald-200/80 shadow-sm overflow-hidden">
                 <div class="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border-b border-emerald-200">
                   <i class="pi pi-table text-emerald-500 text-[9px]"></i>
-                  <span class="text-[8px] font-black uppercase tracking-widest text-emerald-600">Skills Table · Drag to
-                    reposition</span>
+                  <span class="text-[8px] font-black uppercase tracking-widest text-emerald-600">Skills Table · CEFR &amp; ACTFL</span>
                 </div>
                 <table class="w-full border-collapse text-[8px] text-slate-600">
                   <thead class="bg-slate-50">
@@ -1181,9 +1228,35 @@ const debugDump = async () => {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr class="text-emerald-700 font-medium">
+                    <tr>
                       <td class="border border-slate-200 px-1.5 py-1 italic text-[7px] text-slate-300" colspan="6"
-                        style="text-align:center;">{skills_table} — will be filled automatically</td>
+                        style="text-align:center;">{skills_table} — auto-filled</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Skills Table (ACTFL only) -->
+              <div v-else-if="el.type === 'skills_table_without_cefr'"
+                class="w-full h-full bg-white/90 backdrop-blur-sm rounded border border-teal-200/80 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-teal-50 border-b border-teal-200">
+                  <i class="pi pi-table text-teal-500 text-[9px]"></i>
+                  <span class="text-[8px] font-black uppercase tracking-widest text-teal-600">Skills Table · ACTFL only</span>
+                </div>
+                <table class="w-full border-collapse text-[8px] text-slate-600">
+                  <thead class="bg-slate-50">
+                    <tr>
+                      <th class="border border-slate-200 px-1.5 py-1 text-left font-bold text-slate-500">Section</th>
+                      <th class="border border-slate-200 px-1.5 py-1 font-bold text-slate-500">Score</th>
+                      <th class="border border-slate-200 px-1.5 py-1 font-bold text-slate-500">Score%</th>
+                      <th class="border border-slate-200 px-1.5 py-1 font-bold text-slate-500">ACTFL</th>
+                      <th class="border border-slate-200 px-1.5 py-1 font-bold text-slate-500">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="border border-slate-200 px-1.5 py-1 italic text-[7px] text-slate-300" colspan="5"
+                        style="text-align:center;">{skills_table_without_cefr} — auto-filled</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1244,6 +1317,7 @@ const debugDump = async () => {
                   'bg-slate-700 text-white border-slate-700': el.type === 'text',
                   'bg-violet-600 text-white border-violet-600': el.type === 'image',
                   'bg-emerald-600 text-white border-emerald-600': el.type === 'skills_table',
+                  'bg-teal-600 text-white border-teal-600': el.type === 'skills_table_without_cefr',
                   'bg-amber-600 text-white border-amber-600': el.type === 'sign',
                   'bg-rose-600 text-white border-rose-600': el.type === 'qr'
                 }
@@ -1252,13 +1326,13 @@ const debugDump = async () => {
                 'pi-align-left': el.type === 'text',
                 'pi-tag': el.type === 'placeholder',
                 'pi-image': el.type === 'image',
-                'pi-table': el.type === 'skills_table',
+                'pi-table': el.type === 'skills_table' || el.type === 'skills_table_without_cefr',
                 'pi-pencil': el.type === 'sign',
                 'pi-qrcode': el.type === 'qr'
               }" style="font-size:8px;"></i>
               {{ el.type === 'placeholder' ? ('{' + el.placeholder + '}') : el.type === 'text' ? ((el.text ||
                 'text').slice(0, 14) + ((el.text || '').length > 14 ? '…' : '')) : el.type === 'sign' ? (el.name?.slice(0,
-                  10) || 'sign') : el.type }}
+                  10) || 'sign') : el.type === 'skills_table' ? 'CEFR+ACTFL' : el.type === 'skills_table_without_cefr' ? 'ACTFL' : el.type }}
             </button>
           </div>
         </div>
@@ -1365,6 +1439,7 @@ const debugDump = async () => {
                 'bg-blue-600': selectedElementRef.type === 'placeholder',
                 'bg-violet-600': selectedElementRef.type === 'image',
                 'bg-emerald-600': selectedElementRef.type === 'skills_table',
+                'bg-teal-600': selectedElementRef.type === 'skills_table_without_cefr',
                 'bg-amber-600': selectedElementRef.type === 'sign',
                 'bg-rose-600': selectedElementRef.type === 'qr'
               }">
@@ -1372,14 +1447,14 @@ const debugDump = async () => {
                   'pi-align-left': selectedElementRef.type === 'text',
                   'pi-tag': selectedElementRef.type === 'placeholder',
                   'pi-image': selectedElementRef.type === 'image',
-                  'pi-table': selectedElementRef.type === 'skills_table',
+                  'pi-table': selectedElementRef.type === 'skills_table' || selectedElementRef.type === 'skills_table_without_cefr',
                   'pi-pencil': selectedElementRef.type === 'sign',
                   'pi-qrcode': selectedElementRef.type === 'qr'
                 }"></i>
               </div>
               <div>
                 <div class="text-xs font-black uppercase tracking-wide text-slate-700 capitalize">{{
-                  selectedElementRef.type === 'skills_table' ? 'Skills Table' : selectedElementRef.type }}</div>
+                  selectedElementRef.type === 'skills_table' ? 'Skills Table (CEFR+ACTFL)' : selectedElementRef.type === 'skills_table_without_cefr' ? 'Skills Table (ACTFL)' : selectedElementRef.type }}</div>
                 <div class="text-[9px] text-slate-400">Element Properties</div>
               </div>
             </div>
@@ -1402,7 +1477,8 @@ const debugDump = async () => {
                 <option value="image">Logo / Image</option>
                 <option value="sign">Signature</option>
                 <option value="qr">QR Code</option>
-                <option value="skills_table">Skills Table</option>
+                <option value="skills_table">Skills Table (CEFR &amp; ACTFL)</option>
+                <option value="skills_table_without_cefr">Skills Table (ACTFL only)</option>
               </select>
             </div>
 
@@ -1469,15 +1545,19 @@ const debugDump = async () => {
                   time.</p>
               </div>
 
-              <!-- Skills table: no content options needed -->
+              <!-- Skills table (CEFR & ACTFL): auto-populated -->
               <div v-else-if="selectedElementRef.type === 'skills_table'">
-                <p class="text-[10px] text-slate-400 italic">The skills table is auto-populated with the student's skill
-                  scores. Just position it on the canvas.</p>
+                <p class="text-[10px] text-slate-400 italic">Shows: TEST | SCORE | SCORE% | CEFR | ACTFL | DATE. Auto-populated — just position it on the canvas.</p>
+              </div>
+
+              <!-- Skills table (ACTFL only): auto-populated -->
+              <div v-else-if="selectedElementRef.type === 'skills_table_without_cefr'">
+                <p class="text-[10px] text-slate-400 italic">Shows: TEST | SCORE | SCORE% | ACTFL | DATE. Auto-populated — just position it on the canvas.</p>
               </div>
             </div>
 
             <!-- Typography (hide for image, qr, table) -->
-            <div v-if="!['image', 'qr', 'skills_table'].includes(selectedElementRef.type)"
+            <div v-if="!['image', 'qr', 'skills_table', 'skills_table_without_cefr'].includes(selectedElementRef.type)"
               class="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-3">
               <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Typography</p>
 

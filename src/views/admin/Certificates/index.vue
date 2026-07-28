@@ -6,12 +6,17 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import Dropdown from 'primevue/dropdown';
 import ProgressSpinner from 'primevue/progressspinner';
 import ToggleSwitch from 'primevue/toggleswitch';
 
 const certificates = ref({ data: [] });
 const isLoading = ref(false);
 const searchQuery = ref('');
+const partners = ref([]);
+const selectedPartnerId = ref(null);
+const selectedCertificates = ref([]);
+const isDownloadingBulk = ref(false);
 
 const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
 
@@ -27,8 +32,13 @@ const t = {
         subtitle: "عرض ومراقبة كافة الشهادات الممنوحة للطلاب الناجحين في النظام وتصديرها",
         manageTemplates: "إدارة القوالب",
         placeholderSearch: "البحث باسم الطالب، اسم المستخدم أو رقم الشهادة...",
+        filterPartner: "تصفية حسب الشريك / البارتنر",
+        allPartners: "جميع الشركاء",
+        bulkDownload: "تنزيل المحددة (ZIP)",
+        bulkDownloadPartner: "تنزيل شهادات البارتنر (ZIP)",
         colCertId: "كود الشهادة",
         colStudent: "الطالب",
+        colPartner: "الشركة / البارتنر",
         colAssessment: "الاختبار",
         colScore: "النسبة / الدرجة",
         colDate: "تاريخ الإصدار",
@@ -45,8 +55,13 @@ const t = {
         subtitle: "Monitor and manage all academic credentials issued by the system.",
         manageTemplates: "Manage Templates",
         placeholderSearch: "Search by student name, username or certificate number...",
+        filterPartner: "Filter by Partner",
+        allPartners: "All Partners",
+        bulkDownload: "Download Selected (ZIP)",
+        bulkDownloadPartner: "Download Partner Certs (ZIP)",
         colCertId: "Certificate ID",
         colStudent: "Student",
+        colPartner: "Partner",
         colAssessment: "Assessment",
         colScore: "Score",
         colDate: "Date",
@@ -59,10 +74,23 @@ const t = {
     }
 };
 
+const fetchPartners = async () => {
+    try {
+        const res = await api.get('/admin/partners/active');
+        partners.value = res.data || [];
+    } catch (err) {
+        console.error('Failed to fetch partners', err);
+    }
+};
+
 const fetchCertificates = async (page = 1) => {
     isLoading.value = true;
     try {
-        const res = await api.get(`/admin/certificates?page=${page}&search=${searchQuery.value}`);
+        let url = `/admin/certificates?page=${page}&search=${searchQuery.value}`;
+        if (selectedPartnerId.value) {
+            url += `&partner_id=${selectedPartnerId.value}`;
+        }
+        const res = await api.get(url);
         certificates.value = res.data;
     } catch (err) {
         console.error('Failed to fetch certificates', err);
@@ -71,7 +99,10 @@ const fetchCertificates = async (page = 1) => {
     }
 };
 
-onMounted(() => fetchCertificates());
+onMounted(() => {
+    fetchPartners();
+    fetchCertificates();
+});
 
 const downloadCertificate = (cert) => {
     api.get(`/certificates/${cert.id}/download`, { responseType: 'blob' })
@@ -84,10 +115,40 @@ const downloadCertificate = (cert) => {
         });
 };
 
+const bulkDownloadCertificates = async () => {
+    if (selectedCertificates.value.length === 0 && !selectedPartnerId.value) return;
+    
+    isDownloadingBulk.value = true;
+    try {
+        const payload = {};
+        if (selectedCertificates.value.length > 0) {
+            payload.certificate_ids = selectedCertificates.value.map(c => c.id);
+        } else if (selectedPartnerId.value) {
+            payload.partner_id = selectedPartnerId.value;
+        }
+
+        const res = await api.post('/admin/certificates/bulk-download', payload, {
+            responseType: 'blob'
+        });
+
+        const blob = new Blob([res.data], { type: 'application/zip' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        const partnerObj = partners.value.find(p => p.id === selectedPartnerId.value);
+        const namePrefix = partnerObj ? partnerObj.partner_name.replace(/\s+/g, '_') : 'Export';
+        link.download = `Certificates_${namePrefix}_${Date.now()}.zip`;
+        link.click();
+    } catch (err) {
+        console.error('Bulk download failed', err);
+        alert('Failed to download certificates ZIP archive.');
+    } finally {
+        isDownloadingBulk.value = false;
+    }
+};
+
 const regenerateCertificate = async (cert) => {
     try {
         const res = await api.post(`/admin/certificates/create-for-attempt/${cert.exam_attempt_id}`);
-        // replace certificate data in the current list if returned
         if (res.data.certificate) {
             certificates.value.data = certificates.value.data.map(c => c.id === res.data.certificate.id ? res.data.certificate : c);
         }
@@ -120,7 +181,6 @@ const deleteCertificate = async (cert) => {
     if (!confirm('Delete this certificate? This action cannot be undone.')) return;
     try {
         await api.delete(`/admin/certificates/${cert.id}`);
-        // remove from current list
         certificates.value.data = certificates.value.data.filter(c => c.id !== cert.id);
     } catch (err) {
         console.error('Failed to delete certificate', err);
@@ -179,26 +239,42 @@ const deleteCertificate = async (cert) => {
                     </div>
                 </div>
 
-                <!-- Premium Search Bar -->
+                <!-- Premium Search & Filter Bar -->
                 <div
-                    class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between">
-                    <div class="relative w-full max-w-xl">
+                    class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="relative w-full md:max-w-md">
                         <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
                         <InputText v-model="searchQuery" @input="fetchCertificates(1)"
                             :placeholder="t[currentLang].placeholderSearch"
                             class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
                     </div>
+
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                        <!-- Partner Filter Dropdown -->
+                        <Dropdown v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
+                            showClear :placeholder="t[currentLang].filterPartner" @change="fetchCertificates(1)"
+                            class="w-full md:w-64 text-xs font-bold rounded-2xl border-slate-200" />
+
+                        <!-- Bulk ZIP Download Button -->
+                        <Button
+                            :label="selectedCertificates.length > 0 ? `${t[currentLang].bulkDownload} (${selectedCertificates.length})` : (selectedPartnerId ? t[currentLang].bulkDownloadPartner : t[currentLang].bulkDownload)"
+                            icon="pi pi-file-export"
+                            severity="success"
+                            class="text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm"
+                            :disabled="selectedCertificates.length === 0 && !selectedPartnerId"
+                            :loading="isDownloadingBulk"
+                            @click="bulkDownloadCertificates()" />
+                    </div>
                 </div>
 
                 <!-- Premium DataTable Card -->
                 <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mt-6">
-                    <DataTable :value="certificates.data" :loading="isLoading" :rows="certificates.per_page" lazy
+                    <DataTable v-model:selection="selectedCertificates" :value="certificates.data" :loading="isLoading" :rows="certificates.per_page" lazy
                         :totalRecords="certificates.total" @page="onPage" paginator class="p-datatable-sm text-sm"
-                        responsiveLayout="scroll">
+                        responsiveLayout="scroll" dataKey="id">
 
-                        <!-- ID Column -->
-                        <!-- <Column field="certificate_number" :header="t[currentLang].colCertId"
-                            class="font-mono text-xs font-extrabold text-slate-500"></Column> -->
+                        <!-- Selection Checkbox Column -->
+                        <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
                         <!-- Student Column -->
                         <Column :header="t[currentLang].colStudent">
@@ -211,6 +287,18 @@ const deleteCertificate = async (cert) => {
                                         {{ data.student?.student_code }}
                                     </span>
                                 </div>
+                            </template>
+                        </Column>
+
+                        <!-- Partner Column -->
+                        <Column :header="t[currentLang].colPartner">
+                            <template #body="{ data }">
+                                <span v-if="data.student?.partner" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                                    {{ data.student.partner.partner_name }}
+                                </span>
+                                <span v-else class="text-xs font-bold text-slate-400 italic">
+                                    —
+                                </span>
                             </template>
                         </Column>
 

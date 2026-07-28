@@ -29,6 +29,10 @@ const containerRef = ref(null);
 /**
  * Recursively wraps text nodes in HTML with clickable spans.
  */
+const wordPattern = /^[\u0600-\u06FF\w''-]+$/u;
+const tokenPattern = /[\u0600-\u06FF\w''-]+|\s+|[^\u0600-\u06FF\w\s]+/gu;
+const skippedTags = new Set(['SCRIPT', 'STYLE', 'TEXTAREA']);
+
 const wrapWordsInHtml = (html) => {
     if (!html) return '';
     const parser = new DOMParser();
@@ -37,25 +41,27 @@ const wrapWordsInHtml = (html) => {
     const walk = (node) => {
         if (node.nodeType === 3) { // Text node
             const text = node.textContent;
-            const words = text.match(/[\u0600-\u06FF\w''-]+|[^\u0600-\u06FF\w\s]/gu) || [];
+            const tokens = text.match(tokenPattern) || [];
             const fragment = document.createDocumentFragment();
             
-            words.forEach(word => {
-                const span = document.createElement('span');
-                span.className = 'clickable-word';
-                span.dataset.word = word;
-                span.textContent = word;
-                
-                // Add reactive classes if selected
-                if (selectedWord.value === word) {
-                    span.classList.add('is-selected');
+            tokens.forEach(token => {
+                if (wordPattern.test(token)) {
+                    const span = document.createElement('span');
+                    span.className = 'clickable-word';
+                    span.dataset.word = token;
+                    span.textContent = token;
+
+                    if (selectedWord.value === token) {
+                        span.classList.add('is-selected');
+                    }
+
+                    fragment.appendChild(span);
+                } else {
+                    fragment.appendChild(document.createTextNode(token));
                 }
-                
-                fragment.appendChild(span);
-                fragment.appendChild(document.createTextNode(' '));
             });
             node.parentNode.replaceChild(fragment, node);
-        } else {
+        } else if (!skippedTags.has(node.nodeName)) {
             // Need to copy children because we might replace them
             const children = Array.from(node.childNodes);
             children.forEach(child => walk(child));
@@ -102,7 +108,7 @@ const handleContainerClick = (e) => {
         <!-- Question Content Box — light gray background, large font, Myriad Arabic -->
         <div
             ref="containerRef"
-            class="rounded-2xl px-8 py-6  word-selection-container relative overflow-hidden"
+            class="rounded-2xl px-8 py-6 word-selection-container ql-content rtl-support relative overflow-hidden"
             style="
                 background-color: #f8f9fa;
                 border: 1px solid #eaecef;
@@ -127,28 +133,27 @@ const handleContainerClick = (e) => {
 @reference "../../index.css";
 
 .word-selection-container :deep(.clickable-word) {
-    font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
-    font-size: 30px !important;
-    font-weight: 400 !important;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    line-height: inherit;
     padding: 0 3px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: inline-block;
-    color: #1e293b;
+    display: inline;
     margin: 0;
 }
 
 .word-selection-container :deep(.clickable-word:hover) {
     background-color: #e2e8f0;
-    color: #0f172a;
 }
 
 .word-selection-container :deep(.clickable-word.is-selected) {
-    color: #dc2626;
+    color: #dc2626 !important;
     background-color: #fff1f2;
     border-bottom: 2.5px solid #dc2626;
-    transform: scale(1.08);
     font-weight: 600 !important;
 }
 
@@ -162,7 +167,5 @@ const handleContainerClick = (e) => {
 .word-selection-container :deep(h2),
 .word-selection-container :deep(h3) {
     margin-bottom: 1rem;
-    font-weight: 700;
-    color: #1e293b;
 }
 </style>

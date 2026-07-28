@@ -25,13 +25,16 @@ const fetchUser = async () => {
     }
 };
 
-// Only show banner if PROCTORING_ENABLED AND the current student's partner requires proctoring
+// Only show banner if PROCTORING_ENABLED AND the current student's partner requires live proctoring
 const showProctoringBanner = computed(() => {
     if (!PROCTORING_ENABLED) return false;
     if (!user.value) return false;
     const isDemo = ['demo', 'deom', 'staff'].includes((user.value?.role || '').toLowerCase()) || !!user.value?.student?.is_demo;
     if (isDemo) return !!(user.value?.student?.is_demo_proctored);
-    return !!(user.value?.student?.partner?.proctoring_required);
+    const partner = user.value?.student?.partner;
+    if (!partner) return false;
+    if (partner.requires_live_proctoring !== undefined) return !!partner.requires_live_proctoring;
+    return partner.proctoring_mode === 'full';
 });
 
 const fetchRequirements = async () => {

@@ -46,14 +46,18 @@ const fetchDashboard = async () => {
         const userRole = (student.value?.role || '').toLowerCase();
         isDemo.value = ['demo', 'deom', 'staff'].includes(userRole) || !!student.value?.student?.is_demo;
 
-        // Auto-redirect proctored students to proctoring requirements
-        // if they haven't completed the proctoring check this session
-        const proctoringRequired = isDemo.value
+        // Auto-redirect students requiring identity check to proctoring requirements
+        // if they haven't completed the check this session
+        const needIdentityCheck = isDemo.value
             ? !!(student.value?.student?.is_demo_proctored)
-            : !!(student.value?.student?.partner?.proctoring_required);
+            : (
+                student.value?.student?.partner?.requires_identity_verification ??
+                ['full', 'identity_only'].includes(student.value?.student?.partner?.proctoring_mode) ??
+                !!(student.value?.student?.partner?.proctoring_required)
+            );
         const alreadyVerified = sessionStorage.getItem('proctoring_verified') === 'true';
 
-        if (!isDemo.value && proctoringRequired && !alreadyVerified) {
+        if (!isDemo.value && needIdentityCheck && !alreadyVerified) {
             router.push({ name: 'proctoring-requirements' });
             return;
         }
@@ -95,9 +99,13 @@ const startSkill = async (skillId) => {
     if (!exams.value[0]) return;
     if (!isDemo.value && isSkillCompleted(exams.value[0], skillId)) return;
 
-    const partnerProctoringRequired = isDemo.value
+    const partnerRequiresIdentity = isDemo.value
         ? !!(student.value?.student?.is_demo_proctored)
-        : !!(student.value?.student?.partner?.proctoring_required);
+        : (
+            student.value?.student?.partner?.requires_identity_verification ??
+            ['full', 'identity_only'].includes(student.value?.student?.partner?.proctoring_mode) ??
+            !!(student.value?.student?.partner?.proctoring_required)
+        );
 
     if (isDemo.value) {
         // Demo students go straight to exam with level override
@@ -109,15 +117,15 @@ const startSkill = async (skillId) => {
                 levelId: selectedLevel.value
             }
         });
-    } else if (partnerProctoringRequired) {
-        // Proctored: already verified via /proctoring-requirements,
+    } else if (partnerRequiresIdentity) {
+        // Verified identity (Mode 2 or Mode 3): already verified via /proctoring-requirements,
         // go directly to exam.setup
         router.push({
             name: 'exam.setup',
             params: { examId: exams.value[0].id, skillId: skillId }
         });
     } else {
-        // Non-proctored: system requirements check first
+        // Non-proctored (Mode 1): system requirements check first
         sessionStorage.setItem('exam_pending_examId', exams.value[0].id);
         sessionStorage.setItem('exam_pending_skillId', skillId);
         router.push({ name: 'requirements' });

@@ -46,8 +46,12 @@ const handleLogin = async () => {
             // then redirect to the correct requirements page directly
             try {
                 const userRes = await api.get('/user');
-                const proctoringRequired = !!userRes.data?.student?.partner?.proctoring_required;
-                if (proctoringRequired) {
+                const partner = userRes.data?.student?.partner;
+                const requiresIdentity = partner?.requires_identity_verification ?? 
+                    ['full', 'identity_only'].includes(partner?.proctoring_mode) ?? 
+                    !!partner?.proctoring_required;
+
+                if (requiresIdentity) {
                     router.push('/proctoring-requirements');
                 } else {
                     router.push('/requirements');

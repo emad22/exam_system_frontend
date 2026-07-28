@@ -73,6 +73,8 @@ const t = {
         isDemoSubtitle: "يتجاوز القيود ولا يُغلق المهارات ويدعم تشغيل مستويات محددة",
         isDemoProctoredToggle: "تفعيل المراقبة للطالب التجريبي",
         isDemoProctoredSubtitle: "فرض متطلبات الكاميرا والمراقبة لجلسة الاختبار التجريبي",
+        bypassIdentityToggle: "تجاوز التحقق من الهوية",
+        bypassIdentitySubtitle: "يتخطى مطابقة الوجه والهوية ويقبل الامتحان مباشرة",
     },
     en: {
         syncIdentity: "Sync Identity",
@@ -112,6 +114,8 @@ const t = {
         isDemoSubtitle: "Bypasses lockout and constraints for development/testing",
         isDemoProctoredToggle: "Proctor Demo User",
         isDemoProctoredSubtitle: "Force video/camera verification requirements for this demo run",
+        bypassIdentityToggle: "Bypass Identity Verification",
+        bypassIdentitySubtitle: "Skips face & ID matching — student enters exam directly",
     }
 };
 
@@ -138,6 +142,7 @@ const editForm = ref({
     allows_retry: false,
     is_demo: false,
     is_demo_proctored: false,
+    bypass_identity_verification: false,
     is_continue: false,
 });
 
@@ -185,6 +190,7 @@ const loadData = async () => {
             allows_retry: !!student.allows_retry,
             is_demo: !!student.is_demo,
             is_demo_proctored: !!student.is_demo_proctored,
+            bypass_identity_verification: !!student.bypass_identity_verification,
             is_continue: student.is_continue !== undefined ? !!student.is_continue : false,
 
 
@@ -628,6 +634,20 @@ onMounted(() => {
                                                     <span
                                                         class="text-[9px] font-bold text-slate-500 mt-1 leading-none">{{
                                                             t[currentLang].isDemoProctoredSubtitle }}</span>
+                                                </div>
+                                            </label>
+
+                                            <!-- Bypass Identity Verification -->
+                                            <label
+                                                class="flex items-center cursor-pointer group bg-sky-50/20 p-4 rounded-2xl border border-sky-500/10 hover:bg-white transition-all shadow-sm">
+                                                <Checkbox v-model="editForm.bypass_identity_verification" :binary="true" />
+                                                <div class="ml-3.5 mr-3.5 flex flex-col justify-center">
+                                                    <span
+                                                        class="text-xs font-black text-slate-800 uppercase tracking-wider leading-none">{{
+                                                            t[currentLang].bypassIdentityToggle }}</span>
+                                                    <span
+                                                        class="text-[9px] font-bold text-slate-500 mt-1 leading-none">{{
+                                                            t[currentLang].bypassIdentitySubtitle }}</span>
                                                 </div>
                                             </label>
                                         </div>

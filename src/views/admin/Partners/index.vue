@@ -245,6 +245,26 @@ onMounted(fetchPartners);
                             </template>
                         </Column>
 
+                        <Column header="المراقبة / Mode" style="min-width: 140px" class="text-center">
+                            <template #body="{ data }">
+                                <span v-if="data.proctoring_mode === 'full'" 
+                                      class="inline-flex items-center gap-1.5 bg-violet-50 text-violet-700 px-3 py-1 rounded-xl border border-violet-200 text-[9px] font-black uppercase tracking-wider">
+                                    <i class="pi pi-video text-[10px]"></i>
+                                    <span>مراقبة كاملة</span>
+                                </span>
+                                <span v-else-if="data.proctoring_mode === 'identity_only'" 
+                                      class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-xl border border-emerald-200 text-[9px] font-black uppercase tracking-wider">
+                                    <i class="pi pi-id-card text-[10px]"></i>
+                                    <span>هوية فقط</span>
+                                </span>
+                                <span v-else 
+                                      class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 px-3 py-1 rounded-xl border border-slate-200 text-[9px] font-black uppercase tracking-wider">
+                                    <i class="pi pi-shield text-[10px]"></i>
+                                    <span>بدون مراقبة</span>
+                                </span>
+                            </template>
+                        </Column>
+
                         <Column :header="t[currentLang].colActions" style="width: 150px" class="text-right">
                             <template #body="{ data }">
                                 <div class="flex justify-end gap-1">

@@ -248,7 +248,7 @@ const {
             warning_count: cheatWarnings.value
         });
     }
-}, proctoringSessionId);
+}, computed(() => proctoringRequired.value ? proctoringSessionId.value : null));
 
 const {
     audioRef, isAudioPlaying, audioProgress, audioCurrentTime, audioDuration, autoplayFailed,
@@ -1121,7 +1121,18 @@ onMounted(async () => {
             if (isStudentDemo) {
                 proctoringRequired.value = !!fetchedStudent?.is_demo_proctored;
             } else {
-                proctoringRequired.value = !!fetchedStudent?.partner?.proctoring_required;
+                const partner = fetchedStudent?.partner;
+                if (partner) {
+                    if (partner.requires_live_proctoring !== undefined) {
+                        proctoringRequired.value = !!partner.requires_live_proctoring;
+                    } else if (partner.proctoring_mode) {
+                        proctoringRequired.value = partner.proctoring_mode === 'full';
+                    } else {
+                        proctoringRequired.value = false;
+                    }
+                } else {
+                    proctoringRequired.value = false;
+                }
             }
 
             if (!proctoringRequired.value) {

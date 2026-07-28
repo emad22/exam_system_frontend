@@ -30,11 +30,38 @@ const sortedSkills = computed(() => {
     });
 });
 
+const proctoringMode = computed(() => {
+    if (student.value?.student?.is_demo) {
+        return student.value?.student?.is_demo_proctored ? 'full' : 'none';
+    }
+    const partner = student.value?.student?.partner;
+    if (!partner) return 'none';
+    if (partner.proctoring_mode) return partner.proctoring_mode;
+    return partner.proctoring_required ? 'full' : 'none';
+});
+
+const requiresIdentityVerification = computed(() => {
+    if (student.value?.student?.is_demo) {
+        return !!(student.value?.student?.is_demo_proctored);
+    }
+    const partner = student.value?.student?.partner;
+    if (!partner) return false;
+    if (partner.requires_identity_verification !== undefined) {
+        return !!partner.requires_identity_verification;
+    }
+    return ['full', 'identity_only'].includes(proctoringMode.value);
+});
+
 const proctoringRequired = computed(() => {
     if (student.value?.student?.is_demo) {
         return !!(student.value?.student?.is_demo_proctored);
     }
-    return !!(student.value?.student?.partner?.proctoring_required);
+    const partner = student.value?.student?.partner;
+    if (!partner) return false;
+    if (partner.requires_live_proctoring !== undefined) {
+        return !!partner.requires_live_proctoring;
+    }
+    return proctoringMode.value === 'full';
 });
 
 // Track the proctoring session status for skill locking
@@ -74,13 +101,17 @@ const fetchExamsAndUser = async () => {
         // Check if requirements or proctoring check needs to be done
         const userRole = (student.value?.role || '').toLowerCase();
         const isDemo = ['demo', 'deom', 'staff'].includes(userRole) || !!student.value?.student?.is_demo;
-        const proctoringRequired = isDemo
+        const needIdentityCheck = isDemo
             ? !!(student.value?.student?.is_demo_proctored)
-            : !!(student.value?.student?.partner?.proctoring_required);
+            : (
+                student.value?.student?.partner?.requires_identity_verification ?? 
+                ['full', 'identity_only'].includes(student.value?.student?.partner?.proctoring_mode) ??
+                !!(student.value?.student?.partner?.proctoring_required)
+            );
 
         const isLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
         if (!isDemo && !isLocal) {
-            if (proctoringRequired) {
+            if (needIdentityCheck) {
                 const alreadyVerified = sessionStorage.getItem('proctoring_verified') === 'true';
                 if (!alreadyVerified) {
                     router.push('/proctoring-requirements');
@@ -319,12 +350,18 @@ onUnmounted(() => {
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- ✅ Proctored Badge — يظهر بس لو proctoringRequired -->
-                    <div v-if="proctoringRequired"
+                    <!-- ✅ Proctored / Identity Mode Badges -->
+                    <div v-if="proctoringMode === 'full'"
                         class="flex items-center gap-3 bg-amber-50 px-5 py-2 rounded-full border border-amber-100 shadow-sm">
                         <i class="pi pi-shield text-amber-500 text-xs"></i>
                         <span class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Proctored
                             Exam</span>
+                    </div>
+
+                    <div v-else-if="proctoringMode === 'identity_only'"
+                        class="flex items-center gap-3 bg-emerald-50 px-5 py-2 rounded-full border border-emerald-100 shadow-sm">
+                        <i class="pi pi-id-card text-emerald-500 text-xs"></i>
+                        <span class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Verified</span>
                     </div>
 
                     <!-- System Ready -->

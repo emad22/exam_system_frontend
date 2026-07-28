@@ -35,6 +35,7 @@ const form = ref({
     country: '',
     note: '',
     proctoring_required: false,
+    proctoring_mode: 'none',
 });
 
 const roles = [
@@ -64,6 +65,7 @@ const fetchStaff = async () => {
             website: data.partner?.website || '',
             note: data.partner?.note || '',
             proctoring_required: !!data.partner?.proctoring_required,
+            proctoring_mode: data.partner?.proctoring_mode || (data.partner?.proctoring_required ? 'full' : 'none'),
         };
     } catch (err) {
         console.error('Failed to load identity', err);
@@ -257,22 +259,84 @@ onMounted(() => {
                                                     <InputText v-model="form.note" placeholder="INTERNAL PARTNERSHIP METADATA" class="w-full shadow-sm rounded-xl" />
                                                 </div>
 
-                                                <!-- Proctoring Toggle -->
-                                                <div class="pt-2 border-t border-slate-100">
-                                                    <label class="flex items-center gap-4 cursor-pointer group w-fit">
-                                                        <div class="relative">
-                                                            <input type="checkbox" v-model="form.proctoring_required" class="sr-only">
-                                                            <div :class="form.proctoring_required ? 'bg-violet-600' : 'bg-slate-200'" class="block w-12 h-7 rounded-full transition-colors duration-300"></div>
-                                                            <div :class="form.proctoring_required ? 'translate-x-6' : 'translate-x-1'" class="absolute left-0 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm"></div>
-                                                        </div>
-                                                        <div>
-                                                            <span class="block text-xs font-black text-slate-700 uppercase tracking-wider">Proctoring Required</span>
-                                                            <span class="block text-[10px] text-slate-400 font-bold mt-0.5">
-                                                                {{ form.proctoring_required ? 'Students must complete identity & camera verification' : 'Students see system requirements check only' }}
-                                                            </span>
-                                                        </div>
-                                                    </label>
-                                                </div>
+                                                 <!-- Proctoring Mode Selection -->
+                                                 <div class="pt-4 border-t border-slate-100">
+                                                     <label class="block text-xs font-bold text-slate-500 mb-3 pl-2">
+                                                         Proctoring & Identity Mode 
+                                                     </label>
+                                                     
+                                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                         <!-- Mode 1: None -->
+                                                         <div 
+                                                             @click="form.proctoring_mode = 'none'"
+                                                             class="p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 flex flex-col justify-between"
+                                                             :class="form.proctoring_mode === 'none' 
+                                                                 ? 'border-slate-800 bg-slate-900 text-white shadow-md' 
+                                                                 : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'"
+                                                         >
+                                                             <div>
+                                                                 <div class="flex items-center justify-between mb-2">
+                                                                     <i class="pi pi-shield text-base"></i>
+                                                                     <span class="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                                                         :class="form.proctoring_mode === 'none' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'">
+                                                                         Mode 1
+                                                                     </span>
+                                                                 </div>
+                                                                 <h4 class="text-xs font-black uppercase tracking-wide mb-1">No Proctoring
+                                                                 </h4>
+                                                                 <p class="text-[9px] font-medium leading-normal opacity-75">
+                                                                     Device check only, no identity verification or proctoring.
+                                                                 </p>
+                                                             </div>
+                                                         </div>
+
+                                                         <!-- Mode 2: Full Proctored -->
+                                                         <div 
+                                                             @click="form.proctoring_mode = 'full'"
+                                                             class="p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 flex flex-col justify-between"
+                                                             :class="form.proctoring_mode === 'full' 
+                                                                 ? 'border-violet-600 bg-gradient-to-br from-violet-950 to-violet-900 text-white shadow-md' 
+                                                                 : 'border-slate-200 bg-white text-slate-700 hover:border-violet-300'"
+                                                         >
+                                                             <div>
+                                                                 <div class="flex items-center justify-between mb-2">
+                                                                     <i class="pi pi-video text-base"></i>
+                                                                     <span class="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                                                         :class="form.proctoring_mode === 'full' ? 'bg-violet-500/30 text-violet-200' : 'bg-violet-100 text-violet-700'">
+                                                                         Mode 2
+                                                                     </span>
+                                                                 </div>
+                                                                 <h4 class="text-xs font-black uppercase tracking-wide mb-1">Full Proctoring</h4>
+                                                                 <p class="text-[9px] font-medium leading-normal opacity-75">
+                                                                     Identity verification + live proctoring & video recording.
+                                                                 </p>
+                                                             </div>
+                                                         </div>
+
+                                                         <!-- Mode 3: Identity Only -->
+                                                         <div 
+                                                             @click="form.proctoring_mode = 'identity_only'"
+                                                             class="p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 flex flex-col justify-between"
+                                                             :class="form.proctoring_mode === 'identity_only' 
+                                                                 ? 'border-emerald-500 bg-gradient-to-br from-emerald-950 to-emerald-900 text-white shadow-md' 
+                                                                 : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300'"
+                                                         >
+                                                             <div>
+                                                                 <div class="flex items-center justify-between mb-2">
+                                                                     <i class="pi pi-id-card text-base"></i>
+                                                                     <span class="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                                                         :class="form.proctoring_mode === 'identity_only' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-emerald-100 text-emerald-700'">
+                                                                         Mode 3
+                                                                     </span>
+                                                                 </div>
+                                                                 <h4 class="text-xs font-black uppercase tracking-wide mb-1">Identity Only</h4>
+                                                                 <p class="text-[9px] font-medium leading-normal opacity-75">
+                                                                     Identity verification before the test, without proctoring during the test.
+                                                                 </p>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                 </div>
                                             </div>
                                         </div>
                                     </template>

@@ -11,8 +11,8 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import Dialog from 'primevue/dialog';
 import { useMediaUrl } from '@/composables/useMediaUrl';
+import { useModal } from '@/composables/useModal';
 
 const route = useRoute();
 const router = useRouter();
@@ -24,41 +24,7 @@ const currentUser = ref(null);
 const isCreatingCert = ref(false);
 let totalLevels = 0;
 
-const modalConfig = ref({
-    visible: false,
-    title: '',
-    message: '',
-    type: 'info',
-    showCancel: false,
-    confirmText: 'Confirm',
-    cancelText: 'Cancel',
-    onConfirm: null,
-    onCancel: null
-});
-
-const showModal = (options) => {
-    modalConfig.value = {
-        visible: true,
-        title: options.title || 'Notification',
-        message: options.message || '',
-        type: options.type || 'info',
-        showCancel: options.showCancel || false,
-        confirmText: options.confirmText || 'Yes',
-        cancelText: options.cancelText || 'Cancel',
-        onConfirm: options.onConfirm || null,
-        onCancel: options.onCancel || null
-    };
-};
-
-const handleModalConfirm = () => {
-    modalConfig.value.visible = false;
-    if (modalConfig.value.onConfirm) modalConfig.value.onConfirm();
-};
-
-const handleModalCancel = () => {
-    modalConfig.value.visible = false;
-    if (modalConfig.value.onCancel) modalConfig.value.onCancel();
-};
+const { showAlert, showConfirm } = useModal();
 
 
 const getValidSkills = (attempt) => {
@@ -112,121 +78,106 @@ const fetchDetails = async () => {
     }
 };
 
-const createCertificate = () => {
-    showModal({
-        title: 'Create Certificate',
-        message: 'Are you sure you want to create a certificate for this student? It will be hidden from the student until you toggle visibility.',
-        type: 'info',
-        showCancel: true,
-        confirmText: 'Yes, Create Certificate',
-        onConfirm: async () => {
-            isCreatingCert.value = true;
-            try {
-                await api.post(`/admin/certificates/create-for-attempt/${attemptId}`);
-                showModal({
-                    title: 'Success',
-                    message: 'Certificate created successfully. You can toggle its visibility from the Certificates page.',
-                    type: 'success',
-                });
-            } catch (err) {
-                showModal({
-                    title: 'Error',
-                    message: err.response?.data?.error || 'Failed to create certificate.',
-                    type: 'danger',
-                });
-            } finally {
-                isCreatingCert.value = false;
-            }
-        }
-    });
+const isDownloadingCert = ref(false);
+
+const downloadCertificate = async () => {
+    if (!selectedAttempt.value) return;
+
+    if (!selectedAttempt.value.certificate) {
+        await createCertificate();
+        if (!selectedAttempt.value.certificate) return;
+    }
+
+    isDownloadingCert.value = true;
+    try {
+        const cert = selectedAttempt.value.certificate;
+        const res = await api.get(`/certificates/${cert.id}/download`, { responseType: 'blob' });
+        const blob = new Blob([res.data], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `Certificate-${cert.certificate_number || 'Exam'}.pdf`;
+        link.click();
+    } catch (err) {
+        showAlert(err.response?.data?.error || 'Failed to download certificate.', 'Error', 'danger');
+    } finally {
+        isDownloadingCert.value = false;
+    }
 };
 
-const voidAttempt = (id) => {
-    showModal({
-        title: 'Void Attempt',
-        message: 'Are you sure you want to void this attempt? The student will be able to retake the exam.',
-        type: 'warning',
-        showCancel: true,
-        confirmText: 'Yes, Void Attempt',
-        onConfirm: async () => {
-            try {
-                await api.post(`/admin/reports/${attemptId}/reset`);
-                showModal({
-                    title: 'Success',
-                    message: 'Attempt voided successfully.',
-                    type: 'success',
-                    onConfirm: () => {
-                        const isTeacher = currentUser.value?.role === 'teacher';
-                        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
-                    }
-                });
-            } catch (err) {
-                showModal({
-                    title: 'Error',
-                    message: 'Failed to void attempt.',
-                    type: 'danger'
-                });
-            }
+const createCertificate = async () => {
+    const confirmed = await showConfirm(
+        'Are you sure you want to create a certificate for this student? It will be hidden from the student until you toggle visibility.',
+        'Create Certificate',
+        'info',
+        'Yes, Create Certificate'
+    );
+    if (!confirmed) return;
+    isCreatingCert.value = true;
+    try {
+        const res = await api.post(`/admin/certificates/create-for-attempt/${attemptId}`);
+        if (res.data.certificate) {
+            selectedAttempt.value.certificate = res.data.certificate;
         }
-    });
+        showAlert('Certificate created successfully. You can toggle its visibility from the Certificates page.', 'Success', 'success');
+    } catch (err) {
+        showAlert(err.response?.data?.error || 'Failed to create certificate.', 'Error', 'danger');
+    } finally {
+        isCreatingCert.value = false;
+    }
 };
 
-const resetSkill = (skillId, skillName) => {
-    showModal({
-        title: 'Reset Skill',
-        message: `Are you sure you want to reset the skill: ${skillName}? The student will need to retake this part.`,
-        type: 'warning',
-        showCancel: true,
-        confirmText: 'Yes, Reset Skill',
-        onConfirm: async () => {
-            try {
-                await api.post(`/admin/reports/${attemptId}/skills/${skillId}/reset`);
-                showModal({
-                    title: 'Success',
-                    message: 'Skill Attempt voided successfully.',
-                    type: 'success',
-                    onConfirm: () => {
-                        const isTeacher = currentUser.value?.role === 'teacher';
-                        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
-                    }
-                });
-            } catch (err) {
-                showModal({
-                    title: 'Error',
-                    message: 'Failed to reset skill.',
-                    type: 'danger'
-                });
-            }
-        }
-    });
+const voidAttempt = async (id) => {
+    const confirmed = await showConfirm(
+        'Are you sure you want to void this attempt? The student will be able to retake the exam.',
+        'Void Attempt',
+        'warning',
+        'Yes, Void Attempt'
+    );
+    if (!confirmed) return;
+    try {
+        await api.post(`/admin/reports/${attemptId}/reset`);
+        await showAlert('Attempt voided successfully.', 'Success', 'success');
+        const isTeacher = currentUser.value?.role === 'teacher';
+        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
+    } catch (err) {
+        showAlert('Failed to void attempt.', 'Error', 'danger');
+    }
+};
+
+const resetSkill = async (skillId, skillName) => {
+    const confirmed = await showConfirm(
+        `Are you sure you want to reset the skill: ${skillName}? The student will need to retake this part.`,
+        'Reset Skill',
+        'warning',
+        'Yes, Reset Skill'
+    );
+    if (!confirmed) return;
+    try {
+        await api.post(`/admin/reports/${attemptId}/skills/${skillId}/reset`);
+        await showAlert('Skill Attempt voided successfully.', 'Success', 'success');
+        const isTeacher = currentUser.value?.role === 'teacher';
+        router.push({ name: isTeacher ? 'teacher.reports' : 'admin.reports' });
+    } catch (err) {
+        showAlert('Failed to reset skill.', 'Error', 'danger');
+    }
 };
 
 
-const resetLastLevel = (skillId, skillName) => {
-    showModal({
-        title: 'Reset Last Level',
-        message: `This will delete the student's last level progress and answers for "${skillName}". Are you sure?`,
-        type: 'warning',
-        showCancel: true,
-        confirmText: 'Yes, Reset Level',
-        onConfirm: async () => {
-            try {
-                await api.post(`/admin/reports/${attemptId}/skills/${skillId}/reset-last-level`);
-                showModal({
-                    title: 'Success',
-                    message: 'Last level has been reset successfully. The candidate can retake it.',
-                    type: 'success',
-                    onConfirm: () => fetchDetails()  // نحدث الصفحة بدل ما نروح للقايمة
-                });
-            } catch (err) {
-                showModal({
-                    title: 'Error',
-                    message: err.response?.data?.error || 'Failed to reset level.',
-                    type: 'danger'
-                });
-            }
-        }
-    });
+const resetLastLevel = async (skillId, skillName) => {
+    const confirmed = await showConfirm(
+        `This will delete the student's last level progress and answers for "${skillName}". Are you sure?`,
+        'Reset Last Level',
+        'warning',
+        'Yes, Reset Level'
+    );
+    if (!confirmed) return;
+    try {
+        await api.post(`/admin/reports/${attemptId}/skills/${skillId}/reset-last-level`);
+        await showAlert('Last level has been reset successfully. The candidate can retake it.', 'Success', 'success');
+        fetchDetails();
+    } catch (err) {
+        showAlert(err.response?.data?.error || 'Failed to reset level.', 'Error', 'danger');
+    }
 };
 
 
@@ -908,11 +859,15 @@ onMounted(fetchDetails);
                     </div>
                 </div>
                 <div class="flex items-center space-x-3" v-if="selectedAttempt && currentUser?.role === 'admin'">
-                    <Button label="Create Certificate" icon="pi pi-award" severity="success" outlined size="small"
+                    <Button v-if="selectedAttempt.certificate" label="Download Certificate" icon="pi pi-download" severity="success" size="small"
+                        class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-sm"
+                        :loading="isDownloadingCert"
+                        @click="downloadCertificate()" />
+                    <Button v-else label="Create Certificate" icon="pi pi-award" severity="success" outlined size="small"
                         class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
                         :loading="isCreatingCert" :disabled="selectedAttempt.status !== 'completed'"
                         v-tooltip.left="selectedAttempt.status !== 'completed' ? 'Attempt must be completed' : 'Issue a certificate for this student'"
-                        @click="createCertificate()" />
+                        @click="downloadCertificate()" />
                     <Button label="Reset / Retry" severity="danger" outlined size="small"
                         class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
                         @click="voidAttempt(selectedAttempt)" />
@@ -1410,50 +1365,6 @@ onMounted(fetchDetails);
             </div>
         </div>
 
-        <!-- Custom Beautiful Modal -->
-        <Dialog v-model:visible="modalConfig.visible" modal :closable="false" :style="{ width: '450px' }"
-            class="rounded-[2rem] overflow-hidden border-0 shadow-2xl">
-            <template #header>
-                <div class="flex items-center gap-4 px-2 pt-2" :class="{
-                    'text-emerald-500': modalConfig.type === 'success',
-                    'text-rose-500': modalConfig.type === 'danger',
-                    'text-amber-500': modalConfig.type === 'warning',
-                    'text-indigo-500': modalConfig.type === 'info'
-                }">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm" :class="{
-                        'bg-emerald-50 border-emerald-100 text-emerald-600': modalConfig.type === 'success',
-                        'bg-rose-50 border-rose-100 text-rose-600': modalConfig.type === 'danger',
-                        'bg-amber-50 border-amber-100 text-amber-600': modalConfig.type === 'warning',
-                        'bg-indigo-50 border-indigo-100 text-indigo-600': modalConfig.type === 'info'
-                    }">
-                        <i class="text-2xl" :class="{
-                            'pi pi-check-circle': modalConfig.type === 'success',
-                            'pi pi-times-circle': modalConfig.type === 'danger',
-                            'pi pi-exclamation-triangle': modalConfig.type === 'warning',
-                            'pi pi-info-circle': modalConfig.type === 'info'
-                        }"></i>
-                    </div>
-                    <h3 class="font-black text-2xl tracking-tight text-slate-800">{{ modalConfig.title }}</h3>
-                </div>
-            </template>
-            <div class="px-2 py-4 text-slate-600 font-medium leading-relaxed text-base">
-                {{ modalConfig.message }}
-            </div>
-            <template #footer>
-                <div class="flex justify-end gap-3 w-full px-2 pb-2 mt-4">
-                    <Button v-if="modalConfig.showCancel" :label="modalConfig.cancelText" text severity="secondary"
-                        @click="handleModalCancel" class="font-bold px-6 py-3 rounded-xl hover:bg-slate-100" />
-                    <Button :label="modalConfig.confirmText" @click="handleModalConfirm"
-                        class="font-black px-6 py-3 rounded-xl border-none shadow-md hover:shadow-lg transition-all"
-                        :class="{
-                            'bg-emerald-500 hover:bg-emerald-600 text-white': modalConfig.type === 'success',
-                            'bg-rose-500 hover:bg-rose-600 text-white': modalConfig.type === 'danger',
-                            'bg-amber-500 hover:bg-amber-600 text-white': modalConfig.type === 'warning',
-                            'bg-indigo-500 hover:bg-indigo-600 text-white': modalConfig.type === 'info'
-                        }" />
-                </div>
-            </template>
-        </Dialog>
     </AdminLayout>
 </template>
 

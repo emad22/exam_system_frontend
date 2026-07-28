@@ -56,6 +56,8 @@ const t = {
         isDemoSubtitle: "يتجاوز القيود ولا يُغلق المهارات ويدعم تشغيل مستويات محددة",
         isDemoProctoredToggle: "تفعيل المراقبة للطالب التجريبي",
         isDemoProctoredSubtitle: "فرض متطلبات الكاميرا والمراقبة لجلسة الاختبار التجريبي",
+        bypassIdentityToggle: "تجاوز التحقق من الهوية",
+        bypassIdentitySubtitle: "يتخطى مطابقة الوجه والهوية ويقبل الامتحان مباشرة",
         errorMessage: "حدث خطأ أثناء إضافة الطالب. تأكد من أن البريد الإلكتروني أو اسم المستخدم فريد."
     },
     en: {
@@ -88,6 +90,8 @@ const t = {
         isDemoSubtitle: "Bypasses lockout and constraints for development/testing",
         isDemoProctoredToggle: "Proctor Demo User",
         isDemoProctoredSubtitle: "Force video/camera verification requirements for this demo run",
+        bypassIdentityToggle: "Bypass Identity Verification",
+        bypassIdentitySubtitle: "Skips face & ID matching — student enters exam directly",
         errorMessage: "Failed to add student. Ensure email and username are unique."
     }
 };
@@ -117,6 +121,7 @@ const form = ref({
     allows_retry: false,
     is_demo: false,
     is_demo_proctored: false,
+    bypass_identity_verification: false,
     adaptive: true,
 });
 
@@ -450,6 +455,21 @@ const filteredExams = computed(() => {
                                                         t[currentLang].isDemoProctoredToggle }}</span>
                                                 <span class="text-[9px] font-bold text-slate-500 mt-0.5">{{
                                                     t[currentLang].isDemoProctoredSubtitle }}</span>
+                                            </label>
+                                        </div>
+
+                                        <!-- Bypass Identity Verification -->
+                                        <div
+                                            class="flex items-center p-4 bg-sky-50/20 rounded-2xl border border-sky-500/10 shadow-sm">
+                                            <Checkbox v-model="form.bypass_identity_verification" :binary="true"
+                                                inputId="bypass_identity_toggle" />
+                                            <label for="bypass_identity_toggle"
+                                                class="ml-3.5 mr-3.5 flex flex-col cursor-pointer">
+                                                <span
+                                                    class="text-xs font-black text-slate-800 uppercase tracking-wider">{{
+                                                        t[currentLang].bypassIdentityToggle }}</span>
+                                                <span class="text-[9px] font-bold text-slate-500 mt-0.5">{{
+                                                    t[currentLang].bypassIdentitySubtitle }}</span>
                                             </label>
                                         </div>
                                     </div>

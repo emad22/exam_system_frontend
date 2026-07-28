@@ -973,8 +973,9 @@ onMounted(async () => {
         try {
             const userRes = await api.get('/user');
             studentId.value = userRes.data?.id;
-            const partnerProctoringRequired = userRes.data?.student?.partner?.proctoring_required ?? false;
-            proctoringRequired.value = !!partnerProctoringRequired;
+            const partner = userRes.data?.student?.partner;
+            const partnerLiveProctoring = partner?.requires_live_proctoring ?? (partner?.proctoring_mode === 'full');
+            proctoringRequired.value = !!partnerLiveProctoring;
             if (!proctoringRequired.value) {
                 // Partner doesn't require proctoring — skip initializer
                 proctoringComplete.value = true;
