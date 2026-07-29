@@ -303,6 +303,9 @@ onMounted(fetchDetails);
                             </span>
                             <span class="text-xl font-black text-slate-500"> / {{ Number(getValidTotalLevels(selectedAttempt) * 100 / getValidSkillsCount(selectedAttempt), 2) }} </span>
                         </div>
+                        <div v-if="selectedAttempt.cefr_actfl_level" class="mt-1">
+                            <span class="text-sm font-black text-indigo-400 uppercase tracking-widest">{{ selectedAttempt.cefr_actfl_level }}</span>
+                        </div>
                         <div class="flex items-baseline gap-2 mt-2">
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2">Total
                                 Score:</span>

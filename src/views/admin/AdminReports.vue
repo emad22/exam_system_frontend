@@ -180,23 +180,6 @@ const getValidTotalLevels = (attempt) => {
     return validSkills.reduce((sum, skillResult) => sum + (skillResult.skill?.levels_count || 1), 0);
 };
 
-// const getValidTotalLevels = (attempt) => {
-//     const validSkills = getValidSkills(attempt);
-//     if (validSkills.length === 0) return attempt.total_levels || 1;
-
-//     // نجيب عدد مستويات الـ Listening مرة واحدة
-//     const listeningLevelsCount =
-//         validSkills.find(
-//             skillResult =>
-//                 skillResult.skill?.name?.toLowerCase() === "listening"
-//         )?.skill?.levels_count || 1;
-
-//     return validSkills.reduce((sum, skillResult) => {
-//         const levelsCount = skillResult.skill?.levels_count || 1;
-
-//         return sum + (levelsCount === 1 ? listeningLevelsCount : levelsCount);
-//     }, 0);
-// };
 
 const getTotalScore = (attempt) => {
     const validSkills = getValidSkills(attempt);
@@ -290,6 +273,7 @@ onMounted(() => {
                                     <!-- <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2"></span> -->
                                     <!-- <span class="text-xl font-black text-slate-500"> / {{ Number((getTotalLevels(attempt) * 100 / attempt.skills_count).toFixed(2)) }}</span> -->
                                     <span class="text-xl font-black text-slate-500"> / {{Number(getValidTotalLevels(attempt)* 100 / getValidSkillsCount(attempt) , 2)}} </span>
+                                    <div v-if="attempt.cefr_actfl_level" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-2">{{ attempt.cefr_actfl_level }}</div>
                                 </td>
                                 <td class="p-6 text-center">
                                     <Tag :value="attempt.status" 

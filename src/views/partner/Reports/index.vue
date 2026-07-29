@@ -204,6 +204,7 @@ onMounted(() => {
                                        {{ Number((Number(getTotalScore(attempt)) / getValidSkillsCount(attempt)).toFixed(2)) }}
                                     </span>
                                     <span class="text-xl font-black text-slate-500"> / {{Number(getValidTotalLevels(attempt)* 100 / getValidSkillsCount(attempt) , 2)}} </span>
+                                    <div v-if="attempt.cefr_actfl_level" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-2">{{ attempt.cefr_actfl_level }}</div>
                                 </td>
                                 <td class="p-6 text-center">
                                     <Tag :value="attempt.status" 
