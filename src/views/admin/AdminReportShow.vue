@@ -205,6 +205,19 @@ const getCalculatedSkillScore = (skillResult) => {
     return Math.round(Number(skillResult.score) * levelsCount);
 };
 
+const getMaxSkillScore = (skillResult, attempt) => {
+    let levelsCount = skillResult.skill?.levels_count || 1;
+    if (levelsCount === 1 && attempt?.attempt_skills) {
+        const listeningSkill = attempt.attempt_skills.find(
+            s => s.skill?.name?.toLowerCase() === 'listening'
+        );
+        if (listeningSkill && listeningSkill.skill?.levels_count) {
+            levelsCount = listeningSkill.skill.levels_count;
+        }
+    }
+    return levelsCount * 100;
+};
+
 const skillMap = {
     'listening': 'Listening',
     'reading': 'Reading',
@@ -650,7 +663,7 @@ const exportSkillToPdf = (skillId) => {
 
     // 1. Metrics Card Calculations
     const calculatedScore = getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) : 0;
-    const maxScore = (skillResult.skill?.levels_count || 1) * 100;
+    const maxScore = getMaxSkillScore(skillResult, selectedAttempt.value);
     const durationStr = calculateDuration(skillResult.started_at, skillResult.finished_at);
     const warnings = skillResult.cheat_warnings || 0;
 
@@ -1005,7 +1018,7 @@ onMounted(fetchDetails);
                                                     {{ getCalculatedSkillScore(skillResult) !== null ?
                                                         getCalculatedSkillScore(skillResult) : 0 }}
                                                     <span class="text-lg text-emerald-400">{{ '/' +
-                                                        ((skillResult.skill?.levels_count || 1) * 100) }}</span>
+                                                        getMaxSkillScore(skillResult, selectedAttempt) }}</span>
                                                 </div>
                                                 <p
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest">

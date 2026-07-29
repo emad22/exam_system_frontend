@@ -90,6 +90,19 @@ const getCalculatedSkillScore = (skillResult) => {
     return Math.round(Number(skillResult.score) * levelsCount);
 };
 
+const getMaxSkillScore = (skillResult, attempt) => {
+    let levelsCount = skillResult.skill?.levels_count || 1;
+    if (levelsCount === 1 && attempt?.attempt_skills) {
+        const listeningSkill = attempt.attempt_skills.find(
+            s => s.skill?.name?.toLowerCase() === 'listening'
+        );
+        if (listeningSkill && listeningSkill.skill?.levels_count) {
+            levelsCount = listeningSkill.skill.levels_count;
+        }
+    }
+    return levelsCount * 100;
+};
+
 const getValidSkills = (attempt) => {
     if (!attempt || !attempt.attempt_skills) return [];
     return attempt.attempt_skills.filter(skillResult => {
@@ -224,7 +237,7 @@ onMounted(() => {
                                                     {{ getSkillDisplayName(skillResult.skill?.name) }}
                                                 </span>
                                                 <span class="font-black text-sm ml-3" :class="scoreColor(skillResult.score)">
-                                                    {{ getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) + '/' + ((skillResult.skill?.levels_count || 1) * 100) : '—' }}
+                                                    {{ getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) + '/' + getMaxSkillScore(skillResult, attempt) : '—' }}
                                                 </span>
                                             </div>
                                         </div>
