@@ -51,8 +51,8 @@ const t = {
         title: "سجل الطلاب المشتركين",
         subtitle: "استعراض بيانات الطلاب المسجلين، باقات اشتراكاتهم، ومستويات تقدمهم وإحصائياتهم",
         btnRegister: "تسجيل طالب جديد",
-        btnMatrixImport: "استيراد دفعات",
-        btnBulkSkills: "ربط مهارات جماعي",
+        btnMatrixImport: "تسجيل من ملف Excel",
+        btnBulkSkills: "تحديث مهارات الطلاب",
         btnPurge: "حذف المحدد",
         searchPlaceholder: "بحث عن طالب...",
         colIdentity: "حساب الطالب وبياناته",
@@ -125,8 +125,8 @@ const t = {
         title: "Student Registry",
         subtitle: "Audit verified student records, subscription plans, and adaptive level progress profiles",
         btnRegister: "Register Student",
-        btnMatrixImport: "Batch Import",
-        btnBulkSkills: "Bulk Skills Mapping",
+        btnMatrixImport: "Register from Excel",
+        btnBulkSkills: "update Students Skills",
         btnPurge: "Delete Selected",
         searchPlaceholder: "Search students...",
         colIdentity: "Student Account & Info",
@@ -526,32 +526,60 @@ onMounted(() => {
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-3 relative z-10">
-                         
-            <!-- Language Selector Toggle -->
+                        <!-- Language Selector Toggle -->
                         <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
                             <i class="pi pi-globe text-brand-primary"></i>
                             <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
                         </button>
-                         <Button v-if="selectedStudents.length > 0" 
-                             :label="t[currentLang].btnBulkHold" 
-                             :icon="selectedStudents[0]?.user?.is_active ? 'pi pi-pause' : 'pi pi-play'"
-                             severity="warning" 
-                             class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
-                             @click="bulkToggleHold" :loading="isSaving" />
-                         <Button v-if="selectedStudents.length > 0" :label="t[currentLang].btnPurge" icon="pi pi-trash"
-                             severity="danger" class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
-                             @click="bulkDelete" />
-                         <Button :label="t[currentLang].btnBulkSkills" icon="pi pi-tags" severity="secondary" outlined
-                             class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
-                             @click="showBulkSkillsModal = true" />
-                         <Button :label="t[currentLang].btnMatrixImport" icon="pi pi-file-excel" severity="secondary" outlined
-                             class="text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all"
-                             @click="router.push('/admin/students/batch')" />
-                         <Button :label="t[currentLang].btnRegister" icon="pi pi-plus"
-                             class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all hover:-translate-y-1"
-                             @click="router.push('/admin/students/create')" />
+                        <Button :label="t[currentLang].btnBulkSkills" icon="pi pi-tags" severity="secondary" outlined
+                            class="text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all"
+                            @click="showBulkSkillsModal = true" />
+                        <Button :label="t[currentLang].btnMatrixImport" icon="pi pi-file-excel" severity="secondary" outlined
+                            class="text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all"
+                            @click="router.push('/admin/students/batch')" />
+                        <Button :label="t[currentLang].btnRegister" icon="pi pi-plus"
+                            class="px-7 py-2.5 rounded-xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all hover:-translate-y-0.5"
+                            @click="router.push('/admin/students/create')" />
                     </div>
                 </div>
+
+                <!-- Bulk Action Banner — appears only when students are selected -->
+                <transition name="slide-down">
+                    <div v-if="selectedStudents.length > 0"
+                        class="flex flex-wrap items-center justify-between gap-4 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center text-white shrink-0">
+                                <i class="pi pi-check-square text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-black text-brand-primary uppercase tracking-wider">
+                                    {{ selectedStudents.length }} {{ currentLang === 'ar' ? 'طالب محدد' : 'Students Selected' }}
+                                </p>
+                                <p class="text-[10px] font-bold text-slate-400">
+                                    {{ currentLang === 'ar' ? 'اختر إجراء للتطبيق على المحددين' : 'Choose a bulk action to apply' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <Button
+                                :label="t[currentLang].btnBulkHold"
+                                :icon="selectedStudents[0]?.user?.is_active ? 'pi pi-pause' : 'pi pi-play'"
+                                severity="warning" outlined
+                                class="text-xs font-extrabold uppercase tracking-wider rounded-xl px-5 py-2"
+                                @click="bulkToggleHold" :loading="isSaving" />
+                            <Button
+                                :label="t[currentLang].btnPurge" icon="pi pi-trash"
+                                severity="danger" outlined
+                                class="text-xs font-extrabold uppercase tracking-wider rounded-xl px-5 py-2"
+                                @click="bulkDelete" />
+                            <button @click="selectedStudents = []"
+                                class="px-4 py-2 text-[10px] font-extrabold text-slate-400 hover:text-slate-600 uppercase tracking-wider transition-colors">
+                                {{ currentLang === 'ar' ? 'إلغاء' : 'Clear' }}
+                            </button>
+                        </div>
+                    </div>
+                </transition>
+
 
                 <!-- Premium Search Bar -->
                 <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-end gap-4">
@@ -751,6 +779,25 @@ onMounted(() => {
 
 .animate-in {
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Bulk action banner slide-down animation */
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+}
+.slide-down-enter-to,
+.slide-down-leave-from {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 120px;
 }
 
 :deep(.p-datatable-thead > tr > th) {

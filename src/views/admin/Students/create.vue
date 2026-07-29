@@ -211,7 +211,7 @@ const filteredExams = computed(() => {
     <AdminLayout>
         <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'"
             class="w-full">
-            <div class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-20 mt-6 px-4">
+            <div class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-24 mt-6 px-4 md:px-8">
 
                 <!-- Premium Header Card -->
                 <div
@@ -223,23 +223,27 @@ const filteredExams = computed(() => {
                         class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000">
                     </div>
 
-                    <div class="relative z-10 flex items-center gap-6">
-                        <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded
-                            @click="router.push('/admin/students')"
-                            class="w-12 h-12 flex items-center justify-center border border-slate-200 hover:border-slate-300 shadow-sm bg-white" />
-                        <div>
-                            <div
-                                class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
-                                <i class="pi pi-sparkles text-brand-accent"></i>
-                                <span>{{ t[currentLang].activeSystem }}</span>
-                            </div>
-                            <h1 class="text-2xl font-black text-slate-800 tracking-tight leading-tight mt-1">
-                                {{ t[currentLang].registerStudent }}
-                            </h1>
-                            <p class="text-xs font-bold text-slate-400 mt-0.5">
-                                {{ t[currentLang].subtitle }}
-                            </p>
+                    <div class="relative z-10 space-y-2">
+                        <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
+                            <i class="pi pi-sparkles text-brand-accent"></i>
+                            <span>{{ t[currentLang].activeSystem }}</span>
                         </div>
+                        <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
+                            {{ t[currentLang].registerStudent }}
+                        </h1>
+                        <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
+                            {{ t[currentLang].subtitle }}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 mt-6 md:mt-0 relative z-10">
+                        <Button
+                            label="Back to Students"
+                            icon="pi pi-arrow-left"
+                            severity="secondary"
+                            outlined
+                            class="text-xs font-extrabold uppercase tracking-wider rounded-xl border border-slate-200"
+                            @click="router.push('/admin/students')"
+                        />
                     </div>
                 </div>
 
@@ -500,10 +504,18 @@ const filteredExams = computed(() => {
                                 </template>
                             </Card>
 
-                            <div class="pt-4">
+                            <div class="pt-4 space-y-3">
                                 <Button type="submit" :label="t[currentLang].completeBtn" icon="pi pi-check"
                                     :loading="isSubmitting"
                                     class="w-full py-5 rounded-3xl shadow-lg shadow-rose-200 bg-brand-primary text-white hover:bg-rose-800 border-none font-black tracking-wider text-xs uppercase transition-all duration-300 hover:scale-[1.02] active:scale-95" />
+                                <Button
+                                    :label="currentLang === 'ar' ? 'إلغاء والرجوع' : 'Cancel'"
+                                    icon="pi pi-times"
+                                    severity="secondary"
+                                    outlined
+                                    class="w-full py-3 rounded-2xl text-xs font-extrabold uppercase tracking-wider border border-slate-200"
+                                    @click="router.push('/admin/students')"
+                                />
                             </div>
                         </div>
                     </div>
