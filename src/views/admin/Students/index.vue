@@ -8,7 +8,7 @@ import api from '@/services/api';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
@@ -556,7 +556,7 @@ onMounted(() => {
                 <!-- Premium Search Bar -->
                 <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-end gap-4">
                      <div class="w-full sm:w-72 shrink-0">
-                        <Dropdown v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                        <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
                             :placeholder="t[currentLang].allPartners" showClear 
                             class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12 flex items-center" />
                     </div>

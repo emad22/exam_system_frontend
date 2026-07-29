@@ -93,6 +93,22 @@ const ensureElementIds = (items) => {
     if (el.style && !el.fontStyle) el.fontStyle = el.style;
     if (el.name && !el.text && el.type !== 'image') el.text = el.name;
     if (el.name && el.type === 'sign' && !el.namePlaceholder) el.namePlaceholder = el.name;
+    // ensure sign style fields exist for older saved templates
+    if (el.type === 'sign') {
+      if (el.nameFontFamily    === undefined) el.nameFontFamily    = '';
+      if (el.nameLetterSpacing === undefined) el.nameLetterSpacing = 0;
+      if (el.titleFontSize     === undefined) el.titleFontSize     = 12;
+      if (el.titleColor        === undefined) el.titleColor        = '#1e293b';
+      if (el.titleFontWeight   === undefined) el.titleFontWeight   = 900;
+      if (el.titleTransform    === undefined) el.titleTransform    = '';
+      if (el.titleLetterSpacing=== undefined) el.titleLetterSpacing= 0;
+      if (el.titleBorderColor  === undefined) el.titleBorderColor  = '#cbd5e1';
+      if (el.titleBorderWidth  === undefined) el.titleBorderWidth  = 1;
+      // clean up old raw-css fields if present
+      delete el.customCss;
+      delete el.nameCss;
+      delete el.titleCss;
+    }
 
     el.width = Number(el.width) || (['skills_table', 'skills_table_without_cefr'].includes(el.type) ? 940 : (el.type === 'image' ? 150 : 320));
     // clamp width/height so elements don't overflow the canvas
@@ -203,13 +219,45 @@ const buildContentHtml = () => {
 
     // handle signature blocks
     if (element.type === 'sign' || type === 'sign') {
-      const signerName = element.name || element.namePlaceholder || element.text || '';
-      const signerTitle = element.title || element.signatureTitle || element.title || element.textLines && element.textLines[0] || '';
-      const linesHtml = (element.textLines || []).map(l => `<div style="font-size:8px;color:#64748b;">${escapeHtml(l)}</div>`).join('');
+      const signerName  = element.name || element.namePlaceholder || element.text || '';
+      const signerTitle = element.title || '';
+      const linesHtml   = (element.textLines || []).map(l => `<div style="font-size:8px;color:#64748b;">${escapeHtml(l)}</div>`).join('');
+
+      // Name style
+      const nameFontFamily    = element.nameFontFamily    ? element.nameFontFamily    : "'Dancing Script', cursive";
+      const nameLetterSpacing = (element.nameLetterSpacing != null && element.nameLetterSpacing !== 0) ? `letter-spacing:${element.nameLetterSpacing}px;` : '';
+      const nameStyle = [
+        `font-size:${element.fontSize || 20}px`,
+        `color:${element.color || '#2563eb'}`,
+        `font-weight:${element.fontWeight || 600}`,
+        `font-family:${nameFontFamily}`,
+        `margin:0 0 -5px 0`,
+        nameLetterSpacing,
+      ].filter(Boolean).join('; ');
+
+      // Title style
+      const titleFontSize     = element.titleFontSize     || 12;
+      const titleColor        = element.titleColor        || '#1e293b';
+      const titleFontWeight   = element.titleFontWeight   || 900;
+      const titleTransform    = element.titleTransform    ? `text-transform:${element.titleTransform};` : '';
+      const titleLetterSpacing= (element.titleLetterSpacing != null && element.titleLetterSpacing !== 0) ? `letter-spacing:${element.titleLetterSpacing}px;` : '';
+      const titleBorderColor  = element.titleBorderColor  || '#cbd5e1';
+      const titleBorderWidth  = element.titleBorderWidth  != null ? element.titleBorderWidth : 1;
+      const titleStyle = [
+        `font-size:${titleFontSize}px`,
+        `color:${titleColor}`,
+        `font-weight:${titleFontWeight}`,
+        `margin:0`,
+        `border-top:${titleBorderWidth}px solid ${titleBorderColor}`,
+        `padding-top:4px`,
+        titleTransform,
+        titleLetterSpacing,
+      ].filter(Boolean).join('; ');
+
       return `
         <div class="sign-block" style="position:absolute; left:${element.x}px; top:${element.y}px; width:${element.width}px; height:${element.height || 80}px; text-align:center; page-break-inside:avoid;">
-          <div style="font-size:${element.fontSize || 20}px; color:${element.color || '#2563eb'}; margin:0 0 -5px 0; font-family: 'Dancing Script', cursive;">${escapeHtml(signerName)}</div>
-          <div style="font-weight:900;font-size:12px;margin:0;border-top:1px solid #cbd5e1;padding-top:4px;">${escapeHtml(signerTitle)}</div>
+          <div style="${nameStyle}">${escapeHtml(signerName)}</div>
+          <div style="${titleStyle}">${escapeHtml(signerTitle)}</div>
           ${linesHtml}
         </div>`;
     }
@@ -403,7 +451,16 @@ const getDefaultCanvasElements = () => [
     fontSize: 20,
     fontWeight: 600,
     color: '#2563eb',
-    textAlign: 'center'
+    textAlign: 'center',
+    nameFontFamily: '',
+    nameLetterSpacing: 0,
+    titleFontSize: 12,
+    titleColor: '#1e293b',
+    titleFontWeight: 900,
+    titleTransform: '',
+    titleLetterSpacing: 0,
+    titleBorderColor: '#cbd5e1',
+    titleBorderWidth: 1,
   },
   {
     id: createId(),
@@ -419,7 +476,16 @@ const getDefaultCanvasElements = () => [
     fontSize: 20,
     fontWeight: 600,
     color: '#2563eb',
-    textAlign: 'center'
+    textAlign: 'center',
+    nameFontFamily: '',
+    nameLetterSpacing: 0,
+    titleFontSize: 12,
+    titleColor: '#1e293b',
+    titleFontWeight: 900,
+    titleTransform: '',
+    titleLetterSpacing: 0,
+    titleBorderColor: '#cbd5e1',
+    titleBorderWidth: 1,
   }
 ];
 
@@ -586,6 +652,21 @@ const addElement = (type) => {
     base.text = 'Skills Table (ACTFL)';
   } else {
     base.text = 'Skills Table (CEFR & ACTFL)';
+  }
+
+  if (type === 'sign') {
+    base.name = 'Signer Name';
+    base.title = 'Title';
+    base.textLines = [];
+    base.nameFontFamily = '';
+    base.nameLetterSpacing = 0;
+    base.titleFontSize = 12;
+    base.titleColor = '#1e293b';
+    base.titleFontWeight = 900;
+    base.titleTransform = '';
+    base.titleLetterSpacing = 0;
+    base.titleBorderColor = '#cbd5e1';
+    base.titleBorderWidth = 1;
   }
 
   canvasElements.value.push(base);
@@ -1524,7 +1605,7 @@ const debugDump = async () => {
               </div>
 
               <!-- Signature content -->
-              <div v-else-if="selectedElementRef.type === 'sign'" class="space-y-2">
+              <div v-else-if="selectedElementRef.type === 'sign'" class="space-y-3">
                 <div>
                   <label class="text-[10px] font-semibold text-slate-500">Signer Name</label>
                   <InputText v-model="selectedElementRef.name" class="w-full mt-1 text-sm" placeholder="John Doe" />
@@ -1533,6 +1614,130 @@ const debugDump = async () => {
                   <label class="text-[10px] font-semibold text-slate-500">Title / Role</label>
                   <InputText v-model="selectedElementRef.title" class="w-full mt-1 text-sm"
                     placeholder="Program Director" />
+                </div>
+
+                <!-- Name Typography -->
+                <div class="rounded-lg border border-amber-100 bg-amber-50/60 p-2.5 space-y-2">
+                  <p class="text-[9px] font-black uppercase tracking-widest text-amber-500">Name Style</p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Font Size (px)</label>
+                      <input type="number" v-model.number="selectedElementRef.fontSize" min="6" max="120"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400/40" />
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Color</label>
+                      <div class="flex items-center gap-1">
+                        <input type="color" v-model="selectedElementRef.color"
+                          class="h-8 w-9 rounded-lg border border-slate-200 p-0.5 cursor-pointer bg-white" />
+                        <input type="text" v-model="selectedElementRef.color" maxlength="7"
+                          class="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono bg-white focus:outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Font Weight</label>
+                      <select v-model.number="selectedElementRef.fontWeight"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm bg-white focus:outline-none">
+                        <option :value="300">Light</option>
+                        <option :value="400">Regular</option>
+                        <option :value="500">Medium</option>
+                        <option :value="600">SemiBold</option>
+                        <option :value="700">Bold</option>
+                        <option :value="800">ExtraBold</option>
+                        <option :value="900">Black</option>
+                      </select>
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Font Family</label>
+                      <select v-model="selectedElementRef.nameFontFamily"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm bg-white focus:outline-none">
+                        <option value="">Cursive (default)</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="Verdana, sans-serif">Verdana</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[9px] font-semibold text-slate-500">Letter Spacing</label>
+                    <div class="flex items-center gap-2">
+                      <input type="range" v-model.number="selectedElementRef.nameLetterSpacing"
+                        min="-2" max="10" step="0.5"
+                        class="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                      <span class="text-[10px] font-mono text-slate-500 w-10 text-right">{{ selectedElementRef.nameLetterSpacing ?? 0 }}px</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Title Typography -->
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-2">
+                  <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Title Style</p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Font Size (px)</label>
+                      <input type="number" v-model.number="selectedElementRef.titleFontSize" min="6" max="60"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-slate-300" />
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Color</label>
+                      <div class="flex items-center gap-1">
+                        <input type="color" v-model="selectedElementRef.titleColor"
+                          class="h-8 w-9 rounded-lg border border-slate-200 p-0.5 cursor-pointer bg-white" />
+                        <input type="text" v-model="selectedElementRef.titleColor" maxlength="7"
+                          class="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono bg-white focus:outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Font Weight</label>
+                      <select v-model.number="selectedElementRef.titleFontWeight"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm bg-white focus:outline-none">
+                        <option :value="300">Light</option>
+                        <option :value="400">Regular</option>
+                        <option :value="500">Medium</option>
+                        <option :value="600">SemiBold</option>
+                        <option :value="700">Bold</option>
+                        <option :value="800">ExtraBold</option>
+                        <option :value="900">Black</option>
+                      </select>
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-semibold text-slate-500">Transform</label>
+                      <select v-model="selectedElementRef.titleTransform"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm bg-white focus:outline-none">
+                        <option value="">None</option>
+                        <option value="uppercase">UPPERCASE</option>
+                        <option value="lowercase">lowercase</option>
+                        <option value="capitalize">Capitalize</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[9px] font-semibold text-slate-500">Letter Spacing</label>
+                    <div class="flex items-center gap-2">
+                      <input type="range" v-model.number="selectedElementRef.titleLetterSpacing"
+                        min="-2" max="10" step="0.5"
+                        class="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-500" />
+                      <span class="text-[10px] font-mono text-slate-500 w-10 text-right">{{ selectedElementRef.titleLetterSpacing ?? 0 }}px</span>
+                    </div>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[9px] font-semibold text-slate-500">Border Top</label>
+                    <div class="flex items-center gap-1.5">
+                      <input type="color" v-model="selectedElementRef.titleBorderColor"
+                        class="h-8 w-9 rounded-lg border border-slate-200 p-0.5 cursor-pointer bg-white" />
+                      <input type="text" v-model="selectedElementRef.titleBorderColor" maxlength="7"
+                        class="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono bg-white focus:outline-none" placeholder="#cbd5e1" />
+                      <input type="number" v-model.number="selectedElementRef.titleBorderWidth" min="0" max="10"
+                        class="w-14 rounded-lg border border-slate-200 px-2 py-1.5 text-xs bg-white focus:outline-none" placeholder="1" />
+                      <span class="text-[9px] text-slate-400">px</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 

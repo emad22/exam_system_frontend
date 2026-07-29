@@ -59,8 +59,23 @@ const toggleMute = () => {
     }
 };
 
+const MAX_NOTIF_FAILURES = 3;
+let notifFailCount = 0;
+
 const fetchNotifications = async () => {
-    await adminStore.fetchNotifications();
+    try {
+        await adminStore.fetchNotifications();
+        notifFailCount = 0; // reset on success
+    } catch {
+        notifFailCount++;
+        if (notifFailCount >= MAX_NOTIF_FAILURES) {
+            console.warn(`Notifications polling stopped after ${MAX_NOTIF_FAILURES} consecutive failures. Will retry on next page load.`);
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        }
+    }
 };
 
 watch(() => adminStore.notifications.length, (newCount, oldCount) => {

@@ -6,7 +6,7 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import ProgressSpinner from 'primevue/progressspinner';
 import ToggleSwitch from 'primevue/toggleswitch';
 
@@ -251,7 +251,7 @@ const deleteCertificate = async (cert) => {
 
                     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
                         <!-- Partner Filter Dropdown -->
-                        <Dropdown v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
+                        <Select v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
                             showClear :placeholder="t[currentLang].filterPartner" @change="fetchCertificates(1)"
                             class="w-full md:w-64 text-xs font-bold rounded-2xl border-slate-200" />
 

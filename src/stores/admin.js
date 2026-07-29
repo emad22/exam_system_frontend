@@ -5,7 +5,8 @@ export const useAdminStore = defineStore('admin', {
   state: () => ({
     user: null,
     notifications: [],
-    lastFetched: 0
+    lastFetched: 0,
+    notifFailCount: 0
   }),
   actions: {
     async fetchUser() {
@@ -23,8 +24,14 @@ export const useAdminStore = defineStore('admin', {
       try {
         const res = await api.get('/admin/notifications');
         this.notifications = res.data;
+        this.notifFailCount = 0; // reset on success
       } catch (err) {
-        console.error('Notifications fetch failed', err);
+        this.notifFailCount = (this.notifFailCount || 0) + 1;
+        if (this.notifFailCount <= 3) {
+          console.error('Notifications fetch failed', err);
+        }
+        // throw so the caller can stop polling after too many failures
+        throw err;
       }
     },
     clearNotifications() {

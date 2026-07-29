@@ -122,7 +122,7 @@ const form = ref({
     is_demo: false,
     is_demo_proctored: false,
     bypass_identity_verification: false,
-    adaptive: true,
+    is_continue: false,
 });
 
 const isSubmitting = ref(false);
@@ -399,9 +399,9 @@ const filteredExams = computed(() => {
                                             <label
                                                 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
                                                     t[currentLang].adaptiveSelect }}</label>
-                                            <Select v-model="form.adaptive" :options="[
-                                                { label: t[currentLang].adaptiveOpt, value: true },
-                                                { label: t[currentLang].notAdaptiveOpt, value: false }
+                                            <Select v-model="form.is_continue" :options="[
+                                                { label: t[currentLang].adaptiveOpt, value: false },
+                                                { label: t[currentLang].notAdaptiveOpt, value: true }
                                             ]" optionLabel="label" optionValue="value"
                                                 class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
                                         </div>

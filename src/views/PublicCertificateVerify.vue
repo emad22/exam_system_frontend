@@ -9,27 +9,30 @@ const certData = ref(null);
 const isLoading = ref(true);
 const error = ref(null);
 
-// Compute the QR image URL using the full origin + path to avoid using `window` in the template
+// Compute the QR image URL for the legacy fallback layout
 const qrDataUrl = computed(() => {
     const path = route.fullPath || (route.path || ('/verify-certificate/' + code));
     const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
     return 'https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' + encodeURIComponent(origin + path);
 });
 
-// Compute a safe logo URL. If backend provides an absolute or relative `/storage` path,
-// prefer using the configured backend base URL via `VITE_BACKEND_URL`. Otherwise fall back
-// to a local frontend public asset `/my-logo.png`.
+// Logo for the legacy fallback layout
 const logoSrc = computed(() => {
     const backendBase = import.meta.env.VITE_BACKEND_URL || '';
     const v = certData.value?.logo_url || '';
     if (!v) return '/my-logo.png';
     if (v.startsWith('http://') || v.startsWith('https://')) return v;
     if (v.startsWith('/')) {
-        // if it's a storage path like /storage/..., prepend backend base when available
         return backendBase ? backendBase.replace(/\/$/, '') + v : v;
     }
     return v;
 });
+
+// Whether to use the template-based renderer
+const hasTemplate = computed(() => !!certData.value?.rendered_html);
+
+// Inject rendered_html into a sandboxed iframe via srcdoc
+const iframeRef = ref(null);
 
 onMounted(async () => {
     try {
@@ -45,6 +48,7 @@ onMounted(async () => {
 
 <template>
     <div class="min-h-screen bg-slate-200 flex items-center justify-center p-4 sm:p-10 font-sans">
+
         <!-- Error State -->
         <div v-if="error" class="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 text-center border border-slate-100">
             <div class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -65,7 +69,26 @@ onMounted(async () => {
             <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Authenticating Record...</p>
         </div>
 
-        <!-- Certificate Design -->
+        <!-- ── Template-based certificate (from CertificateTemplate) ── -->
+        <div v-else-if="hasTemplate" class="relative">
+            <!-- Verified badge 
+            <div class="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 z-10 bg-emerald-500 text-white px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-xl border-4 border-white">
+                <i class="pi pi-verified mr-2"></i> Verified Official Record
+            </div>
+            -->
+
+            <!-- iframe renders the exact template HTML (1123×794 = A4 landscape px) -->
+            <div class="cert-iframe-wrapper shadow-2xl">
+                <iframe
+                    ref="iframeRef"
+                    :srcdoc="certData.rendered_html"
+                    scrolling="no"
+                    class="cert-iframe"
+                ></iframe>
+            </div>
+        </div>
+
+        <!-- ── Legacy hardcoded layout (fallback when no template) ── -->
         <div v-else class="cert-page-wrapper bg-white shadow-2xl relative">
             <div class="cert-container">
                 <!-- Logos & Photos -->
@@ -126,7 +149,6 @@ onMounted(async () => {
                         <p class="signature-title">Program Director</p>
                     </div>
                     <div class="signature-box flex flex-col items-center">
-                        <!-- <img src="https://www.arabacademy.com/wp-content/uploads/2021/04/arab-academy-logo.png" style="width: 60px;" /> -->
                         <p style="font-size: 7px; margin: 0; color: #64748b;">3 alif Al-Nabataat Street,</p>
                         <p style="font-size: 7px; margin: 0; color: #64748b;">Garden City, Cairo, Egypt</p>
                     </div>
@@ -158,15 +180,35 @@ onMounted(async () => {
                 <i class="pi pi-verified mr-2"></i> Verified Official Record
             </div>
         </div>
+
     </div>
 </template>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
 
+/* ── Template iframe wrapper ── */
+.cert-iframe-wrapper {
+    /* A4 landscape: 1123 × 794 */
+    width: 1123px;
+    height: 794px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    position: relative;
+}
+
+.cert-iframe {
+    width: 1123px;
+    height: 794px;
+    border: none;
+    display: block;
+}
+
+/* ── Legacy fallback ── */
 .cert-page-wrapper {
     width: 1000px;
-    height: 707px; /* A4 Ratio */
+    height: 707px;
     padding: 40px;
     border: 1px solid #e2e8f0;
 }
@@ -180,9 +222,9 @@ onMounted(async () => {
 }
 
 .header-logo { position: absolute; top: 20px; left: 20px; }
-.student-photo { 
-    width: 100px; height: 120px; border: 1px solid #cbd5e1; 
-    position: absolute; top: 20px; right: 20px; 
+.student-photo {
+    width: 100px; height: 120px; border: 1px solid #cbd5e1;
+    position: absolute; top: 20px; right: 20px;
     background: #f8fafc; color: #94a3b8; font-size: 8px;
     display: flex; align-items: center; justify-content: center;
     font-weight: bold;
@@ -192,13 +234,13 @@ onMounted(async () => {
 .main-title h1 { font-family: serif; font-size: 32px; font-weight: 900; margin-bottom: 2px; color: #000; }
 .main-title p { font-style: italic; font-size: 16px; margin: 0; color: #475569; }
 
-.student-name { 
-    text-align: center; margin-top: 15px; font-size: 36px; 
+.student-name {
+    text-align: center; margin-top: 15px; font-size: 36px;
     font-weight: 900; text-decoration: underline; color: #000;
 }
 
-.description { 
-    text-align: center; margin-top: 20px; font-size: 14px; 
+.description {
+    text-align: center; margin-top: 20px; font-size: 14px;
     font-style: italic; color: #334155; padding: 0 80px;
 }
 
@@ -216,17 +258,40 @@ onMounted(async () => {
 .footer { position: absolute; bottom: 30px; width: calc(100% - 60px); padding-left: 110px; }
 .qr-code-box { width: 60px; height: 60px; position: absolute; left: 30px; bottom: 30px; z-index: 10; }
 
-@media (max-width: 1024px) {
+/* ── Responsive scaling for both layouts ── */
+@media (max-width: 1200px) {
+    .cert-iframe-wrapper,
     .cert-page-wrapper {
-        transform: scale(0.8);
-        margin: -100px;
+        transform: scale(0.85);
+        transform-origin: top center;
+        margin-bottom: -120px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .cert-iframe-wrapper,
+    .cert-page-wrapper {
+        transform: scale(0.7);
+        transform-origin: top center;
+        margin-bottom: -240px;
     }
 }
 
 @media (max-width: 768px) {
+    .cert-iframe-wrapper,
     .cert-page-wrapper {
-        transform: scale(0.5);
-        margin: -250px;
+        transform: scale(0.45);
+        transform-origin: top center;
+        margin-bottom: -440px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cert-iframe-wrapper,
+    .cert-page-wrapper {
+        transform: scale(0.28);
+        transform-origin: top center;
+        margin-bottom: -580px;
     }
 }
 </style>

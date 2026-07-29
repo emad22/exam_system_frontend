@@ -49,7 +49,11 @@ const t = {
         submitButton: "اعتماد وحفظ كافة الدرجات",
         noQuestionsFound: "لا توجد أسئلة مقالية أو شفهية بحاجة لتصحيح يدوي في هذه المحاولة.",
         attemptNotFound: "لم يتم العثور على محاولة التقييم المطلوبة في قاعدة البيانات.",
-        totalScore: "النتيجة الإجمالية"
+        totalScore: "النتيجة الإجمالية",
+        writingSection: "قسم الكتابة",
+        speakingSection: "قسم المحادثة",
+        sectionScore: "درجة القسم",
+        sectionPossible: "الدرجة القصوى للقسم",
     },
     en: {
         loading: "Loading student submission for manual correction...",
@@ -72,7 +76,11 @@ const t = {
         submitButton: "Submit All Grades",
         noQuestionsFound: "No writing or speaking questions found for this attempt.",
         attemptNotFound: "Attempt not found.",
-        totalScore: "Total Score"
+        totalScore: "Total Score",
+        writingSection: "Writing Section",
+        speakingSection: "Speaking Section",
+        sectionScore: "Section Score",
+        sectionPossible: "Section Max",
     }
 };
 
@@ -197,6 +205,22 @@ const skillAwarded = (skill) =>
 const skillPossible = (skill) =>
     skill.answers.reduce((s, a) => s + (a.question?.points ?? 0), 0)
 
+// ── Type helpers ───────────────────────────────────────────────────────────
+// Each group now has a question_type field ('writing' | 'speaking' | …)
+const isSpeakingGroup = (skill) =>
+    skill.question_type === 'speaking'
+
+const skillTypeIcon = (skill) =>
+    isSpeakingGroup(skill) ? 'pi-microphone' : 'pi-pencil'
+
+const skillTypeBadgeSeverity = (skill) =>
+    isSpeakingGroup(skill) ? 'warning' : 'info'
+
+const skillTypeLabel = (skill) => {
+    if (isSpeakingGroup(skill)) return t[currentLang.value].speakingSection
+    return t[currentLang.value].writingSection
+}
+
 // ── Student name ───────────────────────────────────────────────────────────
 const studentName = computed(() => {
     const u = attempt.value?.student?.user
@@ -278,33 +302,44 @@ onMounted(fetchAttempt)
                 </div>
 
                 <!-- Per-skill blocks -->
-                <div v-for="skill in skills" :key="skill.skill_id" class="space-y-6">
+                <div v-for="skill in skills" :key="`${skill.skill_id}-${skill.question_type}`" class="space-y-6">
 
                     <!-- Skill header -->
                     <div class="flex items-center justify-between px-3 mt-8">
                         <div class="flex items-center gap-3">
                             <div class="w-2.5 h-8 rounded-full"
-                                :class="skill.skill_name.toLowerCase().includes('speak') ? 'bg-amber-500' : 'bg-rose-600'"></div>
+                                :class="isSpeakingGroup(skill) ? 'bg-amber-500' : 'bg-rose-600'"></div>
                             <div>
                                 <h3 class="font-black text-slate-800 text-lg leading-tight">{{ skill.skill_name }}</h3>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-                                    {{ skill.answers.length }} {{ t[currentLang].questionsCount }}
-                                </p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <!-- Writing / Speaking badge -->
+                                    <span
+                                        class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg"
+                                        :class="isSpeakingGroup(skill)
+                                            ? 'bg-amber-100 text-amber-700'
+                                            : 'bg-rose-100 text-rose-700'">
+                                        <i :class="['pi text-[9px]', skillTypeIcon(skill)]"></i>
+                                        {{ skillTypeLabel(skill) }}
+                                    </span>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {{ skill.answers.length }} {{ t[currentLang].questionsCount }}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                            <!-- Running total for this skill -->
+                            <!-- Running total for this section -->
                             <div class="bg-white rounded-2xl px-5 py-2.5 text-center shadow-sm border border-slate-50">
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ t[currentLang].skillScore }}</p>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ t[currentLang].sectionScore }}</p>
                                 <p class="font-black text-slate-800 text-base mt-0.5">
                                     <span class="text-emerald-600">{{ skillAwarded(skill) }}</span>
-                                    <span class="text-slate-400"> / {{ skillPossible(skill) }}</span>
+                                    <span class="text-slate-400"> / {{ skill.total_possible ?? skillPossible(skill) }}</span>
                                 </p>
                             </div>
-                            <!-- Admin max cap -->
-                            <div v-if="skill.answers.length > 0" class="bg-rose-50/50 border border-rose-100/60 rounded-2xl px-5 py-2.5 text-center shadow-sm">
+                            <!-- Max cap badge (only when a cap is set) -->
+                            <div v-if="skill.max_points > 0" class="bg-rose-50/50 border border-rose-100/60 rounded-2xl px-5 py-2.5 text-center shadow-sm">
                                 <p class="text-[9px] font-black text-rose-400 uppercase tracking-wider">{{ t[currentLang].maxCap }}</p>
-                                <p class="font-black text-rose-600 text-base mt-0.5">{{ skill.max_points ?? skillPossible(skill) }} pts</p>
+                                <p class="font-black text-rose-600 text-base mt-0.5">{{ skill.max_points }} pts</p>
                             </div>
                         </div>
                     </div>

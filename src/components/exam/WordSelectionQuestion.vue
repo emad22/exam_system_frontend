@@ -33,6 +33,24 @@ const wordPattern = /^[\u0600-\u06FF\w''-]+$/u;
 const tokenPattern = /[\u0600-\u06FF\w''-]+|\s+|[^\u0600-\u06FF\w\s]+/gu;
 const skippedTags = new Set(['SCRIPT', 'STYLE', 'TEXTAREA']);
 
+const hasSelectableColor = (node) => {
+    let element = node.parentElement;
+
+    while (element && element.nodeName !== 'BODY') {
+        const hasInlineColor = element.style?.color || element.style?.backgroundColor;
+        const className = typeof element.className === 'string' ? element.className : '';
+        const hasQuillColorClass = /\bql-(color|background)-/.test(className);
+
+        if (hasInlineColor || hasQuillColorClass) {
+            return true;
+        }
+
+        element = element.parentElement;
+    }
+
+    return false;
+};
+
 const wrapWordsInHtml = (html) => {
     if (!html) return '';
     const parser = new DOMParser();
@@ -40,6 +58,10 @@ const wrapWordsInHtml = (html) => {
     
     const walk = (node) => {
         if (node.nodeType === 3) { // Text node
+            if (!hasSelectableColor(node)) {
+                return;
+            }
+
             const text = node.textContent;
             const tokens = text.match(tokenPattern) || [];
             const fragment = document.createDocumentFragment();
