@@ -26,6 +26,7 @@ const allNavigation = [
     { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
     { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-folder-open' },
+    { name: 'CEFR & ACTFL', href: '/admin/cefr-actfl-thresholds', icon: 'pi pi-sliders-h' },
     { name: 'Partner', href: '/admin/partners', icon: 'pi pi-briefcase' },
     { name: 'Skill Packages', href: '/admin/packages', icon: 'pi pi-box' },
     { name: 'Proctoring', href: '/admin/proctoring', icon: 'pi pi-video' },
