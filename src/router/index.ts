@@ -274,6 +274,12 @@ const adminRoutes = [
     component: () => import('@/views/admin/Proctoring/Show.vue'),
     meta: { title: 'Session Details' }
   },
+  {
+    path: '/admin/cefr-actfl-thresholds',
+    name: 'admin.cefr-actfl-thresholds',
+    component: () => import('@/views/admin/CefrActflThresholds/index.vue'),
+    meta: { title: 'CEFR & ACTFL Thresholds' }
+  },
 ];
 
 // Map Admin routes to Teacher routes
