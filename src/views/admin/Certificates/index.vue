@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import api from '@/services/api';
 import AdminLayout from '@/components/AdminLayout.vue';
 import DataTable from 'primevue/datatable';
@@ -9,6 +9,7 @@ import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import ProgressSpinner from 'primevue/progressspinner';
 import ToggleSwitch from 'primevue/toggleswitch';
+import DatePicker from 'primevue/datepicker';
 
 const certificates = ref({ data: [] });
 const isLoading = ref(false);
@@ -17,6 +18,8 @@ const partners = ref([]);
 const selectedPartnerId = ref(null);
 const selectedCertificates = ref([]);
 const isDownloadingBulk = ref(false);
+const dateFrom = ref(null);
+const dateTo = ref(null);
 
 const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
 
@@ -47,7 +50,11 @@ const t = {
         colVisibility: "ظهور للطالب",
         emptyTelemetry: "لم يتم إصدار أي شهادات في النظام بعد...",
         downloadPdf: "تحميل PDF",
-        verifyLink: "رابط التحقق"
+        verifyLink: "رابط التحقق",
+        dateFrom: "من تاريخ",
+        dateTo: "إلى تاريخ",
+        clearDates: "مسح التواريخ",
+        filterDates: "تصفية بالتاريخ"
     },
     en: {
         loading: "Loading certificates registry...",
@@ -70,7 +77,11 @@ const t = {
         colVisibility: "Visible to Student",
         emptyTelemetry: "No certificates found in system registry...",
         downloadPdf: "Download PDF",
-        verifyLink: "Verify Link"
+        verifyLink: "Verify Link",
+        dateFrom: "From Date",
+        dateTo: "To Date",
+        clearDates: "Clear Dates",
+        filterDates: "Filter by Date"
     }
 };
 
@@ -83,12 +94,46 @@ const fetchPartners = async () => {
     }
 };
 
+const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
+
+const clearDateFilter = () => {
+    dateFrom.value = null;
+    dateTo.value = null;
+    fetchCertificates(1);
+};
+
+// Watch date changes to trigger fetch automatically
+watch(dateFrom, () => {
+    // If dateTo is before the new dateFrom, clear it
+    if (dateTo.value && dateFrom.value && dateTo.value < dateFrom.value) {
+        dateTo.value = null;
+    }
+    fetchCertificates(1);
+});
+
+watch(dateTo, () => {
+    fetchCertificates(1);
+});
+
 const fetchCertificates = async (page = 1) => {
     isLoading.value = true;
     try {
         let url = `/admin/certificates?page=${page}&search=${searchQuery.value}`;
         if (selectedPartnerId.value) {
             url += `&partner_id=${selectedPartnerId.value}`;
+        }
+        if (dateFrom.value) {
+            url += `&date_from=${formatDate(dateFrom.value)}`;
+        }
+        if (dateTo.value) {
+            url += `&date_to=${formatDate(dateTo.value)}`;
         }
         const res = await api.get(url);
         certificates.value = res.data;
@@ -241,29 +286,84 @@ const deleteCertificate = async (cert) => {
 
                 <!-- Premium Search & Filter Bar -->
                 <div
-                    class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div class="relative w-full md:max-w-md">
-                        <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
-                        <InputText v-model="searchQuery" @input="fetchCertificates(1)"
-                            :placeholder="t[currentLang].placeholderSearch"
-                            class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
+                    class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+                    <!-- Row 1: Search + Partner + Bulk Download -->
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="relative w-full md:max-w-md">
+                            <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
+                            <InputText v-model="searchQuery" @input="fetchCertificates(1)"
+                                :placeholder="t[currentLang].placeholderSearch"
+                                class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                            <!-- Partner Filter Dropdown -->
+                            <Select v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
+                                showClear :placeholder="t[currentLang].filterPartner" @change="fetchCertificates(1)"
+                                class="w-full md:w-64 text-xs font-bold rounded-2xl border-slate-200" />
+
+                            <!-- Bulk ZIP Download Button -->
+                            <Button
+                                :label="selectedCertificates.length > 0 ? `${t[currentLang].bulkDownload} (${selectedCertificates.length})` : (selectedPartnerId ? t[currentLang].bulkDownloadPartner : t[currentLang].bulkDownload)"
+                                icon="pi pi-file-export"
+                                severity="success"
+                                class="text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm"
+                                :disabled="selectedCertificates.length === 0 && !selectedPartnerId"
+                                :loading="isDownloadingBulk"
+                                @click="bulkDownloadCertificates()" />
+                        </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-                        <!-- Partner Filter Dropdown -->
-                        <Select v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
-                            showClear :placeholder="t[currentLang].filterPartner" @change="fetchCertificates(1)"
-                            class="w-full md:w-64 text-xs font-bold rounded-2xl border-slate-200" />
+                    <!-- Row 2: Date Range Filter -->
+                    <div class="flex flex-col md:flex-row items-center gap-3 pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-2 text-slate-400">
+                            <i class="pi pi-calendar text-sm"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider">{{ t[currentLang].filterDates }}</span>
+                        </div>
 
-                        <!-- Bulk ZIP Download Button -->
-                        <Button
-                            :label="selectedCertificates.length > 0 ? `${t[currentLang].bulkDownload} (${selectedCertificates.length})` : (selectedPartnerId ? t[currentLang].bulkDownloadPartner : t[currentLang].bulkDownload)"
-                            icon="pi pi-file-export"
-                            severity="success"
-                            class="text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm"
-                            :disabled="selectedCertificates.length === 0 && !selectedPartnerId"
-                            :loading="isDownloadingBulk"
-                            @click="bulkDownloadCertificates()" />
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- From Date -->
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t[currentLang].dateFrom }}</label>
+                                <DatePicker
+                                    v-model="dateFrom"
+                                    dateFormat="yy-mm-dd"
+                                    :placeholder="t[currentLang].dateFrom"
+                                    showIcon
+                                    iconDisplay="input"
+                                    class="text-xs font-bold rounded-2xl"
+                                    inputClass="rounded-2xl border-slate-200 bg-slate-50/50 text-xs font-bold"
+                                    style="width: 170px"
+                                />
+                            </div>
+
+                            <!-- To Date -->
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t[currentLang].dateTo }}</label>
+                                <DatePicker
+                                    v-model="dateTo"
+                                    dateFormat="yy-mm-dd"
+                                    :placeholder="t[currentLang].dateTo"
+                                    :minDate="dateFrom || undefined"
+                                    showIcon
+                                    iconDisplay="input"
+                                    class="text-xs font-bold rounded-2xl"
+                                    inputClass="rounded-2xl border-slate-200 bg-slate-50/50 text-xs font-bold"
+                                    style="width: 170px"
+                                />
+                            </div>
+
+                            <!-- Clear Dates Button -->
+                            <Button
+                                v-if="dateFrom || dateTo"
+                                :label="t[currentLang].clearDates"
+                                icon="pi pi-times-circle"
+                                severity="secondary"
+                                outlined
+                                size="small"
+                                class="text-xs font-bold rounded-xl"
+                                @click="clearDateFilter()" />
+                        </div>
                     </div>
                 </div>
 
