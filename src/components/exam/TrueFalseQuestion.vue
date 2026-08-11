@@ -88,7 +88,8 @@ const getOptionAbbreviation = (opt) => {
             </div>
 
             <!-- Option Text -->
-            <span class="font-black text-xl tracking-tight transition-colors duration-300"
+            <span class="option-text-content font-black text-xl tracking-tight transition-colors duration-300"
+                :style="opt.font_size ? `font-size: ${opt.font_size}px !important;` : ''"
                 :class="selectedOptionId === opt.id ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'"
                 v-html="opt.option_text">
             </span>
@@ -106,5 +107,12 @@ const getOptionAbbreviation = (opt) => {
 <style scoped>
 .pi {
     line-height: 1;
+}
+
+:deep(.option-text-content),
+:deep(.option-text-content *),
+.option-text-content :deep(*) {
+    font-family: inherit;
+    font-size: inherit !important;
 }
 </style>

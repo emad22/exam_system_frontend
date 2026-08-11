@@ -11,7 +11,6 @@ import Checkbox from 'primevue/checkbox';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import DatePicker from 'primevue/datepicker';
-import Message from 'primevue/message';
 
 const { showAlert, showConfirm } = useModal();
 
@@ -43,7 +42,8 @@ const t = {
         adaptiveSelect: "نظام التقييم",
         adaptiveOpt: "يقف عند درجة الطالب",
         notAdaptiveOpt: "يكمل الامتحان الى الاخر",
-        identificationCode: "كود الهوية الأكاديمية / رقم الهوية (اختياري)",
+        nationalId: "الرقم القومي / الهوية الوطنية (اختياري)",
+        institutionCode: "كود الطالب بالمؤسسة (اختياري)",
         retryToggle: "السماح بإعادة محاولة المستويات",
         retrySubtitle: "يسمح للطالب بفرصة ثانية إذا لم يجتاز المستوى من المرة الأولى",
         secretKey: "مفتاح المرور السري (كلمة السر)",
@@ -77,7 +77,8 @@ const t = {
         adaptiveSelect: "Evaluation System",
         adaptiveOpt: "Stops at the student's Level",
         notAdaptiveOpt: "Completes the exam to the end",
-        identificationCode: "Identification Code / National ID (Optional)",
+        nationalId: "National ID / National Identity (Optional)",
+        institutionCode: "Institution Student Code (Optional)",
         retryToggle: "Allow Level Retry",
         retrySubtitle: "Allows second attempt if student fails a level",
         secretKey: "Secret Key (Password)",
@@ -111,6 +112,7 @@ const form = ref({
     gender: 'male',
     birth_date: null,
     student_code: '',
+    institution_code: '',
     password: generatePassword(),
     exam_category_id: null,
     exam_id: null,
@@ -126,7 +128,6 @@ const form = ref({
 });
 
 const isSubmitting = ref(false);
-const errorMsg = ref('');
 
 onMounted(async () => {
     try {
@@ -156,7 +157,6 @@ onMounted(async () => {
 
 const addStudent = async () => {
     isSubmitting.value = true;
-    errorMsg.value = '';
 
     try {
         await api.post('/admin/students', form.value);
@@ -164,7 +164,10 @@ const addStudent = async () => {
         router.push('/admin/students');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || t[currentLang.value].errorMessage;
+        const msg = err.response?.data?.message || err.response?.data?.errors
+            ? (err.response?.data?.message || Object.values(err.response?.data?.errors || {})[0]?.[0])
+            : t[currentLang.value].errorMessage;
+        showAlert(msg || t[currentLang.value].errorMessage);
     } finally {
         isSubmitting.value = false;
     }
@@ -247,16 +250,12 @@ const filteredExams = computed(() => {
                     </div>
                 </div>
 
-                <form @submit.prevent="addStudent" class="space-y-8 max-w-6xl mx-auto">
-                    <Message v-if="errorMsg" severity="error" :closable="false"
-                        class="mb-4 rounded-2xl shadow-sm border border-rose-100">
-                        {{ errorMsg }}
-                    </Message>
+                <form @submit.prevent="addStudent" class="space-y-8 w-full max-w-[95%] xl:max-w-[1400px] mx-auto">
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
 
                         <!-- Left Column: Identity & Access -->
-                        <div class="lg:col-span-2 space-y-8">
+                        <div class="xl:col-span-3 space-y-8">
                             <Card class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden bg-white">
                                 <template #content>
                                     <div class="p-8 space-y-6">
@@ -324,6 +323,49 @@ const filteredExams = computed(() => {
                                                     :options="[{ label: 'Male', value: 'male' }, { label: 'Female', value: 'female' }]"
                                                     optionLabel="label" optionValue="value"
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
+                                            </div>
+                                        </div>
+
+                                        <!-- Password, National ID & Institution Code -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50">
+                                            <div class="flex flex-col space-y-1.5">
+                                                <div class="flex items-center justify-between ml-1 mr-1">
+                                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
+                                                        t[currentLang].secretKey }}</label>
+                                                    <button type="button" @click="form.password = generatePassword()"
+                                                        class="text-[9px] font-black text-brand-primary hover:text-rose-800 transition-colors flex items-center gap-1">
+                                                        <i class="pi pi-refresh text-[8px]"></i>
+                                                        {{ currentLang === 'ar' ? 'توليد تلقائي' : 'Auto Generate' }}
+                                                    </button>
+                                                </div>
+                                                <InputText v-model="form.password" required
+                                                    class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm font-mono font-bold tracking-[0.15em]"
+                                                    placeholder="••••••••" />
+                                                <div class="text-[8px] font-bold text-slate-400 uppercase tracking-widest ml-1 mr-1">
+                                                    {{ t[currentLang].secretSubtitle }}
+                                                </div>
+                                            </div>
+
+                                            <div class="flex flex-col space-y-1.5">
+                                                <div class="flex items-center justify-between ml-1 mr-1 h-[21px]">
+                                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
+                                                        t[currentLang].nationalId }}</label>
+                                                </div>
+                                                <InputText v-model="form.student_code"
+                                                    class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm"
+                                                    :placeholder="currentLang === 'ar' ? 'مثال: 29901011234567' : 'e.g. 29901011234567'" />
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                            <div class="flex flex-col space-y-1.5">
+                                                <div class="flex items-center justify-between ml-1 mr-1">
+                                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{
+                                                        t[currentLang].institutionCode }}</label>
+                                                </div>
+                                                <InputText v-model="form.institution_code"
+                                                    class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm font-mono"
+                                                    :placeholder="currentLang === 'ar' ? 'كود الطالب الخاص بالمؤسسة / الشريك' : 'Student code in institution'" />
                                             </div>
                                         </div>
                                     </div>
@@ -410,14 +452,6 @@ const filteredExams = computed(() => {
                                                 class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm" />
                                         </div>
 
-                                        <div class="flex flex-col space-y-1.5">
-                                            <label
-                                                class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{
-                                                    t[currentLang].identificationCode }}</label>
-                                            <InputText v-model="form.student_code"
-                                                class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm"
-                                                :placeholder="currentLang === 'ar' ? 'مثال: 123456 (اختياري)' : 'e.g. 123456 (Optional)'" />
-                                        </div>
 
                                         <!-- Retry Logic Control -->
                                         <div
@@ -480,29 +514,7 @@ const filteredExams = computed(() => {
                                 </template>
                             </Card>
 
-                            <Card
-                                class="border-none shadow-xl rounded-[2rem] overflow-hidden bg-slate-900 text-white relative">
-                                <div class="absolute right-0 top-0 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl">
-                                </div>
-                                <template #content>
-                                    <div class="p-8 space-y-6 relative z-10">
-                                        <div class="flex justify-between items-center pb-2 border-b border-white/5">
-                                            <h3 class="text-[9px] font-black text-rose-300 uppercase tracking-widest">{{
-                                                t[currentLang].secretKey }}</h3>
-                                            <Button icon="pi pi-refresh" text rounded severity="secondary" size="small"
-                                                @click="form.password = generatePassword()"
-                                                class="text-white hover:bg-white/10" />
-                                        </div>
-                                        <div class="flex flex-col space-y-2">
-                                            <InputText v-model="form.password" required
-                                                class="w-full bg-white/5 border border-slate-800 text-white text-2xl font-black tracking-[0.2em] font-mono text-center focus:border-brand-primary focus:ring-1 focus:ring-brand-primary rounded-2xl py-4 shadow-inner" />
-                                            <div
-                                                class="text-[8px] font-bold text-slate-500 uppercase tracking-widest text-center mt-1">
-                                                {{ t[currentLang].secretSubtitle }}</div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </Card>
+
 
                             <div class="pt-4 space-y-3">
                                 <Button type="submit" :label="t[currentLang].completeBtn" icon="pi pi-check"

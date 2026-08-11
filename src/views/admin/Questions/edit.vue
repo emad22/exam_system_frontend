@@ -18,12 +18,11 @@ import Editor from 'primevue/editor';
 // Register Quill inline style attributors so code-editor HTML (font-size, color, etc.)
 // is preserved when Quill re-renders on Visual tab switch.
 import Quill from 'quill';
-const SizeStyle = Quill.import('attributors/style/size');
+const SizeStyle = Quill.import('attributions/style/size') || Quill.import('attributors/style/size');
 const ColorStyle = Quill.import('attributors/style/color');
 const BackgroundStyle = Quill.import('attributors/style/background');
 const AlignStyle = Quill.import('attributors/style/align');
-// Remove whitelist restriction to allow any font-size/align value
-delete SizeStyle.whitelist;
+SizeStyle.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
 delete AlignStyle.whitelist;
 Quill.register(SizeStyle, true);
 Quill.register(ColorStyle, true);
@@ -475,8 +474,8 @@ const createEmptyQuestion = () => ({
     showHtml: false,
     showGeneralHtml: false,
     options: [
-        { option_text: '', is_correct: true, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null },
-        { option_text: '', is_correct: false, dir: 'ltr', image: null, image_preview: null, audio: null, audio_preview: null }
+        { option_text: '', is_correct: true, dir: 'ltr', font_size: null, image: null, image_preview: null, audio: null, audio_preview: null },
+        { option_text: '', is_correct: false, dir: 'ltr', font_size: null, image: null, image_preview: null, audio: null, audio_preview: null }
     ]
 });
 
@@ -569,6 +568,7 @@ const loadInitialData = async () => {
                     option_text: o.option_text,
                     is_correct: !!o.is_correct,
                     dir: o.dir || 'ltr',
+                    font_size: o.font_size || null,
                     image: null,
                     image_preview: o.image_url || null,
                     audio: null,
@@ -604,6 +604,7 @@ const loadInitialData = async () => {
                     option_text: o.option_text,
                     is_correct: !!o.is_correct,
                     dir: o.dir || 'ltr',
+                    font_size: o.font_size || null,
                     image: null,
                     image_preview: o.image_url || null,
                     audio: null,
@@ -698,6 +699,7 @@ const addOption = (qIdx) => {
         option_text: '',
         is_correct: false,
         dir: 'ltr',
+        font_size: null,
         image: null,
         image_preview: null,
         audio: null,
@@ -907,6 +909,7 @@ const updateBatch = async () => {
                 option_text: opt.option_text,
                 is_correct: opt.is_correct,
                 dir: opt.dir || 'ltr',
+                font_size: opt.font_size || null,
                 clear_audio: opt.clear_audio || false,
                 clear_image: opt.clear_image || false
             }))
@@ -981,6 +984,7 @@ const editorModules = {
     toolbar: {
         container: [
             [{ header: [1, 2, 3, false] }],
+            [{ size: ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px', false] }],
             ['bold', 'italic', 'underline', 'strike'],
             [{ color: [] }, { background: [] }],
             [{ list: 'ordered' }, { list: 'bullet' }],
@@ -1745,7 +1749,7 @@ const editorModules = {
 
 
 
-                                            <!-- Controls -->
+                                                <!-- Controls -->
                                             <div class="flex items-center gap-1 shrink-0 mt-1">
                                                 <!-- RTL/LTR Toggle -->
                                                 <button type="button"
@@ -1757,6 +1761,18 @@ const editorModules = {
                                                     <i class="pi pi-arrow-right-arrow-left text-[8px]"></i>
                                                     {{ opt.dir.toUpperCase() }}
                                                 </button>
+
+                                                <!-- Font Size Input -->
+                                                <div class="flex items-center gap-1 h-7 px-2 rounded-lg border bg-slate-50 border-slate-200" :title="currentLang === 'ar' ? 'حجم الخط (اتركه فارغاً للحجم الافتراضي)' : 'Font size (leave empty for default)'">
+                                                    <i class="pi pi-text text-[8px] text-slate-400"></i>
+                                                    <input
+                                                        type="number"
+                                                        v-model.number="opt.font_size"
+                                                        min="8" max="72"
+                                                        :placeholder="currentLang === 'ar' ? 'افتر.' : 'def.'"
+                                                        class="w-12 bg-transparent border-none outline-none text-[10px] font-black text-slate-600 p-0 text-center"
+                                                    />
+                                                </div>
 
                                                 <button v-if="oIdx > 0" type="button" @click="moveOptionUp(qIdx, oIdx)"
                                                     class="w-7 h-7 rounded-md hover:bg-slate-50 text-slate-400 hover:text-brand-primary transition-all flex items-center justify-center">

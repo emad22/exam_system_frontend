@@ -165,7 +165,8 @@ watch(
                 </div>
 
                 <!-- نص الاختيار أو حرفه -->
-                <div class="text-sm font-bold text-center leading-tight transition-colors duration-300 whitespace-normal break-words"
+                <div class="option-text-content text-sm font-bold text-center leading-tight transition-colors duration-300 whitespace-normal break-words"
+                    :style="opt.font_size ? `font-size: ${opt.font_size}px !important;` : ''"
                     :class="selectedOptionId === opt.id
                         ? 'text-indigo-700'
                         : 'text-slate-500 group-hover:text-indigo-500'"
@@ -219,7 +220,8 @@ watch(
 
                     <!-- Option Text -->
                     <div v-if="opt.option_text"
-                        class="font-normal tracking-wide leading-snug text-[24px] transition-colors duration-300 grow whitespace-normal break-words text-right rtl:text-right ltr:text-left"
+                        class="option-text-content font-normal tracking-wide leading-snug transition-colors duration-300 grow whitespace-normal break-words text-right rtl:text-right ltr:text-left"
+                        :style="opt.font_size ? `font-size: ${opt.font_size}px !important;` : ''"
                         :class="[
                             selectedOptionId === opt.id ? 'text-[#1E3A8A]' : 'text-[#334155] group-hover:text-slate-800'
                         ]" v-html="opt.option_text">
@@ -232,14 +234,20 @@ watch(
 </template>
 
 <style scoped>
-/* Force option text in the default MCQ layout to Myriad Arabic / Lotus Linotype and normal size, but allow inline styles to override them */
+/* Force option text in the default MCQ layout to Myriad Arabic / Lotus Linotype and normal size */
 .space-y-2 {
     font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
     font-weight: 400;
 }
 
-.space-y-2 :deep(*) {
-    font-family: inherit;
+.option-text-content {
     font-size: 24px;
+}
+
+:deep(.option-text-content),
+:deep(.option-text-content *),
+.option-text-content :deep(*) {
+    font-family: inherit;
+    font-size: inherit !important;
 }
 </style>

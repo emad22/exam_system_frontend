@@ -290,7 +290,7 @@ const testType = computed(() => props.requirement.test_type);
                             <i class="pi pi-volume-up text-4xl"></i>
                         </div>
                         
-                        <h4 class="font-bold text-slate-700">Did you hear the beep?</h4>
+                        <h4 class="font-bold text-slate-700">Can you hear the spoken message clearly?</h4>
                         
                         <div class="flex justify-center gap-4 mt-6">
                             <button @click="markFailed('Did not hear beep')" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">

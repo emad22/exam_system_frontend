@@ -56,6 +56,7 @@ const t = {
         btnPurge: "حذف المحدد",
         searchPlaceholder: "بحث عن طالب...",
         colIdentity: "حساب الطالب وبياناته",
+        colInstitutionCode: "كود المؤسسة",
         colSubscription: "الباقة / الاشتراك",
         colCategory: "نوع التقييم",
         colStatus: "النشاط",
@@ -130,6 +131,7 @@ const t = {
         btnPurge: "Delete Selected",
         searchPlaceholder: "Search students...",
         colIdentity: "Student Account & Info",
+        colInstitutionCode: "Institution Code",
         colSubscription: "Active Package",
         colCategory: "Assessment Model",
         colStatus: "Status",
@@ -245,7 +247,8 @@ const filteredStudents = computed(() => {
             const name = `${s.user?.first_name || ''} ${s.user?.last_name || ''}`.toLowerCase();
             const email = (s.user?.email || '').toLowerCase();
             const code = (s.student_code || '').toLowerCase();
-            return name.includes(query) || email.includes(query) || code.includes(query);
+            const instCode = (s.institution_code || '').toLowerCase();
+            return name.includes(query) || email.includes(query) || code.includes(query) || instCode.includes(query);
         });
     }
 
@@ -621,8 +624,19 @@ onMounted(() => {
                                                 <div
                                                     class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
                                                     {{ data.user?.username || 'NO USERNAME' }} • {{ data.user?.email }}
+                                                    <span v-if="data.student_code" class="text-slate-500 font-extrabold">
+                                                        • {{ currentLang === 'ar' ? 'الرقم القومي: ' : 'ID: ' }}{{ data.student_code }}
+                                                    </span>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </template>
+                                </Column>
+
+                                <Column :header="t[currentLang].colInstitutionCode" style="min-width: 140px">
+                                    <template #body="{ data }">
+                                        <div class="font-mono text-xs font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block">
+                                            {{ data.institution_code || '-' }}
                                         </div>
                                     </template>
                                 </Column>

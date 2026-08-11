@@ -102,10 +102,16 @@ const filtered = () => {
 
     if (search.value) {
         const q = search.value.toLowerCase();
-        result = result.filter(a =>
-            `${a.student?.user?.first_name} ${a.student?.user?.last_name}`.toLowerCase().includes(q) ||
-            a.exam?.title?.toLowerCase().includes(q)
-        );
+        result = result.filter(a => {
+            const searchableText = [
+                `${a.student?.user?.first_name || ''} ${a.student?.user?.last_name || ''}`,
+                a.student?.student_code,
+                a.student?.institution_code,
+                a.exam?.title,
+            ].filter(Boolean).join(' ').toLowerCase();
+
+            return searchableText.includes(q);
+        });
     }
     
     if (startDate.value) {
@@ -258,7 +264,7 @@ onMounted(() => {
                 <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id" placeholder="Filter by Partner" showClear class="w-48 bg-slate-50 border-slate-100 rounded-xl text-xs font-bold" />
                 <span class="relative">
                     <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 text-xs" />
-                    <input v-model="search" type="text" placeholder="Filter identities..."
+                    <input v-model="search" type="text" placeholder="Filter identities / codes..."
                         class="bg-slate-50 border border-slate-100 rounded-xl px-10 py-2.5 text-xs font-bold focus:bg-white transition-all w-64 outline-none">
                 </span>
                 <Button icon="pi pi-refresh" outlined severity="secondary" @click="fetchReports" />
@@ -305,6 +311,9 @@ onMounted(() => {
                                         </div>
                                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                             {{ attempt.student?.student_code || 'STAFF/DEMO' }}
+                                        </div>
+                                        <div v-if="attempt.student?.institution_code" class="text-[10px] font-bold text-brand-primary uppercase tracking-widest mt-1">
+                                            {{ attempt.student.institution_code }}
                                         </div>
                                     </div>
                                 </td>
@@ -420,6 +429,9 @@ onMounted(() => {
                                     </div>
                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                         {{ attempt.student?.student_code || 'STAFF/DEMO' }}
+                                    </div>
+                                    <div v-if="attempt.student?.institution_code" class="text-[10px] font-bold text-brand-primary uppercase tracking-widest mt-1">
+                                        {{ attempt.student.institution_code }}
                                     </div>
                                 </div>
                             </td>
