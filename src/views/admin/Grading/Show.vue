@@ -129,6 +129,24 @@ const getFileIcon = (filePath) => {
     return 'pi-file';
 };
 
+const getMediaFiles = (mediaAnswer) => {
+    if (!mediaAnswer) return [];
+    if (Array.isArray(mediaAnswer)) return mediaAnswer;
+    if (typeof mediaAnswer === 'string') {
+        const trimmed = mediaAnswer.trim();
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) return parsed;
+            } catch (e) {
+                // Ignore JSON parse error
+            }
+        }
+        return [mediaAnswer];
+    }
+    return [];
+};
+
 const getFileTypeLabel = (filePath) => {
     const ext = getFileExtension(filePath);
     if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'صوتي';
@@ -146,6 +164,8 @@ const formatFileSize = (bytes) => {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
+const savingSkillKey = ref(null)
+
 // ── Fetch ──────────────────────────────────────────────────────────────────
 const fetchAttempt = async () => {
     loading.value = true
@@ -160,6 +180,8 @@ const fetchAttempt = async () => {
                 grades.value[ans.id] = {
                     points_awarded:   ans.points_awarded ?? 0,
                     teacher_feedback: ans.teacher_feedback ?? '',
+                    is_manual_graded: ans.is_manual_graded ?? false,
+                    touched:          false,
                 }
             })
         })
@@ -179,15 +201,61 @@ const totalPossible = computed(() =>
     skills.value.flatMap(s => s.answers).reduce((s, a) => s + (a.question?.points ?? 0), 0)
 )
 
-// ── Submit ─────────────────────────────────────────────────────────────────
+// ── Submit Single Skill Section ────────────────────────────────────────────
+const submitSkillGrades = async (skill) => {
+    const groupKey = `${skill.skill_id}-${skill.question_type}`
+    savingSkillKey.value = groupKey
+    try {
+        const payload = skill.answers.map(ans => ({
+            answer_id:        ans.id,
+            points_awarded:   Number(grades.value[ans.id]?.points_awarded) || 0,
+            teacher_feedback: grades.value[ans.id]?.teacher_feedback || '',
+        }))
+
+        await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
+        goBackToGrading()
+    } catch (err) {
+        console.error('Failed to save skill grades', err)
+    } finally {
+        savingSkillKey.value = null
+    }
+}
+
+// ── Submit All Edited/Graded Sections ───────────────────────────────────────
 const submitGrades = async () => {
     saving.value = true
     try {
-        const payload = Object.entries(grades.value).map(([answerId, g]) => ({
-            answer_id:        parseInt(answerId),
-            points_awarded:   Number(g.points_awarded) || 0,
-            teacher_feedback: g.teacher_feedback || '',
-        }))
+        // Collect answers that are either already graded in DB or modified by the teacher
+        const payload = []
+
+        for (const skill of skills.value) {
+            for (const ans of skill.answers) {
+                const g = grades.value[ans.id]
+                if (!g) continue
+
+                const isAlreadyGraded = ans.is_manual_graded === true
+                const isTouched = g.touched || Number(g.points_awarded) > 0 || (g.teacher_feedback && g.teacher_feedback.trim() !== '')
+
+                if (isAlreadyGraded || isTouched) {
+                    payload.push({
+                        answer_id:        ans.id,
+                        points_awarded:   Number(g.points_awarded) || 0,
+                        teacher_feedback: g.teacher_feedback || '',
+                    })
+                }
+            }
+        }
+
+        // Fallback: if nothing was touched, send all
+        if (payload.length === 0) {
+            Object.entries(grades.value).forEach(([answerId, g]) => {
+                payload.push({
+                    answer_id:        parseInt(answerId),
+                    points_awarded:   Number(g.points_awarded) || 0,
+                    teacher_feedback: g.teacher_feedback || '',
+                })
+            })
+        }
 
         await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
         goBackToGrading()
@@ -305,7 +373,7 @@ onMounted(fetchAttempt)
                 <div v-for="skill in skills" :key="`${skill.skill_id}-${skill.question_type}`" class="space-y-6">
 
                     <!-- Skill header -->
-                    <div class="flex items-center justify-between px-3 mt-8">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 mt-8 gap-4">
                         <div class="flex items-center gap-3">
                             <div class="w-2.5 h-8 rounded-full"
                                 :class="isSpeakingGroup(skill) ? 'bg-amber-500' : 'bg-rose-600'"></div>
@@ -341,6 +409,13 @@ onMounted(fetchAttempt)
                                 <p class="text-[9px] font-black text-rose-400 uppercase tracking-wider">{{ t[currentLang].maxCap }}</p>
                                 <p class="font-black text-rose-600 text-base mt-0.5">{{ skill.max_points }} pts</p>
                             </div>
+                            <!-- Save Section Button -->
+                            <Button
+                                :label="currentLang === 'ar' ? `حفظ درجات ${skillTypeLabel(skill)}` : `Save ${skillTypeLabel(skill)}`"
+                                icon="pi pi-check"
+                                :loading="savingSkillKey === `${skill.skill_id}-${skill.question_type}`"
+                                @click="submitSkillGrades(skill)"
+                                class="rounded-2xl px-4 py-2.5 font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-md transition-all hover:scale-105" />
                         </div>
                     </div>
 
@@ -356,6 +431,14 @@ onMounted(fetchAttempt)
                                 </span>
                                 <Tag :value="ans.question?.type?.toUpperCase()"
                                     :severity="['speaking', 'speaking_live'].includes(ans.question?.type) ? 'warning' : 'info'"
+                                    class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
+                                <Tag v-if="ans.is_manual_graded"
+                                    :value="currentLang === 'ar' ? 'مُصحح' : 'Graded'"
+                                    severity="success"
+                                    class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
+                                <Tag v-else
+                                    :value="currentLang === 'ar' ? 'بانتظار التصحيح' : 'Pending'"
+                                    severity="secondary"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                             </div>
                             <div class="flex items-center gap-2">
@@ -415,57 +498,60 @@ onMounted(fetchAttempt)
                                         </div>
                                     </div>
                                     
-                                    <!-- Image answer -->
-                                    <div v-if="ans.media_answer && isImageFile(ans.media_answer)" class="mt-2">
-                                        <div class="space-y-2">
-                                            <img :src="resolveUrl(ans.media_answer)" 
-                                                alt="Student Image" 
-                                                class="rounded-lg border border-slate-200 max-w-sm max-h-64 object-contain cursor-pointer hover:opacity-80 transition-opacity"
-                                                @click="$event.target.click()" />
-                                            <p class="text-xs text-slate-500">نقر للعرض بالحجم الكامل</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Audio answer -->
-                                    <div v-if="ans.media_answer && isAudioFile(ans.media_answer)" class="mt-4">
-                                        <div class="space-y-2">
-                                            <audio :src="resolveUrl(ans.media_answer)" controls class="w-full h-11 rounded-xl shadow-sm border border-slate-200"></audio>
-                                            <p class="text-xs text-slate-500">الملف الصوتي: {{ getFileTypeLabel(ans.media_answer) }}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Document/File answer -->
-                                    <div v-if="ans.media_answer && isDocumentFile(ans.media_answer)" class="mt-4 space-y-3">
-                                        <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
-                                            <div class="flex items-center gap-3 min-w-0">
-                                                <div class="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-600 rounded-lg">
-                                                    <i :class="['pi', getFileIcon(ans.media_answer), 'text-lg']"></i>
+                                    <!-- Media answers (single file or array of files) -->
+                                    <div v-if="getMediaFiles(ans.media_answer).length > 0" class="mt-4 space-y-4">
+                                        <div v-for="(file, fIdx) in getMediaFiles(ans.media_answer)" :key="fIdx">
+                                            
+                                            <!-- Image answer -->
+                                            <div v-if="isImageFile(file)" class="space-y-2">
+                                                <a :href="resolveUrl(file)" target="_blank" class="inline-block">
+                                                    <img :src="resolveUrl(file)" 
+                                                        alt="Student Image" 
+                                                        class="rounded-lg border border-slate-200 max-w-sm max-h-64 object-contain cursor-pointer hover:opacity-80 transition-opacity" />
+                                                </a>
+                                                <p class="text-xs text-slate-500">انقر للعرض بالحجم الكامل</p>
+                                            </div>
+                                            
+                                            <!-- Audio answer -->
+                                            <div v-else-if="isAudioFile(file)" class="space-y-2">
+                                                <audio :src="resolveUrl(file)" controls class="w-full h-11 rounded-xl shadow-sm border border-slate-200"></audio>
+                                                <p class="text-xs text-slate-500">الملف الصوتي: {{ getFileTypeLabel(file) }}</p>
+                                            </div>
+                                            
+                                            <!-- Document/File answer -->
+                                            <div v-else-if="isDocumentFile(file)" class="space-y-3">
+                                                <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                                    <div class="flex items-center gap-3 min-w-0">
+                                                        <div class="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-600 rounded-lg">
+                                                            <i :class="['pi', getFileIcon(file), 'text-lg']"></i>
+                                                        </div>
+                                                        <div class="min-w-0">
+                                                            <p class="text-xs font-bold text-slate-800 truncate">{{ file.split('/').pop() }}</p>
+                                                            <p class="text-[10px] text-slate-400 font-semibold">{{ getFileTypeLabel(file) }}</p>
+                                                        </div>
+                                                    </div>
+                                                    <a :href="resolveUrl(file)" 
+                                                        target="_blank"
+                                                        class="px-3.5 py-1.5 bg-brand-primary hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                                                        <i class="pi pi-external-link"></i>
+                                                        فتح في نافذة جديدة
+                                                    </a>
                                                 </div>
-                                                <div class="min-w-0">
-                                                    <p class="text-xs font-bold text-slate-800 truncate">{{ ans.media_answer.split('/').pop() }}</p>
-                                                    <p class="text-[10px] text-slate-400 font-semibold">{{ getFileTypeLabel(ans.media_answer) }}</p>
+
+                                                <!-- Inline PDF Embedded Preview for Teacher -->
+                                                <div v-if="isPdfFile(file)" class="rounded-xl border border-slate-200 overflow-hidden shadow-inner bg-slate-900">
+                                                    <iframe
+                                                        :src="resolveUrl(file)"
+                                                        class="w-full h-[450px] border-none"
+                                                        title="معاينة إجابة الـ PDF"
+                                                    ></iframe>
                                                 </div>
                                             </div>
-                                            <a :href="resolveUrl(ans.media_answer)" 
-                                                target="_blank"
-                                                class="px-3.5 py-1.5 bg-brand-primary hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                                                <i class="pi pi-external-link"></i>
-                                                فتح في نافذة جديدة
-                                            </a>
-                                        </div>
-
-                                        <!-- Inline PDF Embedded Preview for Teacher -->
-                                        <div v-if="isPdfFile(ans.media_answer)" class="rounded-xl border border-slate-200 overflow-hidden shadow-inner bg-slate-900">
-                                            <iframe
-                                                :src="resolveUrl(ans.media_answer)"
-                                                class="w-full h-[450px] border-none"
-                                                title="معاينة إجابة الـ PDF"
-                                            ></iframe>
                                         </div>
                                     </div>
                                     
                                     <!-- No answer -->
-                                    <p v-if="!ans.text_answer && !ans.media_answer"
+                                    <p v-if="!ans.text_answer && getMediaFiles(ans.media_answer).length === 0"
                                         class="text-slate-400 italic text-xs font-semibold">{{ t[currentLang].noAnswerSubmitted }}</p>
                                 </div>
                             </div>
@@ -478,6 +564,7 @@ onMounted(fetchAttempt)
                                     <div class="flex items-center gap-4">
                                         <InputNumber
                                             v-model="grades[ans.id].points_awarded"
+                                            @update:modelValue="grades[ans.id].touched = true"
                                             :min="0" :max="ans.question?.points ?? 0"
                                             showButtons buttonLayout="horizontal"
                                             class="h-14"
@@ -498,6 +585,7 @@ onMounted(fetchAttempt)
                                     </label>
                                     <Textarea
                                         v-model="grades[ans.id].teacher_feedback"
+                                        @input="grades[ans.id].touched = true"
                                         rows="4" autoResize
                                         :placeholder="t[currentLang].feedbackPlaceholder"
                                         class="w-full rounded-2xl border border-slate-200 p-4 font-medium text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-slate-50/20 shadow-sm" />
@@ -515,24 +603,7 @@ onMounted(fetchAttempt)
                     <p class="font-extrabold text-sm uppercase tracking-wider">{{ t[currentLang].noQuestionsFound }}</p>
                 </div>
 
-                <!-- Sticky Submit Bar -->
-                <div class="fixed bottom-0 inset-x-0 z-50 flex justify-center pb-6 pointer-events-none px-4">
-                    <div class="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-[2.2rem] shadow-2xl px-8 py-4.5 flex items-center justify-between gap-8 pointer-events-auto max-w-lg w-full">
-                        <div class="text-start">
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].totalScore }}</p>
-                            <p class="text-2xl font-black mt-0.5 leading-none">
-                                <span class="text-emerald-500">{{ totalAwarded }}</span>
-                                <span class="text-slate-300 text-lg"> / {{ totalPossible }}</span>
-                            </p>
-                        </div>
-                        <Button
-                            :label="t[currentLang].submitButton"
-                            icon="pi pi-cloud-upload"
-                            :loading="saving"
-                            @click="submitGrades"
-                            class="rounded-2xl px-6 py-3.5 font-black bg-brand-primary hover:bg-rose-800 text-white border-none shadow-lg shadow-rose-200 transition-all hover:scale-105 active:scale-95" />
-                    </div>
-                </div>
+
 
             </div>
 

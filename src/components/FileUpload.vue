@@ -14,16 +14,26 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false
+    },
+    multiple: {
+        type: Boolean,
+        default: false
     }
 });
 
 const emit = defineEmits(['file-selected', 'file-removed']);
 
+// Single-file mode: uploadedFile (File|null)
+// Multi-file mode:  uploadedFiles (File[])
 const uploadedFile = ref(null);
+const uploadedFiles = ref([]);
 const isDragging = ref(false);
 const documentHtmlContent = ref('');
 const isLoadingPreview = ref(false);
 const showPreviewDiv = ref(true);
+
+// True when at least one file is uploaded (works for both modes)
+const hasFiles = computed(() => props.multiple ? uploadedFiles.value.length > 0 : !!uploadedFile.value);
 
 // Map accepted types to file extensions
 const acceptedExtensions = {
@@ -65,10 +75,30 @@ const getFileIcon = () => {
     return 'pi-file';
 };
 
+const getFileIconFor = (file) => {
+    if (!file) return 'pi-file';
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'pi-volume-up';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'pi-image';
+    if (['pdf'].includes(ext)) return 'pi-file-pdf';
+    if (['doc', 'docx'].includes(ext)) return 'pi-file-word';
+    return 'pi-file';
+};
+
 const getFileTypeLabel = () => {
     if (!uploadedFile.value) return '';
     const ext = uploadedFile.value.name.split('.').pop().toLowerCase();
     
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'Audio';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'Image';
+    if (['pdf'].includes(ext)) return 'PDF';
+    if (['doc', 'docx'].includes(ext)) return 'Document';
+    return 'File';
+};
+
+const getFileTypeLabelFor = (file) => {
+    if (!file) return 'File';
+    const ext = file.name.split('.').pop().toLowerCase();
     if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'Audio';
     if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'Image';
     if (['pdf'].includes(ext)) return 'PDF';
@@ -98,16 +128,22 @@ const handleDrop = (e) => {
     if (props.disabled) return;
     e.preventDefault();
     isDragging.value = false;
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
+
+    const files = Array.from(e.dataTransfer.files);
+    if (props.multiple) {
+        files.forEach(f => handleFileSelect(f));
+    } else if (files.length > 0) {
         handleFileSelect(files[0]);
     }
 };
 
 const handleFileInputChange = (e) => {
-    const files = e.target.files;
-    if (files.length > 0) {
+    const files = Array.from(e.target.files);
+    if (props.multiple) {
+        files.forEach(f => handleFileSelect(f));
+        // Reset input so same files can be re-added after removal
+        e.target.value = '';
+    } else if (files.length > 0) {
         handleFileSelect(files[0]);
     }
 };
@@ -185,10 +221,29 @@ const handleFileSelect = (file) => {
         return;
     }
 
-    uploadedFile.value = file;
-    showPreviewDiv.value = true;
-    loadDocumentPreview(file);
-    emit('file-selected', file);
+    if (props.multiple) {
+        // Avoid duplicates by name+size
+        const isDup = uploadedFiles.value.some(f => f.name === file.name && f.size === file.size);
+        if (!isDup) {
+            uploadedFiles.value.push(file);
+            emit('file-selected', [...uploadedFiles.value]);
+        }
+    } else {
+        uploadedFile.value = file;
+        showPreviewDiv.value = true;
+        loadDocumentPreview(file);
+        emit('file-selected', file);
+    }
+};
+
+// Remove a single file from multi-file list
+const removeOneFile = (index) => {
+    uploadedFiles.value.splice(index, 1);
+    if (uploadedFiles.value.length === 0) {
+        emit('file-removed');
+    } else {
+        emit('file-selected', [...uploadedFiles.value]);
+    }
 };
 
 const removeFile = () => {
@@ -229,117 +284,181 @@ const getImagePreview = () => {
 
 <template>
     <div class="file-upload-container">
-        <!-- Upload Zone -->
-        <div v-if="!uploadedFile"
-            @dragover="handleDragOver"
-            @dragleave="handleDragLeave"
-            @drop="handleDrop"
-            :class="[
-                'upload-zone',
-                isDragging && 'dragging',
-                disabled && 'disabled'
-            ]">
-            
-            <div class="upload-content">
-                <i class="pi pi-cloud-upload text-4xl text-slate-300 mb-4"></i>
-                
-                <div class="text-center space-y-2">
-                    <p class="text-sm font-bold text-slate-600">
-                        Drag and drop file here or click to browse
-                    </p>
-                    <p class="text-xs text-slate-400">
-                        {{ displayAcceptedTypes }}
-                    </p>
-                    <p class="text-xs text-slate-400">
-                        Max size: {{ formatFileSize(maxSize) }}
-                    </p>
-                </div>
 
-                <input
-                    type="file"
-                    class="file-input"
-                    :accept="acceptAttribute"
-                    :disabled="disabled"
-                    @change="handleFileInputChange" />
-            </div>
-        </div>
+        <!-- ══════════════════════════════════════ -->
+        <!-- MULTIPLE FILE MODE                     -->
+        <!-- ══════════════════════════════════════ -->
+        <template v-if="multiple">
+            <!-- Upload Zone (always visible in multiple mode) -->
+            <div
+                @dragover="handleDragOver"
+                @dragleave="handleDragLeave"
+                @drop="handleDrop"
+                :class="[
+                    'upload-zone',
+                    isDragging && 'dragging',
+                    disabled && 'disabled'
+                ]">
 
-        <!-- File Preview Container -->
-        <div v-else class="file-preview-container animate-in fade-in zoom-in-95 duration-500">
-            
-            <!-- File Info Card -->
-            <div class="file-info-card">
-                <div class="flex items-center gap-3 w-full">
-                    <div class="file-icon">
-                        <i :class="['pi', getFileIcon()]"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="file-name">{{ uploadedFile.name }}</p>
-                        <p class="file-details">
-                            {{ getFileTypeLabel() }} • {{ formatFileSize(uploadedFile.size) }}
+                <div class="upload-content">
+                    <i class="pi pi-cloud-upload text-4xl text-slate-300 mb-4"></i>
+
+                    <div class="text-center space-y-2">
+                        <p class="text-sm font-bold text-slate-600">
+                            Drag and drop files here or click to browse
                         </p>
+                        <p class="text-xs text-blue-500 font-semibold">
+                            You can select multiple files at once
+                        </p>
+                        <p class="text-xs text-slate-400">{{ displayAcceptedTypes }}</p>
+                        <p class="text-xs text-slate-400">Max size per file: {{ formatFileSize(maxSize) }}</p>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <!-- Toggle Preview Button -->
-                        <button
-                            v-if="hasHtmlPreview || showPdfPreview() || showImagePreview() || showAudioPreview()"
-                            @click="showPreviewDiv = !showPreviewDiv"
-                            type="button"
-                            class="view-btn"
-                            :title="showPreviewDiv ? 'إخفاء المعاينة' : 'معاينة الملف'">
-                            <i :class="['pi', showPreviewDiv ? 'pi-eye-slash' : 'pi-eye']"></i>
-                            <span class="text-xs font-bold">{{ showPreviewDiv ? 'Hide' : 'Preview' }}</span>
-                        </button>
+                    <input
+                        type="file"
+                        class="file-input"
+                        :accept="acceptAttribute"
+                        :disabled="disabled"
+                        multiple
+                        @change="handleFileInputChange" />
+                </div>
+            </div>
 
-                        <!-- Delete Button -->
+            <!-- Uploaded Files List -->
+            <div v-if="uploadedFiles.length > 0" class="mt-3 space-y-2 animate-in fade-in duration-300">
+                <div class="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest mb-1">
+                    <i class="pi pi-paperclip text-blue-500"></i>
+                    <span>{{ uploadedFiles.length }} file{{ uploadedFiles.length > 1 ? 's' : '' }} selected</span>
+                </div>
+                <div
+                    v-for="(file, idx) in uploadedFiles"
+                    :key="idx"
+                    class="file-info-card animate-in fade-in zoom-in-95 duration-300">
+                    <div class="flex items-center gap-3 w-full">
+                        <div class="file-icon">
+                            <i :class="['pi', getFileIconFor(file)]"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="file-name">{{ file.name }}</p>
+                            <p class="file-details">{{ getFileTypeLabelFor(file) }} • {{ formatFileSize(file.size) }}</p>
+                        </div>
                         <button
-                            @click="removeFile"
+                            @click="removeOneFile(idx)"
                             type="button"
                             class="remove-btn"
                             :disabled="disabled"
-                            title="حذف الملف">
-                            <i class="pi pi-trash"></i>
+                            title="Remove file">
+                            <i class="pi pi-times"></i>
                         </button>
                     </div>
                 </div>
             </div>
+        </template>
 
-            <!-- Loading Spinner during conversion -->
-            <div v-if="isLoadingPreview" class="mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-3 text-slate-500">
-                <i class="pi pi-spin pi-spinner text-lg text-blue-600"></i>
-                <span class="text-xs font-bold">جاري استخراج ومعاينة محتوى الملف...</span>
-            </div>
+        <!-- ══════════════════════════════════════ -->
+        <!-- SINGLE FILE MODE (original behavior)   -->
+        <!-- ══════════════════════════════════════ -->
+        <template v-else>
+            <!-- Upload Zone -->
+            <div v-if="!uploadedFile"
+                @dragover="handleDragOver"
+                @dragleave="handleDragLeave"
+                @drop="handleDrop"
+                :class="[
+                    'upload-zone',
+                    isDragging && 'dragging',
+                    disabled && 'disabled'
+                ]">
 
-            <!-- PREVIEW DIV BOX BELOW CARD -->
-            <div v-if="showPreviewDiv && !isLoadingPreview" class="mt-4 space-y-4">
-                
-                <!-- 1. Text / DOCX Content Preview Div -->
-                <div v-if="documentHtmlContent" class="preview-div-box p-5 bg-white border border-slate-200 rounded-xl shadow-sm text-left">
-                    <div class="flex items-center gap-2 text-xs font-black text-slate-700 mb-3 border-b border-slate-100 pb-2">
-                        <i class="pi pi-file-edit text-blue-600 text-sm"></i>
-                        <span>File Content Preview (معاينة محتوى الملف النصي)</span>
+                <div class="upload-content">
+                    <i class="pi pi-cloud-upload text-4xl text-slate-300 mb-4"></i>
+
+                    <div class="text-center space-y-2">
+                        <p class="text-sm font-bold text-slate-600">
+                            Drag and drop file here or click to browse
+                        </p>
+                        <p class="text-xs text-slate-400">{{ displayAcceptedTypes }}</p>
+                        <p class="text-xs text-slate-400">Max size: {{ formatFileSize(maxSize) }}</p>
                     </div>
-                    <div class="document-html-view max-h-96 overflow-y-auto pr-1" v-html="documentHtmlContent"></div>
-                </div>
 
-                <!-- 2. PDF Viewer Preview Div -->
-                <div v-if="showPdfPreview()" class="preview-div-box rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-slate-900">
-                    <iframe :src="getImagePreview()" class="w-full h-96 border-none" title="PDF Preview"></iframe>
-                </div>
-
-                <!-- 3. Image Preview Div -->
-                <div v-if="showImagePreview()" class="preview-div-box p-4 bg-white border border-slate-200 rounded-xl flex justify-center shadow-sm">
-                    <img :src="getImagePreview()" alt="Preview" class="rounded-lg max-h-80 object-contain" />
-                </div>
-
-                <!-- 4. Audio Player Div -->
-                <div v-if="showAudioPreview()" class="preview-div-box p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-                    <audio :src="getImagePreview()" controls class="w-full h-10 rounded-lg border border-slate-200"></audio>
+                    <input
+                        type="file"
+                        class="file-input"
+                        :accept="acceptAttribute"
+                        :disabled="disabled"
+                        @change="handleFileInputChange" />
                 </div>
             </div>
 
-        </div>
+            <!-- File Preview Container -->
+            <div v-else class="file-preview-container animate-in fade-in zoom-in-95 duration-500">
+
+                <!-- File Info Card -->
+                <div class="file-info-card">
+                    <div class="flex items-center gap-3 w-full">
+                        <div class="file-icon">
+                            <i :class="['pi', getFileIcon()]"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="file-name">{{ uploadedFile.name }}</p>
+                            <p class="file-details">
+                                {{ getFileTypeLabel() }} • {{ formatFileSize(uploadedFile.size) }}
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button
+                                v-if="hasHtmlPreview || showPdfPreview() || showImagePreview() || showAudioPreview()"
+                                @click="showPreviewDiv = !showPreviewDiv"
+                                type="button"
+                                class="view-btn"
+                                :title="showPreviewDiv ? 'إخفاء المعاينة' : 'معاينة الملف'">
+                                <i :class="['pi', showPreviewDiv ? 'pi-eye-slash' : 'pi-eye']"></i>
+                                <span class="text-xs font-bold">{{ showPreviewDiv ? 'Hide' : 'Preview' }}</span>
+                            </button>
+
+                            <button
+                                @click="removeFile"
+                                type="button"
+                                class="remove-btn"
+                                :disabled="disabled"
+                                title="حذف الملف">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div v-if="isLoadingPreview" class="mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-3 text-slate-500">
+                    <i class="pi pi-spin pi-spinner text-lg text-blue-600"></i>
+                    <span class="text-xs font-bold">جاري استخراج ومعاينة محتوى الملف...</span>
+                </div>
+
+                <!-- Preview Area -->
+                <div v-if="showPreviewDiv && !isLoadingPreview" class="mt-4 space-y-4">
+                    <div v-if="documentHtmlContent" class="preview-div-box p-5 bg-white border border-slate-200 rounded-xl shadow-sm text-left">
+                        <div class="flex items-center gap-2 text-xs font-black text-slate-700 mb-3 border-b border-slate-100 pb-2">
+                            <i class="pi pi-file-edit text-blue-600 text-sm"></i>
+                            <span>File Content Preview (معاينة محتوى الملف النصي)</span>
+                        </div>
+                        <div class="document-html-view max-h-96 overflow-y-auto pr-1" v-html="documentHtmlContent"></div>
+                    </div>
+
+                    <div v-if="showPdfPreview()" class="preview-div-box rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-slate-900">
+                        <iframe :src="getImagePreview()" class="w-full h-96 border-none" title="PDF Preview"></iframe>
+                    </div>
+
+                    <div v-if="showImagePreview()" class="preview-div-box p-4 bg-white border border-slate-200 rounded-xl flex justify-center shadow-sm">
+                        <img :src="getImagePreview()" alt="Preview" class="rounded-lg max-h-80 object-contain" />
+                    </div>
+
+                    <div v-if="showAudioPreview()" class="preview-div-box p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                        <audio :src="getImagePreview()" controls class="w-full h-10 rounded-lg border border-slate-200"></audio>
+                    </div>
+                </div>
+            </div>
+        </template>
     </div>
 </template>
 

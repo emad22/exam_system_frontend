@@ -115,12 +115,13 @@ const handleVirtualKeyboardKeyPress = (button) => {
     forceUpdateCounter.value++;
 };
 
-const handleFileSelected = (file) => {
-    emit('update:answer', { ...props.answer, recorded_file: file });
+const handleFileSelected = (files) => {
+    // files is an array when multiple=true
+    emit('update:answer', { ...props.answer, recorded_files: Array.isArray(files) ? files : [files] });
 };
 
 const handleFileRemoved = () => {
-    emit('update:answer', { ...props.answer, recorded_file: null });
+    emit('update:answer', { ...props.answer, recorded_files: [] });
 };
 
 onMounted(async () => {
@@ -373,6 +374,7 @@ onUnmounted(() => {
             <!-- Tab Content: Upload -->
             <div v-show="activeTab === 'upload'" class="flex flex-col flex-1 pb-4">
                 <FileUpload class="w-full" :accepted-types="['image', 'document']" :max-size="50 * 1024 * 1024"
+                    :multiple="true"
                     :disabled="disabled" @file-selected="handleFileSelected" @file-removed="handleFileRemoved" />
             </div>
 

@@ -523,6 +523,7 @@ const fetchNextBatch = async () => {
                 option_id: null,
                 text_answer: '',
                 recorded_file: null,
+                recorded_files: [],        // for writing type (multiple uploads)
                 pdf_file: null,          // for pdf_annotation type
                 is_media_uploaded: false,
                 drag_drop_answers: [],
@@ -584,7 +585,7 @@ const VALIDATORS = {
     true_false: (ans) => !!ans.option_id,
     speaking: (ans) => !!ans.recorded_file,
     speaking_live: () => true, // always valid — passive question, auto-submits on timeout or exit
-    writing: (ans) => !!(ans.text_answer && ans.text_answer.trim().length > 0) || !!ans.recorded_file,
+    writing: (ans) => !!(ans.text_answer && ans.text_answer.trim().length > 0) || !!(ans.recorded_files && ans.recorded_files.length > 0),
     pdf_annotation: () => true, // always valid — PDF worksheet is submitted with whatever annotations the student drew
     drag_drop: (ans) => ans.drag_drop_answers.every(a => a !== null && a !== ''),
     fill_blank: (ans) => ans.fill_blank_answers.every(a => a && a.trim().length > 0),
@@ -665,6 +666,12 @@ const saveCurrentAnswerDraft = async (ansToSave = null, qToSave = null) => {
             const fileName = ans.recorded_file.name || 'voice.webm';
             formData.append('audio_file', ans.recorded_file, fileName);
         }
+        // writing: attach multiple uploaded files
+        if (ans.recorded_files && ans.recorded_files.length > 0 && !ans.is_media_uploaded) {
+            ans.recorded_files.forEach((file, fIdx) => {
+                formData.append(`pdf_files[${fIdx}]`, file, file.name || `file_${fIdx}`);
+            });
+        }
         // pdf_annotation: attach generated annotated PDF file
         if (ans.pdf_file) {
             formData.append('pdf_file', ans.pdf_file, ans.pdf_file.name || 'answer.pdf');
@@ -710,6 +717,12 @@ const submitCurrentBatch = async (isTimeout = false) => {
             if (ans.recorded_file && !ans.is_media_uploaded) {
                 const fileName = ans.recorded_file.name || 'voice.webm';
                 formData.append(`answers[${index}][audio_file]`, ans.recorded_file, fileName);
+            }
+            // writing: attach multiple uploaded files
+            if (ans.recorded_files && ans.recorded_files.length > 0 && !ans.is_media_uploaded) {
+                ans.recorded_files.forEach((file, fIdx) => {
+                    formData.append(`answers[${index}][pdf_files][${fIdx}]`, file, file.name || `file_${fIdx}`);
+                });
             }
             // pdf_annotation: attach generated annotated PDF
             if (ans.pdf_file) {

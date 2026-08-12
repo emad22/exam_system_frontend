@@ -81,6 +81,22 @@ const fetchPending = async (page = 1) => {
     }
 }
 
+const getSubmittedAt = (attempt) => {
+    const raw = attempt?.finished_at || attempt?.updated_at || attempt?.created_at || attempt?.started_at
+    if (!raw) return '—'
+
+    const date = new Date(raw)
+    if (Number.isNaN(date.getTime())) return '—'
+
+    return date.toLocaleString(currentLang.value === 'ar' ? 'ar-EG' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
 const onPage = (event) => fetchPending(event.page + 1)
 
 const goToGrading = (attemptId) => {
@@ -228,7 +244,7 @@ onMounted(() => fetchPending())
                         <Column :header="t[currentLang].colSubmittedAt" style="width: 180px">
                             <template #body="{ data }">
                                 <span class="text-xs font-bold text-slate-500 italic">
-                                    {{ data.finished_at ? new Date(data.finished_at).toLocaleString() : '—' }}
+                                    {{ getSubmittedAt(data) }}
                                 </span>
                             </template>
                         </Column>
