@@ -29,11 +29,11 @@ const addSkill = async () => {
     
     try {
         await api.post('/admin/skills', form.value);
-        showAlert('Module integrated successfully into the ecosystem!');
+        showAlert('Skill added successfully!', 'Success', 'success');
         router.push('/admin/skills');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to inject module.';
+        errorMsg.value = err.response?.data?.message || 'Failed to add skill.';
     } finally {
         isSubmitting.value = false;
     }
@@ -49,8 +49,8 @@ const addSkill = async () => {
             <div class="flex items-center space-x-6">
                 <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/skills')" />
                 <div>
-                     <h1 class="text-3xl font-black text-slate-800 tracking-tight">Inject Cognitive Module</h1>
-                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Manual Skill Registry</p>
+                      <h1 class="text-3xl font-black text-slate-800 tracking-tight">Add Skill</h1>
+                      <p class="text-sm font-bold text-slate-500 mt-1">Create a new skill domain and configure its levels</p>
                 </div>
             </div>
         </div>
@@ -62,37 +62,37 @@ const addSkill = async () => {
             <form @submit.prevent="addSkill" class="relative z-10 space-y-12">
                 
                 <div v-if="errorMsg"
-                    class="bg-rose-50 border border-rose-100 text-rose-500 text-[10px] font-black uppercase tracking-widest p-5 rounded-2xl animate-in slide-in-from-top-2">
-                    âš ï¸ INJECTION_ERROR: {{ errorMsg }}
+                    class="bg-rose-50 border border-rose-100 text-rose-500 text-sm font-bold p-5 rounded-2xl animate-in slide-in-from-top-2">
+                    ⚠️ {{ errorMsg }}
                 </div>
 
                 <div class="space-y-8">
                     <div class="flex items-center space-x-4 mb-4">
                         <div class="w-1.5 h-6 bg-brand-primary rounded-full"></div>
-                        <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Module Identity</h3>
+                        <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Skill Details</h3>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Logical Designation (Module Name)</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Skill Name</label>
                             <input v-model="form.name" type="text" required 
                                 class="premium-input uppercase text-sm placeholder:text-slate-300 w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary transition-all text-slate-800 font-bold tracking-wide" 
-                                placeholder="E.G. GRAMMAR_MODULE_V1">
-                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">This identifier will be used system-wide</p>
+                                placeholder="E.g. Grammar">
+                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">This name will be visible to users</p>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Mapping Key (Short Code)</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Short Code</label>
                             <input v-model="form.short_code" type="text" readonly
                                 class="premium-input uppercase text-sm placeholder:text-slate-300 w-full px-6 py-4 rounded-2xl bg-slate-100 border border-slate-200 transition-all text-slate-400 font-bold tracking-wide cursor-not-allowed select-none" 
                                 placeholder="AUTO-GENERATED">
-                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">Auto-generated from the first 4 characters of Module Name</p>
+                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">Auto-generated from skill name</p>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Initial Tier Capacity (Levels Count)</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-4">Initial Levels Count</label>
                             <input v-model="form.levels_count" type="number" min="0" max="100"
                                 class="premium-input text-sm placeholder:text-slate-300 w-full px-6 py-4 rounded-2xl bg-rose-50/30 border border-rose-100 focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary transition-all text-brand-primary font-black tracking-wide" 
                                 placeholder="0">
-                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">Auto-generate levels upon creation (e.g., Level 1 to 11)</p>
+                            <p class="text-[9px] text-slate-400 mt-3 ml-4 font-bold uppercase tracking-widest">Number of levels to create (e.g. 1 to 11)</p>
                         </div>
                     </div>
                 </div>
@@ -100,9 +100,9 @@ const addSkill = async () => {
                 <div class="pt-8 border-t border-slate-50 flex items-center justify-between">
                     <div class="flex items-center space-x-3 opacity-30 hidden sm:flex">
                         <div class="w-2 h-2 bg-slate-400 rounded-full"></div>
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Commit Sequence</span>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fill the form to add a new skill</span>
                     </div>
-                    <Button :label="isSubmitting ? 'COMPILING...' : 'COMMIT MODULE âžœ'" 
+                    <Button :label="isSubmitting ? 'Saving...' : 'Save Skill'" 
                            :loading="isSubmitting" 
                            icon="pi pi-check" 
                            size="large" 

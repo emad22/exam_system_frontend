@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import { useAdminStore } from '@/stores/admin';
@@ -12,98 +12,106 @@ import Button from 'primevue/button';
 
 const adminStore = useAdminStore();
 const stats = ref(null);
+const liveStudents = ref([]);
 const loading = ref(true);
-
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('dashboard_lang', currentLang.value);
-};
+const loadingLiveStudents = ref(false);
+let refreshInterval = null;
 
 const t = {
-    ar: {
-        loading: "جاري تحميل إحصائيات لوحة التحكم...",
-        dashboardTitle: "لوحة التحكم الرئيسية",
-        dashboardSubtitle: "متابعة إحصائيات النظام، نشاط الاختبارات، وأداء الطلاب في الوقت الفعلي",
-        systemStatus: "حالة النظام",
-        operational: "نشط ويعمل بالكامل",
-        generateReport: "تصدير تقرير",
-        totalStudents: "إجمالي الطلاب",
-        studentSubtitle: "الطلاب المعتمدون في النظام",
-        newToday: "جديد اليوم",
-        studentMatrix: "سجل الطلاب",
-        totalExams: "إجمالي الاختبارات",
-        examSubtitle: "الاختبارات المتاحة للطلاب حالياً",
-        examMatrix: "سجل الاختبارات",
-        examAttempts: "محاولات الاختبار",
-        attemptsSubtitle: "إجمالي محاولات الاختبار المنجزة والجارية",
-        weeklyStats: "محاولات هذا الأسبوع",
-        liveTelemetry: "المراقبة الحية والنشاط المباشر",
-        liveSubtitle: "الطلاب النشطون حالياً",
-        liveDesc: "طلاب يؤدون الاختبارات حالياً في الوقت الفعلي",
-        recentActivity: "أحدث محاولات وجلسات الاختبار",
-        recentSubtitle: "نتائج وتفاصيل أحدث محاولات الطلاب في الوقت الفعلي",
-        auditRegistry: "عرض كافة التقارير",
-        colStudent: "اسم الطالب",
-        colExam: "الاختبار",
-        colStatus: "حالة المحاولة",
-        colScore: "الدرجة والنسبة",
-        colDate: "تاريخ المحاولة",
-        identityRecord: "كود الطالب / الهوية",
-        activeDeployment: "اختبار تحديد المستوى",
-        accuracy: "نسبة الدقة",
-        emptyTelemetry: "لا توجد محاولات اختبارات مسجلة حالياً...",
-        statusCompleted: "مكتمل",
-        statusOngoing: "جاري التقديم",
-        welcomeBack: "مرحباً بك مجدداً،"
-    },
-    en: {
-        loading: "Loading Dashboard Statistics...",
-        dashboardTitle: "Dashboard Overview",
-        dashboardSubtitle: "Monitor system statistics, exam activity, and real-time student performance",
-        systemStatus: "System Status",
-        operational: "Operational & Active",
-        generateReport: "Generate Report",
-        totalStudents: "Total Students",
-        studentSubtitle: "Total verified student registrations",
-        newToday: "New Today",
-        studentMatrix: "Student Registry",
-        totalExams: "Total Exams",
-        examSubtitle: "Active assessment modules deployed in the system",
-        examMatrix: "Exam Directory",
-        examAttempts: "Exam Attempts",
-        attemptsSubtitle: "Total completed and ongoing exam attempts",
-        weeklyStats: "Attempts This Week",
-        liveTelemetry: "Live Telemetry & Tracking",
-        liveSubtitle: "Students Online Now",
-        liveDesc: "Students actively taking exams right now",
-        recentActivity: "Recent Exam Activity",
-        recentSubtitle: "Latest student attempts and performance logs in real-time",
-        auditRegistry: "View All Reports",
-        colStudent: "Student",
-        colExam: "Exam",
-        colStatus: "Status",
-        colScore: "Score & Accuracy",
-        colDate: "Date & Time",
-        identityRecord: "Student Code / ID",
-        activeDeployment: "Placement Exam",
-        accuracy: "Accuracy",
-        emptyTelemetry: "No recent exam attempts recorded yet...",
-        statusCompleted: "Completed",
-        statusOngoing: "Ongoing",
-        welcomeBack: "Welcome back,"
+    loading: "Loading Dashboard Statistics...",
+    dashboardTitle: "Dashboard Overview",
+    dashboardSubtitle: "Monitor system statistics, exam activity, and real-time student performance",
+    systemStatus: "System Status",
+    operational: "Operational & Active",
+    generateReport: "Generate Report",
+    totalStudents: "Total Students",
+    studentSubtitle: "Total verified student registrations",
+    newToday: "New Today",
+    studentMatrix: "Students",
+    totalExams: "Total Exams",
+    examSubtitle: "Active exams in the system",
+    examMatrix: "Exams",
+    examAttempts: "Exam Attempts",
+    attemptsSubtitle: "Total completed and ongoing exam attempts",
+    weeklyStats: "Attempts This Week",
+    liveTelemetry: "Live Students",
+    liveSubtitle: "Students Online Now",
+    liveDesc: "Students actively taking exams right now",
+    liveStudentsTitle: "Students Currently Taking Exams",
+    liveStudentsSubtitle: "Real-time list of students actively taking exams",
+    recentActivity: "Recent Exam Activity",
+    recentSubtitle: "Latest student attempts and performance logs in real-time",
+    auditRegistry: "View All Reports",
+    colStudent: "Student",
+    colEmail: "Email",
+    colExam: "Exam",
+    colLevel: "Level",
+    colDuration: "Duration",
+    colLastActivity: "Last Activity",
+    colStatus: "Status",
+    colScore: "Score & Accuracy",
+    colDate: "Date & Time",
+    identityRecord: "Student ID",
+    activeDeployment: "Current Exam",
+    accuracy: "Accuracy",
+    emptyTelemetry: "No recent exam attempts.",
+    emptyLiveStudents: "No students are currently taking exams",
+    statusCompleted: "Completed",
+    statusOngoing: "Ongoing",
+    welcomeBack: "Welcome back,",
+    minutesAgo: "minute(s) ago",
+    justNow: "Just now"
+};
+
+// Fetch data function
+const fetchData = async () => {
+    try {
+        const statsRes = await api.get('/admin/stats');
+        stats.value = statsRes.data.data;
+    } catch (err) {
+        console.error("Error loading stats", err);
+        stats.value = null;
+    }
+    
+    try {
+        const liveRes = await api.get('/admin/live-students');
+        liveStudents.value = liveRes.data.data || [];
+    } catch (err) {
+        console.error("Error loading live students", err);
+        liveStudents.value = [];
+    }
+    
+    loading.value = false;
+};
+
+// Refresh live students only (without full reload)
+const refreshLiveStudents = async () => {
+    try {
+        const liveRes = await api.get('/admin/live-students');
+        liveStudents.value = liveRes.data.data || [];
+    } catch (err) {
+        console.error("Error refreshing live students", err);
     }
 };
 
-onMounted(async () => {
-    try {
-        const res = await api.get('/admin/stats');
-        stats.value = res.data.data;
-    } catch (err) {
-        console.error("Error loading stats", err);
-    } finally {
-        loading.value = false;
+onMounted(() => {
+    fetchData();
+    
+    // Auto-refresh live students every 5 seconds
+    refreshInterval = setInterval(() => {
+        refreshLiveStudents();
+        // Also refresh stats every 30 seconds
+        if (Math.random() > 0.8) {
+            api.get('/admin/stats').then(res => {
+                stats.value = res.data.data;
+            }).catch(err => console.error("Error refreshing stats", err));
+        }
+    }, 5000);
+});
+
+onUnmounted(() => {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
     }
 });
 
@@ -116,20 +124,20 @@ const getStatusSeverity = (status) => {
 }
 
 const translateStatus = (status) => {
-    if (status === 'completed') return t[currentLang.value].statusCompleted;
-    if (status === 'ongoing') return t[currentLang.value].statusOngoing;
+    if (status === 'completed') return t.statusCompleted;
+    if (status === 'ongoing') return t.statusOngoing;
     return status;
 };
 </script>
 
 <template>
   <AdminLayout>
-    <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div class="w-full">
       
       <!-- Loading Indicator -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
           <ProgressSpinner />
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
       </div>
 
       <!-- Main Dashboard Content -->
@@ -143,36 +151,30 @@ const translateStatus = (status) => {
               <div class="relative z-10 space-y-2">
                    <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
                         <i class="pi pi-sparkles text-brand-accent"></i>
-                        <span>{{ t[currentLang].welcomeBack }} {{ adminStore.user?.first_name || 'Admin' }}</span>
+                        <span>{{ t.welcomeBack }} {{ adminStore.user?.first_name || 'Admin' }}</span>
                    </div>
                    <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
-                       {{ t[currentLang].dashboardTitle }}
+                       {{ t.dashboardTitle }}
                    </h1>
                    <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
-                       {{ t[currentLang].dashboardSubtitle }}
+                       {{ t.dashboardSubtitle }}
                    </p>
               </div>
               
               <div class="flex flex-wrap items-center gap-4 relative z-10">
-                    <!-- Language Selector Toggle -->
-                    <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                        <i class="pi pi-globe text-brand-primary"></i>
-                        <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                    </button>
+                  <!-- System Status badge -->
+                  <div class="flex flex-col items-end px-5 py-1.5 border-s border-slate-100">
+                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t.systemStatus }}</span>
+                      <div class="flex items-center gap-1.5 mt-0.5">
+                          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></div>
+                          <span class="text-xs font-extrabold text-emerald-600 uppercase tracking-tight">{{ t.operational }}</span>
+                      </div>
+                  </div>
 
-                   <!-- System Status badge -->
-                   <div class="flex flex-col items-end px-5 py-1.5 border-s border-slate-100">
-                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].systemStatus }}</span>
-                       <div class="flex items-center gap-1.5 mt-0.5">
-                           <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></div>
-                           <span class="text-xs font-extrabold text-emerald-600 uppercase tracking-tight">{{ t[currentLang].operational }}</span>
-                       </div>
-                   </div>
-
-                   <!-- Action Button -->
-                   <Button :label="t[currentLang].generateReport" icon="pi pi-file-pdf" outlined severity="secondary" 
-                           class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300" 
-                           @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.reports' : 'admin.reports' })" />
+                  <!-- Action Button -->
+                  <Button :label="t.generateReport" icon="pi pi-file-pdf" outlined severity="secondary"
+                          class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300"
+                          @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.reports' : 'admin.reports' })" />
               </div>
           </div>
 
@@ -189,14 +191,14 @@ const translateStatus = (status) => {
                             </div>
                             <span v-if="stats.stats.students.today > 0" class="bg-emerald-50 text-emerald-600 text-xs font-extrabold px-3 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                +{{ stats.stats.students.today }} {{ t[currentLang].newToday }}
+                                +{{ stats.stats.students.today }} {{ t.newToday }}
                             </span>
-                            <span v-else class="text-xs font-bold text-slate-400 tracking-wider">{{ t[currentLang].studentMatrix }}</span>
+                            <span v-else class="text-xs font-bold text-slate-400 tracking-wider">{{ t.studentMatrix }}</span>
                        </div>
-                       <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">{{ t[currentLang].totalStudents }}</h3>
+                       <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">{{ t.totalStudents }}</h3>
                        <div class="text-5xl font-black text-slate-800 tracking-tight">{{ stats.stats.students.total }}</div>
                        <p class="mt-6 text-xs font-bold text-slate-400 border-t border-slate-50 pt-5 flex items-center gap-2">
-                           <i class="pi pi-check-circle text-emerald-500"></i> {{ t[currentLang].studentSubtitle }}
+                           <i class="pi pi-check-circle text-emerald-500"></i> {{ t.studentSubtitle }}
                        </p>
                   </div>
               </div>
@@ -211,14 +213,14 @@ const translateStatus = (status) => {
                             </div>
                             <span v-if="stats.stats.exams.today > 0" class="bg-brand-primary/10 text-brand-primary text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
-                                +{{ stats.stats.exams.today }} {{ t[currentLang].newToday }}
+                                +{{ stats.stats.exams.today }} {{ t.newToday }}
                             </span>
-                            <span v-else class="text-xs font-bold text-brand-primary/40 tracking-wider">{{ t[currentLang].examMatrix }}</span>
+                            <span v-else class="text-xs font-bold text-brand-primary/40 tracking-wider">{{ t.examMatrix }}</span>
                        </div>
-                       <h3 class="text-xs font-extrabold text-brand-primary/60 uppercase tracking-wider mb-1">{{ t[currentLang].totalExams }}</h3>
+                       <h3 class="text-xs font-extrabold text-brand-primary/60 uppercase tracking-wider mb-1">{{ t.totalExams }}</h3>
                        <div class="text-5xl font-black text-brand-primary tracking-tight">{{ stats.stats.exams.total }}</div>
                        <p class="mt-6 text-xs font-bold text-brand-primary/50 border-t border-brand-primary/10 pt-5 flex items-center gap-2">
-                           <i class="pi pi-cloud text-brand-accent"></i> {{ t[currentLang].examSubtitle }}
+                           <i class="pi pi-cloud text-brand-accent"></i> {{ t.examSubtitle }}
                        </p>
                   </div>
               </div>
@@ -232,29 +234,29 @@ const translateStatus = (status) => {
                                  <i class="pi pi-chart-line text-xl"></i>
                             </div>
                             <span class="text-xs font-extrabold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                                {{ stats.stats.attempts.last_7_days }} {{ t[currentLang].weeklyStats }}
+                                {{ stats.stats.attempts.last_7_days }} {{ t.weeklyStats }}
                             </span>
                        </div>
-                       <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">{{ t[currentLang].examAttempts }}</h3>
+                       <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">{{ t.examAttempts }}</h3>
                        <div class="text-5xl font-black text-slate-800 tracking-tight">{{ stats.stats.attempts.total }}</div>
                        <p class="mt-6 text-xs font-bold text-slate-400 border-t border-slate-50 pt-5 flex items-center gap-2">
-                           <i class="pi pi-spin pi-spinner text-slate-400 opacity-70"></i> {{ t[currentLang].attemptsSubtitle }}
+                           <i class="pi pi-spin pi-spinner text-slate-400 opacity-70"></i> {{ t.attemptsSubtitle }}
                        </p>
                   </div>
               </div>
 
               <!-- Stat Card 4 (Live Online Students Telemetry) -->
-              <div class="bg-emerald-50/50 p-8 rounded-[2rem] border border-emerald-500/10 shadow-sm group hover:shadow-xl transition-all duration-500 relative overflow-hidden md:col-span-3">
+              <div class="bg-emerald-50/50 p-8 rounded-[2rem] border border-emerald-500/10 shadow-sm group hover:shadow-xl transition-all duration-500 relative overflow-hidden md:col-span-3 cursor-pointer" @click="liveStudents = [...liveStudents]">
                   <div class="absolute -right-4 -top-4 w-32 h-32 bg-emerald-500/5 rounded-full group-hover:scale-150 transition-all duration-700 opacity-50"></div>
                   <div class="relative z-10 flex items-center justify-between">
                        <div class="space-y-2">
                             <div class="flex items-center gap-2">
                                 <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse border-4 border-emerald-200"></div>
-                                <span class="text-xs font-extrabold text-emerald-600 uppercase tracking-wider">{{ t[currentLang].liveTelemetry }}</span>
+                                <span class="text-xs font-extrabold text-emerald-600 uppercase tracking-wider">{{ t.liveTelemetry }}</span>
                             </div>
-                            <h3 class="text-sm font-extrabold text-slate-500 uppercase tracking-wider">{{ t[currentLang].liveSubtitle }}</h3>
+                            <h3 class="text-sm font-extrabold text-slate-500 uppercase tracking-wider">{{ t.liveSubtitle }}</h3>
                             <div class="text-6xl font-black text-emerald-600 tracking-tight">{{ stats.stats.live }}</div>
-                            <p class="text-xs font-bold text-slate-500 mt-2">{{ t[currentLang].liveDesc }}</p>
+                            <p class="text-xs font-bold text-slate-500 mt-2">{{ t.liveDesc }}</p>
                        </div>
                        <div class="hidden md:block">
                             <i class="pi pi-bolt text-7xl text-emerald-200/50 group-hover:text-emerald-300/60 group-hover:scale-110 transition-all duration-500"></i>
@@ -263,41 +265,41 @@ const translateStatus = (status) => {
               </div>
           </div>
 
-          <!-- Recent Performance Signals Table -->
-          <Card v-if="stats" class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden mt-6 bg-white">
+          <!-- Live Students Table -->
+          <Card v-if="liveStudents && liveStudents.length > 0" class="border border-emerald-200/50 shadow-sm rounded-[2rem] overflow-hidden mt-6 bg-white bg-gradient-to-br from-emerald-50/20 to-transparent">
               <template #header>
-                  <div class="px-8 py-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0 w-full">
+                  <div class="px-8 py-8 border-b border-emerald-100/50 flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0 w-full">
                       <div class="space-y-1">
-                           <h3 class="text-xl font-black text-slate-800 tracking-tight">
-                               {{ t[currentLang].recentActivity }}
-                           </h3>
-                           <p class="text-xs font-bold text-brand-primary opacity-80 leading-relaxed">
-                               {{ t[currentLang].recentSubtitle }}
+                           <div class="flex items-center gap-2 mb-2">
+                               <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                               <h3 class="text-xl font-black text-emerald-700 tracking-tight">
+                                   {{ t.liveStudentsTitle }}
+                               </h3>
+                           </div>
+                           <p class="text-xs font-bold text-emerald-600/80 leading-relaxed">
+                               {{ t.liveStudentsSubtitle }} ({{ liveStudents.length }} {{ liveStudents.length === 1 ? 'student' : 'students' }})
                            </p>
                       </div>
-                      <Button :label="t[currentLang].auditRegistry" icon="pi pi-arrow-right" iconPos="right" text severity="info" 
-                              class="text-xs font-extrabold uppercase tracking-wider px-6 py-2 rounded-xl hover:bg-slate-50 transition-all duration-300" 
-                              @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.reports' : 'admin.reports' })" />
                   </div>
               </template>
               
               <template #content>
                    <div class="overflow-x-auto w-full no-scrollbar">
-                       <DataTable :value="stats.recent_attempts" class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                       <DataTable :value="liveStudents" class="p-datatable-sm text-sm" responsiveLayout="scroll">
                            
                            <!-- Student Column -->
-                           <Column :header="t[currentLang].colStudent" style="min-width: 250px">
+                           <Column :header="t.colStudent" style="min-width: 250px">
                               <template #body="{ data }">
                                   <div class="flex items-center gap-4 py-2 group cursor-pointer">
-                                       <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center border border-slate-100 shadow-sm transition-all duration-300 group-hover:bg-brand-primary group-hover:text-white group-hover:rotate-6">
-                                           <i class="pi pi-id-card text-base"></i>
+                                       <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center border border-emerald-200 shadow-sm transition-all duration-300 group-hover:bg-emerald-600 group-hover:text-white group-hover:rotate-6">
+                                           <i class="pi pi-user text-base"></i>
                                        </div>
                                        <div class="space-y-0.5">
-                                            <div class="font-extrabold text-slate-800 tracking-tight group-hover:text-brand-primary transition-colors">
+                                            <div class="font-extrabold text-slate-800 tracking-tight group-hover:text-emerald-600 transition-colors">
                                                 {{ data.student_name }}
                                             </div>
                                             <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                {{ t[currentLang].identityRecord }}
+                                                {{ data.student_email }}
                                             </div>
                                        </div>
                                   </div>
@@ -305,42 +307,41 @@ const translateStatus = (status) => {
                            </Column>
 
                            <!-- Exam Column -->
-                           <Column :header="t[currentLang].colExam" style="min-width: 220px">
+                           <Column :header="t.colExam" style="min-width: 200px">
                               <template #body="{ data }">
                                   <div class="flex flex-col space-y-0.5">
                                       <span class="text-xs font-extrabold text-slate-700 leading-tight">{{ data.exam_title }}</span>
                                       <div class="flex items-center gap-1.5">
-                                           <div class="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></div>
-                                           <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{{ t[currentLang].activeDeployment }}</span>
+                                           <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                           <span class="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">{{ t.activeDeployment }}</span>
                                       </div>
                                   </div>
                               </template>
                            </Column>
 
-                           <!-- Status Column -->
-                           <Column :header="t[currentLang].colStatus" style="width: 140px">
+                           <!-- Level Column -->
+                           <Column :header="t.colLevel" style="width: 120px">
                               <template #body="{ data }">
-                                  <Tag :value="translateStatus(data.status)" :severity="getStatusSeverity(data.status)" class="text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl border-none shadow-sm" />
+                                  <Tag :value="data.exam_level" severity="info" class="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border-none shadow-sm bg-sky-100 text-sky-700" />
                               </template>
                            </Column>
 
-                           <!-- Score Column -->
-                           <Column :header="t[currentLang].colScore" style="width: 140px" class="text-right">
+                           <!-- Duration Column -->
+                           <Column :header="t.colDuration" style="width: 140px">
                               <template #body="{ data }">
-                                   <div class="flex flex-col items-end">
-                                       <div class="text-xl font-black text-slate-800 tracking-tight">
-                                          {{ data.total_score }}
-                                       </div>
-                                       <div class="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">{{ data.avg_score }}% {{ t[currentLang].accuracy }}</div>
+                                   <div class="flex items-center gap-2">
+                                       <i class="pi pi-clock text-slate-400 text-xs"></i>
+                                       <span class="text-xs font-bold text-slate-600">{{ data.duration_minutes }} min</span>
                                    </div>
                               </template>
                            </Column>
 
-                           <!-- Date Column -->
-                           <Column :header="t[currentLang].colDate" style="width: 140px" class="text-right">
+                           <!-- Last Activity Column -->
+                           <Column :header="t.colLastActivity" style="width: 140px">
                               <template #body="{ data }">
-                                   <div class="flex flex-col items-end">
-                                       <span class="text-xs font-bold text-slate-500">{{ data.created_at }}</span>
+                                   <div class="flex items-center gap-2">
+                                       <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                       <span class="text-xs font-bold text-slate-500">{{ data.last_activity }}</span>
                                    </div>
                               </template>
                            </Column>
@@ -348,16 +349,19 @@ const translateStatus = (status) => {
                            <!-- Empty state inside table -->
                            <template #empty>
                               <div class="py-16 text-center space-y-3">
-                                   <div class="text-4xl opacity-20">📡</div>
-                                   <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].emptyTelemetry }}</p>
+                                   <div class="text-4xl opacity-20">👥</div>
+                                   <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.emptyLiveStudents }}</p>
                               </div>
                            </template>
                        </DataTable>
                    </div>
               </template>
           </Card>
+
+          
       </div>
-    </div>
+      </div>
+
   </AdminLayout>
 </template>
 

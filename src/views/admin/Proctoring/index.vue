@@ -36,149 +36,73 @@ interface Statistics {
 
 const router = useRouter()
 
-// ─── Language ───────────────────────────────────────────────────────────────
-const currentLang = ref<'ar' | 'en'>((localStorage.getItem('dashboard_lang') as 'ar' | 'en') || 'ar')
-const toggleLang = () => {
-  currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar'
-  localStorage.setItem('dashboard_lang', currentLang.value)
-}
-
 const t = {
-  ar: {
-    loading: 'جاري تحميل قائمة الطلاب...',
-    loadingData: 'جاري تحميل البيانات...',
-    title: 'جلسات المراقبة',
-    subtitle: 'طالب لديه سجل مراقبة',
-    searchPlaceholder: 'ابحث عن طالب...',
-    statTotal: 'إجمالي الجلسات',
-    statViolations: 'جلسات بها انتهاكات',
-    statTotalViolations: 'إجمالي الانتهاكات',
-    statAvgRisk: 'متوسط الخطر',
-    filtersTitle: 'تصفية النتائج',
-    filterStatus: 'الحالة',
-    filterViolations: 'الانتهاكات',
-    filterRisk: 'درجة الخطر',
-    resetFilters: 'إعادة تعيين الفلاتر',
-    colDate: 'آخر نشاط له',
-    colStudent: 'الطالب',
-    colExam: 'الامتحان الأخير',
-    colStatus: 'الحالة للمحاولة الأخيرة',
-    colRisk: 'أقصى نسبة خطر',
-    colViolations: 'إجمالي المخالفات',
-    colActions: 'الإجراء',
-    preExamVerification: 'التحقق قبل الامتحان',
-    violationLabel: 'مخالفة',
-    safeLabel: 'آمن',
-    viewDetails: 'عرض التفاصيل',
-    pauseSession: 'إيقاف الجلسة',
-    page: 'صفحة',
-    of: 'من',
-    emptyTitle: 'لا توجد جلسات مراقبة',
-    emptySubtitle: 'ستظهر هنا بمجرد بدء الطلاب الاختبارات المراقبة',
-    statusPending: 'قيد الانتظار',
-    statusActive: 'نشط',
-    statusPaused: 'موقوف',
-    statusEnded: 'منتهي',
-    statusCancelled: 'ملغي',
-    allStatuses: 'جميع الحالات',
-    allSessions: 'جميع الجلسات',
-    withViolations: 'جلسات بها انتهاكات',
-    withoutViolations: 'جلسات بدون انتهاكات',
-    allRiskLevels: 'جميع مستويات الخطر',
-    riskMedium: 'خطر متوسط (50+)',
-    riskHigh: 'خطر عالي (70+)',
-    riskCritical: 'خطر حرج (80+)',
-    colSessionsCount: 'إجمالي الجلسات',
-    maxRiskScore: 'أقصى درجة خطر للكل',
-    latestActivity: 'آخر نشاط',
-    backToStudents: 'العودة لقائمة الطلاب',
-    studentProfile: 'سجل مراقبة الطالب',
-    skillsEnteredExit: 'المهارات والجدول الزمني للبدء والخروج',
-    enteredAt: 'تاريخ الدخول للمهارة',
-    exitedAt: 'تاريخ الخروج',
-    stillTesting: 'قيد التقديم حالياً',
-    questionsAnswered: 'الأسئلة المجابة',
-    viewSessionDetails: 'عرض الكاميرا والتسجيل والتفاصيل الكاملة',
-    sessionLogs: 'جلسات المراقبة المرتبطة بالطالب',
-    noSessionsFound: 'لا توجد جلسات مسجلة لهذا الطالب.',
-    attemptsCount: 'محاولات',
-    latestActivityOn: 'آخر نشاط في',
-    duration: 'المدة الزمنية',
-    unknown: 'غير معرف',
-    seconds: 'ثانية',
-    minutes: 'دقيقة',
-    secondsShort: 'ث',
-    minutesShort: 'د',
-  },
-  en: {
-    loading: 'Loading student list...',
-    loadingData: 'Fetching data...',
-    title: 'Proctoring Dashboard',
-    subtitle: 'monitored students registry',
-    searchPlaceholder: 'Search for a student...',
-    statTotal: 'Total Sessions',
-    statViolations: 'Sessions with Violations',
-    statTotalViolations: 'Total Violations',
-    statAvgRisk: 'Average Risk',
-    filtersTitle: 'Filter Results',
-    filterStatus: 'Status',
-    filterViolations: 'Violations',
-    filterRisk: 'Risk Score',
-    resetFilters: 'Reset Filters',
-    colDate: 'Latest Activity',
-    colStudent: 'Student',
-    colExam: 'Latest Exam',
-    colStatus: 'Latest Status',
-    colRisk: 'Max Risk Score',
-    colViolations: 'Total Violations',
-    colActions: 'Actions',
-    preExamVerification: 'Pre-exam verification',
-    violationLabel: 'violation',
-    safeLabel: 'Safe',
-    viewDetails: 'View Details',
-    pauseSession: 'Pause Session',
-    page: 'Page',
-    of: 'of',
-    emptyTitle: 'No Proctoring Sessions',
-    emptySubtitle: 'Proctoring sessions will appear here once students begin monitored exams.',
-    statusPending: 'Pending',
-    statusActive: 'Active',
-    statusPaused: 'Paused',
-    statusEnded: 'Ended',
-    statusCancelled: 'Cancelled',
-    allStatuses: 'All Statuses',
-    allSessions: 'All Sessions',
-    withViolations: 'Sessions with Violations',
-    withoutViolations: 'Sessions without Violations',
-    allRiskLevels: 'All Risk Levels',
-    riskMedium: 'Medium Risk (50+)',
-    riskHigh: 'High Risk (70+)',
-    riskCritical: 'Critical Risk (80+)',
-    colSessionsCount: 'Total SessionsCount',
-    maxRiskScore: 'Max Risk Score',
-    latestActivity: 'Latest Activity',
-    backToStudents: 'Back to Student List',
-    studentProfile: 'Student Proctoring Profile',
-    skillsEnteredExit: 'Skills Entry/Exit Timeline',
-    enteredAt: 'Entered at',
-    exitedAt: 'Exited at',
-    stillTesting: 'In Progress',
-    questionsAnswered: 'Questions Answered',
-    viewSessionDetails: 'View Details & Video Recording',
-    sessionLogs: 'Sessions associated with this student',
-    noSessionsFound: 'No proctoring sessions found for this student',
-    attemptsCount: 'Sessions',
-    latestActivityOn: 'Latest activity: ',
-    duration: 'Duration',
-    unknown: 'Unknown',
-    seconds: 'sec',
-    minutes: 'min',
-    secondsShort: 's',
-    minutesShort: 'm',
-  },
+  loading: 'Loading student list...',
+  loadingData: 'Fetching data...',
+  title: 'Proctoring Dashboard',
+  subtitle: 'monitored students registry',
+  searchPlaceholder: 'Search for a student...',
+  statTotal: 'Total Sessions',
+  statViolations: 'Sessions with Violations',
+  statTotalViolations: 'Total Violations',
+  statAvgRisk: 'Average Risk',
+  filtersTitle: 'Filter Results',
+  filterStatus: 'Status',
+  filterViolations: 'Violations',
+  filterRisk: 'Risk Score',
+  resetFilters: 'Reset Filters',
+  colDate: 'Latest Activity',
+  colStudent: 'Student',
+  colExam: 'Latest Exam',
+  colStatus: 'Latest Status',
+  colRisk: 'Max Risk Score',
+  colViolations: 'Total Violations',
+  colActions: 'Actions',
+  preExamVerification: 'Pre-exam verification',
+  violationLabel: 'violation',
+  safeLabel: 'Safe',
+  viewDetails: 'View Details',
+  pauseSession: 'Pause Session',
+  page: 'Page',
+  of: 'of',
+  emptyTitle: 'No Proctoring Sessions',
+  emptySubtitle: 'Proctoring sessions will appear here once students begin monitored exams.',
+  statusPending: 'Pending',
+  statusActive: 'Active',
+  statusPaused: 'Paused',
+  statusEnded: 'Ended',
+  statusCancelled: 'Cancelled',
+  allStatuses: 'All Statuses',
+  allSessions: 'All Sessions',
+  withViolations: 'Sessions with Violations',
+  withoutViolations: 'Sessions without Violations',
+  allRiskLevels: 'All Risk Levels',
+  riskMedium: 'Medium Risk (50+)',
+  riskHigh: 'High Risk (70+)',
+  riskCritical: 'Critical Risk (80+)',
+  colSessionsCount: 'Total SessionsCount',
+  maxRiskScore: 'Max Risk Score',
+  latestActivity: 'Latest Activity',
+  backToStudents: 'Back to Student List',
+  studentProfile: 'Student Proctoring Profile',
+  skillsEnteredExit: 'Skills Entry/Exit Timeline',
+  enteredAt: 'Entered at',
+  exitedAt: 'Exited at',
+  stillTesting: 'In Progress',
+  questionsAnswered: 'Questions Answered',
+  viewSessionDetails: 'View Details & Video Recording',
+  sessionLogs: 'Sessions associated with this student',
+  noSessionsFound: 'No proctoring sessions found for this student',
+  attemptsCount: 'Sessions',
+  latestActivityOn: 'Latest activity: ',
+  duration: 'Duration',
+  unknown: 'Unknown',
+  seconds: 'sec',
+  minutes: 'min',
+  secondsShort: 's',
+  minutesShort: 'm',
 }
 
-// ─── State ───────────────────────────────────────────────────────────────────
 const studentsList = ref<GroupedStudent[]>([])
 
 const statistics = ref<Statistics>({
@@ -200,30 +124,28 @@ const filters = ref({
   min_risk_score: '',
 })
 
-// ─── Computed options (reactive to language) ─────────────────────────────────
 const statusOptions = computed(() => [
-  { label: t[currentLang.value].allStatuses, value: '' },
-  { label: t[currentLang.value].statusPending, value: 'pending' },
-  { label: t[currentLang.value].statusActive, value: 'active' },
-  { label: t[currentLang.value].statusPaused, value: 'paused' },
-  { label: t[currentLang.value].statusEnded, value: 'ended' },
-  { label: t[currentLang.value].statusCancelled, value: 'cancelled' },
+  { label: t.allStatuses, value: '' },
+  { label: t.statusPending, value: 'pending' },
+  { label: t.statusActive, value: 'active' },
+  { label: t.statusPaused, value: 'paused' },
+  { label: t.statusEnded, value: 'ended' },
+  { label: t.statusCancelled, value: 'cancelled' },
 ])
 
 const violationOptions = computed(() => [
-  { label: t[currentLang.value].allSessions, value: '' },
-  { label: t[currentLang.value].withViolations, value: true },
-  { label: t[currentLang.value].withoutViolations, value: false },
+  { label: t.allSessions, value: '' },
+  { label: t.withViolations, value: true },
+  { label: t.withoutViolations, value: false },
 ])
 
 const riskOptions = computed(() => [
-  { label: t[currentLang.value].allRiskLevels, value: '' },
-  { label: t[currentLang.value].riskMedium, value: '50' },
-  { label: t[currentLang.value].riskHigh, value: '70' },
-  { label: t[currentLang.value].riskCritical, value: '80' },
+  { label: t.allRiskLevels, value: '' },
+  { label: t.riskMedium, value: '50' },
+  { label: t.riskHigh, value: '70' },
+  { label: t.riskCritical, value: '80' },
 ])
 
-// ─── Methods ─────────────────────────────────────────────────────────────────
 const fetchSessions = async () => {
   loading.value = true
   try {
@@ -254,7 +176,6 @@ const selectStudent = (studentId: number) => {
   router.push(`/admin/proctoring/student/${studentId}`)
 }
 
-
 const sortBy = (field: string) => {
   if (sortField.value === field) {
     sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
@@ -272,8 +193,7 @@ const resetFilters = () => {
 
 const formatDate = (date: string) => {
   if (!date) return '—'
-  const locale = currentLang.value === 'ar' ? 'ar-SA' : 'en-GB'
-  return new Date(date).toLocaleDateString(locale, {
+  return new Date(date).toLocaleDateString('en-GB', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -295,7 +215,6 @@ const getViolationClass = (count: number) => {
   return 'border-sky-200 bg-sky-50/50 text-sky-700'
 }
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
 onMounted(() => {
   fetchSessions()
   fetchStatistics()
@@ -316,11 +235,9 @@ const fetchStatistics = async () => {
 const deleteAllStudentSessions = async (studentId: number, studentName: string, event: Event) => {
   event.stopPropagation()
 
-  const msg = currentLang.value === 'ar'
-    ? `هل أنت متأكد من حذف جميع جلسات "${studentName}" نهائياً؟ ستُحذف كل المخالفات والسجلات المرتبطة.`
-    : `Are you sure you want to permanently delete all sessions for "${studentName}"? All violations and logs will be deleted.`
-  const title = currentLang.value === 'ar' ? 'حذف كل جلسات الطالب' : 'Delete All Student Sessions'
-  const confirmLabel = currentLang.value === 'ar' ? 'نعم، احذف الكل' : 'Yes, Delete All'
+  const msg = `Are you sure you want to permanently delete all sessions for "${studentName}"? All violations and logs will be deleted.`
+  const title = 'Delete All Student Sessions'
+  const confirmLabel = 'Yes, Delete All'
 
   const confirmed = await showConfirm(msg, title, 'danger', confirmLabel)
   if (!confirmed) return
@@ -330,15 +247,15 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
     await fetchSessions()
     await fetchStatistics()
     await showAlert(
-      currentLang.value === 'ar' ? 'تم حذف جميع جلسات الطالب بنجاح.' : 'All student sessions deleted successfully.',
-      currentLang.value === 'ar' ? 'تم بنجاح' : 'Success',
+      'All student sessions deleted successfully.',
+      'Success',
       'success'
     )
   } catch (error) {
     console.error('Failed to delete all student sessions:', error)
     await showAlert(
-      currentLang.value === 'ar' ? 'فشل حذف جلسات الطالب.' : 'Failed to delete student sessions.',
-      currentLang.value === 'ar' ? 'خطأ' : 'Error',
+      'Failed to delete student sessions.',
+      'Error',
       'danger'
     )
   }
@@ -349,13 +266,13 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
 
 <template>
   <AdminLayout>
-    <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+    <div class="w-full">
 
       <!-- Loading Indicator -->
       <div v-if="loading && studentsList.length === 0"
         class="flex flex-col items-center justify-center py-32 space-y-4">
         <ProgressSpinner />
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
       </div>
 
       <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
@@ -372,26 +289,18 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
 
           <div class="relative z-10 space-y-2">
             <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
-              {{ t[currentLang].title }}
+              {{ t.title }}
             </h1>
             <p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-[0.2em] flex items-center gap-2">
               <span class="w-2.5 h-2.5 bg-brand-primary rounded-full animate-ping"></span>
-              <span>{{ pagination.total }} {{ t[currentLang].subtitle }}</span>
+              <span>{{ pagination.total }} {{ t.subtitle }}</span>
             </p>
           </div>
 
           <div class="flex flex-wrap items-center gap-4 relative z-10">
-            <!-- Language Toggle -->
-            <button @click="toggleLang"
-              class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-              <i class="pi pi-globe text-brand-primary"></i>
-              <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-            </button>
-
-            <!-- Search -->
             <span class="relative">
               <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 text-xs" />
-              <input v-model="filters.search" type="text" :placeholder="t[currentLang].searchPlaceholder"
+              <input v-model="filters.search" type="text" :placeholder="t.searchPlaceholder"
                 @input="currentPage = 1"
                 class="bg-slate-50 border border-slate-100 rounded-xl pl-9 pr-4 py-2.5 text-xs font-bold focus:bg-white transition-all w-64 outline-none focus:border-brand-primary" />
             </span>
@@ -406,7 +315,7 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
             <div class="flex items-center justify-between">
               <div>
                 <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
-                  {{ t[currentLang].statTotal }}
+                  {{ t.statTotal }}
                 </div>
                 <div class="text-4xl font-black text-slate-800">{{ statistics.total_sessions }}</div>
               </div>
@@ -421,7 +330,7 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
             <div class="flex items-center justify-between">
               <div>
                 <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
-                  {{ t[currentLang].statViolations }}
+                  {{ t.statViolations }}
                 </div>
                 <div class="text-4xl font-black"
                   :style="{ color: statistics.sessions_with_violations > 0 ? '#f59e0b' : '#10b981' }">
@@ -440,7 +349,7 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
             <div class="flex items-center justify-between">
               <div>
                 <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
-                  {{ t[currentLang].statTotalViolations }}
+                  {{ t.statTotalViolations }}
                 </div>
                 <div class="text-4xl font-black text-slate-800">{{ statistics.total_violations }}</div>
               </div>
@@ -455,7 +364,7 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
             <div class="flex items-center justify-between">
               <div>
                 <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
-                  {{ t[currentLang].statAvgRisk }}
+                  {{ t.statAvgRisk }}
                 </div>
                 <div class="text-4xl font-black" :style="{ color: getRiskColor(statistics.average_risk_score) }">
                   {{ statistics.average_risk_score }}
@@ -475,22 +384,22 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
           class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md flex flex-col xl:flex-row justify-between items-center gap-6">
           <div class="flex items-center gap-2">
             <i class="pi pi-filter text-slate-400"></i>
-            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">{{ t[currentLang].filtersTitle }}
+            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">{{ t.filtersTitle }}
             </h3>
           </div>
           <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
             <Select v-model="filters.status" :options="statusOptions" optionLabel="label" optionValue="value"
-              :placeholder="t[currentLang].filterStatus" @change="currentPage = 1"
+              :placeholder="t.filterStatus" @change="currentPage = 1"
               class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[160px] focus:border-brand-primary transition-all" />
             <Select v-model="filters.has_violations" :options="violationOptions" optionLabel="label" optionValue="value"
-              :placeholder="t[currentLang].filterViolations" @change="currentPage = 1"
+              :placeholder="t.filterViolations" @change="currentPage = 1"
               class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[180px] focus:border-brand-primary transition-all" />
             <Select v-model="filters.min_risk_score" :options="riskOptions" optionLabel="label" optionValue="value"
-              :placeholder="t[currentLang].filterRisk" @change="currentPage = 1"
+              :placeholder="t.filterRisk" @change="currentPage = 1"
               class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[180px] focus:border-brand-primary transition-all" />
             <Button v-if="filters.status || filters.has_violations !== '' || filters.min_risk_score"
               icon="pi pi-filter-slash" severity="danger" rounded outlined @click="resetFilters"
-              v-tooltip.top="t[currentLang].resetFilters"
+              v-tooltip.top="t.resetFilters"
               class="h-11 w-11 shrink-0 cursor-pointer hover:bg-rose-50 hover:border-rose-400" />
           </div>
         </div>
@@ -499,7 +408,7 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
         <div v-if="loading"
           class="flex flex-col items-center justify-center py-24 bg-white rounded-[2rem] border border-slate-100 shadow-md gap-4 animate-in fade-in duration-500">
           <ProgressSpinner />
-          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{{ t[currentLang].loadingData }}
+          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{{ t.loadingData }}
           </p>
         </div>
 
@@ -511,8 +420,8 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
             <i class="pi pi-video"></i>
           </div>
           <div class="text-center space-y-2">
-            <h3 class="text-xl font-black text-slate-800 tracking-tight">{{ t[currentLang].emptyTitle }}</h3>
-            <p class="text-xs font-bold text-slate-400 max-w-sm leading-relaxed">{{ t[currentLang].emptySubtitle }}
+            <h3 class="text-xl font-black text-slate-800 tracking-tight">{{ t.emptyTitle }}</h3>
+            <p class="text-xs font-bold text-slate-400 max-w-sm leading-relaxed">{{ t.emptySubtitle }}
             </p>
           </div>
         </div>
@@ -524,13 +433,13 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
             <thead
               class="bg-slate-50/50 border-b border-slate-100 GFM-table-head uppercase text-[10px] font-black text-slate-400 tracking-wider">
               <tr>
-                <th class="p-6 text-right-lang">{{ t[currentLang].colStudent }}</th>
-                <th class="p-6 text-center">{{ t[currentLang].colSessionsCount }}</th>
-                <th class="p-6 text-center">{{ t[currentLang].colRisk }}</th>
-                <th class="p-6 text-center">{{ t[currentLang].colViolations }}</th>
-                <th class="p-6 text-right-lang">{{ t[currentLang].colExam }}</th>
-                <th class="p-6 text-right-lang">{{ t[currentLang].colDate }}</th>
-                <th class="p-6 text-right-lang">{{ t[currentLang].colActions }}</th>
+                <th class="p-6">{{ t.colStudent }}</th>
+                <th class="p-6 text-center">{{ t.colSessionsCount }}</th>
+                <th class="p-6 text-center">{{ t.colRisk }}</th>
+                <th class="p-6 text-center">{{ t.colViolations }}</th>
+                <th class="p-6">{{ t.colExam }}</th>
+                <th class="p-6">{{ t.colDate }}</th>
+                <th class="p-6">{{ t.colActions }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50 text-sm">
@@ -570,30 +479,30 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
                   <span v-if="item.violations_count > 0" :class="getViolationClass(item.violations_count)"
                     class="inline-flex items-center gap-1 text-[10px] font-black uppercase rounded-xl px-3 py-1 border">
                     <i class="pi pi-exclamation-circle text-[9px]"></i>
-                    {{ item.violations_count }} {{ t[currentLang].violationLabel }}
+                    {{ item.violations_count }} {{ t.violationLabel }}
                   </span>
                   <span v-else
                     class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
                     <i class="pi pi-check-circle text-[10px]"></i>
-                    {{ t[currentLang].safeLabel }}
+                    {{ t.safeLabel }}
                   </span>
                 </td>
                 <td class="p-6 font-bold text-slate-700 text-xs">
-                  {{ item.exam_title || t[currentLang].preExamVerification }}
+                  {{ item.exam_title || t.preExamVerification }}
                 </td>
                 <td class="p-6 font-bold text-slate-500 text-xs">
                   {{ formatDate(item.created_at) }}
                 </td>
-                <td class="p-6 text-right-lang">
+                <td class="p-6">
                   <div class="flex items-center gap-2 justify-end">
                     <Button icon="pi pi-eye" rounded severity="info" outlined size="small"
                       class="h-9 w-9 border-blue-200 bg-blue-50/20 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 cursor-pointer transition-all duration-300"
                       @click.stop="router.push(`/admin/proctoring/student/${item.student_id}`)"
-                      v-tooltip.top="t[currentLang].viewDetails" />
+                      v-tooltip.top="t.viewDetails" />
                     <Button icon="pi pi-trash" rounded severity="danger" outlined size="small"
                       class="h-9 w-9 border-rose-200 bg-rose-50/20 text-rose-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-all duration-300"
                       @click="deleteAllStudentSessions(item.student_id, item.student?.user?.name ?? '', $event)"
-                      v-tooltip.top="currentLang === 'ar' ? 'حذف كل الجلسات' : 'Delete All Sessions'" />
+                      v-tooltip.top="'Delete All Sessions'" />
                   </div>
                 </td>
               </tr>
@@ -606,7 +515,7 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
           <Button icon="pi pi-chevron-right" @click="currentPage--" :disabled="currentPage === 1" outlined
             severity="secondary" class="text-xs font-black cursor-pointer" />
           <span class="text-sm font-black text-slate-600 uppercase tracking-wider">
-            {{ t[currentLang].page }} {{ currentPage }} {{ t[currentLang].of }} {{ pagination.last_page }}
+            {{ t.page }} {{ currentPage }} {{ t.of }} {{ pagination.last_page }}
           </span>
           <Button icon="pi pi-chevron-left" @click="currentPage++" :disabled="currentPage === pagination.last_page"
             outlined severity="secondary" class="text-xs font-black cursor-pointer" />
@@ -630,21 +539,7 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* RTL Text-align utility */
-.rtl .text-right-lang {
-  text-align: left !important;
-}
-
 .text-right-lang {
   text-align: right !important;
-}
-
-/* RTL GFM-table-head padding alignment fallback */
-.rtl .GFM-table-head th {
-  text-align: right !important;
-}
-
-.GFM-table-head th {
-  text-align: left !important;
 }
 </style>

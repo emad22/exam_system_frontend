@@ -22,97 +22,50 @@ const examId = ref(route.params.id || null);
 const availableSkills = ref([]);
 const languages = ref([]);
 const categories = ref([]);
-const currentStep = ref(1); // 1: Identity, 2: Skills, 3: Finalize
+const currentStep = ref(1);
 const activeSkillTab = ref(null);
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-// Translation Dictionary
 const t = {
-    ar: {
-        activeSystem: "نظام إعداد الاختبارات النشط",
-        createExam: "إنشاء اختبار جديد",
-        editExam: "تعديل الاختبار",
-        stepText: "الخطوة {step} من 3: {stepName}",
-        stepNames: {
-            1: "إعدادات الهوية",
-            2: "تحديد المهارات",
-            3: "المراجعة والحفظ"
-        },
-        sequenceError: "خطأ في التسلسل والتهيئة الأساسية:",
-        examDetails: "تفاصيل وهوية الاختبار",
-        examDetailsDesc: "أدخل عنوان الاختبار والتصنيف العام المناسب لإعداد المعايير.",
-        examTitleLabel: "عنوان الاختبار الأكاديمي",
-        enterExamTitle: "أدخل عنوان الاختبار...",
-        examCategoryLabel: "تصنيف الاختبار",
-        selectCategory: "اختر تصنيف الاختبار...",
-        descriptionLabel: "الوصف التفصيلي للاختبار (اختياري)",
-        enterDescription: "أدخل وصفاً أو ملاحظات توضيحية لهذا الاختبار الأكاديمي",
-        examSubjects: "المهارات والموضوعات المشمولة",
-        examSubjectsDesc: "حدد المهارات والمواد المطلوب إدراجها لقياس أداء المرشحين.",
-        selectedSubjects: "الموضوعات النشطة:",
-        subjectsCountSelected: "مهارات محددة بالباقة",
-        clickToSelect: "انقر للتحديد وتعديل المعايير",
-        duration: "المدة الزمنية",
-        minutes: "دقيقة",
-        maxPoints: "الحد الأقصى للنقاط",
-        ptsCap: "نقطة كحد أقصى",
-        readyToSave: "تأكيد وحفظ بنية الاختبار",
-        readyToSaveDesc: "تم إعداد البنية الأساسية بنجاح، يمكنك إدارة وبناء الأسئلة التفصيلية فور الحفظ.",
-        examSummary: "ملخص هيكل الاختبار",
-        saveExam: "حفظ وتأكيد الاختبار",
-        saving: "جاري الحفظ والتهيئة...",
-        saveBtnText: "حفظ وتأكيد الاختبار ➜",
-        saveBtnTextEdit: "تحديث وتأكيد التعديلات ➜",
-        saveDesc: "سيقوم هذا بحفظ اختبارك والعودة لإدارة الاختبارات للبدء ببناء بنك الأسئلة والمهام.",
-        backToStep: "العودة للخطوة",
-        nextStep: "الخطوة التالية",
-        validationWarning: "يرجى إدخال عنوان الاختبار وتحديد التصنيف المناسب للمتابعة.",
-        validationTitle: "تنبيه التحقق",
-        successMsg: "تم حفظ الاختبار وتأكيد البنية بنجاح!"
+    activeSystem: "Exams",
+    createExam: "Create Exam",
+    editExam: "Edit Exam",
+    stepText: "Step {step} of 3: {stepName}",
+    stepNames: {
+        1: "Basic Info",
+        2: "Skills",
+        3: "Review & Save"
     },
-    en: {
-        activeSystem: "Active Exam Configurator",
-        createExam: "Create Exam",
-        editExam: "Edit Exam",
-        stepText: "Step {step} of 3: {stepName}",
-        stepNames: {
-            1: "Identity Settings",
-            2: "Skills Alignment",
-            3: "Review & Save"
-        },
-        sequenceError: "Sequence Error & Initialization failure:",
-        examDetails: "Exam Details & Identity",
-        examDetailsDesc: "Enter the title and category for the exam setup.",
-        examTitleLabel: "Academic Exam Title",
-        enterExamTitle: "Enter Exam Title...",
-        examCategoryLabel: "Exam Category",
-        selectCategory: "Select Exam Category...",
-        descriptionLabel: "Detailed Exam Description (Optional)",
-        enterDescription: "Enter a brief descriptive note for this academic exam",
-        examSubjects: "Included Skills & Subjects",
-        examSubjectsDesc: "Select the subjects to be included in this assessment package.",
-        selectedSubjects: "Active Subjects:",
-        subjectsCountSelected: "Skills Selected",
-        clickToSelect: "Click to Select & Config",
-        duration: "Duration",
-        minutes: "min",
-        maxPoints: "Max Points",
-        ptsCap: "pts cap",
-        readyToSave: "Commit & Save Exam Structure",
-        readyToSaveDesc: "The general exam structure has been provisioned. You can manage questions right after saving.",
-        examSummary: "Exam Structure Summary",
-        saveExam: "Save Exam Details",
-        saving: "Saving configuration...",
-        saveBtnText: "SAVE EXAM DETAILS ➜",
-        saveBtnTextEdit: "UPDATE EXAM DETAILS ➜",
-        saveDesc: "This will commit the exam and return you to the dashboard directory to manage question papers.",
-        backToStep: "Back to Step",
-        nextStep: "Next Step",
-        validationWarning: "Please provide an Exam Title and select a Category to proceed.",
-        validationTitle: "Validation Warning",
-        successMsg: "Exam saved successfully!"
-    }
+    sequenceError: "Error saving exam:",
+    examDetails: "Exam Details",
+    examDetailsDesc: "Enter the title and category for the exam.",
+    examTitleLabel: "Exam Title",
+    enterExamTitle: "Enter Exam Title...",
+    examCategoryLabel: "Exam Category",
+    selectCategory: "Select Exam Category...",
+    descriptionLabel: "Description (Optional)",
+    enterDescription: "Enter a brief description for this exam",
+    examSubjects: "Included Skills",
+    examSubjectsDesc: "Select the skills to be included in this exam.",
+    selectedSubjects: "Selected Skills:",
+    subjectsCountSelected: "Skills Selected",
+    clickToSelect: "Click to Select & Configure",
+    duration: "Duration",
+    minutes: "min",
+    maxPoints: "Max Points",
+    ptsCap: "pts cap",
+    readyToSave: "Save Exam",
+    readyToSaveDesc: "The exam structure is ready. You can add questions after saving.",
+    examSummary: "Exam Summary",
+    saveExam: "Save Exam Details",
+    saving: "Saving...",
+    saveBtnText: "SAVE EXAM",
+    saveBtnTextEdit: "UPDATE EXAM",
+    saveDesc: "The exam will be saved and you can add questions next.",
+    backToStep: "Back to Step",
+    nextStep: "Next Step",
+    validationWarning: "Please provide an Exam Title and select a Category to proceed.",
+    validationTitle: "Validation Warning",
+    successMsg: "Exam saved successfully!"
 };
 
 const form = ref({
@@ -125,10 +78,7 @@ const form = ref({
     selectedSkills: []
 });
 
-// For Step 3: Local storage of questions being added
-// Structure: { skillId: { levelNum: [questions] } }
 const localQuestions = ref({});
-// To track which questions are NEW (to be saved) vs IMPORTED (already in bank)
 const newQuestionQueue = ref([]);
 
 const isSubmitting = ref(false);
@@ -149,7 +99,6 @@ onMounted(async () => {
         languages.value = langRes.data;
         categories.value = catRes.data;
 
-        // Auto-select Arabic if Universal
         const arabic = languages.value.find(l => l.name.toLowerCase().includes('arab'));
         if (arabic) form.value.language_id = arabic.id;
         else if (languages.value.length > 0) form.value.language_id = languages.value[0].id;
@@ -182,11 +131,10 @@ onMounted(async () => {
                 })
             };
 
-            // Initialize localQuestions from fetched questions
             if (exam.questions && exam.questions.length > 0) {
                 exam.questions.forEach(q => {
                     const sId = q.skill_id;
-                    const lNum = q.level?.level_number || 1; // Use the level number for matrix mapping
+                    const lNum = q.level?.level_number || 1;
                     if (!localQuestions.value[sId]) localQuestions.value[sId] = {};
                     if (!localQuestions.value[sId][lNum]) localQuestions.value[sId][lNum] = [];
 
@@ -210,7 +158,7 @@ onMounted(async () => {
         }
     } catch (err) {
         errorMsg.value = 'Failed to synchronize with administrative services.';
-        showAlert(currentLang.value === 'ar' ? 'خطأ' : 'Error', errorMsg.value);
+        showAlert('Error', errorMsg.value);
     } finally {
         isLoading.value = false;
         if (form.value.selectedSkills.length > 0) {
@@ -230,7 +178,7 @@ watch(() => form.value.selectedSkills, (newSkills) => {
 const nextStep = () => {
     if (currentStep.value === 1) {
         if (!form.value.title?.trim() || !form.value.exam_category_id) {
-            showAlert(t[currentLang.value].validationWarning, t[currentLang.value].validationTitle, 'warning');
+            showAlert(t.validationWarning, t.validationTitle, 'warning');
             return;
         }
     }
@@ -259,7 +207,6 @@ const setSkillDuration = (skillId, val) => {
     if (skill) skill.duration = val;
 };
 
-// Level Manager
 const showLevelModal = ref(false);
 const editingSkill = ref(null);
 const editingLevels = ref([]);
@@ -300,13 +247,12 @@ const saveLevels = async () => {
         const skillRes = await api.get('/admin/skills-with-levels');
         availableSkills.value = skillRes.data;
         showLevelModal.value = false;
-        showAlert('Matrix Updated. Cognitive tiers redistributed.', 'Success', 'success');
+        showAlert('Levels updated successfully.');
     } catch (err) {
         showAlert('Failed to propagate levels.', 'Sync Failure', 'error');
     } finally { isSavingLevels.value = false; }
 };
 
-// Question Builder
 const activeSkillForQuestions = ref(null);
 const activeLevelForQuestions = ref(null);
 const showQuestionForm = ref(false);
@@ -338,7 +284,7 @@ const openBankSelector = async (skillId, levelNum) => {
     activeLevelForQuestions.value = levelNum;
     showBankModal.value = true;
     bankLoading.value = true;
-    bankSearchQuery.value = ''; // Reset search
+    bankSearchQuery.value = '';
     try {
         const res = await api.get('/admin/questions', { params: { skill_id: skillId, level_id: levelNum } });
         bankQuestions.value = res.data.data;
@@ -430,7 +376,6 @@ const handleMediaUpload = async (event) => {
         const res = await api.post('/admin/media/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         newQuestion.value.media_path = res.data.path;
         newQuestion.value.media_url = res.data.url;
-        // Reset player state
         isAudioPlayingInModal.value = false;
     } finally { isUploadingMedia.value = false; }
 };
@@ -486,14 +431,13 @@ const commitQuestion = () => {
 
     if (isPassageMode.value) {
         if (!currentGroupId.value) currentGroupId.value = 'grp_' + Math.random().toString(36).substr(2, 9);
-        q.temp_group_id = currentGroupId.value; // Temporary ID for grouping in UI before save
+        q.temp_group_id = currentGroupId.value;
     }
 
     if (!localQuestions.value[activeSkillForQuestions.value]) localQuestions.value[activeSkillForQuestions.value] = {};
     if (!localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value]) localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value] = [];
     localQuestions.value[activeSkillForQuestions.value][activeLevelForQuestions.value].push(q);
 
-    // Partially reset but keep passage if same group
     const oldPassageMode = q.passage_mode;
     const oldPassageContent = q.passage_content;
     const oldPassageTitle = q.passage_title;
@@ -537,7 +481,7 @@ const saveExam = async () => {
         if (isEditMode.value) await api.patch(`/admin/exams/${examId.value}`, payload);
         else await api.post('/admin/exams', payload);
 
-        showAlert(t[currentLang.value].successMsg, currentLang.value === 'ar' ? 'تمت العملية' : 'Success', 'success');
+        showAlert(t.successMsg, 'Success', 'success');
         router.push('/admin/exams');
     } catch (err) {
         showAlert('Failed to save exam.', 'Save Error', 'error');
@@ -547,7 +491,7 @@ const saveExam = async () => {
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div class="w-full">
             
             <div v-if="isLoading" class="flex flex-col items-center justify-center py-40">
                 <div class="w-16 h-16 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin mb-8"></div>
@@ -562,23 +506,23 @@ const saveExam = async () => {
                     <div class="absolute left-0 bottom-0 w-64 h-64 bg-slate-50/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl transition-all duration-1000"></div>
                     
                     <div class="relative z-10 flex items-center gap-6">
-                        <Button :icon="currentLang === 'ar' ? 'pi pi-arrow-right' : 'pi pi-arrow-left'" severity="secondary" outlined rounded @click="router.push('/admin/exams')" class="w-12 h-12 flex items-center justify-center border border-slate-200 hover:border-slate-300 shadow-sm bg-white" />
+                        <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/exams')" class="w-12 h-12 flex items-center justify-center border border-slate-200 hover:border-slate-300 shadow-sm bg-white" />
                         <div>
                             <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
                                 <i class="pi pi-sparkles text-brand-accent animate-pulse"></i>
-                                <span>{{ t[currentLang].activeSystem }}</span>
+                                <span>{{ t.activeSystem }}</span>
                             </div>
                             <h1 class="text-2xl font-black text-slate-800 tracking-tight leading-tight mt-1">
-                                {{ isEditMode ? t[currentLang].editExam : t[currentLang].createExam }}
+                                {{ isEditMode ? t.editExam : t.createExam }}
                             </h1>
                             <p class="text-xs font-bold text-slate-400 mt-0.5">
-                                {{ t[currentLang].stepText.replace('{step}', currentStep).replace('{stepName}', t[currentLang].stepNames[currentStep]) }}
+                                {{ t.stepText.replace('{step}', currentStep).replace('{stepName}', t.stepNames[currentStep]) }}
                             </p>
                         </div>
                     </div>
 
                     <!-- Step Tracker capsules -->
-                    <div class="flex items-center space-x-2 bg-slate-50/50 px-5 py-3.5 rounded-2xl border border-slate-100 relative z-10 rtl:space-x-reverse">
+                    <div class="flex items-center space-x-2 bg-slate-50/50 px-5 py-3.5 rounded-2xl border border-slate-100 relative z-10">
                         <div v-for="s in 3" :key="s" class="flex items-center">
                             <div :class="currentStep === s ? 'bg-brand-primary text-white shadow-lg shadow-rose-100 scale-110' : (currentStep > s ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300')"
                                 class="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black transition-all duration-500">
@@ -594,7 +538,7 @@ const saveExam = async () => {
 
                 <div v-if="errorMsg" class="p-6 bg-rose-50 border border-rose-100 text-rose-500 text-xs font-black rounded-[1.5rem] flex items-center gap-4">
                     <span class="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center select-none font-bold">!</span>
-                    <span>{{ t[currentLang].sequenceError }} {{ errorMsg }}</span>
+                    <span>{{ t.sequenceError }} {{ errorMsg }}</span>
                 </div>
 
                 <form @submit.prevent class="max-w-5xl mx-auto">
@@ -609,45 +553,45 @@ const saveExam = async () => {
                                             <i class="pi pi-file text-sm"></i>
                                         </div>
                                         <div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider leading-none">{{ t[currentLang].examDetails }}</h3>
-                                            <p class="text-[10px] font-bold text-slate-400 mt-1">{{ t[currentLang].examDetailsDesc }}</p>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider leading-none">{{ t.examDetails }}</h3>
+                                            <p class="text-[10px] font-bold text-slate-400 mt-1">{{ t.examDetailsDesc }}</p>
                                         </div>
                                     </div>
 
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <!-- Title input -->
                                         <div class="flex flex-col space-y-1.5">
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].examTitleLabel }}</label>
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t.examTitleLabel }}</label>
                                             <div class="relative">
-                                                <i :class="[currentLang === 'ar' ? 'right-4' : 'left-4', 'pi pi-pencil absolute top-1/2 -translate-y-1/2 text-slate-300']"></i>
+                                                <i class="pi pi-pencil absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
                                                 <InputText v-model="form.title" type="text"
-                                                    :class="[currentLang === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4', 'w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm font-bold uppercase tracking-tight']"
-                                                    :placeholder="t[currentLang].enterExamTitle" />
+                                                    class="w-full pl-12 pr-4 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm font-bold uppercase tracking-tight"
+                                                    :placeholder="t.enterExamTitle" />
                                             </div>
                                         </div>
 
                                         <!-- Category select -->
                                         <div class="flex flex-col space-y-1.5">
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].examCategoryLabel }}</label>
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t.examCategoryLabel }}</label>
                                             <div class="relative">
-                                                <i :class="[currentLang === 'ar' ? 'right-4' : 'left-4', 'pi pi-users absolute top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none']"></i>
+                                                <i class="pi pi-users absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"></i>
                                                 <select v-model="form.exam_category_id"
-                                                    :class="[currentLang === 'ar' ? 'pr-12 pl-10' : 'pl-12 pr-10', 'w-full bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-xs font-black uppercase tracking-wider focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all cursor-pointer appearance-none shadow-sm']">
-                                                    <option :value="null" disabled>{{ t[currentLang].selectCategory }}</option>
+                                                    class="w-full bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-xs font-black uppercase tracking-wider focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all cursor-pointer appearance-none shadow-sm">
+                                                    <option :value="null" disabled>{{ t.selectCategory }}</option>
                                                     <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                                                 </select>
-                                                <i :class="[currentLang === 'ar' ? 'left-4' : 'right-4', 'pi pi-chevron-down absolute top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none']"></i>
+                                                <i class="pi pi-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"></i>
                                             </div>
                                         </div>
 
                                         <!-- Description textarea -->
                                         <div class="md:col-span-2 flex flex-col space-y-1.5">
-                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].descriptionLabel }}</label>
+                                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t.descriptionLabel }}</label>
                                             <div class="relative">
-                                                <i :class="[currentLang === 'ar' ? 'right-4' : 'left-4', 'pi pi-align-left absolute top-5 text-slate-300']"></i>
+                                                <i class="pi pi-align-left absolute left-4 top-5 text-slate-300"></i>
                                                 <textarea v-model="form.description" rows="3"
-                                                    :class="[currentLang === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4', 'w-full bg-slate-50 border border-slate-100 p-4.5 rounded-xl text-sm font-bold tracking-tight focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all shadow-sm']"
-                                                    :placeholder="t[currentLang].enterDescription"></textarea>
+                                                    class="w-full pl-12 pr-4 bg-slate-50 border border-slate-100 p-4.5 rounded-xl text-sm font-bold tracking-tight focus:bg-white focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition-all shadow-sm"
+                                                    :placeholder="t.enterDescription"></textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -659,14 +603,14 @@ const saveExam = async () => {
                     <!-- STEP 2: SKILLS SELECTION -->
                     <div v-if="currentStep === 2" class="space-y-8 animate-in fade-in zoom-in-95 duration-500">
                         <div class="text-center space-y-2 py-4">
-                            <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">{{ t[currentLang].examSubjects }}</h2>
-                            <p class="text-xs font-bold text-slate-400 max-w-xl mx-auto leading-relaxed">{{ t[currentLang].examSubjectsDesc }}</p>
+                            <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">{{ t.examSubjects }}</h2>
+                            <p class="text-xs font-bold text-slate-400 max-w-xl mx-auto leading-relaxed">{{ t.examSubjectsDesc }}</p>
                             
                             <div class="flex justify-center pt-2">
                                 <div class="bg-white/70 backdrop-blur-md px-5 py-2 rounded-xl border border-slate-100 flex items-center gap-3 shadow-sm">
-                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ t[currentLang].selectedSubjects }}</span>
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ t.selectedSubjects }}</span>
                                     <span class="text-[9px] font-black text-brand-primary uppercase bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100/60 shadow-inner">
-                                        {{ form.selectedSkills.length }} {{ t[currentLang].subjectsCountSelected }}
+                                        {{ form.selectedSkills.length }} {{ t.subjectsCountSelected }}
                                     </span>
                                 </div>
                             </div>
@@ -697,7 +641,7 @@ const saveExam = async () => {
                                     
                                     <!-- Duration -->
                                     <div class="flex flex-col">
-                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{{ t[currentLang].duration }}</span>
+                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{{ t.duration }}</span>
                                         <div class="flex items-center gap-2">
                                             <button type="button" @click.stop="setSkillDuration(skill.id, Math.max(5, getSkillDuration(skill.id) - 5))"
                                                 class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-950 hover:bg-white rounded-md border border-transparent hover:border-slate-100 transition-all shadow-sm">
@@ -708,25 +652,25 @@ const saveExam = async () => {
                                                 class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-950 hover:bg-white rounded-md border border-transparent hover:border-slate-100 transition-all shadow-sm">
                                                 <i class="pi pi-plus text-[7px] font-black"></i>
                                             </button>
-                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].minutes }}</span>
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">{{ t.minutes }}</span>
                                         </div>
                                     </div>
 
                                     <!-- Max Points — only for non-leveled (Writing/Speaking) skills -->
-                                    <div v-if="!isLeveledSkill(skill)" class="flex flex-col border-l border-slate-150 pl-4 pr-4 border-r-0 rtl:border-l-0 rtl:border-r rtl:pl-0 rtl:pr-4">
-                                        <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">{{ t[currentLang].maxPoints }}</span>
+                                    <div v-if="!isLeveledSkill(skill)" class="flex flex-col border-l border-slate-150 pl-4">
+                                        <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">{{ t.maxPoints }}</span>
                                         <div class="flex items-center gap-1.5">
                                             <input type="number" min="0" step="10"
                                                 :value="form.selectedSkills.find(s => s.skill_id === skill.id)?.max_points || 0"
                                                 @input="e => { const s = form.selectedSkills.find(x => x.skill_id === skill.id); if(s) s.max_points = parseInt(e.target.value) || 0; }"
                                                 class="w-16 h-6.5 text-center text-xs font-black text-indigo-600 bg-white border-2 border-indigo-50 rounded-xl focus:border-indigo-300 outline-none transition-all" />
-                                            <span class="text-[8px] font-black text-slate-400 uppercase">{{ t[currentLang].ptsCap }}</span>
+                                            <span class="text-[8px] font-black text-slate-400 uppercase">{{ t.ptsCap }}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div v-else class="hidden md:block pr-4 pl-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ t[currentLang].clickToSelect }}</span>
+                                <div v-else class="hidden md:block pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ t.clickToSelect }}</span>
                                 </div>
                             </div>
                         </div>
@@ -738,8 +682,8 @@ const saveExam = async () => {
                             <div class="w-16 h-16 bg-emerald-50 text-emerald-600 flex items-center justify-center rounded-2xl mx-auto mb-4 text-2xl shadow-sm border border-emerald-100">
                                 <i class="pi pi-check-circle animate-bounce"></i>
                             </div>
-                            <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">{{ t[currentLang].readyToSave }}</h2>
-                            <p class="text-xs font-bold text-slate-400 max-w-md mx-auto leading-relaxed">{{ t[currentLang].readyToSaveDesc }}</p>
+                            <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">{{ t.readyToSave }}</h2>
+                            <p class="text-xs font-bold text-slate-400 max-w-md mx-auto leading-relaxed">{{ t.readyToSaveDesc }}</p>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -748,16 +692,16 @@ const saveExam = async () => {
                                 <template #content>
                                     <div class="p-8 space-y-6">
                                         <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-4">
-                                            {{ t[currentLang].examSummary }}
+                                            {{ t.examSummary }}
                                         </h4>
                                         <div class="space-y-4">
                                             <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100/50">
-                                                <span class="text-[9px] font-black text-slate-400 uppercase">{{ t[currentLang].examTitleLabel }}</span>
+                                                <span class="text-[9px] font-black text-slate-400 uppercase">{{ t.examTitleLabel }}</span>
                                                 <span class="text-xs font-black text-slate-700 truncate max-w-[220px] uppercase">{{ form.title }}</span>
                                             </div>
                                             
                                             <div class="space-y-2">
-                                                <h5 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t[currentLang].selectedSubjects }}</h5>
+                                                <h5 class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mr-1">{{ t.selectedSubjects }}</h5>
                                                 <div class="grid grid-cols-1 gap-2">
                                                     <div v-for="selected in form.selectedSkills" :key="selected.skill_id"
                                                         class="flex justify-between items-center bg-rose-50/10 p-3.5 rounded-xl border border-rose-100/40">
@@ -765,10 +709,10 @@ const saveExam = async () => {
                                                             <span class="text-xs font-black text-slate-700 uppercase">{{ availableSkills.find(s => s.id === selected.skill_id)?.name }}</span>
                                                         </div>
                                                         <div class="flex items-center gap-1.5">
-                                                            <span class="text-[8px] font-black text-brand-primary bg-white px-2 py-0.5 rounded border border-rose-100 shadow-sm">{{ selected.duration }}{{ t[currentLang].minutes }}</span>
+                                                            <span class="text-[8px] font-black text-brand-primary bg-white px-2 py-0.5 rounded border border-rose-100 shadow-sm">{{ selected.duration }}{{ t.minutes }}</span>
                                                             <span v-if="!isLeveledSkill(availableSkills.find(s => s.id === selected.skill_id))"
                                                                 class="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                                                                {{ selected.max_points || 0 }} {{ t[currentLang].ptsCap }}
+                                                                {{ selected.max_points || 0 }} {{ t.ptsCap }}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -785,11 +729,11 @@ const saveExam = async () => {
                                 <template #content>
                                     <div class="p-8 md:p-10 space-y-6 text-center relative z-10 flex flex-col justify-between h-full">
                                         <div class="space-y-1">
-                                            <p class="text-[9px] font-black text-rose-300 uppercase tracking-[0.3em]">{{ t[currentLang].saveExam }}</p>
-                                            <p class="text-[10px] font-bold text-slate-400 max-w-xs mx-auto leading-relaxed">{{ t[currentLang].saveDesc }}</p>
+                                            <p class="text-[9px] font-black text-rose-300 uppercase tracking-[0.3em]">{{ t.saveExam }}</p>
+                                            <p class="text-[10px] font-bold text-slate-400 max-w-xs mx-auto leading-relaxed">{{ t.saveDesc }}</p>
                                         </div>
                                         
-                                        <Button :label="isSubmitting ? t[currentLang].saving : (isEditMode ? t[currentLang].saveBtnTextEdit : t[currentLang].saveBtnText)"
+                                        <Button :label="isSubmitting ? t.saving : (isEditMode ? t.saveBtnTextEdit : t.saveBtnText)"
                                             :loading="isSubmitting" @click="saveExam"
                                             class="w-full bg-white border-none text-slate-900 font-black text-xs py-5.5 rounded-2xl shadow-xl hover:bg-brand-primary hover:text-white transition-all transform hover:-translate-y-1 uppercase tracking-wider" />
                                     </div>
@@ -802,15 +746,15 @@ const saveExam = async () => {
                     <div class="mt-16 flex items-center justify-between border-t border-slate-100/80 pt-10">
                         <button type="button" v-if="currentStep > 1" @click="prevStep"
                             class="flex items-center gap-2.5 text-slate-400 hover:text-slate-950 transition-colors group">
-                            <i :class="[currentLang === 'ar' ? 'pi-angle-right group-hover:translate-x-1' : 'pi-angle-left group-hover:-translate-x-1', 'pi text-lg transition-transform']"></i>
-                            <span class="text-[10px] font-black uppercase tracking-widest">{{ t[currentLang].backToStep }} {{ currentStep - 1 }}</span>
+                            <i class="pi-angle-left pi text-lg transition-transform group-hover:-translate-x-1"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest">{{ t.backToStep }} {{ currentStep - 1 }}</span>
                         </button>
                         <div v-else></div>
 
                         <button type="button" v-if="currentStep < 3" @click="nextStep"
                             class="bg-brand-primary text-white px-10 py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-100 flex items-center gap-3.5 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brand-primary/10">
-                            <span>{{ t[currentLang].nextStep }}</span>
-                            <i :class="[currentLang === 'ar' ? 'pi-angle-left' : 'pi-angle-right', 'pi text-lg']"></i>
+                            <span>{{ t.nextStep }}</span>
+                            <i class="pi-angle-right pi text-lg"></i>
                         </button>
                     </div>
 

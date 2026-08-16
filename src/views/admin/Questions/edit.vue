@@ -146,9 +146,9 @@ const t = {
         globalSettings: "الإعدادات العامة للأسئلة"
     },
     en: {
-        activeSystem: "Active Question Bank System",
-        headerTitle: "Edit Batch Questions",
-        headerSubtitle: "Sync content and link properties across shared context",
+        activeSystem: "Questions",
+        headerTitle: "Edit Questions",
+        headerSubtitle: "Update question content and properties",
         saveAllBtn: "Update All Changes",
         publishBtn: "Save & Update Questions 💾",
         addAnotherBtn: "Add Another Question ➕",
@@ -208,7 +208,7 @@ const t = {
         audioAttachment: "Question Audio Attachment",
         selectAudioFile: "Select Audio File",
         audioAdded: "Audio successfully linked to task",
-        optionsMatrix: "Options Matrix & Calibration",
+        optionsMatrix: "Answer Options",
         addOptionBtn: "Add Option",
         acceptedVariation: "Accepted variation...",
         optionValuePlaceholder: "Option value...",

@@ -58,8 +58,8 @@ const submit = async () => {
             <div class="flex items-center space-x-6">
                 <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/partners')" />
                 <div>
-                     <h1 class="text-3xl font-black text-slate-800 tracking-tight">Provision Partner</h1>
-                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Register new partner entity</p>
+                      <h1 class="text-3xl font-black text-slate-800 tracking-tight">Add Partner</h1>
+                      <p class="text-sm font-bold text-slate-500 mt-1">Add a new partner</p>
                 </div>
             </div>
         </div>
@@ -70,15 +70,15 @@ const submit = async () => {
 
             <form @submit.prevent="submit" class="relative z-10 space-y-16">
                 
-                <div v-if="Object.keys(errors).length > 0" class="bg-rose-50 border border-rose-100 text-rose-500 text-[10px] font-black uppercase tracking-widest p-5 rounded-2xl animate-in slide-in-from-top-2">
-                    âš ï¸ PROVISIONING_ERROR: Please check the highlighted fields.
+                <div v-if="Object.keys(errors).length > 0" class="bg-rose-50 border border-rose-100 text-rose-500 text-sm font-bold p-5 rounded-2xl animate-in slide-in-from-top-2">
+                    ⚠️ Please check the highlighted fields.
                 </div>
 
-                <!-- â”€â”€ CORE IDENTITY SECTION â”€â”€ -->
+                <!-- Partner Details -->
                 <div class="space-y-8">
                     <div class="flex items-center space-x-4 mb-4">
                          <div class="w-1.5 h-6 bg-brand-primary rounded-full"></div>
-                         <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Core Identity</h3>
+                          <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Partner Details</h3>
                     </div>
                     
                     <div>
@@ -129,11 +129,11 @@ const submit = async () => {
                     </div>
                 </div>
 
-                <!-- â”€â”€ ADDITIONAL METADATA SECTION â”€â”€ -->
+                <!-- Additional Information -->
                 <div class="space-y-8">
                     <div class="flex items-center space-x-4 mb-4">
                          <div class="w-1.5 h-6 bg-purple-600 rounded-full"></div>
-                         <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Additional Metadata</h3>
+                          <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Additional Information</h3>
                     </div>
 
                     <div>
@@ -156,11 +156,11 @@ const submit = async () => {
                     </div>
                 </div>
 
-                <!-- Final Commit -->
+                <!-- Save Partner -->
                 <div class="pt-10 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between space-y-6 md:space-y-0">
                     <div class="flex items-center space-x-3 opacity-30">
                          <div class="w-2 h-2 bg-slate-400 rounded-full"></div>
-                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Endorsed by System Authority</span>
+                          <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fill the form to add a partner</span>
                     </div>
                     <Button :label="loading ? 'PROVISIONING...' : 'COMMIT PARTNER âžœ'" 
                            :loading="loading" 

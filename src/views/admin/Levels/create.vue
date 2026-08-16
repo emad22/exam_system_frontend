@@ -72,16 +72,14 @@ const saveLevel = async () => {
                         @click="router.push('/admin/levels')" />
                     <div>
                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">
-                            Initialize tier</h1>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Level
-                            provisioning matrix</p>
+                            Add Level</h1>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Set up a new difficulty level</p>
                     </div>
                 </div>
                 <div
                     class="hidden md:flex items-center space-x-2 bg-rose-50 px-4 py-2 rounded-2xl border border-indigo-100">
                     <div class="w-2 h-2 bg-brand-primary rounded-full animate-pulse"></div>
-                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Continue
-                        Engine</span>
+                    <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Level Setup</span>
                 </div>
             </div>
             <div class="max-w-6xl mx-auto">
@@ -106,17 +104,15 @@ const saveLevel = async () => {
 
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div class="flex flex-col">
-                                                <label
-                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Target
-                                                    Module (Skill)</label>
+                                                    <label
+                                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Skill</label>
                                                 <Select v-model="form.skill_id" :options="skills" optionLabel="name"
                                                     optionValue="id"
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100" />
                                             </div>
                                             <div class="flex flex-col">
-                                                <label
-                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Designation
-                                                    Name</label>
+                                                    <label
+                                                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Level Name</label>
                                                 <InputText v-model="form.name" required
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100"
                                                     placeholder="e.g. Intermediate I" />

@@ -22,70 +22,38 @@ const requirements = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('dashboard_lang', currentLang.value);
-};
-
-const t = {
-    ar: {
-        loading: "جاري تحميل شروط الجاهزية الفنية...",
-        title: "جاهزية وتوافق النظام",
-        subtitle: "إدارة وتعديل متطلبات توافق الأجهزة ومواصفات المتصفح وسرعة الإنترنت المطلوبة للاختبارات",
-        createBtn: "إضافة فحص جديد",
-        searchPlaceholder: "بحث في شروط الجاهزية الفنية...",
-        colOrder: "الترتيب",
-        colModule: "تفاصيل الفحص / القسم",
-        colImportance: "أهمية الفحص",
-        colStatus: "الحالة",
-        colActions: "العمليات",
-        catLabel: "تصنيف",
-        catBrowser: "متصفح الويب",
-        catInternet: "سرعة الإنترنت",
-        catHardware: "مواصفات الجهاز",
-        catOther: "أخرى",
-        mandatory: "إلزامي (حرج)",
-        optional: "اختياري (موصى به)",
-        active: "نشط ومفعل",
-        archived: "مؤرشف",
-        confirmDelete: "هل أنت متأكد من رغبتك في حذف شرط الجاهزية هذا نهائياً؟",
-        deleteSuccess: "تم حذف شرط الجاهزية بنجاح",
-        deleteFailed: "فشل حذف شرط الجاهزية.",
-        emptyTitle: "لا توجد متطلبات فنية",
-        emptySubtitle: "قم بإضافة أول فحص توافق للتأكد من قدرة الطلاب على دخول بيئة الاختبار بأمان وبلا مشاكل تقنية.",
-        emptyBtn: "إضافة أول فحص",
-        emptySearch: "لم يتم العثور على أي شروط توافق فنية مطابقة لعملية البحث."
-    },
-    en: {
-        loading: "Loading compatibility settings...",
-        title: "System Compatibility Checks",
-        subtitle: "Verify browser features, network speed, and device hardware metrics before assessment enrollment",
-        createBtn: "Define Check",
-        searchPlaceholder: "Search prerequisites...",
-        colOrder: "Order",
-        colModule: "Check Details / Category",
-        colImportance: "Failure Severity",
-        colStatus: "Activation Status",
-        colActions: "Actions",
-        catLabel: "Category",
-        catBrowser: "Browser Features",
-        catInternet: "Internet Connection",
-        catHardware: "Hardware Metrics",
-        catOther: "Other",
-        mandatory: "Mandatory (Blocker)",
-        optional: "Optional (Warning)",
-        active: "Active",
-        archived: "Archived",
-        confirmDelete: "Are you sure you want to delete this technical prerequisite?",
-        deleteSuccess: "Technical prerequisite removed successfully",
-        deleteFailed: "Failed to remove technical prerequisite.",
-        emptyTitle: "No Technical Prerequisites",
-        emptySubtitle: "Create your first system requirements check to ensure candidate environments are fully compatible.",
-        emptyBtn: "Define First Check",
-        emptySearch: "No technical prerequisites match your search queries."
-    }
+const labels = {
+    loading: "Loading system requirements...",
+    title: "System Requirements",
+    subtitle: "Manage browser, network, and hardware checks for assessment enrollment",
+    createBtn: "Add Requirement",
+    searchPlaceholder: "Search requirements...",
+    colOrder: "Order",
+    colModule: "Check Details / Category",
+    colImportance: "Failure Severity",
+    colStatus: "Activation Status",
+    colActions: "Actions",
+    catLabel: "Category",
+    catBrowser: "Browser Features",
+    catInternet: "Internet Connection",
+    catHardware: "Hardware Metrics",
+    catOther: "Other",
+    mandatory: "Mandatory (Blocker)",
+    optional: "Optional (Warning)",
+    active: "Active",
+    archived: "Archived",
+    confirmDelete: "Are you sure you want to delete this requirement?",
+    deleteSuccess: "Requirement removed successfully",
+    deleteFailed: "Failed to remove requirement.",
+    emptyTitle: "No Requirements",
+    emptySubtitle: "Add your first system requirement to ensure candidate environments are compatible.",
+    emptyBtn: "Add First Requirement",
+    confirmArchive: "Are you sure you want to archive this requirement?",
+    archiveSuccess: "Requirement archived successfully",
+    archiveFailed: "Failed to archive requirement.",
+    confirmRestore: "Are you sure you want to restore this requirement?",
+    restoreSuccess: "Requirement restored successfully",
+    restoreFailed: "Failed to restore requirement.",
 };
 
 const fetchRequirements = async () => {
@@ -95,7 +63,7 @@ const fetchRequirements = async () => {
         requirements.value = res.data;
     } catch (err) {
         console.error(err);
-        showAlert(currentLang.value === 'ar' ? 'خطأ' : 'Error', 'Failed to load requirements.');
+        showAlert('Error', 'Failed to load requirements.');
     } finally {
         isLoading.value = false;
     }
@@ -113,24 +81,22 @@ const filteredRequirements = computed(() => {
 
 const getCategoryLabel = (cat) => {
     const c = cat.toLowerCase();
-    if (c === 'browser') return t[currentLang.value].catBrowser;
-    if (c === 'internet') return t[currentLang.value].catInternet;
-    if (c === 'hardware') return t[currentLang.value].catHardware;
-    return t[currentLang.value].catOther;
+    if (c === 'browser') return labels.catBrowser;
+    if (c === 'internet') return labels.catInternet;
+    if (c === 'hardware') return labels.catHardware;
+    return labels.catOther;
 };
 
 const deleteRequirement = async (id) => {
-    if (!(await showConfirm(t[currentLang.value].confirmDelete))) return;
+    if (!(await showConfirm(labels.confirmDelete))) return;
     try {
         await api.delete(`/admin/system-requirements/${id}`);
-        showAlert(currentLang.value === 'ar' ? 'تم الحذف' : 'Deleted', t[currentLang.value].deleteSuccess);
+        showAlert('Deleted', labels.deleteSuccess);
         fetchRequirements();
     } catch (err) {
         console.error(err);
-        showAlert(currentLang.value === 'ar' ? 'خطأ' : 'Error', t[currentLang.value].deleteFailed);
-            detail: t[currentLang.value].deleteFailed 
-        }
-   
+        showAlert('Error', labels.deleteFailed);
+    }
 };
 
 onMounted(fetchRequirements);
@@ -139,11 +105,11 @@ onMounted(fetchRequirements);
 <template>
     <AdminLayout>
 
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div dir="ltr" class="w-full">
             <!-- Loading Spinner -->
             <div v-if="isLoading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ labels.loading }}</p>
             </div>
 
             <!-- Main Content -->
@@ -156,22 +122,16 @@ onMounted(fetchRequirements);
                     
                     <div class="relative z-10 space-y-2">
                          <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
-                             {{ t[currentLang].title }}
+                             {{ labels.title }}
                          </h1>
                          <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
-                             {{ t[currentLang].subtitle }}
+                             {{ labels.subtitle }}
                          </p>
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
-                         <!-- Language Selector Toggle -->
-                        <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                            <i class="pi pi-globe text-brand-primary"></i>
-                            <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                        </button>
-                         
                          <!-- Primary Action Button (Create) -->
-                         <Button :label="t[currentLang].createBtn" icon="pi pi-plus" 
+                         <Button :label="labels.createBtn" icon="pi pi-plus" 
                                  class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all hover:-translate-y-1"
                                  @click="router.push('/admin/system-requirements/create')" />
                     </div>
@@ -187,21 +147,21 @@ onMounted(fetchRequirements);
                                 <template #header>
                                     <div class="flex justify-end p-2 pb-4">
                                         <span class="relative">
-                                            <i class="pi pi-search absolute text-slate-400 z-10" :class="currentLang === 'ar' ? 'right-3 top-1/2 -translate-y-1/2' : 'left-3 top-1/2 -translate-y-1/2'" />
-                                            <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl" :class="currentLang === 'ar' ? 'pr-10' : 'pl-10'" />
+                                            <i class="pi pi-search absolute text-slate-400 z-10 left-3 top-1/2 -translate-y-1/2" />
+                                            <InputText v-model="searchQuery" :placeholder="labels.searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl pl-10" />
                                         </span>
                                     </div>
                                 </template>
 
-                                <Column :header="t[currentLang].colOrder" style="width: 80px">
+                                <Column :header="labels.colOrder" style="width: 80px">
                                     <template #body="{ data }">
                                         <span class="font-black text-slate-400">#{{ data.order }}</span>
                                     </template>
                                 </Column>
 
-                                <Column :header="t[currentLang].colModule" style="min-width: 250px">
+                                <Column :header="labels.colModule" style="min-width: 250px">
                                     <template #body="{ data }">
-                                        <div class="flex items-center py-2" :class="currentLang === 'ar' ? 'space-x-reverse space-x-4' : 'space-x-4'">
+                                        <div class="flex items-center py-2 space-x-4">
                                              <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shadow-sm">
                                                  <i :class="data.category === 'Browser' ? 'pi pi-compass' : 
                                                             data.category === 'Internet' ? 'pi pi-wifi' : 
@@ -216,25 +176,25 @@ onMounted(fetchRequirements);
                                     </template>
                                 </Column>
 
-                                <Column :header="t[currentLang].colImportance" style="width: 150px">
+                                <Column :header="labels.colImportance" style="width: 150px">
                                     <template #body="{ data }">
-                                        <Tag :value="data.is_mandatory ? t[currentLang].mandatory : t[currentLang].optional"
+                                        <Tag :value="data.is_mandatory ? labels.mandatory : labels.optional"
                                              :severity="data.is_mandatory ? 'danger' : 'info'"
                                              class="text-[9px] uppercase tracking-wider px-3 font-extrabold" />
                                     </template>
                                 </Column>
 
-                                <Column :header="t[currentLang].colStatus" style="width: 120px">
+                                <Column :header="labels.colStatus" style="width: 120px">
                                     <template #body="{ data }">
-                                        <Tag :value="data.is_active ? t[currentLang].active : t[currentLang].archived"
+                                        <Tag :value="data.is_active ? labels.active : labels.archived"
                                              :severity="data.is_active ? 'success' : 'secondary'"
                                              class="text-[9px] uppercase tracking-wider px-3 font-extrabold" />
                                     </template>
                                 </Column>
 
-                                <Column :header="t[currentLang].colActions" :exportable="false" style="min-width: 150px">
+                                <Column :header="labels.colActions" :exportable="false" style="min-width: 150px">
                                     <template #body="{ data }">
-                                        <div class="flex items-center space-x-2" :class="currentLang === 'ar' ? 'space-x-reverse' : ''">
+                                        <div class="flex items-center space-x-2">
                                              <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="router.push(`/admin/system-requirements/${data.id}/edit`)" />
                                              <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="deleteRequirement(data.id)" />
                                         </div>
@@ -242,7 +202,7 @@ onMounted(fetchRequirements);
                                 </Column>
 
                                 <template #empty>
-                                    <div class="p-8 text-center text-slate-400 font-medium">{{ t[currentLang].emptySearch }}</div>
+                                    <div class="p-8 text-center text-slate-400 font-medium">{{ labels.emptySearch }}</div>
                                 </template>
                             </DataTable>
                         </template>
@@ -254,11 +214,11 @@ onMounted(fetchRequirements);
                     <div class="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-5xl group-hover:rotate-12 transition-transform duration-500 text-brand-accent">
                         <i class="pi pi-cog"></i>
                     </div>
-                    <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">{{ t[currentLang].emptyTitle }}</h3>
+                    <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">{{ labels.emptyTitle }}</h3>
                     <p class="text-slate-500 mb-8 max-w-md mx-auto leading-relaxed">
-                        {{ t[currentLang].emptySubtitle }}
+                        {{ labels.emptySubtitle }}
                     </p>
-                    <Button :label="t[currentLang].emptyBtn" icon="pi pi-arrow-right" iconPos="right" @click="router.push('/admin/system-requirements/create')" />
+                    <Button :label="labels.emptyBtn" icon="pi pi-arrow-right" iconPos="right" @click="router.push('/admin/system-requirements/create')" />
                 </div>
             </div>
         </div>
@@ -267,10 +227,6 @@ onMounted(fetchRequirements);
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
-
-.arabic-theme {
-    font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
-}
 
 .animate-in {
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
@@ -287,12 +243,6 @@ onMounted(fetchRequirements);
     letter-spacing: 0.1em;
 }
 
-.arabic-theme :deep(.p-datatable-thead > tr > th) {
-    text-align: right !important;
-}
-.arabic-theme :deep(.p-datatable-tbody > tr > td) {
-    text-align: right !important;
-}
 
 :deep(.p-datatable-tbody > tr:hover) {
     background: #fbfcfe;

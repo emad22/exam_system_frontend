@@ -131,7 +131,7 @@ onMounted(async () => {
                             <td>{{ skill.date }}</td>
                         </tr>
                         <tr class="overall-row">
-                            <td class="text-left pl-4">Overall Score</td>
+                            <td class="text-left pl-4">Overall Score (Sections Listening, Reading &amp; Structure)</td>
                             <td>{{ certData.total_points }}/900</td>
                             <td>{{ Number(certData.score).toFixed(1) }}%</td>
                             <td>{{ certData.cefr }}</td>

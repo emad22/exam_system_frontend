@@ -145,9 +145,9 @@ const t = {
         saveSuccessMsg: "تم حفظ ونشر مجموعة الأسئلة بنجاح!"
     },
     en: {
-        activeSystem: "Active Question Bank System",
-        headerTitle: "Create New Questions",
-        headerSubtitle: "Add content and link properties to exam structures",
+        activeSystem: "Questions",
+        headerTitle: "Create Questions",
+        headerSubtitle: "Add content and link properties to exams",
         saveAllBtn: "Save All Changes",
         publishBtn: "Publish Questions",
         addAnotherBtn: "Add Another Question ➕",
@@ -207,7 +207,7 @@ const t = {
         audioAttachment: "Question Audio Attachment",
         selectAudioFile: "Select Audio File",
         audioAdded: "Audio successfully linked to task",
-        optionsMatrix: "Options Matrix & Calibration",
+        optionsMatrix: "Answer Options",
         addOptionBtn: "Add Option",
         acceptedVariation: "Accepted variation...",
         optionValuePlaceholder: "Option value...",

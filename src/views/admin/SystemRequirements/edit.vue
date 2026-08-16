@@ -53,7 +53,7 @@ onMounted(async () => {
         form.value = res.data;
     } catch (err) {
         console.error('Failed to load requirement', err);
-        errorMsg.value = 'Failed to load metadata. Verification with registry failed.';
+        errorMsg.value = 'Failed to load requirement.';
     } finally {
         isLoading.value = false;
     }
@@ -93,7 +93,7 @@ const updateRequirement = async () => {
         router.push('/admin/system-requirements');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to sync updates with technical matrix.';
+        errorMsg.value = err.response?.data?.message || 'Failed to save changes.';
     } finally {
         isSaving.value = false;
     }
@@ -109,8 +109,8 @@ const updateRequirement = async () => {
                 <div class="flex items-center space-x-6">
                     <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/system-requirements')" />
                     <div>
-                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Modify prerequisite</h1>
-                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Infrastructure reconciliation</p>
+                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Edit Requirement</h1>
+                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Edit system requirement</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
@@ -121,7 +121,7 @@ const updateRequirement = async () => {
 
             <div v-if="isLoading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Matrix Matrix...</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Loading requirement...</p>
             </div>
 
             <div v-else class="max-w-6xl mx-auto">
@@ -132,7 +132,7 @@ const updateRequirement = async () => {
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         
-                        <!-- Left Column: Identity -->
+                        <!-- Left Column: Requirement Details -->
                         <div class="lg:col-span-2 space-y-8">
                             <Card class="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
                                 <template #content>

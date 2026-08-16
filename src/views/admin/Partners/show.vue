@@ -49,7 +49,7 @@ onMounted(() => {
         <div v-else class="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Identity Details</h1>
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Partner Details</h1>
                     <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Read-only partner view</p>
                 </div>
                 <button @click="router.push('/admin/partners')"

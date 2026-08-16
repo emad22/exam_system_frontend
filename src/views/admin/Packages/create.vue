@@ -49,7 +49,7 @@ const fetchExamsAndSkills = async () => {
 
 const savePackage = async () => {
     if (!currentPackage.value.name) {
-        errorMsg.value = 'Package designation is required.';
+        errorMsg.value = 'Package name is required.';
         return;
     }
     isSaving.value = true;
@@ -60,7 +60,7 @@ const savePackage = async () => {
         router.push('/admin/packages');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to initialize the assessment bundle.';
+        errorMsg.value = err.response?.data?.message || 'Failed to save package.';
     } finally {
         isSaving.value = false;
     }
@@ -78,8 +78,8 @@ onMounted(fetchExamsAndSkills);
                 <div class="flex items-center space-x-6">
                     <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/packages')" />
                     <div>
-                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Initialize bundle</h1>
-                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Skill matrix provisioning</p>
+                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Create Package</h1>
+                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Setting up skills</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-2 bg-rose-50 px-4 py-2 rounded-2xl border border-indigo-100">
@@ -105,16 +105,16 @@ onMounted(fetchExamsAndSkills);
                                             <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                 <i class="pi pi-tag text-xs"></i>
                                             </div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Bundle Identity</h3>
+                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Package Details</h3>
                                         </div>
 
                                         <div class="flex flex-col space-y-2">
-                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Package Designation</label>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Package Name</label>
                                             <InputText v-model="currentPackage.name" required class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-black uppercase" placeholder="e.g. ADULT_ELITE_PLAN" />
                                         </div>
 
                                         <div class="flex flex-col space-y-2">
-                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Functional Narrative (Description)</label>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Description</label>
                                             <Textarea v-model="currentPackage.description" rows="3" class="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-medium" placeholder="Describe the purpose of this skill bundle..." />
                                         </div>
                                     </div>
@@ -129,7 +129,7 @@ onMounted(fetchExamsAndSkills);
                                                 <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center">
                                                     <i class="pi pi-th-large text-xs"></i>
                                                 </div>
-                                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Skill Matrix Association</h3>
+                                                 <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Skills Included</h3>
                                             </div>
                                             <span class="text-[9px] font-black text-brand-accent bg-rose-50 px-3 py-1 rounded-full uppercase tracking-widest">{{ currentPackage.skills.length }} Selected</span>
                                         </div>

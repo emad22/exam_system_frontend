@@ -21,68 +21,32 @@ const isDownloadingBulk = ref(false);
 const dateFrom = ref(null);
 const dateTo = ref(null);
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('dashboard_lang', currentLang.value);
-};
-
 const t = {
-    ar: {
-        loading: "جاري تحميل سجل الشهادات...",
-        title: "سجل الشهادات الأكاديمية",
-        subtitle: "عرض ومراقبة كافة الشهادات الممنوحة للطلاب الناجحين في النظام وتصديرها",
-        manageTemplates: "إدارة القوالب",
-        placeholderSearch: "البحث باسم الطالب، اسم المستخدم أو رقم الشهادة...",
-        filterPartner: "تصفية حسب الشريك / البارتنر",
-        allPartners: "جميع الشركاء",
-        bulkDownload: "تنزيل المحددة (ZIP)",
-        bulkDownloadPartner: "تنزيل شهادات البارتنر (ZIP)",
-        colCertId: "كود الشهادة",
-        colStudent: "الطالب",
-        colPartner: "الشركة / البارتنر",
-        colAssessment: "الاختبار",
-        colScore: "النسبة / الدرجة",
-        colDate: "تاريخ الإصدار",
-        colActions: "إجراءات",
-        colQr: "QR Code",
-        colVisibility: "ظهور للطالب",
-        emptyTelemetry: "لم يتم إصدار أي شهادات في النظام بعد...",
-        downloadPdf: "تحميل PDF",
-        verifyLink: "رابط التحقق",
-        dateFrom: "من تاريخ",
-        dateTo: "إلى تاريخ",
-        clearDates: "مسح التواريخ",
-        filterDates: "تصفية بالتاريخ"
-    },
-    en: {
-        loading: "Loading certificates registry...",
-        title: "Issued Certificates",
-        subtitle: "Monitor and manage all academic credentials issued by the system.",
-        manageTemplates: "Manage Templates",
-        placeholderSearch: "Search by student name, username or certificate number...",
-        filterPartner: "Filter by Partner",
-        allPartners: "All Partners",
-        bulkDownload: "Download Selected (ZIP)",
-        bulkDownloadPartner: "Download Partner Certs (ZIP)",
-        colCertId: "Certificate ID",
-        colStudent: "Student",
-        colPartner: "Partner",
-        colAssessment: "Assessment",
-        colScore: "Score",
-        colDate: "Date",
-        colActions: "Actions",
-        colQr: "QR Code",
-        colVisibility: "Visible to Student",
-        emptyTelemetry: "No certificates found in system registry...",
-        downloadPdf: "Download PDF",
-        verifyLink: "Verify Link",
-        dateFrom: "From Date",
-        dateTo: "To Date",
-        clearDates: "Clear Dates",
-        filterDates: "Filter by Date"
-    }
+    loading: "Loading certificates...",
+    title: "Issued Certificates",
+    subtitle: "Monitor and manage all academic credentials issued by the system.",
+    manageTemplates: "Manage Templates",
+    placeholderSearch: "Search by student name, username or certificate number...",
+    filterPartner: "Filter by Partner",
+    allPartners: "All Partners",
+    bulkDownload: "Download Selected (ZIP)",
+    bulkDownloadPartner: "Download Partner Certs (ZIP)",
+    colCertId: "Certificate ID",
+    colStudent: "Student",
+    colPartner: "Partner",
+    colAssessment: "Assessment",
+    colScore: "Score",
+    colDate: "Date",
+    colActions: "Actions",
+    colQr: "QR Code",
+    colVisibility: "Visible to Student",
+    emptyTelemetry: "No certificates found.",
+    downloadPdf: "Download PDF",
+    verifyLink: "Verify Certificate",
+    dateFrom: "From Date",
+    dateTo: "To Date",
+    clearDates: "Clear Dates",
+    filterDates: "Filter by Date"
 };
 
 const fetchPartners = async () => {
@@ -109,9 +73,7 @@ const clearDateFilter = () => {
     fetchCertificates(1);
 };
 
-// Watch date changes to trigger fetch automatically
 watch(dateFrom, () => {
-    // If dateTo is before the new dateFrom, clear it
     if (dateTo.value && dateFrom.value && dateTo.value < dateFrom.value) {
         dateTo.value = null;
     }
@@ -236,14 +198,13 @@ const deleteCertificate = async (cert) => {
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'"
-            class="w-full">
+        <div class="w-full">
 
             <!-- Loading Indicator -->
             <div v-if="isLoading && certificates.data.length === 0"
                 class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
             </div>
 
             <div v-else
@@ -261,23 +222,16 @@ const deleteCertificate = async (cert) => {
 
                     <div class="relative z-10 space-y-2">
                         <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
-                            {{ t[currentLang].title }}
+                            {{ t.title }}
                         </h1>
                         <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
-                            {{ t[currentLang].subtitle }}
+                            {{ t.subtitle }}
                         </p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
-                        <!-- Language Selector Toggle -->
-                        <button @click="toggleLang"
-                            class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                            <i class="pi pi-globe text-brand-primary"></i>
-                            <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                        </button>
-
                         <router-link to="/admin/certificates/templates">
-                            <Button :label="t[currentLang].manageTemplates" icon="pi pi-palette" outlined
+                            <Button :label="t.manageTemplates" icon="pi pi-palette" outlined
                                 severity="secondary"
                                 class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white" />
                         </router-link>
@@ -292,19 +246,19 @@ const deleteCertificate = async (cert) => {
                         <div class="relative w-full md:max-w-md">
                             <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
                             <InputText v-model="searchQuery" @input="fetchCertificates(1)"
-                                :placeholder="t[currentLang].placeholderSearch"
+                                :placeholder="t.placeholderSearch"
                                 class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
                         </div>
 
                         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
                             <!-- Partner Filter Dropdown -->
                             <Select v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
-                                showClear :placeholder="t[currentLang].filterPartner" @change="fetchCertificates(1)"
+                                showClear :placeholder="t.filterPartner" @change="fetchCertificates(1)"
                                 class="w-full md:w-64 text-xs font-bold rounded-2xl border-slate-200" />
 
                             <!-- Bulk ZIP Download Button -->
                             <Button
-                                :label="selectedCertificates.length > 0 ? `${t[currentLang].bulkDownload} (${selectedCertificates.length})` : (selectedPartnerId ? t[currentLang].bulkDownloadPartner : t[currentLang].bulkDownload)"
+                                :label="selectedCertificates.length > 0 ? `${t.bulkDownload} (${selectedCertificates.length})` : (selectedPartnerId ? t.bulkDownloadPartner : t.bulkDownload)"
                                 icon="pi pi-file-export"
                                 severity="success"
                                 class="text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm"
@@ -318,17 +272,17 @@ const deleteCertificate = async (cert) => {
                     <div class="flex flex-col md:flex-row items-center gap-3 pt-3 border-t border-slate-100">
                         <div class="flex items-center gap-2 text-slate-400">
                             <i class="pi pi-calendar text-sm"></i>
-                            <span class="text-xs font-bold uppercase tracking-wider">{{ t[currentLang].filterDates }}</span>
+                            <span class="text-xs font-bold uppercase tracking-wider">{{ t.filterDates }}</span>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-3">
                             <!-- From Date -->
                             <div class="flex items-center gap-2">
-                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t[currentLang].dateFrom }}</label>
+                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t.dateFrom }}</label>
                                 <DatePicker
                                     v-model="dateFrom"
                                     dateFormat="yy-mm-dd"
-                                    :placeholder="t[currentLang].dateFrom"
+                                    :placeholder="t.dateFrom"
                                     showIcon
                                     iconDisplay="input"
                                     class="text-xs font-bold rounded-2xl"
@@ -339,11 +293,11 @@ const deleteCertificate = async (cert) => {
 
                             <!-- To Date -->
                             <div class="flex items-center gap-2">
-                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t[currentLang].dateTo }}</label>
+                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t.dateTo }}</label>
                                 <DatePicker
                                     v-model="dateTo"
                                     dateFormat="yy-mm-dd"
-                                    :placeholder="t[currentLang].dateTo"
+                                    :placeholder="t.dateTo"
                                     :minDate="dateFrom || undefined"
                                     showIcon
                                     iconDisplay="input"
@@ -356,7 +310,7 @@ const deleteCertificate = async (cert) => {
                             <!-- Clear Dates Button -->
                             <Button
                                 v-if="dateFrom || dateTo"
-                                :label="t[currentLang].clearDates"
+                                :label="t.clearDates"
                                 icon="pi pi-times-circle"
                                 severity="secondary"
                                 outlined
@@ -377,7 +331,7 @@ const deleteCertificate = async (cert) => {
                         <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
                         <!-- Student Column -->
-                        <Column :header="t[currentLang].colStudent">
+                        <Column :header="t.colStudent">
                             <template #body="{ data }">
                                 <div class="flex flex-col">
                                     <span class="font-extrabold text-slate-800 text-xs">
@@ -391,7 +345,7 @@ const deleteCertificate = async (cert) => {
                         </Column>
 
                         <!-- Partner Column -->
-                        <Column :header="t[currentLang].colPartner">
+                        <Column :header="t.colPartner">
                             <template #body="{ data }">
                                 <span v-if="data.student?.partner" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
                                     {{ data.student.partner.partner_name }}
@@ -403,7 +357,7 @@ const deleteCertificate = async (cert) => {
                         </Column>
 
                         <!-- Assessment Column -->
-                        <Column :header="t[currentLang].colAssessment">
+                        <Column :header="t.colAssessment">
                             <template #body="{ data }">
                                 <span class="text-xs font-extrabold text-slate-600">
                                     {{ data.attempt?.exam?.title || data.attempt?.exam?.name || 'Academic Exam' }}
@@ -412,7 +366,7 @@ const deleteCertificate = async (cert) => {
                         </Column>
 
                         <!-- Score Column -->
-                        <Column :header="t[currentLang].colScore">
+                        <Column :header="t.colScore">
                             <template #body="{ data }">
                                 <span
                                     class="px-3 py-1 rounded-xl bg-brand-primary/5 text-brand-primary font-black text-xs border border-brand-primary/10 shadow-sm">
@@ -422,7 +376,7 @@ const deleteCertificate = async (cert) => {
                         </Column>
 
                         <!-- Date Column -->
-                        <Column :header="t[currentLang].colDate">
+                        <Column :header="t.colDate">
                             <template #body="{ data }">
                                 <span class="text-xs font-bold text-slate-500 italic">
                                     {{ new Date(data.issue_date).toLocaleDateString() }}
@@ -431,7 +385,7 @@ const deleteCertificate = async (cert) => {
                         </Column>
 
                         <!-- QR Code Column -->
-                        <Column :header="t[currentLang].colQr" style="width: 80px">
+                        <Column :header="t.colQr" style="width: 80px">
                             <template #body="{ data }">
                                 <div class="flex justify-center">
                                     <a :href="'/verify-certificate/' + data.verification_code" target="_blank"
@@ -444,7 +398,7 @@ const deleteCertificate = async (cert) => {
                         </Column>
 
                         <!-- Visibility Toggle Column -->
-                        <Column :header="t[currentLang].colVisibility" style="width: 100px">
+                        <Column :header="t.colVisibility" style="width: 100px">
                             <template #body="{ data }">
                                 <div class="flex justify-center">
                                     <ToggleSwitch v-model="data.is_visible_to_student"
@@ -454,16 +408,16 @@ const deleteCertificate = async (cert) => {
                         </Column>
 
                         <!-- Actions Column -->
-                        <Column :header="t[currentLang].colActions" class="text-right" style="width: 120px">
+                        <Column :header="t.colActions" class="text-right" style="width: 120px">
                             <template #body="{ data }">
                                 <div class="flex justify-end gap-1.5">
                                     <Button icon="pi pi-download" text rounded severity="info" size="small"
-                                        @click="downloadCertificate(data)" v-tooltip="t[currentLang].downloadPdf" />
+                                        @click="downloadCertificate(data)" v-tooltip="t.downloadPdf" />
                                     <Button icon="pi pi-refresh" text rounded severity="warning" size="small"
                                         @click="regenerateCertificate(data)" v-tooltip="'Regenerate PDF'" />
                                     <a :href="'/verify-certificate/' + data.verification_code" target="_blank">
                                         <Button icon="pi pi-external-link" text rounded severity="secondary"
-                                            size="small" v-tooltip="t[currentLang].verifyLink" />
+                                            size="small" v-tooltip="t.verifyLink" />
                                     </a>
                                     <Button icon="pi pi-trash" text rounded severity="danger" size="small"
                                         @click="deleteCertificate(data)" v-tooltip="'Delete Certificate'" />
@@ -476,7 +430,7 @@ const deleteCertificate = async (cert) => {
                             <div class="py-16 text-center space-y-3">
                                 <div class="text-4xl opacity-20">📜</div>
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{
-                                    t[currentLang].emptyTelemetry }}</p>
+                                    t.emptyTelemetry }}</p>
                             </div>
                         </template>
                     </DataTable>

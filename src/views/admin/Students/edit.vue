@@ -76,8 +76,8 @@ const t = {
         bypassIdentitySubtitle: "يتخطى مطابقة الوجه والهوية ويقبل الامتحان مباشرة",
     },
     en: {
-        syncIdentity: "Sync Identity",
-        subtitle: "Manual identity profile reconciliation",
+        syncIdentity: "Edit Student",
+        subtitle: "Edit student details",
         activeSystem: "Active Enrollment System",
         activeLink: "Active Account",
         inactiveLink: "Inactive Account",
@@ -103,18 +103,18 @@ const t = {
         credentialOverride: "Credential Override",
         overrideSubtitle: "Leave blank to retain current key",
         completeBtn: "Save Student",
-        moduleAssignment: "Module Assignment",
+        moduleAssignment: "Skill Assignment",
         fixedModuleSet: "Fixed Module Set",
         customAllowed: "Custom Allowed",
         packageControlled: "Package Controlled",
-        errorMessage: "Failed to update identity. Ensure email and username are unique.",
+        errorMessage: "Failed to update student. Ensure email and username are unique.",
         queryLoading: "Querying Database Matrix...",
         selectPkgPlaceholder: "Select a package...",
         isDemoToggle: "Demo Student Account",
         isDemoSubtitle: "Bypasses lockout and constraints for development/testing",
         isDemoProctoredToggle: "Proctor Demo User",
         isDemoProctoredSubtitle: "Force video/camera verification requirements for this demo run",
-        bypassIdentityToggle: "Bypass Identity Verification",
+        bypassIdentityToggle: "Skip ID Verification",
         bypassIdentitySubtitle: "Skips face & ID matching — student enters exam directly",
     }
 };
@@ -321,7 +321,7 @@ const saveStudent = async () => {
         }
 
         await api.patch(`/admin/students/${studentId}`, payload);
-        showAlert(currentLang.value === 'ar' ? 'تم تحديث هوية الطالب بنجاح!' : 'Identity profile updated successfully.');
+        showAlert(currentLang.value === 'ar' ? 'تم تحديث هوية الطالب بنجاح!' : 'Student updated successfully.');
         router.push('/admin/students');
     } catch (err) {
         const msg = err.response?.data?.message || 

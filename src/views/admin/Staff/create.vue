@@ -110,17 +110,17 @@ onMounted(() => {
                     @click="$router.push('/admin/staff')" />
                 <div>
                     <h1 class="text-3xl font-black text-slate-800 tracking-tight">
-                        {{ isEditing ? 'Edit Identity' : 'Register Staff' }}
+                        {{ isEditing ? 'Edit Staff Member' : 'Add Staff Member' }}
                     </h1>
                     <p class="text-xs font-bold text-slate-500 mt-1">
-                        {{ isEditing ? 'Modifying existing credentials' : 'Adding new administrative node' }}
+                        {{ isEditing ? 'Update staff member details' : 'Adding new staff member' }}
                     </p>
                 </div>
             </div>
 
             <div v-if="loading" class="flex flex-col items-center justify-center py-20">
                 <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hydrating data...</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading...</p>
             </div>
 
             <div v-else class="relative">

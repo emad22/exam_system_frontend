@@ -232,7 +232,7 @@ onMounted(loadThresholds);
           </div>
           <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">CEFR &amp; ACTFL Thresholds</h1>
           <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
-            Configure score-to-level mapping rules. Changes take effect immediately on new certificate generation (cache
+            Set score thresholds for each level. Changes take effect immediately on new certificate generation (cache
             clears automatically).
           </p>
         </div>

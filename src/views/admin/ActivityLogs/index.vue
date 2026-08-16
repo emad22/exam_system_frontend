@@ -32,93 +32,49 @@ const filters = ref({
     page: 1
 });
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('dashboard_lang', currentLang.value);
-};
-
 const t = {
-    ar: {
-        loading: "جاري تحميل سجلات النشاط...",
-        title: "سجل نشاطات النظام",
-        subtitle: "تتبع ومراقبة العمليات، إجراءات المستخدمين، وسجلات عمليات المدراء والمعلمين في الوقت الفعلي",
-        actionType: "نوع العملية",
-        entityType: "نوع السجل / الكائن",
-        fromDate: "من تاريخ",
-        toDate: "إلى تاريخ",
-        massErase: "مسح جماعي",
-        colUser: "المستخدم المبادر",
-        colAction: "الإجراء المتخذ",
-        colDomain: "الوحدة المستهدفة",
-        colSignal: "تفاصيل العملية",
-        colChronology: "توقيت الحدث",
-        emptyTelemetry: "لا توجد سجلات نشاط مسجلة في النظام...",
-        dialogTitle: "تفاصيل سجل التغييرات",
-        preState: "الحالة السابقة (قبل التعديل)",
-        postState: "الحالة الجديدة (بعد التعديل)",
-        networkOrigin: "العنوان الشبكي IP",
-        agentSignature: "توقيع المتصفح والبيئة",
-        allActions: "كل العمليات",
-        created: "إنشاء جديد",
-        updated: "تحديث بيانات",
-        deleted: "حذف سجل",
-        login: "تسجيل دخول",
-        logout: "تسجيل خروج",
-        confirmSingleDelete: "هل أنت متأكد من رغبتك في حذف سجل النشاط هذا نهائياً؟",
-        confirmBulkDelete: "هل أنت متأكد من رغبتك في حذف {count} من سجلات النشاط المحددة؟",
-        erasureHeader: "حذف السجلات",
-        erasureSuccess: "تم حذف السجل بنجاح",
-        erasureBulkSuccess: "تم حذف السجلات المحددة بنجاح",
-        erasureError: "فشل مسح السجل",
-        erasureBulkError: "فشل مسح السجلات المحددة",
-        placeholderEntity: "مثال: Exam"
-    },
-    en: {
-        loading: "Loading activity log registry...",
-        title: "System Activity Logs",
-        subtitle: "Audit and trace platform actions, user sessions, and manager operations in real-time",
-        actionType: "Action Type",
-        entityType: "Entity Type",
-        fromDate: "From Date",
-        toDate: "To Date",
-        massErase: "Mass Erase",
-        colUser: "Institutional Actor",
-        colAction: "Protocol Action",
-        colDomain: "Entity Domain",
-        colSignal: "Telemetry Signal",
-        colChronology: "Chronology",
-        emptyTelemetry: "No activity logs captured in system registry...",
-        dialogTitle: "Telemetric Change Matrix",
-        preState: "Pre-State (Old)",
-        postState: "Post-State (New)",
-        networkOrigin: "Network Origin IP",
-        agentSignature: "Interface Signature",
-        allActions: "All Actions",
-        created: "Created",
-        updated: "Updated",
-        deleted: "Deleted",
-        login: "Login",
-        logout: "Logout",
-        confirmSingleDelete: "Are you sure you want to delete this log entry permanently?",
-        confirmBulkDelete: "Are you sure you want to delete {count} selected log entries?",
-        erasureHeader: "Protocol Erasure",
-        erasureSuccess: "Log entry erased successfully",
-        erasureBulkSuccess: "Batch logs erased successfully",
-        erasureError: "Failed to erase log",
-        erasureBulkError: "Failed to erase selected logs",
-        placeholderEntity: "e.g. Exam"
-    }
+    loading: "Loading activity logs...",
+    title: "Activity Logs",
+    subtitle: "Track all admin and user actions",
+    actionType: "Action Type",
+    entityType: "Category",
+    fromDate: "From Date",
+    toDate: "To Date",
+    massErase: "Delete Selected",
+    colUser: "User",
+    colAction: "Action",
+    colDomain: "Category",
+    colSignal: "Details",
+    colChronology: "Time",
+    emptyTelemetry: "No activity logs found.",
+    dialogTitle: "Change Details",
+    preState: "Previous Value",
+    postState: "New Value",
+    networkOrigin: "IP Address",
+    agentSignature: "Browser",
+    allActions: "All Actions",
+    created: "Created",
+    updated: "Updated",
+    deleted: "Deleted",
+    login: "Login",
+    logout: "Logout",
+    confirmSingleDelete: "Are you sure you want to delete this log entry permanently?",
+    confirmBulkDelete: "Are you sure you want to delete {count} selected log entries?",
+    erasureHeader: "Delete Log",
+    erasureSuccess: "Log entry deleted successfully",
+    erasureBulkSuccess: "Batch logs deleted successfully",
+    erasureError: "Failed to delete log",
+    erasureBulkError: "Failed to delete selected logs",
+    placeholderEntity: "e.g. Exam"
 };
 
 const actionOptions = computed(() => [
-    { label: t[currentLang.value].allActions, value: null },
-    { label: t[currentLang.value].created, value: 'created' },
-    { label: t[currentLang.value].updated, value: 'updated' },
-    { label: t[currentLang.value].deleted, value: 'deleted' },
-    { label: t[currentLang.value].login, value: 'login' },
-    { label: t[currentLang.value].logout, value: 'logout' }
+    { label: t.allActions, value: null },
+    { label: t.created, value: 'created' },
+    { label: t.updated, value: 'updated' },
+    { label: t.deleted, value: 'deleted' },
+    { label: t.login, value: 'login' },
+    { label: t.logout, value: 'logout' }
 ]);
 
 const selectedLog = ref(null);
@@ -137,7 +93,7 @@ const fetchLogs = async () => {
         totalRecords.value = res.data.total;
     } catch (err) {
         console.error("Error fetching logs", err);
-        showAlert(currentLang.value === 'ar' ? 'خطأ' : 'Error', t[currentLang.value].loadingError);
+        showAlert('Error', t.loadingError);
     } finally {
         loading.value = false;
     }
@@ -168,7 +124,7 @@ const getActionSeverity = (action) => {
 
 const translateAction = (action) => {
     if (!action) return '-';
-    return t[currentLang.value][action] || action;
+    return t[action] || action;
 };
 
 const viewDetails = (log) => {
@@ -183,17 +139,17 @@ const formatModelType = (type) => {
 
 const deleteLog = (log) => {
     confirm.require({
-        message: t[currentLang.value].confirmSingleDelete,
-        header: t[currentLang.value].erasureHeader,
+        message: t.confirmSingleDelete,
+        header: t.erasureHeader,
         icon: 'pi pi-exclamation-triangle',
         acceptClass: 'p-button-danger',
         accept: async () => {
             try {
                 await api.delete(`/admin/activity-logs/${log.id}`);
-                showAlert(currentLang.value === 'ar' ? 'تم الحذف' : 'Deleted', t[currentLang.value].erasureSuccess);
+                showAlert('Deleted', t.erasureSuccess);
                 fetchLogs();
             } catch (err) {
-                showAlert(currentLang.value === 'ar' ? 'خطأ' : 'Error', t[currentLang.value].erasureError);
+                showAlert('Error', t.erasureError);
             }
         }
     });
@@ -203,8 +159,8 @@ const bulkDelete = () => {
     if (!selectedLogs.value.length) return;
 
     confirm.require({
-        message: t[currentLang.value].confirmBulkDelete.replace('{count}', selectedLogs.value.length),
-        header: t[currentLang.value].erasureHeader,
+        message: t.confirmBulkDelete.replace('{count}', selectedLogs.value.length),
+        header: t.erasureHeader,
         icon: 'pi pi-exclamation-triangle',
         acceptClass: 'p-button-danger',
         accept: async () => {
@@ -212,11 +168,11 @@ const bulkDelete = () => {
                 await api.post('/admin/activity-logs/bulk-delete', {
                     ids: selectedLogs.value.map(l => l.id)
                 });
-                showAlert(currentLang.value === 'ar' ? 'تم الحذف' : 'Deleted', t[currentLang.value].erasureBulkSuccess);
+                showAlert('Deleted', t.erasureBulkSuccess);
                 selectedLogs.value = [];
                 fetchLogs();
             } catch (err) {
-                showAlert(currentLang.value === 'ar' ? 'خطأ' : 'Error', t[currentLang.value].erasureBulkError);
+                showAlert('Error', t.erasureBulkError);
             }
         }
     });
@@ -225,14 +181,13 @@ const bulkDelete = () => {
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div class="w-full">
             
             <!-- Loading Indicator -->
             <div v-if="loading && logs.length === 0" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
             </div>
-            
             
 
             <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
@@ -244,20 +199,15 @@ const bulkDelete = () => {
                     
                     <div class="relative z-10 space-y-2">
                         <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
-                            {{ t[currentLang].title }}
+                            {{ t.title }}
                         </h1>
                         <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
-                            {{ t[currentLang].subtitle }}
+                            {{ t.subtitle }}
                         </p>
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
-                        <!-- Language Selector Toggle -->
-                        <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                            <i class="pi pi-globe text-brand-primary"></i>
-                            <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                        </button>
-                        <Button v-if="selectedLogs.length" :label="t[currentLang].massErase" icon="pi pi-trash" severity="danger" outlined class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border-rose-200 hover:bg-rose-50/50" @click="bulkDelete" />
+                        <Button v-if="selectedLogs.length" :label="t.massErase" icon="pi pi-trash" severity="danger" outlined class="text-xs font-black uppercase tracking-wider px-6 py-2.5 rounded-xl border-rose-200 hover:bg-rose-50/50" @click="bulkDelete" />
                         <Button icon="pi pi-refresh" outlined rounded severity="secondary" @click="fetchLogs" class="bg-white/50 w-10 h-10 border border-slate-200" />
                     </div>
                 </div>
@@ -265,22 +215,22 @@ const bulkDelete = () => {
                 <!-- Premium Filter HUD -->
                 <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap gap-6 items-end relative overflow-hidden">
                     <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t[currentLang].actionType }}</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.actionType }}</label>
                         <Select v-model="filters.action" :options="actionOptions" optionLabel="label" optionValue="value" class="w-48 rounded-xl border-slate-100 text-xs font-bold" />
                     </div>
                     
                     <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t[currentLang].entityType }}</label>
-                        <InputText v-model="filters.model_type" :placeholder="t[currentLang].placeholderEntity" class="w-48 rounded-xl border-slate-100 text-xs font-bold" />
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.entityType }}</label>
+                        <InputText v-model="filters.model_type" :placeholder="t.placeholderEntity" class="w-48 rounded-xl border-slate-100 text-xs font-bold" />
                     </div>
 
                     <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t[currentLang].fromDate }}</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.fromDate }}</label>
                         <DatePicker v-model="filters.date_from" dateFormat="yy-mm-dd" class="w-48 rounded-xl text-xs font-bold" :showIcon="true" />
                     </div>
 
                     <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t[currentLang].toDate }}</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.toDate }}</label>
                         <DatePicker v-model="filters.date_to" dateFormat="yy-mm-dd" class="w-48 rounded-xl text-xs font-bold" :showIcon="true" />
                     </div>
                 </div>
@@ -293,7 +243,7 @@ const bulkDelete = () => {
                         <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
                         <!-- Actor Column -->
-                        <Column :header="t[currentLang].colUser" style="min-width: 200px">
+                        <Column :header="t.colUser" style="min-width: 200px">
                             <template #body="{ data }">
                                 <div class="flex items-center gap-3 py-2">
                                     <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
@@ -308,14 +258,14 @@ const bulkDelete = () => {
                         </Column>
 
                         <!-- Action Column -->
-                        <Column :header="t[currentLang].colAction" style="width: 150px">
+                        <Column :header="t.colAction" style="width: 150px">
                             <template #body="{ data }">
                                 <Tag :value="translateAction(data.action)" :severity="getActionSeverity(data.action)" class="text-[9px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl border-none shadow-sm" />
                             </template>
                         </Column>
 
                         <!-- Entity Domain Column -->
-                        <Column :header="t[currentLang].colDomain" style="min-width: 150px">
+                        <Column :header="t.colDomain" style="min-width: 150px">
                             <template #body="{ data }">
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">{{ formatModelType(data.model_type) }}</span>
@@ -325,14 +275,14 @@ const bulkDelete = () => {
                         </Column>
 
                         <!-- Telemetry details Column -->
-                        <Column :header="t[currentLang].colSignal" style="min-width: 250px">
+                        <Column :header="t.colSignal" style="min-width: 250px">
                             <template #body="{ data }">
                                 <p class="text-xs font-bold text-slate-500 leading-relaxed">{{ data.description }}</p>
                             </template>
                         </Column>
 
                         <!-- Date/Time Column -->
-                        <Column :header="t[currentLang].colChronology" style="width: 180px">
+                        <Column :header="t.colChronology" style="width: 180px">
                             <template #body="{ data }">
                                 <div class="flex flex-col items-end">
                                     <span class="text-xs font-bold text-slate-500">{{ new Date(data.created_at).toLocaleDateString() }}</span>
@@ -355,7 +305,7 @@ const bulkDelete = () => {
                         <template #empty>
                             <div class="py-16 text-center space-y-3">
                                  <div class="text-4xl opacity-20">📡</div>
-                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].emptyTelemetry }}</p>
+                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.emptyTelemetry }}</p>
                             </div>
                         </template>
                     </DataTable>
@@ -364,7 +314,7 @@ const bulkDelete = () => {
             
 
             <!-- Detail Dialog -->
-            <Dialog v-model:visible="showDetail" :header="t[currentLang].dialogTitle" :modal="true" :draggable="false" class="w-full max-w-2xl rounded-[2rem] overflow-hidden" :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'">
+            <Dialog v-model:visible="showDetail" :header="t.dialogTitle" :modal="true" :draggable="false" class="w-full max-w-2xl rounded-[2rem] overflow-hidden">
                 <div v-if="selectedLog" class="space-y-6 p-4">
                     <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
                         <div class="flex flex-col">
@@ -376,22 +326,22 @@ const bulkDelete = () => {
 
                     <div v-if="selectedLog.changes" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-3">
-                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">{{ t[currentLang].preState }}</h4>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">{{ t.preState }}</h4>
                             <pre class="bg-slate-50 p-4 rounded-xl text-[10px] font-bold text-slate-600 overflow-auto max-h-64">{ &quot;old&quot;: {{ JSON.stringify(selectedLog.changes.old, null, 2) }} }</pre>
                         </div>
                         <div class="space-y-3">
-                            <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest border-b border-emerald-50 pb-2">{{ t[currentLang].postState }}</h4>
+                            <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest border-b border-emerald-50 pb-2">{{ t.postState }}</h4>
                             <pre class="bg-emerald-50/30 p-4 rounded-xl text-[10px] font-bold text-emerald-700 overflow-auto max-h-64">{ &quot;new&quot;: {{ JSON.stringify(selectedLog.changes.new, null, 2) }} }</pre>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                         <div class="flex flex-col space-y-1">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].networkOrigin }}</span>
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t.networkOrigin }}</span>
                             <span class="text-xs font-bold text-slate-700">{{ selectedLog.ip_address }}</span>
                         </div>
                         <div class="flex flex-col space-y-1">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].agentSignature }}</span>
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t.agentSignature }}</span>
                             <span class="text-xs font-bold text-slate-500 italic truncate" :title="selectedLog.user_agent">{{ selectedLog.user_agent }}</span>
                         </div>
                     </div>

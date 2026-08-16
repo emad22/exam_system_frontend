@@ -11,10 +11,13 @@ const router = useRouter()
 const route = useRoute()
 
 // ─── Language ───────────────────────────────────────────────────────────────
-const currentLang = ref<'ar' | 'en'>((localStorage.getItem('dashboard_lang') as 'ar' | 'en') || 'ar')
+const currentLang = ref<'ar' | 'en'>('en')
+if (typeof window !== 'undefined') {
+  localStorage.setItem('dashboard_lang', 'en')
+}
 const toggleLang = () => {
-  currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar'
-  localStorage.setItem('dashboard_lang', currentLang.value)
+  currentLang.value = 'en'
+  localStorage.setItem('dashboard_lang', 'en')
 }
 
 const t = {
@@ -567,12 +570,6 @@ onUnmounted(() => {
           <i class="pi pi-arrow-right"></i> {{ session?.student?.id ? t[currentLang].backToStudent :
             t[currentLang].backToSessions }}
         </router-link>
-        <!-- Language Toggle -->
-        <button @click="toggleLang"
-          class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-          <i class="pi pi-globe text-brand-primary"></i>
-          <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-        </button>
       </div>
 
       <!-- Loading State -->

@@ -64,10 +64,10 @@ const savePartner = async () => {
             proctoring_required: ['full', 'identity_only'].includes(editForm.value.proctoring_mode) ? 1 : 0,
         };
         await api.patch(`/admin/partners/${partnerId}`, payload);
-        showAlert('Identity profile updated successfully.');
+        showAlert('Partner updated successfully.');
         router.push('/admin/partners');
     } catch (err) {
-        showAlert(err.response?.data?.message || 'Failed to update identity.');
+        showAlert(err.response?.data?.message || 'Failed to update partner.');
     } finally {
         isSaving.value = false;
     }
@@ -89,8 +89,8 @@ onMounted(() => {
                 <div class="flex items-center space-x-6">
                     <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/partners')" />
                     <div>
-                         <h1 class="text-3xl font-black text-slate-800 tracking-tight">Sync Entity</h1>
-                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Manual identity reconciliation</p>
+                         <h1 class="text-3xl font-black text-slate-800 tracking-tight">Edit Partner</h1>
+                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Edit partner details</p>
                     </div>
                 </div>
             </div>
@@ -142,8 +142,8 @@ onMounted(() => {
                     <div class="space-y-6 p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
                         <div class="flex items-center justify-between border-b border-slate-200/60 pb-6 mb-6">
                             <div>
-                                <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Partner Mode & Identity Settings</h3>
-                                <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1">Configure security mode and active state</p>
+                                <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Partner Settings</h3>
+                                <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1">Configure partner status and proctoring mode</p>
                             </div>
                             <!-- Active Status Toggle -->
                             <label class="flex items-center cursor-pointer group">
@@ -261,7 +261,7 @@ onMounted(() => {
                 <!-- Footer -->
                 <div class="p-10 bg-slate-50 border-t border-slate-100 flex justify-end space-x-4 shrink-0">
                     <Button label="Discard" severity="secondary" text @click="router.push('/admin/partners')" />
-                    <Button :label="isSaving ? 'SYNCHRONIZING...' : 'COMMIT CHANGES'" 
+                    <Button :label="isSaving ? 'Saving...' : 'Save Changes'" 
                            :loading="isSaving" 
                            icon="pi pi-check" 
                            size="large" 

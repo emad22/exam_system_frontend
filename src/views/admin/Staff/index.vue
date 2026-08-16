@@ -19,62 +19,29 @@ const loading = ref(true);
 const isDeleting = ref(false);
 const searchQuery = ref('');
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('dashboard_lang', currentLang.value);
-};
-
-const t = {
-    ar: {
-        loading: "جاري تحميل الكادر الإداري...",
-        title: "أعضاء الكادر الإداري والتعليمي",
-        subtitle: "إدارة أدوار ومستخدمي النظام والمشرفين ومراقبي الاختبارات لتيسير العملية التعليمية",
-        createBtn: "إضافة موظف جديد",
-        searchPlaceholder: "بحث في الكادر الإداري والتعليمي...",
-        colName: "الاسم والحساب",
-        colRole: "الدور الإداري",
-        colStatus: "حالة الحساب",
-        colActions: "العمليات",
-        partnerLabel: "شريك:",
-        roleAdmin: "مدير النظام",
-        roleTeacher: "معلم / مراقب",
-        roleSupervisor: "مشرف أكاديمي",
-        statusActive: "نشط",
-        statusDeactivated: "غير نشط",
-        emptySearch: "لم يتم العثور على موظفين مطابقين لعملية البحث.",
-        emptyTitle: "لا يوجد أعضاء في الكادر حالياً",
-        emptySubtitle: "قم بإضافة مدراء، معلمين، أو مشرفين لمساعدتك في إدارة النظام وتنظيم الامتحانات.",
-        emptyBtn: "إضافة أول موظف",
-        confirmDelete: "هل أنت متأكد من رغبتك في سحب صلاحيات الوصول لهذا الموظف؟",
-        deleteSuccess: "تم سحب الصلاحية بنجاح",
-        deleteFailed: "فشلت عملية سحب الصلاحيات."
-    },
-    en: {
-        loading: "Loading staff roster...",
-        title: "Institution Staff",
-        subtitle: "Manage system administrators, editors, teachers, and proctors",
-        createBtn: "Add Staff Member",
-        searchPlaceholder: "Search staff...",
-        colName: "Staff Name & Email",
-        colRole: "System Privilege / Role",
-        colStatus: "Account Status",
-        colActions: "Actions",
-        partnerLabel: "Partner:",
-        roleAdmin: "Administrator",
-        roleTeacher: "Teacher / Proctor",
-        roleSupervisor: "Academic Supervisor",
-        statusActive: "Active",
-        statusDeactivated: "Deactivated",
-        emptySearch: "No matching staff found.",
-        emptyTitle: "No Staff Members",
-        emptySubtitle: "Add new administrators, teachers, or supervisors to help manage the system.",
-        emptyBtn: "Add First Staff Member",
-        confirmDelete: "Are you sure you want to revoke access for this identity?",
-        deleteSuccess: "Access revoked successfully",
-        deleteFailed: "Access revocation failed."
-    }
+const labels = {
+    loading: "Loading staff...",
+    title: "Staff & Roles",
+    subtitle: "Manage administrators, teachers, and proctors",
+    createBtn: "Add Staff Member",
+    searchPlaceholder: "Search staff...",
+    colName: "Name & Email",
+    colRole: "Role",
+    colStatus: "Status",
+    colActions: "Actions",
+    partnerLabel: "Partner:",
+    roleAdmin: "Administrator",
+    roleTeacher: "Teacher / Proctor",
+    roleSupervisor: "Academic Supervisor",
+    statusActive: "Active",
+    statusDeactivated: "Deactivated",
+    emptySearch: "No matching staff found.",
+    emptyTitle: "No Staff Members",
+    emptySubtitle: "Add administrators, teachers, or supervisors to help manage the system.",
+    emptyBtn: "Add First Staff Member",
+    confirmDelete: "Are you sure you want to revoke access for this user?",
+    deleteSuccess: "Access revoked successfully",
+    deleteFailed: "Access revocation failed."
 };
 
 const filteredStaff = computed(() => {
@@ -107,13 +74,13 @@ const fetchData = async () => {
 };
 
 const deleteStaff = async (id) => {
-    if (!(await showConfirm(t[currentLang.value].confirmDelete))) return;
+    if (!(await showConfirm(labels.confirmDelete))) return;
     isDeleting.value = true;
     try {
         await api.delete(`/admin/staff/${id}`);
         fetchData();
     } catch (err) {
-        showAlert(err.response?.data?.error || t[currentLang.value].deleteFailed);
+        showAlert(err.response?.data?.error || labels.deleteFailed);
     } finally {
         isDeleting.value = false;
     }
@@ -124,9 +91,9 @@ const getRoleSeverity = (role) => {
 };
 
 const getRoleLabel = (role) => {
-    if (role === 'admin') return t[currentLang.value].roleAdmin;
-    if (role === 'teacher') return t[currentLang.value].roleTeacher;
-    if (role === 'supervisor') return t[currentLang.value].roleSupervisor;
+    if (role === 'admin') return labels.roleAdmin;
+    if (role === 'teacher') return labels.roleTeacher;
+    if (role === 'supervisor') return labels.roleSupervisor;
     return role;
 };
 
@@ -135,11 +102,11 @@ onMounted(fetchData);
 
 <template>
   <AdminLayout>
-    <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+    <div dir="ltr" class="w-full">
       <!-- Loading Spinner -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
           <ProgressSpinner />
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ labels.loading }}</p>
       </div>
 
       <!-- Main Content -->
@@ -151,22 +118,17 @@ onMounted(fetchData);
               
               <div class="relative z-10 space-y-2">
                    <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight">
-                       {{ t[currentLang].title }}
+                       {{ labels.title }}
                    </h1>
                    <p class="text-xs font-bold text-slate-400 max-w-xl leading-relaxed">
-                       {{ t[currentLang].subtitle }}
+                       {{ labels.subtitle }}
                    </p>
               </div>
               
               <div class="flex flex-wrap items-center gap-4 relative z-10">
-                   <!-- Language Selector Toggle -->
-            <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                <i class="pi pi-globe text-brand-primary"></i>
-                <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-            </button>
                    
                    <!-- Primary Action Button (Create) -->
-                   <Button :label="t[currentLang].createBtn" icon="pi pi-plus" 
+                   <Button :label="labels.createBtn" icon="pi pi-plus" 
                            class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all hover:-translate-y-1"
                            @click="$router.push('/admin/staff/create')" />
               </div>
@@ -182,15 +144,15 @@ onMounted(fetchData);
                         <template #header>
                             <div class="flex justify-end p-2 pb-4">
                                 <span class="relative">
-                                    <i class="pi pi-search absolute text-slate-400 z-10" :class="currentLang === 'ar' ? 'right-3 top-1/2 -translate-y-1/2' : 'left-3 top-1/2 -translate-y-1/2'" />
-                                    <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl" :class="currentLang === 'ar' ? 'pr-10' : 'pl-10'" />
+                                            <i class="pi pi-search absolute text-slate-400 z-10 left-3 top-1/2 -translate-y-1/2" />
+                                    <InputText v-model="searchQuery" :placeholder="labels.searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl pl-10" />
                                 </span>
                             </div>
                         </template>
 
-                        <Column :header="t[currentLang].colName" style="min-width: 250px">
+                        <Column :header="labels.colName" style="min-width: 250px">
                             <template #body="{ data }">
-                                <div class="flex items-center" :class="currentLang === 'ar' ? 'space-x-reverse space-x-4' : 'space-x-4'">
+                                <div class="flex items-center space-x-4">
                                     <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-bold">
                                         {{ (data.first_name || 'S')[0] }}
                                     </div>
@@ -202,28 +164,28 @@ onMounted(fetchData);
                                             {{ data.email }}
                                         </div>
                                         <div v-if="data.partner" class="text-[9px] font-black text-brand-primary mt-1 uppercase tracking-tighter">
-                                            {{ t[currentLang].partnerLabel }} {{ data.partner.partner_name }}
+                                            {{ labels.partnerLabel }} {{ data.partner.partner_name }}
                                         </div>
                                     </div>
                                 </div>
                             </template>
                         </Column>
 
-                        <Column :header="t[currentLang].colRole" style="min-width: 150px">
+                        <Column :header="labels.colRole" style="min-width: 150px">
                             <template #body="{ data }">
                                 <Tag :value="getRoleLabel(data.role)" :severity="getRoleSeverity(data.role)" class="text-[10px] uppercase tracking-wider font-extrabold" />
                             </template>
                         </Column>
 
-                        <Column :header="t[currentLang].colStatus" style="min-width: 120px">
+                        <Column :header="labels.colStatus" style="min-width: 120px">
                             <template #body="{ data }">
-                                <Tag :value="data.is_active ? t[currentLang].statusActive : t[currentLang].statusDeactivated" :severity="data.is_active ? 'success' : 'danger'" class="text-[10px] uppercase tracking-wider font-extrabold" />
+                                <Tag :value="data.is_active ? labels.statusActive : labels.statusDeactivated" :severity="data.is_active ? 'success' : 'danger'" class="text-[10px] uppercase tracking-wider font-extrabold" />
                             </template>
                         </Column>
 
-                        <Column :header="t[currentLang].colActions" :exportable="false" style="min-width: 150px">
+                        <Column :header="labels.colActions" :exportable="false" style="min-width: 150px">
                             <template #body="{ data }">
-                                <div class="flex items-center space-x-2" :class="currentLang === 'ar' ? 'space-x-reverse' : ''">
+                                <div class="flex items-center space-x-2">
                                     <Button icon="pi pi-pencil" outlined rounded severity="warning" size="small" @click="$router.push(`/admin/staff/${data.id}/edit`)" />
                                     <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="deleteStaff(data.id)" />
                                 </div>
@@ -231,7 +193,7 @@ onMounted(fetchData);
                         </Column>
 
                         <template #empty>
-                            <div class="p-8 text-center text-slate-400 font-medium">{{ t[currentLang].emptySearch }}</div>
+                            <div class="p-8 text-center text-slate-400 font-medium">{{ labels.emptySearch }}</div>
                         </template>
                     </DataTable>
                 </template>
@@ -243,11 +205,11 @@ onMounted(fetchData);
               <div class="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-5xl group-hover:rotate-12 transition-transform duration-500 text-brand-accent">
                   <i class="pi pi-shield"></i>
               </div>
-              <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">{{ t[currentLang].emptyTitle }}</h3>
+              <h3 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">{{ labels.emptyTitle }}</h3>
               <p class="text-slate-500 mb-8 max-w-md mx-auto leading-relaxed">
-                  {{ t[currentLang].emptySubtitle }}
+                  {{ labels.emptySubtitle }}
               </p>
-              <Button :label="t[currentLang].emptyBtn" icon="pi-arrow-right" iconPos="right" @click="$router.push('/admin/staff/create')" />
+              <Button :label="labels.emptyBtn" icon="pi-arrow-right" iconPos="right" @click="$router.push('/admin/staff/create')" />
           </div>
       </div>
     </div>
@@ -256,10 +218,6 @@ onMounted(fetchData);
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
-
-.arabic-theme {
-    font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
-}
 
 .animate-in {
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
@@ -276,12 +234,6 @@ onMounted(fetchData);
     letter-spacing: 0.1em;
 }
 
-.arabic-theme :deep(.p-datatable-thead > tr > th) {
-    text-align: right !important;
-}
-.arabic-theme :deep(.p-datatable-tbody > tr > td) {
-    text-align: right !important;
-}
 
 :deep(.p-datatable-tbody > tr:hover) {
     background: #fbfcfe;

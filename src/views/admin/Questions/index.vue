@@ -47,11 +47,14 @@ const previewQuestion = ref(null);
 const isLoadingPreview = ref(false);
 const isDuplicating = ref(false);
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'en');
+const currentLang = ref('en');
+if (typeof window !== 'undefined') {
+    localStorage.setItem('dashboard_lang', 'en');
+}
 
 const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('dashboard_lang', currentLang.value);
+    currentLang.value = 'en';
+    localStorage.setItem('dashboard_lang', 'en');
 };
 
 // View Mode State
@@ -133,9 +136,9 @@ const t = {
         searchLabel: "بحث",
     },
     en: {
-        loading: "Accessing Matrix Repository...",
-        title: "Comprehensive Question Bank",
-        subtitle: "Manage adaptive exam items, multi-tier prompts, and cognitive assets across domains.",
+        loading: "Loading questions...",
+        title: "Questions",
+        subtitle: "Manage exam questions across all skills",
         createBtn: "Add New Question",
         // levelGuides: "Level Guides",
         placeholderSearch: "Search by content or keywords...",
@@ -147,7 +150,7 @@ const t = {
         colPoints: "Points",
         colAuthorship: "Authorship",
         colActions: "Actions",
-        emptyTelemetry: "No matching questions discovered in current registry filter.",
+        emptyTelemetry: "No matching questions found.",
         confirmDelete: "Delete this question? This action cannot be undone.",
         deleted: "Success",
         questionRemoved: "Question deleted successfully.",
@@ -505,11 +508,6 @@ onMounted(fetchData);
               </div>
               
               <div class="flex flex-wrap items-center gap-4 relative z-10">
-                    <!-- Language Selector Toggle -->
-                    <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                        <i class="pi pi-globe text-brand-primary"></i>
-                        <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                    </button>
                    <Button :label="t[currentLang].createBtn" icon="pi pi-plus" 
                            class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 cursor-pointer"
                            @click="$router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions.create' : 'admin.questions.create' })" />

@@ -38,12 +38,7 @@ const bulkFile = ref(null);
 const fileInput = ref(null);
 const isBulkSaving = ref(false);
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('dashboard_lang', currentLang.value);
-};
+const currentLang = ref('en');
 
 const t = {
     ar: {
@@ -122,17 +117,17 @@ const t = {
         updateSkillsError: "فشل ربط وتحديث المهارات للطلاب."
     },
     en: {
-        loading: "Loading candidate registry...",
-        title: "Student Registry",
-        subtitle: "Audit verified student records, subscription plans, and adaptive level progress profiles",
-        btnRegister: "Register Student",
-        btnMatrixImport: "Register from Excel",
-        btnBulkSkills: "update Students Skills",
+        loading: "Loading students...",
+        title: "Students",
+        subtitle: "Manage student records, subscriptions, and skill assignments",
+        btnRegister: "Add Student",
+        btnMatrixImport: "Import from Excel",
+        btnBulkSkills: "Update Students' Skills",
         btnPurge: "Delete Selected",
         searchPlaceholder: "Search students...",
-        colIdentity: "Student Account & Info",
+        colIdentity: "Student",
         colInstitutionCode: "Institution Code",
-        colSubscription: "Active Package",
+        colSubscription: "Package",
         colCategory: "Assessment Model",
         colStatus: "Status",
         colActions: "Actions",
@@ -144,11 +139,11 @@ const t = {
         tooltipView: "View Profile",
         tooltipReset: "Reset Exam Progress",
         tooltipEdit: "Edit Details",
-        tooltipDelete: "Delete Identity",
-        emptySearch: "No matching candidate identities discovered.",
-        emptyTitle: "No Registered Students",
-        emptySubtitle: "Register students manually or via bulk spreadsheet import to start conducting assessments.",
-        emptyBtn: "Register First Student",
+        tooltipDelete: "Delete Student",
+        emptySearch: "No students match your search.",
+        emptyTitle: "No Students",
+        emptySubtitle: "Add students manually or via bulk import to start assessments.",
+        emptyBtn: "Add First Student",
         filterByPartner: "Filter by Partner",
         allPartners: "All Partners",
         confirmHold: "Are you sure you want to place this student on hold?",
@@ -180,20 +175,20 @@ const t = {
         bulkDeleteError: "Failed to delete students.",
 
         // Bulk Skills Modal
-        bulkModalTitle: "Bulk Skills Mapping",
-        bulkModalSubtitle: "Bulk module mapping protocol",
-        bulkModalNote: "Update module assignments either by pasting emails or usernames manually, OR by uploading the master sheet.",
-        downloadTemplate: "Download Excel Template",
-        manualOverride: "Manual Override",
-        labelEmails: "Identity Access (Emails or Usernames)",
-        labelSkills: "Mapping Short Codes (e.g. R, W, G)",
-        placeholderEmails: "E.G. JOHN@DOMAIN.COM OR USERNAME123...\n(Separate by comma or new lines)",
-        placeholderSkills: "E.G. R, W, G",
-        btnDiscard: "Discard",
-        btnSyncing: "SYNCING...",
-        btnCommit: "COMMIT SYNC",
+        bulkModalTitle: "Update Students' Skills",
+        bulkModalSubtitle: "Assign skills to students in bulk",
+        bulkModalNote: "Update skill assignments by pasting student emails or usernames, or by uploading a file.",
+        downloadTemplate: "Download Template",
+        manualOverride: "Manual Entry",
+        labelEmails: "Student Emails or Usernames",
+        labelSkills: "Skill Codes (e.g. R, W, G)",
+        placeholderEmails: "user1@domain.com or username123...\n(Separate by comma or new line)",
+        placeholderSkills: "e.g. R, W, G",
+        btnDiscard: "Cancel",
+        btnSyncing: "Updating...",
+        btnCommit: "Update Skills",
         importFileError: "Failed to import file.",
-        updateSkillsSuccess: "Skills successfully updated for matching identities.",
+        updateSkillsSuccess: "Skills updated successfully for selected students.",
         updateSkillsError: "Failed to update skills."
     }
 };
@@ -504,7 +499,7 @@ onMounted(() => {
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div dir="ltr" class="w-full">
             <!-- Loading Spinner -->
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
@@ -529,11 +524,6 @@ onMounted(() => {
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-3 relative z-10">
-                        <!-- Language Selector Toggle -->
-                        <button @click="toggleLang" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 font-extrabold text-xs">
-                            <i class="pi pi-globe text-brand-primary"></i>
-                            <span>{{ currentLang === 'ar' ? 'English' : 'العربية' }}</span>
-                        </button>
                         <Button :label="t[currentLang].btnBulkSkills" icon="pi pi-tags" severity="secondary" outlined
                             class="text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all"
                             @click="showBulkSkillsModal = true" />
@@ -556,10 +546,10 @@ onMounted(() => {
                             </div>
                             <div>
                                 <p class="text-xs font-black text-brand-primary uppercase tracking-wider">
-                                    {{ selectedStudents.length }} {{ currentLang === 'ar' ? 'طالب محدد' : 'Students Selected' }}
+                                    {{ selectedStudents.length }} Students Selected
                                 </p>
                                 <p class="text-[10px] font-bold text-slate-400">
-                                    {{ currentLang === 'ar' ? 'اختر إجراء للتطبيق على المحددين' : 'Choose a bulk action to apply' }}
+                                    Choose a bulk action to apply
                                 </p>
                             </div>
                         </div>
@@ -577,7 +567,7 @@ onMounted(() => {
                                 @click="bulkDelete" />
                             <button @click="selectedStudents = []"
                                 class="px-4 py-2 text-[10px] font-extrabold text-slate-400 hover:text-slate-600 uppercase tracking-wider transition-colors">
-                                {{ currentLang === 'ar' ? 'إلغاء' : 'Clear' }}
+                                Clear
                             </button>
                         </div>
                     </div>
@@ -592,10 +582,9 @@ onMounted(() => {
                             class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12 flex items-center" />
                     </div>
                     <div class="relative w-full md:w-96 shrink-0">
-                        <i class="pi pi-search absolute text-slate-400 z-10" :class="currentLang === 'ar' ? 'right-4 top-1/2 -translate-y-1/2' : 'left-4 top-1/2 -translate-y-1/2'" />
+                        <i class="pi pi-search absolute text-slate-400 z-10 left-4 top-1/2 -translate-y-1/2" />
                         <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder"
-                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm h-12"
-                            :class="currentLang === 'ar' ? 'pr-12' : 'pl-12'" />
+                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm h-12 pl-12" />
                     </div>
                    
                 </div>
@@ -611,7 +600,7 @@ onMounted(() => {
 
                                 <Column :header="t[currentLang].colIdentity" style="min-width: 280px">
                                     <template #body="{ data }">
-                                        <div class="flex items-center" :class="currentLang === 'ar' ? 'space-x-reverse space-x-4' : 'space-x-4'">
+                                        <div class="flex items-center space-x-4">
                                             <div
                                                 class="w-11 h-11 rounded-2xl bg-slate-50 text-brand-primary flex items-center justify-center font-black border border-slate-100 shrink-0">
                                                 {{ data.user?.first_name ? data.user.first_name[0].toUpperCase() : 'S' }}
@@ -625,7 +614,7 @@ onMounted(() => {
                                                     class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
                                                     {{ data.user?.username || 'NO USERNAME' }} • {{ data.user?.email }}
                                                     <span v-if="data.student_code" class="text-slate-500 font-extrabold">
-                                                        • {{ currentLang === 'ar' ? 'الرقم القومي: ' : 'ID: ' }}{{ data.student_code }}
+                                                    • ID: {{ data.student_code }}
                                                     </span>
                                                 </div>
                                             </div>
@@ -670,7 +659,7 @@ onMounted(() => {
 
                                 <Column :header="t[currentLang].colActions" :exportable="false" style="min-width: 180px">
                                     <template #body="{ data }">
-                                        <div class="flex items-center space-x-2" :class="currentLang === 'ar' ? 'space-x-reverse' : ''">
+                                        <div class="flex items-center space-x-2">
                                             <Button icon="pi pi-eye" text severity="info" size="small" @click="openView(data)"
                                                 v-tooltip.top="t[currentLang].tooltipView" />
                                             <Button 
@@ -716,16 +705,16 @@ onMounted(() => {
         <!-- Bulk Skills Modal - Institutional Light mode -->
         <Dialog v-model:visible="showBulkSkillsModal" :style="{ width: '500px' }" modal class="rounded-[2.5rem] overflow-hidden border-none shadow-2xl">
             <template #header>
-                <div class="flex flex-col" :class="currentLang === 'ar' ? 'text-right' : 'text-left'">
+                <div class="flex flex-col text-left">
                     <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">{{ t[currentLang].bulkModalTitle }}</h3>
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{{ t[currentLang].bulkModalSubtitle }}</p>
                 </div>
             </template>
 
-            <div class="pt-6 space-y-8" :class="currentLang === 'ar' ? 'text-right' : 'text-left'">
+            <div class="pt-6 space-y-8 text-left">
                 <div
                     class="bg-rose-50/50 border border-brand-primary/10 p-5 rounded-2xl text-[10px] font-bold text-brand-primary leading-relaxed uppercase tracking-wider">
-                    <i class="pi pi-info-circle" :class="currentLang === 'ar' ? 'ml-2' : 'mr-2'"></i>
+                    <i class="pi pi-info-circle mr-2"></i>
                     {{ t[currentLang].bulkModalNote }}
                 </div>
 
@@ -736,8 +725,7 @@ onMounted(() => {
                             @click="downloadExcelTemplate"
                             class="text-[10px] uppercase font-black tracking-widest text-brand-primary animate-none" />
                         <input type="file" ref="fileInput" @change="handleFileUpload" accept=".xlsx,.xls,.csv"
-                            class="w-full text-[10px] font-black uppercase text-slate-400 file:bg-brand-primary file:text-white file:border-none file:rounded-xl file:px-4 file:py-2 file:cursor-pointer"
-                            :class="currentLang === 'ar' ? 'file:ml-4' : 'file:mr-4'">
+                            class="w-full text-[10px] font-black uppercase text-slate-400 file:bg-brand-primary file:text-white file:border-none file:rounded-xl file:px-4 file:py-2 file:cursor-pointer file:mr-4">
                     </div>
 
                     <div class="relative flex items-center justify-center">
@@ -750,13 +738,13 @@ onMounted(() => {
 
                     <div class="space-y-4">
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block" :class="currentLang === 'ar' ? 'mr-1' : 'ml-1'">{{ t[currentLang].labelEmails }}</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">{{ t[currentLang].labelEmails }}</label>
                             <textarea v-model="bulkEmails" 
                                 class="w-full h-24 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:bg-white focus:border-brand-primary/20 focus:ring-4 focus:ring-rose-50/50 transition-all outline-none no-scrollbar shadow-sm"
                                 :placeholder="t[currentLang].placeholderEmails"></textarea>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block" :class="currentLang === 'ar' ? 'mr-1' : 'ml-1'">{{ t[currentLang].labelSkills }}</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">{{ t[currentLang].labelSkills }}</label>
                             <input v-model="bulkSkills" type="text"
                                 class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black uppercase text-brand-primary focus:bg-white focus:border-brand-primary/20 focus:ring-4 focus:ring-rose-50/50 transition-all outline-none shadow-sm animate-none"
                                 :placeholder="t[currentLang].placeholderSkills">
@@ -766,7 +754,7 @@ onMounted(() => {
             </div>
 
             <template #footer>
-                <div class="flex justify-end pt-6 border-t border-slate-50 gap-3" :class="currentLang === 'ar' ? 'flex-row-reverse' : ''">
+                <div class="flex justify-end pt-6 border-t border-slate-50 gap-3">
                     <Button :label="t[currentLang].btnDiscard" outlined severity="secondary"
                         class="text-[10px] font-black uppercase tracking-widest px-8"
                         @click="showBulkSkillsModal = false" />

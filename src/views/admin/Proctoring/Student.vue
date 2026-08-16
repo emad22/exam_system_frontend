@@ -14,10 +14,13 @@ const router = useRouter()
 const route = useRoute()
 
 // ─── Language ────────────────────────────────────────────────────────────────
-const currentLang = ref<'ar' | 'en'>((localStorage.getItem('dashboard_lang') as 'ar' | 'en') || 'ar')
+const currentLang = ref<'ar' | 'en'>('en')
+if (typeof window !== 'undefined') {
+    localStorage.setItem('dashboard_lang', 'en')
+}
 const toggleLang = () => {
-    currentLang.value = currentLang.value === 'ar' ? 'en' : 'ar'
-    localStorage.setItem('dashboard_lang', currentLang.value)
+    currentLang.value = 'en'
+    localStorage.setItem('dashboard_lang', 'en')
 }
 
 const t = {
@@ -442,12 +445,6 @@ onMounted(fetchStudentSessions)
                             <i class="pi pi-arrow-right text-[11px] rtl:rotate-180"></i>
                         </span>
                         {{ t[currentLang].backToStudents }}
-                    </button>
-
-                    <button @click="toggleLang"
-                        class="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-600 px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm transition-all duration-200 font-bold text-[11px]">
-                        <i class="pi pi-globe text-brand-primary text-xs"></i>
-                        <span>{{ currentLang === 'ar' ? 'EN' : 'ع' }}</span>
                     </button>
                 </div>
 

@@ -56,7 +56,7 @@ const getTotalScore = (attempt) => {
     const validSkills = getValidSkills(attempt);
     return validSkills.reduce((sum, skillResult) => {
         totalLevels += skillResult.skill?.levels_count || 1;
-        return sum + (getCalculatedSkillScore(skillResult) || 0);
+        return sum + (getCalculatedSkillScore(skillResult, attempt) || 0);
     }, 0);
 };
 
@@ -113,13 +113,29 @@ const calculateDuration = (start, end) => {
     return `${mins}m ${secs}s`;
 };
 
-const getCalculatedSkillScore = (skillResult) => {
+const getCalculatedSkillScore = (skillResult, attempt) => {
     if (!skillResult || skillResult.score === null || skillResult.score === undefined) return null;
-    const levelsCount = skillResult.skill?.levels_count || 1;
+    if (skillResult.max_points) {
+        return Math.round(Number(skillResult.score) * skillResult.max_points / 100);
+    }
+    let levelsCount = skillResult.skill?.levels_count || 1;
+    // If this skill has only 1 level (Writing/Speaking), use the same levels_count
+    // as the core reference skill (Listening) so scores are on the same /900 scale
+    if (levelsCount === 1 && attempt?.attempt_skills) {
+        const listeningSkill = attempt.attempt_skills.find(
+            s => s.skill?.name?.toLowerCase() === 'listening'
+        );
+        if (listeningSkill && listeningSkill.skill?.levels_count) {
+            levelsCount = listeningSkill.skill.levels_count;
+        }
+    }
     return Math.round(Number(skillResult.score) * levelsCount);
 };
 
 const getMaxSkillScore = (skillResult, attempt) => {
+    if (skillResult.max_points) {
+        return skillResult.max_points;
+    }
     let levelsCount = skillResult.skill?.levels_count || 1;
     if (levelsCount === 1 && attempt?.attempt_skills) {
         const listeningSkill = attempt.attempt_skills.find(
@@ -240,6 +256,69 @@ const isPartCorrect = (answer, correctVal, pIdx) => {
 };
 
 const { resolveUrl } = useMediaUrl();
+
+const getFileExtension = (filePath) => {
+    if (!filePath) return '';
+    return filePath.split('.').pop().toLowerCase();
+};
+
+const isImageFile = (filePath) => {
+    if (!filePath) return false;
+    const ext = getFileExtension(filePath);
+    return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
+};
+
+const isAudioFile = (filePath) => {
+    if (!filePath) return false;
+    const ext = getFileExtension(filePath);
+    return ['mp3', 'wav', 'm4a', 'webm', 'ogg', 'aac', 'flac'].includes(ext);
+};
+
+const isPdfFile = (filePath) => {
+    if (!filePath) return false;
+    return getFileExtension(filePath) === 'pdf';
+};
+
+const isDocumentFile = (filePath) => {
+    if (!filePath) return false;
+    const ext = getFileExtension(filePath);
+    return ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx'].includes(ext);
+};
+
+const getFileIcon = (filePath) => {
+    const ext = getFileExtension(filePath);
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'pi-volume-up';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'pi-image';
+    if (['pdf'].includes(ext)) return 'pi-file-pdf';
+    if (['doc', 'docx'].includes(ext)) return 'pi-file-word';
+    return 'pi-file';
+};
+
+const getMediaFiles = (mediaAnswer) => {
+    if (!mediaAnswer) return [];
+    if (Array.isArray(mediaAnswer)) return mediaAnswer;
+    if (typeof mediaAnswer === 'string') {
+        const trimmed = mediaAnswer.trim();
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) return parsed;
+            } catch (e) {
+            }
+        }
+        return [mediaAnswer];
+    }
+    return [];
+};
+
+const getFileTypeLabel = (filePath) => {
+    const ext = getFileExtension(filePath);
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'Audio';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'Image';
+    if (['pdf'].includes(ext)) return 'PDF';
+    if (['doc', 'docx'].includes(ext)) return 'Document';
+    return 'File';
+};
 
 onMounted(fetchDetails);
 </script>
@@ -399,8 +478,8 @@ onMounted(fetchDetails);
 
                                             <div class="text-right border-l border-slate-100 pl-6 ml-2">
                                                 <div class="text-3xl font-black text-emerald-600 italic">
-                                                    {{ getCalculatedSkillScore(skillResult) !== null ?
-                                                    getCalculatedSkillScore(skillResult) : 0 }}
+                                                    {{ getCalculatedSkillScore(skillResult, selectedAttempt) !== null ?
+                                                    getCalculatedSkillScore(skillResult, selectedAttempt) : 0 }}
                                                     <span class="text-lg text-emerald-400">{{ '/' +
                                                         getMaxSkillScore(skillResult, selectedAttempt) }}</span>
                                                 </div>
@@ -592,6 +671,7 @@ onMounted(fetchDetails);
                                                             </div>
                                                         </div>
 
+                                                        <!-- Simple Answer Layout (MCQ, Short Answer, Writing, Speaking) -->
                                                         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                             <div
                                                                 class="p-6 rounded-3xl bg-slate-50 border border-slate-100 relative overflow-hidden">
@@ -603,21 +683,89 @@ onMounted(fetchDetails);
                                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3">
                                                                     Student Input</p>
                                                                 <div class="text-sm font-black"
-                                                                    :class="answer.is_correct ? 'text-emerald-700' : 'text-rose-700'">
-                                                                    <template
-                                                                        v-if="answer.question?.type === 'speaking'">
-                                                                        <audio v-if="answer.media_answer"
-                                                                            :src="resolveUrl(answer.media_answer)"
-                                                                            controls class="h-8"></audio>
-                                                                        <span v-else>No recording</span>
+                                                                    :class="answer.is_correct ? 'text-emerald-700' : (['writing', 'speaking', 'speaking_live'].includes(answer.question?.type) && !answer.is_manual_graded ? 'text-slate-700' : 'text-rose-700')">
+                                                                    
+                                                                    <!-- Text Answer if available -->
+                                                                    <div v-if="answer.text_answer" class="whitespace-pre-wrap font-medium text-slate-800 leading-relaxed mb-3" dir="auto">
+                                                                        {{ answer.text_answer }}
+                                                                    </div>
+
+                                                                    <!-- Option if MCQ -->
+                                                                    <template v-else-if="answer.option">
+                                                                        <img v-if="answer.option.image_url"
+                                                                            :src="answer.option.image_url"
+                                                                            alt="student answer"
+                                                                            class="max-h-24 rounded-lg border border-slate-200 object-contain" />
+                                                                        <audio v-else-if="answer.option.sound_url"
+                                                                            :src="answer.option.sound_url" controls
+                                                                            class="h-8"></audio>
+                                                                        <span v-else>{{ answer.option.option_text || '—' }}</span>
                                                                     </template>
-                                                                    <template v-else>
-                                                                        {{ answer.option?.option_text ||
-                                                                        answer.text_answer || '—' }}
-                                                                    </template>
+
+                                                                    <!-- Media Answer Files (Images, Audio, PDF, Documents) -->
+                                                                    <div v-if="getMediaFiles(answer.media_answer).length > 0" class="space-y-4 my-3">
+                                                                        <div v-for="(file, fIdx) in getMediaFiles(answer.media_answer)" :key="fIdx">
+                                                                            <!-- Image File (Handwritten essay, student photo/scan) -->
+                                                                            <div v-if="isImageFile(file)" class="space-y-2">
+                                                                                <a :href="resolveUrl(file)" target="_blank" class="inline-block group/img">
+                                                                                    <img :src="resolveUrl(file)" 
+                                                                                        alt="Student Uploaded Image" 
+                                                                                        class="rounded-2xl border border-slate-200 shadow-sm max-w-full max-h-80 object-contain cursor-pointer hover:opacity-90 hover:scale-[1.01] transition-all bg-white p-1" />
+                                                                                </a>
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <a :href="resolveUrl(file)" target="_blank" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 bg-indigo-50/80 px-3 py-1.5 rounded-lg border border-indigo-100/60 w-fit">
+                                                                                        <i class="pi pi-external-link text-[10px]"></i>
+                                                                                        Open Image in Full Size
+                                                                                    </a>
+                                                                                </div>
+                                                                            </div>
+                                                                            
+                                                                            <!-- Audio File -->
+                                                                            <div v-else-if="isAudioFile(file)" class="space-y-2">
+                                                                                <audio :src="resolveUrl(file)" controls class="w-full h-10 rounded-xl shadow-sm border border-slate-200"></audio>
+                                                                                <p class="text-[10px] text-slate-500 font-semibold uppercase">{{ getFileTypeLabel(file) }} recording</p>
+                                                                            </div>
+                                                                            
+                                                                            <!-- Document / PDF File -->
+                                                                            <div v-else-if="isDocumentFile(file)" class="space-y-3">
+                                                                                <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                                                                    <div class="flex items-center gap-3 min-w-0">
+                                                                                        <div class="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-lg">
+                                                                                            <i :class="['pi', getFileIcon(file), 'text-lg']"></i>
+                                                                                        </div>
+                                                                                        <div class="min-w-0">
+                                                                                            <p class="text-xs font-bold text-slate-800 truncate">{{ file.split('/').pop() }}</p>
+                                                                                            <p class="text-[10px] text-slate-400 font-semibold">{{ getFileTypeLabel(file) }}</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <a :href="resolveUrl(file)" 
+                                                                                        target="_blank"
+                                                                                        class="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                                                                                        <i class="pi pi-external-link"></i>
+                                                                                        Open File
+                                                                                    </a>
+                                                                                </div>
+
+                                                                                <div v-if="isPdfFile(file)" class="rounded-xl border border-slate-200 overflow-hidden shadow-inner bg-slate-900">
+                                                                                    <iframe
+                                                                                        :src="resolveUrl(file)"
+                                                                                        class="w-full h-[400px] border-none"
+                                                                                        title="PDF Preview"
+                                                                                    ></iframe>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Fallback when no text and no media -->
+                                                                    <span v-if="!answer.text_answer && !answer.option && getMediaFiles(answer.media_answer).length === 0" class="text-slate-400 italic">
+                                                                        —
+                                                                    </span>
+
                                                                     <i v-if="answer.is_correct"
-                                                                        class="pi pi-check-circle ml-2"></i>
-                                                                    <i v-else class="pi pi-times-circle ml-2"></i>
+                                                                        class="pi pi-check-circle ml-2 text-emerald-500"></i>
+                                                                    <i v-else-if="!['writing', 'speaking', 'speaking_live'].includes(answer.question?.type)"
+                                                                        class="pi pi-times-circle ml-2 text-rose-500"></i>
                                                                 </div>
 
                                                                 <!-- Word Count Badge for Writing/Short Answer -->
@@ -630,6 +778,12 @@ onMounted(fetchDetails);
                                                                     <span
                                                                         class="text-lg font-black text-brand-primary">{{
                                                                         answer.word_count }}</span>
+                                                                </div>
+
+                                                                <!-- Teacher Feedback if graded -->
+                                                                <div v-if="answer.teacher_feedback" class="mt-4 pt-4 border-t border-slate-200">
+                                                                    <p class="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1">Teacher Feedback:</p>
+                                                                    <p class="text-xs text-slate-600 font-semibold italic bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">{{ answer.teacher_feedback }}</p>
                                                                 </div>
                                                             </div>
                                                             <div v-if="!answer.is_correct && answer.question?.type !== 'speaking'"

@@ -1,6 +1,6 @@
 <script setup>
 import { useModal } from '@/composables/useModal';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
@@ -93,7 +93,11 @@ const viewDetails = async (id) => {
     });
 };
 
-const filtered = () => {
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+const rowsPerPageOptions = [10, 15, 25, 50, 100];
+
+const filteredAttempts = computed(() => {
     let result = attempts.value;
 
     if (selectedPartner.value) {
@@ -133,7 +137,28 @@ const filtered = () => {
     }
 
     return result;
+});
+
+const totalRecords = computed(() => filteredAttempts.value.length);
+const totalPages = computed(() => Math.ceil(totalRecords.value / rowsPerPage.value) || 1);
+
+const paginatedAttempts = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredAttempts.value.slice(start, start + rowsPerPage.value);
+});
+
+const changePage = (page) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+    }
 };
+
+const filtered = () => filteredAttempts.value;
+
+// Reset to page 1 whenever filters change
+watch([search, selectedPartner, startDate, endDate], () => {
+    currentPage.value = 1;
+});
 
 const scoreColor = (score) => {
     if (!score && score !== 0) return 'text-slate-400';
@@ -142,20 +167,38 @@ const scoreColor = (score) => {
     return 'text-rose-600';
 };
 
-const getCalculatedSkillScore = (skillResult) => {
+const getCalculatedSkillScore = (skillResult, attempt) => {
     if (!skillResult || skillResult.score === null || skillResult.score === undefined) return null;
-    const levelsCount = skillResult.skill?.levels_count || 1;
+    if (skillResult.max_points) {
+        return Math.round(Number(skillResult.score) * skillResult.max_points / 100);
+    }
+    let levelsCount = skillResult.skill?.levels_count || 1;
+    // If this skill has only 1 level (Writing/Speaking), use the same levels_count
+    // as the core reference skill (Listening) so scores are on the same /900 scale
+    if (levelsCount === 1 && attempt?.attempt_skills) {
+        const referenceSkill = attempt.attempt_skills.find(
+            s => (s.skill?.levels_count || 1) > 1
+        );
+        if (referenceSkill && referenceSkill.skill?.levels_count) {
+            levelsCount = referenceSkill.skill.levels_count;
+        }
+    }
     return Math.round(Number(skillResult.score) * levelsCount);
 };
 
 const getMaxSkillScore = (skillResult, attempt) => {
+    if (skillResult.max_points) {
+        return skillResult.max_points;
+    }
     let levelsCount = skillResult.skill?.levels_count || 1;
+    // If this skill has only 1 level (Writing/Speaking), use the same levels_count
+    // as the core reference skill (Listening) so scores are on the same /900 scale
     if (levelsCount === 1 && attempt?.attempt_skills) {
-        const listeningSkill = attempt.attempt_skills.find(
-            s => s.skill?.name?.toLowerCase() === 'listening'
+        const referenceSkill = attempt.attempt_skills.find(
+            s => (s.skill?.levels_count || 1) > 1
         );
-        if (listeningSkill && listeningSkill.skill?.levels_count) {
-            levelsCount = listeningSkill.skill.levels_count;
+        if (referenceSkill && referenceSkill.skill?.levels_count) {
+            levelsCount = referenceSkill.skill.levels_count;
         }
     }
     return levelsCount * 100;
@@ -189,7 +232,7 @@ const getValidTotalLevels = (attempt) => {
 const getTotalScore = (attempt) => {
     const validSkills = getValidSkills(attempt);
     return validSkills.reduce((sum, skillResult) => {
-        return sum + (getCalculatedSkillScore(skillResult) || 0);
+        return sum + (getCalculatedSkillScore(skillResult, attempt) || 0);
     }, 0);
 };
 
@@ -246,8 +289,8 @@ onMounted(() => {
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6 md:space-y-0">
             <div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Academic Registry</h1>
-                <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Movement reports for completed evaluations</p>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Exam Reports</h1>
+                <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Reports for completed exams</p>
             </div>
             <div class="flex flex-wrap items-center gap-3 mt-4 md:mt-0 justify-end">
                 <Button v-if="selectedReports.length > 0"
@@ -277,7 +320,7 @@ onMounted(() => {
         </div>
 
         <div v-else>
-            <div v-if="filtered().length > 0" id="reports-table-container" class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div v-if="filteredAttempts.length > 0" id="reports-table-container" class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50/50 border-b border-slate-100 uppercase text-[10px] font-black text-slate-400 tracking-wider">
                         <tr>
@@ -293,7 +336,7 @@ onMounted(() => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 text-sm">
-                        <template v-for="attempt in filtered()" :key="attempt.id">
+                        <template v-for="attempt in paginatedAttempts" :key="attempt.id">
                             <tr @click="viewDetails(attempt.id)"
                                 :class="{'pdf-ignore': !isSelected(attempt.id)}"
                                 class="hover:bg-slate-50/50 transition cursor-pointer group">
@@ -370,7 +413,7 @@ onMounted(() => {
                                                 </span>
 
                                                 <span class="font-black text-sm ml-3" :class="scoreColor(skillResult.score)">
-                                                    {{ getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) + '/' + getMaxSkillScore(skillResult, attempt) : '—' }}
+                                                    {{ getCalculatedSkillScore(skillResult, attempt) !== null ? getCalculatedSkillScore(skillResult, attempt) + '/' + getMaxSkillScore(skillResult, attempt) : '—' }}
                                                 </span>
                                             </div>
                                         </div>
@@ -380,6 +423,67 @@ onMounted(() => {
                         </template>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div v-if="filteredAttempts.length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-2">
+                <!-- Left: record info + rows per page -->
+                <div class="flex items-center gap-4">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                        Showing
+                        <span class="text-slate-700 font-black">
+                            {{ (currentPage - 1) * rowsPerPage + 1 }}–{{ Math.min(currentPage * rowsPerPage, totalRecords) }}
+                        </span>
+                        of
+                        <span class="text-slate-700 font-black">{{ totalRecords }}</span>
+                        records
+                    </span>
+                    <select v-model="rowsPerPage" @change="currentPage = 1"
+                        class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all">
+                        <option v-for="opt in rowsPerPageOptions" :key="opt" :value="opt">{{ opt }} / page</option>
+                    </select>
+                </div>
+
+                <!-- Right: page buttons -->
+                <div class="flex items-center gap-1">
+                    <!-- First -->
+                    <button @click="changePage(1)" :disabled="currentPage === 1"
+                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="First page">
+                        <i class="pi pi-angle-double-left text-xs" />
+                    </button>
+                    <!-- Prev -->
+                    <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
+                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Previous">
+                        <i class="pi pi-angle-left text-xs" />
+                    </button>
+
+                    <!-- Page numbers (show up to 7 pages around current) -->
+                    <template v-for="page in totalPages" :key="page">
+                        <button v-if="page === 1 || page === totalPages || (page >= currentPage - 2 && page <= currentPage + 2)"
+                            @click="changePage(page)"
+                            :class="[
+                                'w-8 h-8 rounded-xl text-[11px] font-black transition-all',
+                                page === currentPage
+                                    ? 'bg-brand-primary text-white shadow-sm'
+                                    : 'text-slate-500 hover:bg-slate-100'
+                            ]">
+                            {{ page }}
+                        </button>
+                        <span v-else-if="page === currentPage - 3 || page === currentPage + 3"
+                            class="w-8 h-8 flex items-center justify-center text-slate-300 text-xs font-bold">…</span>
+                    </template>
+
+                    <!-- Next -->
+                    <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
+                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Next">
+                        <i class="pi pi-angle-right text-xs" />
+                    </button>
+                    <!-- Last -->
+                    <button @click="changePage(totalPages)" :disabled="currentPage === totalPages"
+                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Last page">
+                        <i class="pi pi-angle-double-right text-xs" />
+                    </button>
+                </div>
             </div>
 
             <div v-else class="bg-white rounded-[2.5rem] border border-slate-100 p-32 text-center shadow-sm">
@@ -478,7 +582,7 @@ onMounted(() => {
                                                 {{ getSkillDisplayName(skillResult.skill?.name) }}
                                             </span>
                                             <span class="font-black text-sm ml-3" :class="scoreColor(skillResult.score)">
-                                                {{ getCalculatedSkillScore(skillResult) !== null ? getCalculatedSkillScore(skillResult) + '/' + getMaxSkillScore(skillResult, attempt) : '—' }}
+                                                {{ getCalculatedSkillScore(skillResult, attempt) !== null ? getCalculatedSkillScore(skillResult, attempt) + '/' + getMaxSkillScore(skillResult, attempt) : '—' }}
                                             </span>
                                         </div>
                                     </div>

@@ -244,10 +244,10 @@ onMounted(fetchCategories);
                         <input type="file" webkitdirectory directory multiple ref="fileInput" @change="handleFolderSelect" class="hidden" />
                         
                         <div class="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-5xl shadow-sm text-brand-accent group-hover:rotate-12 transition-transform duration-500 italic">ðŸ“ </div>
-                        <h3 class="text-2xl font-black text-slate-800 mb-4 tracking-tighter uppercase leading-none">Initialize Ingestion</h3>
-                        <p class="text-slate-400 font-bold max-w-sm mx-auto mb-10 text-[10px] leading-relaxed uppercase tracking-[0.2em] opacity-60">
-                            Select the master directory containing the legacy template data matrix.
-                        </p>
+                         <h3 class="text-2xl font-black text-slate-800 mb-4 tracking-tighter uppercase leading-none">Import Exams</h3>
+                         <p class="text-slate-400 font-bold max-w-sm mx-auto mb-10 text-[10px] leading-relaxed uppercase tracking-[0.2em] opacity-60">
+                             Select the folder containing the exam template files.
+                         </p>
                         
                         <div class="bg-white border border-slate-100 text-slate-700 font-black py-5 px-12 rounded-3xl shadow-sm group-hover:shadow-2xl group-hover:text-brand-primary transition-all duration-500 uppercase tracking-widest text-[10px]">
                             SELECT MASTER FOLDER
@@ -281,7 +281,7 @@ onMounted(fetchCategories);
 
                              <div v-if="isUploading" class="mt-12 space-y-4">
                                   <div class="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                       <span>Syncing Data Matrix...</span>
+                                       <span>Importing data...</span>
                                        <span>{{ uploadProgress }}%</span>
                                   </div>
                                   <ProgressBar :value="uploadProgress" :showValue="false" class="h-3 bg-slate-200" />
@@ -294,7 +294,7 @@ onMounted(fetchCategories);
 
                         <div class="text-center">
                              <p class="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] max-w-lg mx-auto leading-relaxed italic">
-                                Institutional assets will be generated based on the identified tiers and domains.
+                                 Exam data will be imported based on the identified skills and levels.
                              </p>
                         </div>
                     </div>

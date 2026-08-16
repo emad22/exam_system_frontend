@@ -78,7 +78,7 @@ const saveRequirement = async () => {
         router.push('/admin/system-requirements');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to initialize system prerequisite.';
+        errorMsg.value = err.response?.data?.message || 'Failed to save requirement.';
     } finally {
         isSaving.value = false;
     }
@@ -94,8 +94,8 @@ const saveRequirement = async () => {
                 <div class="flex items-center space-x-6">
                     <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/system-requirements')" />
                     <div>
-                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Define prerequisite</h1>
-                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Technical requirement provisioning</p>
+                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Add Requirement</h1>
+                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Set up a system requirement</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-2 bg-rose-50 px-4 py-2 rounded-2xl border border-indigo-100">

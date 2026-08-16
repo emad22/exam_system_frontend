@@ -32,18 +32,21 @@ const boardRef = ref(null);
 const canvasElements = ref([]);
 const selectedElementId = ref(null);
 const interactionState = ref(null);
+const defaultBackgroundSettings = () => ({
+  opacity: 1.0,
+  size: 'cover',
+  position: 'center',
+  custom_css: '',
+  date_format: 'M d Y'
+});
+
 const currentTemplate = ref({
   name: '',
   content_html: '',
   elements_json: '[]',
   is_default: false,
   background_image: null,
-  background_settings: {
-    opacity: 1.0,
-    size: 'cover',
-    position: 'center',
-    custom_css: ''
-  }
+  background_settings: defaultBackgroundSettings()
 });
 
 const canvasWidth = 1123;
@@ -138,6 +141,28 @@ const escapeHtml = (value = '') => String(value)
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;')
   .replace(/\"/g, '&quot;');
+
+const formatTemplateDate = (date, pattern = 'M d Y') => {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+
+  const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const longMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const day = d.getDate();
+  const month = d.getMonth();
+  const year = d.getFullYear();
+
+  const map = {
+    'M d Y': `${shortMonths[month]} ${day} ${year}`,
+    'F d Y': `${longMonths[month]} ${day} ${year}`,
+    'd M Y': `${String(day).padStart(2, '0')} ${shortMonths[month]} ${year}`,
+    'd F Y': `${String(day).padStart(2, '0')} ${longMonths[month]} ${year}`,
+    'Y-m-d': `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    'd/m/Y': `${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year}`
+  };
+
+  return map[pattern] || map['M d Y'];
+};
 
 const buildContentHtml = () => {
   if (!canvasElements.value.length) {
@@ -428,6 +453,7 @@ const getDefaultCanvasElements = () => [
     type: 'placeholder',
     placeholder: 'date',
     text: 'Date',
+    date_format: 'M d Y',
     x: 185,
     y: 675,
     width: 250,
@@ -509,12 +535,7 @@ const resetEditorState = (template = null) => {
   interactionState.value = null;
 
   if (template) {
-    let bgSettings = {
-      opacity: 1.0,
-      size: 'cover',
-      position: 'center',
-      custom_css: ''
-    };
+    let bgSettings = defaultBackgroundSettings();
     if (template.background_settings) {
       try {
         const parsed = typeof template.background_settings === 'string'
@@ -549,12 +570,7 @@ const resetEditorState = (template = null) => {
       elements_json: [],
       is_default: false,
       background_image: null,
-      background_settings: {
-        opacity: 1.0,
-        size: 'cover',
-        position: 'center',
-        custom_css: ''
-      }
+      background_settings: defaultBackgroundSettings()
     };
     canvasElements.value = ensureElementIds(getDefaultCanvasElements());
     if (canvasElements.value.length) {
@@ -571,6 +587,7 @@ watch(canvasElements, syncContentHtml, { deep: true });
 let _syncingSelected = false;
 watch(selectedElementRef, (val) => {
   if (!val || _syncingSelected) return;
+
   const idx = canvasElements.value.findIndex((it) => it.id === val.id);
   if (idx === -1) return;
   _syncingSelected = true;
@@ -918,6 +935,11 @@ const saveTemplate = async () => {
     return copy;
   });
 
+  const datePlaceholder = (canvasElements.value || []).find((el) => (el.placeholder === 'date' || el.placeholder === 'issue_date'));
+  // Note: Don't sync placeholder.date_format to background_settings - they are separate concerns:
+  // - background_settings.date_format is for the skills table
+  // - element.date_format is for the date placeholder
+
   const formData = new FormData();
   formData.append('name', currentTemplate.value.name);
   formData.append('content_html', currentTemplate.value.content_html || buildContentHtml());
@@ -951,6 +973,7 @@ const saveTemplate = async () => {
 const generatePreviewHtml = async () => {
   const content = currentTemplate.value.content_html || '<div style="text-align: center; margin-top: 100px; color: #94a3b8;">Add elements to start previewing...</div>';
 
+  const sampleDateFormat = currentTemplate.value.background_settings?.date_format || 'M d Y';
   const sampleData = {
     '{name}': 'Abdulaziz Rustamov (Sample Student)',
     '{exam}': 'Arabic Language Proficiency Test (ALPT)',
@@ -958,7 +981,7 @@ const generatePreviewHtml = async () => {
     '{total_points}': '745',
     '{cefr}': 'C1.2',
     '{actfl}': 'Advanced High',
-    '{date}': new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+    '{date}': formatTemplateDate(new Date('2026-08-11T00:00:00'), sampleDateFormat),
     '{number}': 'CERT-SAMPLE-001',
     '{verification_url}': '#',
     '{skills_table}': `
@@ -1449,6 +1472,20 @@ const debugDump = async () => {
                 class="text-xs font-semibold text-slate-650 cursor-pointer select-none">Set as Default Template</label>
             </div>
 
+            <!-- Date Format -->
+            <div class="space-y-1.5">
+              <label class="text-[9px] font-black uppercase tracking-widest text-slate-400">Certificate Date Format</label>
+              <select v-model="currentTemplate.background_settings.date_format"
+                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none">
+                <option value="M d Y">Aug 11 2026</option>
+                <option value="F d Y">August 11 2026</option>
+                <option value="d M Y">11 Aug 2026</option>
+                <option value="d F Y">11 August 2026</option>
+                <option value="Y-m-d">2026-08-11</option>
+                <option value="d/m/Y">11/08/2026</option>
+              </select>
+            </div>
+
             <!-- Background Image Properties -->
             <div v-if="currentTemplate.background_image"
               class="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-4">
@@ -1581,6 +1618,21 @@ const debugDump = async () => {
                   <option v-for="option in placeholderOptions" :key="option.value" :value="option.value">{{ option.label
                   }}</option>
                 </select>
+
+                <div v-if="selectedElementRef.placeholder === 'date' || selectedElementRef.placeholder === 'issue_date'"
+                  class="space-y-1.5 pt-2">
+                  <label class="text-[10px] font-semibold text-slate-500">Certificate Date Format</label>
+                  <select v-model="selectedElementRef.date_format"
+                    class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium">
+                    <option value="M d Y">Aug 11 2026</option>
+                    <option value="F d Y">August 11 2026</option>
+                    <option value="d M Y">11 Aug 2026</option>
+                    <option value="d F Y">11 August 2026</option>
+                    <option value="Y-m-d">2026-08-11</option>
+                    <option value="d/m/Y">11/08/2026</option>
+                  </select>
+                </div>
+
                 <div class="flex items-center gap-2 px-2 py-1.5 bg-blue-50 rounded-lg border border-blue-200">
                   <i class="pi pi-tag text-blue-500 text-[9px]"></i>
                   <span class="text-[9px] font-mono font-bold text-blue-700">{{ '{' }}{{ selectedElementRef.placeholder

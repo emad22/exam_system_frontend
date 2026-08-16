@@ -24,74 +24,39 @@ const goBackToGrading = () => {
     router.push({ name: routeName })
 }
 
-const currentLang = ref(localStorage.getItem('dashboard_lang') || 'ar');
-
-// Translation Dictionary
 const t = {
-    ar: {
-        loading: "جاري تحميل إجابات الطالب للتقييم اليدوي...",
-        backToHub: "العودة لقسم التقييم اليدوي",
-        correctionDesk: "منصة التصحيح والتقييم اليدوي",
-        attempt: "محاولة رقم",
-        totalAwarded: "إجمالي الدرجة الممنوحة",
-        pointsAcrossTasks: "الدرجات الموزعة عبر المهارات المستهدفة",
-        questionsCount: "أسئلة",
-        skillScore: "درجة القسم",
-        maxCap: "الحد الأقصى",
-        maxPoints: "الدرجة القصوى",
-        questionPrompt: "السؤال المطروح",
-        studentAnswer: "إجابة الطالب المقدمة",
-        noContent: "لا يوجد محتوى متوفر",
-        noAnswerSubmitted: "لم يقم الطالب بتقديم إجابة لهذا السؤال.",
-        pointsInputLabel: "الدرجة المستحقة للمحاولة",
-        feedbackLabel: "ملاحظات وتوجيه المعلم",
-        feedbackPlaceholder: "اكتب تعليقاً توجيهياً وبنّاءً لمساعدة الطالب على التحسن...",
-        submitButton: "اعتماد وحفظ كافة الدرجات",
-        noQuestionsFound: "لا توجد أسئلة مقالية أو شفهية بحاجة لتصحيح يدوي في هذه المحاولة.",
-        attemptNotFound: "لم يتم العثور على محاولة التقييم المطلوبة في قاعدة البيانات.",
-        totalScore: "النتيجة الإجمالية",
-        writingSection: "قسم الكتابة",
-        speakingSection: "قسم المحادثة",
-        sectionScore: "درجة القسم",
-        sectionPossible: "الدرجة القصوى للقسم",
-    },
-    en: {
-        loading: "Loading student submission for manual correction...",
-        backToHub: "Back to Correction Desk",
-        correctionDesk: "Correction Desk & Manual Grading",
-        attempt: "Attempt #",
-        totalAwarded: "Total Awarded Points",
-        pointsAcrossTasks: "Points across all graded tasks",
-        questionsCount: "questions",
-        skillScore: "Skill Score",
-        maxCap: "Max Cap",
-        maxPoints: "Max Points",
-        questionPrompt: "Question Content",
-        studentAnswer: "Student Answer",
-        noContent: "No content available",
-        noAnswerSubmitted: "No answer submitted.",
-        pointsInputLabel: "Points Graded",
-        feedbackLabel: "Teacher Feedback",
-        feedbackPlaceholder: "Write constructive, helpful feedback for this student...",
-        submitButton: "Submit All Grades",
-        noQuestionsFound: "No writing or speaking questions found for this attempt.",
-        attemptNotFound: "Attempt not found.",
-        totalScore: "Total Score",
-        writingSection: "Writing Section",
-        speakingSection: "Speaking Section",
-        sectionScore: "Section Score",
-        sectionPossible: "Section Max",
-    }
+    loading: "Loading student submission for manual correction...",
+    backToHub: "Back to Correction Desk",
+    correctionDesk: "Correction Desk & Manual Grading",
+    attempt: "Attempt #",
+    totalAwarded: "Total Awarded Points",
+    pointsAcrossTasks: "Points across all graded tasks",
+    questionsCount: "questions",
+    skillScore: "Skill Score",
+    maxCap: "Max Cap",
+    maxPoints: "Max Points",
+    questionPrompt: "Question Content",
+    studentAnswer: "Student Answer",
+    noContent: "No content available",
+    noAnswerSubmitted: "No answer submitted.",
+    pointsInputLabel: "Points Graded",
+    feedbackLabel: "Teacher Feedback",
+    feedbackPlaceholder: "Write constructive, helpful feedback for this student...",
+    submitButton: "Submit All Grades",
+    noQuestionsFound: "No writing or speaking questions found for this attempt.",
+    attemptNotFound: "Attempt not found.",
+    totalScore: "Total Score",
+    writingSection: "Writing Section",
+    speakingSection: "Speaking Section",
+    sectionScore: "Section Score",
+    sectionPossible: "Section Max",
 };
 
-// Attempt data from API
 const attempt  = ref(null)
-const skills   = ref([])   // [{ skill_id, skill_name, max_points, answers: [...] }]
+const skills   = ref([])
 
-// Grades keyed by answer_id
-const grades = ref({})   // { [answer_id]: { points_awarded, teacher_feedback } }
+const grades = ref({})
 
-// ── Helper Functions for File Type Detection ───────────────────────────────
 const getFileExtension = (filePath) => {
     if (!filePath) return '';
     return filePath.split('.').pop().toLowerCase();
@@ -139,7 +104,6 @@ const getMediaFiles = (mediaAnswer) => {
                 const parsed = JSON.parse(trimmed);
                 if (Array.isArray(parsed)) return parsed;
             } catch (e) {
-                // Ignore JSON parse error
             }
         }
         return [mediaAnswer];
@@ -149,11 +113,11 @@ const getMediaFiles = (mediaAnswer) => {
 
 const getFileTypeLabel = (filePath) => {
     const ext = getFileExtension(filePath);
-    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'صوتي';
-    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'صورة';
+    if (['mp3', 'wav', 'm4a', 'webm', 'ogg'].includes(ext)) return 'Audio';
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext)) return 'Image';
     if (['pdf'].includes(ext)) return 'PDF';
-    if (['doc', 'docx'].includes(ext)) return 'وثيقة';
-    return 'ملف';
+    if (['doc', 'docx'].includes(ext)) return 'Document';
+    return 'File';
 };
 
 const formatFileSize = (bytes) => {
@@ -166,7 +130,6 @@ const formatFileSize = (bytes) => {
 
 const savingSkillKey = ref(null)
 
-// ── Fetch ──────────────────────────────────────────────────────────────────
 const fetchAttempt = async () => {
     loading.value = true
     try {
@@ -174,7 +137,6 @@ const fetchAttempt = async () => {
         attempt.value = res.data.attempt
         skills.value  = res.data.skills
 
-        // Initialise grade inputs
         res.data.skills.forEach(skill => {
             skill.answers.forEach(ans => {
                 grades.value[ans.id] = {
@@ -192,7 +154,6 @@ const fetchAttempt = async () => {
     }
 }
 
-// ── Score totals ───────────────────────────────────────────────────────────
 const totalAwarded = computed(() =>
     Object.values(grades.value).reduce((s, g) => s + (Number(g.points_awarded) || 0), 0)
 )
@@ -201,7 +162,6 @@ const totalPossible = computed(() =>
     skills.value.flatMap(s => s.answers).reduce((s, a) => s + (a.question?.points ?? 0), 0)
 )
 
-// ── Submit Single Skill Section ────────────────────────────────────────────
 const submitSkillGrades = async (skill) => {
     const groupKey = `${skill.skill_id}-${skill.question_type}`
     savingSkillKey.value = groupKey
@@ -221,11 +181,9 @@ const submitSkillGrades = async (skill) => {
     }
 }
 
-// ── Submit All Edited/Graded Sections ───────────────────────────────────────
 const submitGrades = async () => {
     saving.value = true
     try {
-        // Collect answers that are either already graded in DB or modified by the teacher
         const payload = []
 
         for (const skill of skills.value) {
@@ -246,7 +204,6 @@ const submitGrades = async () => {
             }
         }
 
-        // Fallback: if nothing was touched, send all
         if (payload.length === 0) {
             Object.entries(grades.value).forEach(([answerId, g]) => {
                 payload.push({
@@ -266,15 +223,12 @@ const submitGrades = async () => {
     }
 }
 
-// ── Skill score helpers ────────────────────────────────────────────────────
 const skillAwarded = (skill) =>
     skill.answers.reduce((s, a) => s + (Number(grades.value[a.id]?.points_awarded) || 0), 0)
 
 const skillPossible = (skill) =>
     skill.answers.reduce((s, a) => s + (a.question?.points ?? 0), 0)
 
-// ── Type helpers ───────────────────────────────────────────────────────────
-// Each group now has a question_type field ('writing' | 'speaking' | …)
 const isSpeakingGroup = (skill) =>
     skill.question_type === 'speaking'
 
@@ -285,11 +239,10 @@ const skillTypeBadgeSeverity = (skill) =>
     isSpeakingGroup(skill) ? 'warning' : 'info'
 
 const skillTypeLabel = (skill) => {
-    if (isSpeakingGroup(skill)) return t[currentLang.value].speakingSection
-    return t[currentLang.value].writingSection
+    if (isSpeakingGroup(skill)) return t.speakingSection
+    return t.writingSection
 }
 
-// ── Student name ───────────────────────────────────────────────────────────
 const studentName = computed(() => {
     const u = attempt.value?.student?.user
     return u ? `${u.first_name} ${u.last_name}` : '—'
@@ -300,12 +253,12 @@ onMounted(fetchAttempt)
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div class="w-full">
             
             <!-- Loading -->
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <i class="pi pi-spin pi-spinner text-4xl text-brand-primary"></i>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
             </div>
 
             <div v-else-if="attempt" class="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-32 px-4">
@@ -322,7 +275,7 @@ onMounted(fetchAttempt)
                         <div>
                              <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
                                   <i class="pi pi-sparkles text-brand-accent"></i>
-                                  <span>{{ t[currentLang].correctionDesk }}</span>
+                                  <span>{{ t.correctionDesk }}</span>
                              </div>
                              <h1 class="text-2xl font-black text-slate-800 tracking-tight leading-tight mt-1">
                                  {{ studentName }}
@@ -334,13 +287,12 @@ onMounted(fetchAttempt)
                     </div>
 
                     <div class="flex items-center gap-3 relative z-10">
-                        <Tag :value="`${t[currentLang].attempt} ${attempt.id}`" severity="info" class="text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl border-none shadow-sm" />
+                        <Tag :value="`${t.attempt} ${attempt.id}`" severity="info" class="text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl border-none shadow-sm" />
                     </div>
                 </div>
 
                 <!-- Student Overview Card -->
                 <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
-                    <!-- Ambient glows inside the dark card -->
                     <div class="absolute right-0 top-0 w-80 h-80 bg-brand-primary/10 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3"></div>
                     <div class="absolute -left-10 -bottom-10 w-64 h-64 bg-rose-500/5 rounded-full blur-2xl"></div>
 
@@ -358,12 +310,12 @@ onMounted(fetchAttempt)
 
                     <!-- Score Summary -->
                     <div class="relative z-10 text-center md:text-right">
-                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">{{ t[currentLang].totalAwarded }}</p>
+                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">{{ t.totalAwarded }}</p>
                         <div class="flex items-end gap-1 justify-center md:justify-end mt-1">
                             <span class="text-5xl font-black text-emerald-400 tracking-tighter leading-none">{{ totalAwarded }}</span>
                             <span class="text-xl text-slate-500 font-black mb-0.5">/ {{ totalPossible }}</span>
                         </div>
-                        <p class="text-[10px] text-slate-500 font-bold mt-1">{{ t[currentLang].pointsAcrossTasks }}</p>
+                        <p class="text-[10px] text-slate-500 font-bold mt-1">{{ t.pointsAcrossTasks }}</p>
                     </div>
                     
                     <i class="pi pi-pen-to-square absolute -right-8 -bottom-8 text-[10rem] text-white/5 opacity-40 group-hover:scale-110 transition-transform duration-700"></i>
@@ -380,7 +332,6 @@ onMounted(fetchAttempt)
                             <div>
                                 <h3 class="font-black text-slate-800 text-lg leading-tight">{{ skill.skill_name }}</h3>
                                 <div class="flex items-center gap-2 mt-0.5">
-                                    <!-- Writing / Speaking badge -->
                                     <span
                                         class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg"
                                         :class="isSpeakingGroup(skill)
@@ -390,28 +341,25 @@ onMounted(fetchAttempt)
                                         {{ skillTypeLabel(skill) }}
                                     </span>
                                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                        {{ skill.answers.length }} {{ t[currentLang].questionsCount }}
+                                        {{ skill.answers.length }} {{ t.questionsCount }}
                                     </p>
                                 </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                            <!-- Running total for this section -->
                             <div class="bg-white rounded-2xl px-5 py-2.5 text-center shadow-sm border border-slate-50">
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ t[currentLang].sectionScore }}</p>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ t.sectionScore }}</p>
                                 <p class="font-black text-slate-800 text-base mt-0.5">
                                     <span class="text-emerald-600">{{ skillAwarded(skill) }}</span>
                                     <span class="text-slate-400"> / {{ skill.total_possible ?? skillPossible(skill) }}</span>
                                 </p>
                             </div>
-                            <!-- Max cap badge (only when a cap is set) -->
                             <div v-if="skill.max_points > 0" class="bg-rose-50/50 border border-rose-100/60 rounded-2xl px-5 py-2.5 text-center shadow-sm">
-                                <p class="text-[9px] font-black text-rose-400 uppercase tracking-wider">{{ t[currentLang].maxCap }}</p>
+                                <p class="text-[9px] font-black text-rose-400 uppercase tracking-wider">{{ t.maxCap }}</p>
                                 <p class="font-black text-rose-600 text-base mt-0.5">{{ skill.max_points }} pts</p>
                             </div>
-                            <!-- Save Section Button -->
                             <Button
-                                :label="currentLang === 'ar' ? `حفظ درجات ${skillTypeLabel(skill)}` : `Save ${skillTypeLabel(skill)}`"
+                                :label="`Save ${skillTypeLabel(skill)}`"
                                 icon="pi pi-check"
                                 :loading="savingSkillKey === `${skill.skill_id}-${skill.question_type}`"
                                 @click="submitSkillGrades(skill)"
@@ -433,16 +381,16 @@ onMounted(fetchAttempt)
                                     :severity="['speaking', 'speaking_live'].includes(ans.question?.type) ? 'warning' : 'info'"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                                 <Tag v-if="ans.is_manual_graded"
-                                    :value="currentLang === 'ar' ? 'مُصحح' : 'Graded'"
+                                    value="Graded"
                                     severity="success"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                                 <Tag v-else
-                                    :value="currentLang === 'ar' ? 'بانتظار التصحيح' : 'Pending'"
+                                    value="Pending"
                                     severity="secondary"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].maxPoints }}</span>
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t.maxPoints }}</span>
                                 <span class="text-lg font-black text-brand-primary">{{ ans.question?.points ?? 0 }}</span>
                             </div>
                         </div>
@@ -450,10 +398,9 @@ onMounted(fetchAttempt)
                         <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <!-- Left: Question + Student answer -->
                             <div class="space-y-5">
-                                <!-- Question prompt -->
                                 <div class="bg-slate-900 rounded-2xl p-5 text-white text-sm relative overflow-hidden shadow-inner">
                                     <div class="absolute right-0 top-0 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
-                                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-3">{{ t[currentLang].questionPrompt }}</p>
+                                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-3">{{ t.questionPrompt }}</p>
                                     <div v-if="ans.question?.content"
                                         class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
                                         v-html="ans.question.content"></div>
@@ -474,51 +421,44 @@ onMounted(fetchAttempt)
                                         <div v-if="ans.question.passage.content"
                                             class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
                                             v-html="ans.question.passage.content"></div>
-                                        <p v-else class="text-slate-400 italic text-xs">{{ t[currentLang].noContent }}</p>
+                                        <p v-else class="text-slate-400 italic text-xs">{{ t.noContent }}</p>
                                     </div>
-                                    <p v-else class="text-slate-400 italic text-xs">{{ t[currentLang].noContent }}</p>
+                                    <p v-else class="text-slate-400 italic text-xs">{{ t.noContent }}</p>
                                 </div>
 
                                 <!-- Student answer -->
                                 <div class="bg-slate-50/60 rounded-2xl p-6 border border-slate-100 shadow-inner min-h-[120px]">
-                                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-4">{{ t[currentLang].studentAnswer }}</p>
+                                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-4">{{ t.studentAnswer }}</p>
                                     
-                                    <!-- Text/HTML answer -->
                                     <div v-if="ans.text_answer"
                                         class="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap font-medium" dir="auto"
                                         v-html="ans.text_answer"></div>
                                     
-                                    <!-- Word count for writing/short answer -->
                                     <div v-if="['writing', 'short_answer'].includes(ans.question?.type) && ans.word_count !== null && ans.word_count !== undefined"
                                         class="mt-4 pt-4 border-t border-slate-200 flex items-center gap-3">
                                         <i class="pi pi-align-right text-slate-400 text-lg"></i>
                                         <div class="flex flex-col">
-                                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">عدد الكلمات</span>
+                                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Word Count</span>
                                             <span class="text-2xl font-black text-brand-primary mt-0.5">{{ ans.word_count }}</span>
                                         </div>
                                     </div>
                                     
-                                    <!-- Media answers (single file or array of files) -->
                                     <div v-if="getMediaFiles(ans.media_answer).length > 0" class="mt-4 space-y-4">
                                         <div v-for="(file, fIdx) in getMediaFiles(ans.media_answer)" :key="fIdx">
-                                            
-                                            <!-- Image answer -->
                                             <div v-if="isImageFile(file)" class="space-y-2">
                                                 <a :href="resolveUrl(file)" target="_blank" class="inline-block">
                                                     <img :src="resolveUrl(file)" 
                                                         alt="Student Image" 
                                                         class="rounded-lg border border-slate-200 max-w-sm max-h-64 object-contain cursor-pointer hover:opacity-80 transition-opacity" />
                                                 </a>
-                                                <p class="text-xs text-slate-500">انقر للعرض بالحجم الكامل</p>
+                                                <p class="text-xs text-slate-500">Click to view full size</p>
                                             </div>
                                             
-                                            <!-- Audio answer -->
                                             <div v-else-if="isAudioFile(file)" class="space-y-2">
                                                 <audio :src="resolveUrl(file)" controls class="w-full h-11 rounded-xl shadow-sm border border-slate-200"></audio>
-                                                <p class="text-xs text-slate-500">الملف الصوتي: {{ getFileTypeLabel(file) }}</p>
+                                                <p class="text-xs text-slate-500">{{ getFileTypeLabel(file) }}</p>
                                             </div>
                                             
-                                            <!-- Document/File answer -->
                                             <div v-else-if="isDocumentFile(file)" class="space-y-3">
                                                 <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
                                                     <div class="flex items-center gap-3 min-w-0">
@@ -534,33 +474,30 @@ onMounted(fetchAttempt)
                                                         target="_blank"
                                                         class="px-3.5 py-1.5 bg-brand-primary hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
                                                         <i class="pi pi-external-link"></i>
-                                                        فتح في نافذة جديدة
+                                                        Open in new tab
                                                     </a>
                                                 </div>
 
-                                                <!-- Inline PDF Embedded Preview for Teacher -->
                                                 <div v-if="isPdfFile(file)" class="rounded-xl border border-slate-200 overflow-hidden shadow-inner bg-slate-900">
                                                     <iframe
                                                         :src="resolveUrl(file)"
                                                         class="w-full h-[450px] border-none"
-                                                        title="معاينة إجابة الـ PDF"
+                                                        title="PDF Preview"
                                                     ></iframe>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <!-- No answer -->
                                     <p v-if="!ans.text_answer && getMediaFiles(ans.media_answer).length === 0"
-                                        class="text-slate-400 italic text-xs font-semibold">{{ t[currentLang].noAnswerSubmitted }}</p>
+                                        class="text-slate-400 italic text-xs font-semibold">{{ t.noAnswerSubmitted }}</p>
                                 </div>
                             </div>
 
                             <!-- Right: Scoring inputs -->
                             <div class="space-y-6">
-                                <!-- Points input -->
                                 <div class="bg-slate-50/60 rounded-2xl p-6 border border-slate-100 shadow-inner flex flex-col justify-center">
-                                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3.5">{{ t[currentLang].pointsInputLabel }}</p>
+                                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3.5">{{ t.pointsInputLabel }}</p>
                                     <div class="flex items-center gap-4">
                                         <InputNumber
                                             v-model="grades[ans.id].points_awarded"
@@ -578,16 +515,15 @@ onMounted(fetchAttempt)
                                     </div>
                                 </div>
 
-                                <!-- Feedback -->
                                 <div class="space-y-2 flex flex-col">
                                     <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 mr-1">
-                                        {{ t[currentLang].feedbackLabel }}
+                                        {{ t.feedbackLabel }}
                                     </label>
                                     <Textarea
                                         v-model="grades[ans.id].teacher_feedback"
                                         @input="grades[ans.id].touched = true"
                                         rows="4" autoResize
-                                        :placeholder="t[currentLang].feedbackPlaceholder"
+                                        :placeholder="t.feedbackPlaceholder"
                                         class="w-full rounded-2xl border border-slate-200 p-4 font-medium text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-slate-50/20 shadow-sm" />
                                 </div>
                             </div>
@@ -600,7 +536,7 @@ onMounted(fetchAttempt)
                 <!-- Empty state -->
                 <div v-if="skills.length === 0" class="text-center py-20 text-slate-400 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
                     <i class="pi pi-inbox text-5xl mb-4 block text-slate-300"></i>
-                    <p class="font-extrabold text-sm uppercase tracking-wider">{{ t[currentLang].noQuestionsFound }}</p>
+                    <p class="font-extrabold text-sm uppercase tracking-wider">{{ t.noQuestionsFound }}</p>
                 </div>
 
 
@@ -610,7 +546,7 @@ onMounted(fetchAttempt)
             <!-- Not found -->
             <div v-else class="text-center py-32 text-slate-400 bg-white rounded-[2rem] border border-slate-100 shadow-sm max-w-md mx-auto mt-20">
                 <i class="pi pi-exclamation-triangle text-5xl mb-4 block text-amber-500"></i>
-                <p class="font-black text-lg tracking-tight">{{ t[currentLang].attemptNotFound }}</p>
+                <p class="font-black text-lg tracking-tight">{{ t.attemptNotFound }}</p>
             </div>
         </div>
     </AdminLayout>

@@ -63,7 +63,7 @@ const updateLevel = async () => {
         router.push('/admin/levels');
     } catch (err) {
         console.error(err);
-        errorMsg.value = err.response?.data?.message || 'Failed to sync level updates.';
+        errorMsg.value = err.response?.data?.message || 'Failed to update level.';
     } finally {
         isSaving.value = false;
     }
@@ -79,8 +79,8 @@ const updateLevel = async () => {
                 <div class="flex items-center space-x-6">
                     <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded @click="router.push('/admin/levels')" />
                     <div>
-                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Modify tier</h1>
-                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Difficulty Matrix Sync</p>
+                         <h1 class="text-2xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Edit Level</h1>
+                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Updating Level</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
@@ -91,7 +91,7 @@ const updateLevel = async () => {
 
             <div v-if="isLoading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Querying Tier Registry...</p>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Loading level...</span>
             </div>
 
             <div v-else class="max-w-6xl mx-auto">
@@ -111,16 +111,16 @@ const updateLevel = async () => {
                                             <div class="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-rose-100">
                                                 <i class="pi pi-pencil text-xs"></i>
                                             </div>
-                                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Sync Specifications</h3>
+                                             <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Level Details</h3>
                                         </div>
 
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Target Module (Skill)</label>
+                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Skill</label>
                                                 <Select v-model="form.skill_id" :options="skills" optionLabel="name" optionValue="id" class="w-full rounded-xl bg-slate-50 border-slate-100" />
                                             </div>
                                             <div class="flex flex-col">
-                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Designation Name</label>
+                                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Level Name</label>
                                                 <InputText v-model="form.name" required class="w-full rounded-xl bg-slate-50 border-slate-100 focus:border-brand-primary" placeholder="e.g. Intermediate I" />
                                             </div>
                                         </div>
