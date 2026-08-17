@@ -297,6 +297,12 @@ const partnerRoutes = [
     meta: { title: 'Partner Dashboard' }
   },
   {
+    path: '/partner/students',
+    name: 'partner.students',
+    component: () => import('@/views/partner/Students/index.vue'),
+    meta: { title: 'Student Directory' }
+  },
+  {
     path: '/partner/reports',
     name: 'partner.reports',
     component: () => import('@/views/partner/Reports/index.vue'),

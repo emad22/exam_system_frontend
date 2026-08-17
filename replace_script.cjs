@@ -63,7 +63,7 @@ function processFile(file) {
 
     if (content !== original) {
         fs.writeFileSync(file, content, 'utf8');
-        console.log('Updated ' + file);
+        
     }
 }
 

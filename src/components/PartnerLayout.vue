@@ -14,8 +14,9 @@ const mobileMenuOpen = ref(false)
 
 const navigation = [
     { name: 'Dashboard', href: '/partner', icon: 'pi pi-home' },
+    { name: 'Students', href: '/partner/students', icon: 'pi pi-users' },
     { name: 'Student Reports', href: '/partner/reports', icon: 'pi pi-chart-bar' },
-    { name: 'Certificates', href: '/partner/certificates', icon: 'pi pi-award' },
+    { name: 'Certificates', href: '/partner/certificates', icon: 'pi pi-trophy' },
 ]
 
 const currentUser = computed(() => adminStore.user);

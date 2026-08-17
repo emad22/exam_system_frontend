@@ -54,6 +54,7 @@ const t = {
         colInstitutionCode: "كود المؤسسة",
         colSubscription: "الباقة / الاشتراك",
         colCategory: "نوع التقييم",
+        colRegistrationDate: "تاريخ التسجيل",
         colStatus: "النشاط",
         colActions: "العمليات",
         nonAdaptive: "يقف عند درجة الطالب",
@@ -129,6 +130,7 @@ const t = {
         colInstitutionCode: "Institution Code",
         colSubscription: "Package",
         colCategory: "Assessment Model",
+        colRegistrationDate: "Registered Date",
         colStatus: "Status",
         colActions: "Actions",
         nonAdaptive: "Completes the exam to the end",
@@ -489,6 +491,13 @@ const submitBulkSkills = async () => {
     }
 };
 
+const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toISOString().split('T')[0];
+};
+
 onMounted(() => {
     fetchStudents();
     fetchPackages();
@@ -645,6 +654,15 @@ onMounted(() => {
                                             <Tag :value="data.is_continue ? t[currentLang].nonAdaptive : t[currentLang].adaptive"
                                                  :severity="data.is_continue ? 'warn' : 'info'"
                                                  class="text-[9px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg" />
+                                        </div>
+                                    </template>
+                                </Column>
+
+                                <Column :header="t[currentLang].colRegistrationDate" style="min-width: 140px">
+                                    <template #body="{ data }">
+                                        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-600 font-mono">
+                                            <i class="pi pi-calendar text-slate-400 text-xs"></i>
+                                            <span>{{ formatDate(data.registration_date || data.created_at) }}</span>
                                         </div>
                                     </template>
                                 </Column>
