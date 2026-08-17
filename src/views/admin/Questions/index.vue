@@ -318,7 +318,6 @@ const fetchData = async () => {
     try {
         const params = {};
         if (filterExam.value) params.exam_id = filterExam.value;
-        if (filterLevel.value) params.level_id = filterLevel.value;
 
         const [qRes, sRes, eRes, slRes] = await Promise.all([
             api.get('/admin/questions', { params }), // Load all skills globally for reactive counters
@@ -388,12 +387,62 @@ const getSkillQuestionCount = (skillId) => {
     return questions.value.filter(q => q.skill_id === skillId || q.skill?.id === skillId).length;
 };
 
+const levelOptions = computed(() => {
+    let levelNums = new Set();
+
+    if (filterSkill.value) {
+        const skillObj = skillsWithLevels.value.find(s => s.id === filterSkill.value);
+        if (skillObj && skillObj.levels?.length) {
+            skillObj.levels.forEach(l => {
+                if (l.level_number !== undefined && l.level_number !== null) levelNums.add(Number(l.level_number));
+            });
+        }
+        questions.value.forEach(q => {
+            if (q.skill_id === filterSkill.value || q.skill?.id === filterSkill.value) {
+                const num = q.level?.level_number ?? q.level_id;
+                if (num !== undefined && num !== null) levelNums.add(Number(num));
+            }
+        });
+    } else {
+        skillsWithLevels.value.forEach(s => {
+            s.levels?.forEach(l => {
+                if (l.level_number !== undefined && l.level_number !== null) levelNums.add(Number(l.level_number));
+            });
+        });
+        questions.value.forEach(q => {
+            const num = q.level?.level_number ?? q.level_id;
+            if (num !== undefined && num !== null) levelNums.add(Number(num));
+        });
+    }
+
+    if (levelNums.size === 0) {
+        for (let i = 1; i <= 9; i++) levelNums.add(i);
+    }
+
+    const sorted = Array.from(levelNums).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
+    return [
+        { label: t[currentLang.value].allLevels, value: null },
+        ...sorted.map(num => ({
+            label: `${currentLang.value === 'ar' ? 'المستوى' : 'Level'} ${num}`,
+            value: num
+        }))
+    ];
+});
+
 const filteredQuestions = computed(() => {
     let filtered = questions.value;
     
     // Client-side dynamic skill filter pivot
     if (filterSkill.value) {
         filtered = filtered.filter(q => q.skill_id === filterSkill.value || q.skill?.id === filterSkill.value);
+    }
+
+    // Client-side dynamic level filter
+    if (filterLevel.value !== null && filterLevel.value !== undefined && filterLevel.value !== '') {
+        filtered = filtered.filter(q => {
+            const qLevelNum = q.level?.level_number ?? q.level_id;
+            return Number(qLevelNum) === Number(filterLevel.value) || Number(q.level_id) === Number(filterLevel.value);
+        });
     }
     
     if (filterType.value)  filtered = filtered.filter(q => q.type === filterType.value);
@@ -434,12 +483,12 @@ const stats = computed(() => {
     };
 });
 
-watch([filterExam, filterLevel], () => {
+watch(filterExam, () => {
     first.value = 0;
     fetchData();
 });
 
-watch([filterSkill, filterType, searchQuery], () => {
+watch([filterSkill, filterLevel, filterType, searchQuery], () => {
     first.value = 0;
 });
 
@@ -578,7 +627,7 @@ onMounted(fetchData);
               <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
                   <Select v-model="filterExam" :options="[{title: t[currentLang].allExams, id:null}, ...exams]" optionLabel="title" optionValue="id" :placeholder="t[currentLang].examFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
                   <Select v-model="filterType" :options="[{label: t[currentLang].allTypes, value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label: getQuestionTypeLabel(k), value:k}))]" optionLabel="label" optionValue="value" :placeholder="t[currentLang].typeFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
-                  <Select v-model="filterLevel" :options="[{label: t[currentLang].allLevels, value:null}, ...Array.from({length:10}, (_,i)=>({label:`${currentLang === 'ar' ? 'المستوى' : 'Level'} ${i+1}`, value:i+1}))]" optionLabel="label" optionValue="value" :placeholder="t[currentLang].levelFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[120px] focus:border-brand-primary transition-all flex items-center" />
+                  <Select v-model="filterLevel" :options="levelOptions" optionLabel="label" optionValue="value" :placeholder="t[currentLang].levelFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[120px] focus:border-brand-primary transition-all flex items-center" />
                   
                   <Button v-if="searchQuery || filterExam || filterLevel || filterType" 
                           icon="pi pi-filter-slash" severity="danger" rounded outlined 

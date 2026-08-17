@@ -18,7 +18,7 @@ import Editor from 'primevue/editor';
 // Register Quill inline style attributors so code-editor HTML (font-size, color, etc.)
 // is preserved when Quill re-renders on Visual tab switch.
 import Quill from 'quill';
-const SizeStyle = Quill.import('attributions/style/size') || Quill.import('attributors/style/size');
+const SizeStyle = Quill.import('attributors/style/size');
 const ColorStyle = Quill.import('attributors/style/color');
 const BackgroundStyle = Quill.import('attributors/style/background');
 const AlignStyle = Quill.import('attributors/style/align');

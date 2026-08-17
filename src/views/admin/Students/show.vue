@@ -26,7 +26,7 @@ const skills = ref([]);
 const packages = ref([]);
 const studentId = route.params.id;
 
-const labels = {
+const t = {
     institutionalIdentity: "Student Information",
     unifiedPerformanceView: "Student profile and performance overview",
     editProfile: "Edit Profile",
@@ -76,6 +76,7 @@ const labels = {
     discontinuous: "Discontinuous",
     placement: "Placement",
     standard: "Standard",
+    regular: "Regular",
     customAllowed: "Custom Allowed",
     skillsCompleted: "Skill Completed Successfully",
     lastMeasured: "Last Measured:",
@@ -121,7 +122,6 @@ const getHighestLevel = async (skillId) => {
     const skillAttempts = studentSkills.filter(s => s.skill_id === skillId);
     if (skillAttempts.length === 0) return 'Not Started';
     
-    // Use achieved level (N-1 if not completed)
     const levels = skillAttempts.map(s => {
         return s.status === 'completed' ? s.max_level_reached : Math.max(s.max_level_reached - 1, 1);
     });
@@ -133,7 +133,6 @@ const getHighestLevel = async (skillId) => {
 const skillMastery = computed(() => {
     if (!selectedStudent.value?.attempts) return [];
 
-    // Aggregate best results across all attempts
     const mastery = {};
 
     selectedStudent.value.attempts.forEach(attempt => {
@@ -215,12 +214,12 @@ onMounted(() => {
 
 <template>
     <AdminLayout>
-        <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
+        <div class="w-full">
             
             <!-- Loading student data -->
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <ProgressSpinner />
-                <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{{ t[currentLang].queryLoading }}</p>
+                <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{{ t.queryLoading }}</p>
             </div>
 
             <div v-else class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4">
@@ -237,22 +236,22 @@ onMounted(() => {
                         <div>
                             <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">
                                 <i class="pi pi-sparkles text-brand-accent"></i>
-                                <span>{{ t[currentLang].institutionalIdentity }}</span>
+                                <span>{{ t.institutionalIdentity }}</span>
                             </div>
                             <h1 class="text-2xl font-black text-slate-800 tracking-tight leading-tight mt-1">
                                 {{ selectedStudent.user?.first_name }} {{ selectedStudent.user?.last_name }}
                             </h1>
                             <p class="text-xs font-bold text-slate-400 mt-0.5">
-                                {{ t[currentLang].unifiedPerformanceView }}
+                                {{ t.unifiedPerformanceView }}
                             </p>
                         </div>
                     </div>
                     
                     <div class="flex items-center gap-3 relative z-10 shrink-0">
-                        <Button icon="pi pi-pencil" :label="t[currentLang].editProfile" severity="secondary" outlined
+                        <Button icon="pi pi-pencil" :label="t.editProfile" severity="secondary" outlined
                             class="text-xs font-extrabold uppercase px-6 py-3.5 rounded-2xl border border-slate-200 hover:bg-slate-50 shadow-sm transition-all"
                             @click="router.push(`/admin/students/${studentId}/edit`)" />
-                        <Button icon="pi pi-refresh" :label="t[currentLang].reloadData" text
+                        <Button icon="pi pi-refresh" :label="t.reloadData" text
                             class="text-xs font-extrabold uppercase py-3.5 hover:text-brand-primary" 
                             @click="loadData" />
                     </div>
@@ -264,13 +263,13 @@ onMounted(() => {
                         <Tab value="0" class="group p-0 border-none bg-transparent">
                             <div class="flex items-center gap-3 px-8 py-4 rounded-2xl transition-all duration-300 cursor-pointer text-slate-500 hover:text-slate-800 hover:bg-slate-100 group-aria-selected:bg-brand-primary group-aria-selected:text-white group-aria-selected:shadow-lg group-aria-selected:shadow-rose-100">
                                 <i class="pi pi-user text-xs"></i>
-                                <span class="text-xs font-black uppercase tracking-wider">{{ t[currentLang].registryProfile }}</span>
+                                <span class="text-xs font-black uppercase tracking-wider">{{ t.registryProfile }}</span>
                             </div>
                         </Tab>
                         <Tab value="1" class="group p-0 border-none bg-transparent">
                             <div class="flex items-center gap-3 px-8 py-4 rounded-2xl transition-all duration-300 cursor-pointer text-slate-500 hover:text-slate-800 hover:bg-slate-100 group-aria-selected:bg-brand-primary group-aria-selected:text-white group-aria-selected:shadow-lg group-aria-selected:shadow-rose-100">
                                 <i class="pi pi-chart-bar text-xs"></i>
-                                <span class="text-xs font-black uppercase tracking-wider">{{ t[currentLang].performanceMatrix }}</span>
+                                <span class="text-xs font-black uppercase tracking-wider">{{ t.performanceMatrix }}</span>
                             </div>
                         </Tab>
                     </TabList>
@@ -290,7 +289,7 @@ onMounted(() => {
                                                     </div>
                                                     <div class="flex-1 space-y-4 text-center md:text-start">
                                                         <div class="space-y-1">
-                                                            <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">{{ t[currentLang].candidateName }}</p>
+                                                            <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">{{ t.candidateName }}</p>
                                                             <h3 class="text-3xl font-black text-slate-800 tracking-tight uppercase">
                                                                 {{ selectedStudent.user?.first_name }} {{ selectedStudent.user?.last_name }}
                                                             </h3>
@@ -303,7 +302,7 @@ onMounted(() => {
                                                                 severity="secondary"
                                                                 class="text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-slate-100 text-slate-600" />
                                                             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                                                {{ t[currentLang].born }} {{ selectedStudent.user?.birth_date || t[currentLang].unknown }}
+                                                                {{ t.born }} {{ selectedStudent.user?.birth_date || t.unknown }}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -314,20 +313,20 @@ onMounted(() => {
                                                     <div class="space-y-6">
                                                         <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-3">
                                                             <i class="pi pi-phone text-brand-primary"></i> 
-                                                            <span>{{ t[currentLang].candidateCardTitle }}</span>
+                                                            <span>{{ t.candidateCardTitle }}</span>
                                                         </h4>
                                                         <div class="grid grid-cols-1 gap-4">
                                                             <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{{ t[currentLang].digitalIdentifier }}</p>
+                                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{{ t.digitalIdentifier }}</p>
                                                                 <p class="text-xs font-extrabold text-slate-700 truncate" :title="selectedStudent.user?.email">{{ selectedStudent.user?.email }}</p>
                                                             </div>
                                                             <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{{ t[currentLang].contactChannel }}</p>
-                                                                <p class="text-xs font-extrabold text-slate-700 truncate">{{ selectedStudent.user?.phone || t[currentLang].notConfigured }}</p>
+                                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{{ t.contactChannel }}</p>
+                                                                <p class="text-xs font-extrabold text-slate-700 truncate">{{ selectedStudent.user?.phone || t.notConfigured }}</p>
                                                             </div>
                                                             <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{{ t[currentLang].parentKey }}</p>
-                                                                <p class="text-xs font-extrabold text-slate-700 truncate">{{ selectedStudent.parent_code || t[currentLang].directEnrollment }}</p>
+                                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{{ t.parentKey }}</p>
+                                                                <p class="text-xs font-extrabold text-slate-700 truncate">{{ selectedStudent.parent_code || t.directEnrollment }}</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -335,11 +334,11 @@ onMounted(() => {
                                                     <div class="space-y-6">
                                                         <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-3">
                                                             <i class="pi pi-map-marker text-brand-primary"></i> 
-                                                            <span>{{ t[currentLang].localization }}</span>
+                                                            <span>{{ t.localization }}</span>
                                                         </h4>
                                                         <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 min-h-[140px] flex flex-col justify-center">
-                                                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{{ t[currentLang].registeredAddress }}</p>
-                                                            <p class="text-sm font-extrabold text-slate-700 leading-relaxed">{{ selectedStudent.user?.address || t[currentLang].notConfigured }}</p>
+                                                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{{ t.registeredAddress }}</p>
+                                                            <p class="text-sm font-extrabold text-slate-700 leading-relaxed">{{ selectedStudent.user?.address || t.notConfigured }}</p>
                                                             <p class="text-xs font-black text-brand-primary uppercase mt-4 tracking-widest">
                                                                 {{ selectedStudent.user?.city || 'No City' }} / {{ selectedStudent.user?.country || 'Earth' }}
                                                             </p>
@@ -361,14 +360,14 @@ onMounted(() => {
                                                     <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white">
                                                         <i class="pi pi-cog text-xs"></i>
                                                     </div>
-                                                    <h3 class="text-xs font-black uppercase tracking-widest">{{ t[currentLang].configuration }}</h3>
+                                                    <h3 class="text-xs font-black uppercase tracking-widest">{{ t.configuration }}</h3>
                                                 </div>
                                                 <div class="space-y-4">
                                                     <div v-for="(val, key) in { 
-                                                        [t[currentLang].curriculum]: selectedStudent.package?.name || t[currentLang].standard, 
-                                                        [t[currentLang].protocol]: selectedStudent.category?.name || t[currentLang].placement, 
-                                                        [t[currentLang].type]: selectedStudent.student_type || t[currentLang].regular, 
-                                                        [t[currentLang].workflow]: selectedStudent.is_continue ? t[currentLang].continuous : t[currentLang].discontinuous 
+                                                        [t.curriculum]: selectedStudent.package?.name || t.standard, 
+                                                        [t.protocol]: selectedStudent.category?.name || t.placement, 
+                                                        [t.type]: selectedStudent.student_type || t.regular, 
+                                                        [t.workflow]: selectedStudent.is_continue ? t.continuous : t.discontinuous 
                                                     }" :key="key" class="flex justify-between items-center py-3 border-b border-white/10 last:border-0">
                                                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ key }}</span>
                                                         <span class="text-[11px] font-black uppercase text-indigo-300">{{ val }}</span>
@@ -382,7 +381,7 @@ onMounted(() => {
                                     <Card class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden bg-white">
                                         <template #content>
                                             <div class="p-8 space-y-6">
-                                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].enabledModalities }}</p>
+                                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ t.enabledModalities }}</p>
                                                 <div class="flex flex-wrap gap-2">
                                                     <Tag v-for="skillId in selectedStudent.assigned_skills" :key="skillId"
                                                         :value="getSkillName(skillId)"
@@ -404,10 +403,10 @@ onMounted(() => {
                                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4">
                                         <h4 class="text-sm font-black text-slate-800 uppercase tracking-[0.15em] flex items-center gap-3">
                                             <i class="pi pi-verified text-emerald-500"></i> 
-                                            <span>{{ t[currentLang].skillMasteryMatrix }}</span>
+                                            <span>{{ t.skillMasteryMatrix }}</span>
                                         </h4>
                                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider italic">
-                                            {{ t[currentLang].calculatedExitPoints }}
+                                            {{ t.calculatedExitPoints }}
                                         </span>
                                     </div>
 
@@ -428,14 +427,14 @@ onMounted(() => {
                                                         {{ mastery.name }}
                                                     </p>
                                                     <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                                        {{ t[currentLang].proficiencyLevel }}
+                                                        {{ t.proficiencyLevel }}
                                                     </p>
                                                 </div>
                                                 <div class="mt-8 flex items-end justify-between">
                                                     <span :class="scoreColor(mastery.score)" class="text-3xl font-black italic tracking-tighter">{{ mastery.score }}</span>
                                                     <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest text-right leading-relaxed">
-                                                        {{ t[currentLang].lastMeasured }}<br />
-                                                        <span class="text-slate-600">{{ new Date(mastery.date).toLocaleDateString(currentLang === 'ar' ? 'ar-EG' : 'en-GB') }}</span>
+                                                        {{ t.lastMeasured }}<br />
+                                                        <span class="text-slate-600">{{ new Date(mastery.date).toLocaleDateString('en-GB') }}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -446,7 +445,7 @@ onMounted(() => {
                                             <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-300">
                                                 <i class="pi pi-inbox text-2xl"></i>
                                             </div>
-                                            <p class="text-xs font-black text-slate-400 uppercase tracking-widest">{{ t[currentLang].noEvaluationData }}</p>
+                                            <p class="text-xs font-black text-slate-400 uppercase tracking-widest">{{ t.noEvaluationData }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -455,7 +454,7 @@ onMounted(() => {
                                 <div class="space-y-6">
                                     <h4 class="text-sm font-black text-slate-800 uppercase tracking-[0.15em] flex items-center gap-3 px-4">
                                         <i class="pi pi-history text-indigo-500"></i> 
-                                        <span>{{ t[currentLang].evaluationSessionHistory }}</span>
+                                        <span>{{ t.evaluationSessionHistory }}</span>
                                     </h4>
 
                                     <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
@@ -463,13 +462,13 @@ onMounted(() => {
                                             <table class="w-full text-start border-collapse">
                                                 <thead class="bg-slate-50/50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400 tracking-widest">
                                                     <tr>
-                                                        <th class="p-6 text-start">{{ t[currentLang].sessionId }}</th>
-                                                        <th class="p-6 text-start">{{ t[currentLang].assessmentModule }}</th>
-                                                        <th class="p-6 text-start">{{ t[currentLang].exitPoints }}</th>
-                                                        <th class="p-6 text-start">{{ t[currentLang].lastActivity }}</th>
-                                                        <th class="p-6 text-center">{{ t[currentLang].outcome }}</th>
-                                                        <th class="p-6 text-center">{{ t[currentLang].status }}</th>
-                                                        <th class="p-6 pr-8 text-end">{{ t[currentLang].completionDate }}</th>
+                                                        <th class="p-6 text-start">{{ t.sessionId }}</th>
+                                                        <th class="p-6 text-start">{{ t.assessmentModule }}</th>
+                                                        <th class="p-6 text-start">{{ t.exitPoints }}</th>
+                                                        <th class="p-6 text-start">{{ t.lastActivity }}</th>
+                                                        <th class="p-6 text-center">{{ t.outcome }}</th>
+                                                        <th class="p-6 text-center">{{ t.status }}</th>
+                                                        <th class="p-6 pr-8 text-end">{{ t.completionDate }}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody v-if="!selectedStudent.attempts?.length">
@@ -479,7 +478,7 @@ onMounted(() => {
                                                                 <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 shadow-inner">
                                                                     <i class="pi pi-inbox text-2xl"></i>
                                                                 </div>
-                                                                <div class="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{{ t[currentLang].noSessionHistory }}</div>
+                                                                <div class="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{{ t.noSessionHistory }}</div>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -497,7 +496,7 @@ onMounted(() => {
                                                                             {{ attempt.exam?.title || 'Main Proficiency Exam' }}
                                                                         </div>
                                                                         <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                                            {{ t[currentLang].protocol }}
+                                                                            {{ t.protocol }}
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -523,7 +522,7 @@ onMounted(() => {
                                                                         <div v-if="as.termination_point" class="space-y-2">
                                                                             <div class="text-[11px] leading-relaxed text-slate-600 font-bold italic border-r-2 border-l-2 border-brand-primary px-3 py-2 bg-brand-primary/5 rounded-lg" :title="as.termination_point.question_text">
                                                                                 <div class="flex items-center justify-between mb-1">
-                                                                                    <span class="text-brand-primary font-black not-italic">{{ t[currentLang].exitPoint }}:</span>
+                                                                                    <span class="text-brand-primary font-black not-italic">{{ t.exitPoint }}:</span>
                                                                                     <span class="bg-brand-primary text-white text-[8px] font-black px-1.5 py-0.5 rounded">ID: #{{ as.termination_point.question_id }}</span>
                                                                                 </div>
                                                                                 "{{ as.termination_point.question_text }}"
@@ -531,18 +530,18 @@ onMounted(() => {
 
                                                                             <div class="flex flex-col gap-1.5">
                                                                                 <div v-if="as.termination_point.student_answer" class="text-[9px] bg-rose-50 text-rose-700 font-black px-2 py-1 rounded border border-rose-100 flex items-center gap-1.5">
-                                                                                    <span class="bg-rose-600 text-white px-1.5 rounded-[3px] text-[7px] uppercase">{{ t[currentLang].studentChoice }}</span>
+                                                                                    <span class="bg-rose-600 text-white px-1.5 rounded-[3px] text-[7px] uppercase">{{ t.studentChoice }}</span>
                                                                                     {{ as.termination_point.student_answer }}
                                                                                 </div>
 
                                                                                 <div v-if="as.termination_point.correct_answer" class="text-[9px] bg-emerald-50 text-emerald-700 font-black px-2 py-1 rounded border border-emerald-100 flex items-center gap-1.5">
-                                                                                    <span class="bg-emerald-600 text-white px-1.5 rounded-[3px] text-[7px] uppercase">{{ t[currentLang].correctAnswer }}</span>
+                                                                                    <span class="bg-emerald-600 text-white px-1.5 rounded-[3px] text-[7px] uppercase">{{ t.correctAnswer }}</span>
                                                                                     {{ as.termination_point.correct_answer }}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                         <div v-else-if="as.status === 'completed'" class="text-[10px] font-black text-emerald-600 italic flex items-center gap-1.5">
-                                                                            <i class="pi pi-check-circle"></i> {{ t[currentLang].skillsCompleted }}
+                                                                            <i class="pi pi-check-circle"></i> {{ t.skillsCompleted }}
                                                                         </div>
                                                                     </div>
 
@@ -553,10 +552,10 @@ onMounted(() => {
                                                                             class="w-1.5 h-1.5 rounded-full cursor-help transition-transform hover:scale-150"
                                                                             :title="(ans.is_correct ? 'Correct: ' : 'Wrong: ') + ans.question_text + ' (' + ans.time + ')'">
                                                                         </div>
-                                                                        <span class="text-[8px] font-black text-slate-300 uppercase ml-1.5 mr-1.5">{{ t[currentLang].last5Total }}</span>
+                                                                        <span class="text-[8px] font-black text-slate-300 uppercase ml-1.5 mr-1.5">{{ t.last5Total }}</span>
                                                                     </div>
                                                                 </div>
-                                                                <div v-else class="text-slate-300 italic text-xs">{{ t[currentLang].notConfigured }}</div>
+                                                                <div v-else class="text-slate-300 italic text-xs">{{ t.notConfigured }}</div>
                                                             </td>
                                                             <td class="p-6 text-center">
                                                                 <div v-if="attempt.attempt_skills?.length > 0" class="space-y-1 mb-2">
@@ -576,13 +575,13 @@ onMounted(() => {
                                                                     :severity="attempt.status === 'completed' ? 'success' : (attempt.status === 'voided' ? 'danger' : 'warning')"
                                                                     class="text-[9px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-lg" />
                                                                 <div v-if="attempt.status === 'completed' || attempt.certificate" class="mt-2">
-                                                                    <Button icon="pi pi-download" :label="currentLang === 'ar' ? 'الشهادة' : 'Certificate'" severity="info" text size="small"
+                                                                    <Button icon="pi pi-download" label="Certificate" severity="info" text size="small"
                                                                         class="text-[9px] font-black uppercase px-2 py-1"
                                                                         @click="downloadAttemptCertificate(attempt)" />
                                                                 </div>
                                                             </td>
                                                             <td class="p-6 pr-8 text-end font-black text-slate-400">
-                                                                {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString(currentLang === 'ar' ? 'ar-EG' : 'en-GB') : 'Incomplete' }}
+                                                                {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString('en-GB') : 'Incomplete' }}
                                                             </td>
                                                         </tr>
 
@@ -592,7 +591,7 @@ onMounted(() => {
                                                                 <div class="px-12 py-8">
                                                                     <div class="flex items-center gap-3 mb-6">
                                                                         <div class="w-2.5 h-4 bg-brand-primary rounded-full"></div>
-                                                                        <h4 class="text-xs font-black uppercase tracking-widest text-slate-800">{{ t[currentLang].institutionalReport }}</h4>
+                                                                        <h4 class="text-xs font-black uppercase tracking-widest text-slate-800">{{ t.institutionalReport }}</h4>
                                                                     </div>
                                                                     
                                                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -612,17 +611,17 @@ onMounted(() => {
                                                                                 
                                                                                 <div class="space-y-4">
                                                                                     <div>
-                                                                                        <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{{ t[currentLang].proficiencyLevel }}</div>
+                                                                                        <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{{ t.proficiencyLevel }}</div>
                                                                                         <div class="text-xs font-black text-slate-800">{{ as.level_name }}</div>
                                                                                     </div>
                                                                                     
                                                                                     <div class="flex items-center justify-between border-t border-slate-50 pt-3">
                                                                                         <div>
-                                                                                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{{ t[currentLang].rawScore }}</div>
+                                                                                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{{ t.rawScore }}</div>
                                                                                             <div class="text-xs font-black text-slate-800">{{ as.score }} <span class="text-[9px] text-slate-300 font-normal">/ 900</span></div>
                                                                                         </div>
                                                                                         <div class="text-end">
-                                                                                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{{ t[currentLang].maxReached }}</div>
+                                                                                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{{ t.maxReached }}</div>
                                                                                             <div class="text-xs font-black text-slate-500">L{{ as.max_level_reached }}</div>
                                                                                         </div>
                                                                                     </div>
@@ -631,7 +630,7 @@ onMounted(() => {
                                                                                     <div v-if="as.termination_point" class="mt-4 pt-4 border-t-2 border-dashed border-slate-100">
                                                                                         <div class="text-[9px] font-bold text-brand-primary uppercase tracking-wider mb-2.5 flex items-center gap-2">
                                                                                             <i class="pi pi-sign-out text-[9px]"></i> 
-                                                                                            <span>{{ t[currentLang].terminationPoint }}</span>
+                                                                                            <span>{{ t.terminationPoint }}</span>
                                                                                         </div>
                                                                                         <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100/80 space-y-3">
                                                                                             <div class="flex items-center justify-between">
@@ -642,11 +641,11 @@ onMounted(() => {
                                                                                             
                                                                                             <div class="space-y-1.5 pt-1">
                                                                                                 <div class="text-[9px] bg-rose-50 text-rose-700 font-black px-2.5 py-1.5 rounded-lg border border-rose-100/60 flex items-center gap-2">
-                                                                                                    <span class="bg-rose-600 text-white px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">{{ t[currentLang].studentChoice }}</span>
+                                                                                                    <span class="bg-rose-600 text-white px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">{{ t.studentChoice }}</span>
                                                                                                     <span class="truncate" :title="as.termination_point.student_answer">{{ as.termination_point.student_answer }}</span>
                                                                                                 </div>
                                                                                                 <div class="text-[9px] bg-emerald-50 text-emerald-700 font-black px-2.5 py-1.5 rounded-lg border border-emerald-100/60 flex items-center gap-2">
-                                                                                                    <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">{{ t[currentLang].correctAnswer }}</span>
+                                                                                                    <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded text-[8px] uppercase shrink-0">{{ t.correctAnswer }}</span>
                                                                                                     <span class="truncate" :title="as.termination_point.correct_answer">{{ as.termination_point.correct_answer }}</span>
                                                                                                 </div>
                                                                                             </div>
@@ -675,12 +674,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
-
-.arabic-theme {
-    font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
-}
-
 :deep(.p-tab) {
     padding: 0;
     border: none;
