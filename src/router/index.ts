@@ -310,9 +310,7 @@ const partnerRoutes = [
   },
   {
     path: '/partner/reports/:id/show',
-    name: 'partner.reports.show',
-    component: () => import('@/views/partner/Reports/show.vue'),
-    meta: { title: 'Report Details' }
+    redirect: '/partner/reports'
   },
   {
     path: '/partner/certificates',

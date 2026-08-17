@@ -1,113 +1,199 @@
-import { ref, computed } from 'vue';
-import type { Ref } from 'vue';
+import { ref, computed, type Ref } from 'vue';
 import api from '@/services/api';
 import proctoringService from '@/services/proctoringService';
 
-interface TimerConfig {
-    type: string;
-    globalLimit: number;
-    skillDuration: number;
-    skillStartedAt: string;
+export interface TimerConfig {
+    type?: string;
+    globalLimit?: number;
+    skillDuration?: number;
+    skillStartedAt?: string;
 }
 
-interface Attempt {
-    id: number | string;
-    status: string;
-    [key: string]: unknown;
-}
-
-/**
- * useExamFlow - إدارة تدفق الامتحان والأسئلة والمستويات
- */
-export const useExamFlow = (
-    attemptId: Ref<string | number>,
-    examId: Ref<string | number>,
-    isStarting: Ref<boolean>,
-    isLoading: Ref<boolean>,
-    proctoringSessionId: Ref<number | string | null>
-) => {
-    // States
-    const attempt = ref<Attempt | null>(null);
-    const currentSkill = ref<Record<string, unknown> | null>(null);
-    const currentLevel = ref<Record<string, unknown> | null>(null);
-    const questions = ref<Record<string, unknown>[]>([]);
-    const totalSkillQuestions = ref(0);
+export function useExamFlow(
+    attemptId: Ref<string | number | null>,
+    examId: string | number | undefined,
+    skillId: string | number | undefined,
+    levelId: string | number | undefined,
+    proctoringSessionId: Ref<string | number | null>,
+    proctoringRequired: Ref<boolean>,
+    enteredExam: Ref<boolean>,
+    isIntentionallyLeaving: Ref<boolean>,
+    showAlert: (msg: string) => Promise<void>,
+    navigateSafely: (path: string) => Promise<void>,
+    onAnswersReady?: (qs: any[]) => void,
+    onBatchLoaded?: () => void
+) {
+    const attempt = ref<any>(null);
+    const currentSkill = ref<any>(null);
+    const currentLevel = ref<any>(null);
+    const questions = ref<any[]>([]);
+    const currentIndex = ref(0);
     const globalOffset = ref(0);
-    const nextLevelName = ref('');
-    const showLevelTransition = ref(false);
-    const showRetryNotification = ref(false);
-    const timerConfig = ref<TimerConfig | null>(null);
-    const errorMsg = ref('');
+    const totalSkillQuestions = ref(0);
+
+    const isLoading = ref(true);
+    const isStarting = ref(false);
     const isDemo = ref(false);
+    const showLevelTransition = ref(false);
+    const nextLevelName = ref('');
+    const showRetryNotification = ref(false);
+    const errorMsg = ref('');
+    const timerConfig = ref<TimerConfig | null>(null);
 
-    /**
-     * جلب بيانات الامتحان الأساسية
-     */
-    const fetchData = async () => {
-        isLoading.value = true;
-        try {
-            if (attemptId.value && attemptId.value !== 'start') {
-                const attRes = await api.get(`/attempts/${attemptId.value}`);
-                attempt.value = attRes.data as Attempt;
-                if (attempt.value!.status === 'completed' || attempt.value!.status === 'voided') {
-                    return { shouldNavigate: true };
-                }
-                await fetchNextBatch();
-            } else {
-                return { shouldNavigate: false }; // Will be handled by beginExam
-            }
-        } catch (err) {
-            errorMsg.value = "Session initialization failed.";
-            return { shouldNavigate: false };
-        } finally {
-            isLoading.value = false;
+    const isNavigatingBack = ref(false);
+    const hasListened = ref(false);
+    const listenedQuestions = ref<Set<number | string>>(new Set());
+    const listenedPassages = ref<Set<number | string>>(new Set());
+
+    // --- Computed Properties ---
+    const currentQ = computed(() => questions.value[currentIndex.value] || null);
+
+    const isFirstQuestionInPassage = computed(() => {
+        const q = currentQ.value;
+        if (!q) return false;
+        const passageId = q?.passage?.id ?? q?.passage_id;
+        if (!passageId) return true;
+        return !questions.value.slice(0, currentIndex.value).some((item) => (item?.passage?.id ?? item?.passage_id) === passageId);
+    });
+
+    const passageGeneralInstructions = computed(() => {
+        if (!currentQ.value) return '';
+        if (currentQ.value.type === 'speaking_live') return '';
+        if (!isFirstQuestionInPassage.value) return '';
+        return (currentQ.value?.passage?.general_instructions || currentQ.value?.general_instructions || '').trim();
+    });
+
+    const displayInstructions = computed(() => {
+        if (!currentQ.value) return '';
+        return currentQ.value.instructions || 'Choose The Correct Answer';
+    });
+
+    const displayNumber = computed(() => globalOffset.value + currentIndex.value + 1);
+
+    const formattedSkillName = computed(() => {
+        if (!currentSkill.value?.name) return '';
+        const name = currentSkill.value.name.toLowerCase();
+        if (name.includes('speaking')) return 'SPEAKING';
+        if (name.includes('writing')) return 'WRITING';
+        if (name.includes('reading')) return 'READING';
+        if (name.includes('listening')) return 'LISTENING';
+        if (name.includes('grammar') || name.includes('structure')) return 'STRUCTURE';
+        return currentSkill.value.name.toUpperCase();
+    });
+
+    const hasStimulusContent = computed(() => {
+        if (!currentQ.value) return false;
+        const q = currentQ.value;
+        const p = q.passage;
+        if (q.type === 'writing' || q.type === 'short_answer') {
+            const passageHasContent =
+                p &&
+                ((p.content && p.content.trim().length > 150) ||
+                    (p.media_url && p.media_url.toLowerCase().includes('.mp4')) ||
+                    (p.media_path && p.media_path.toLowerCase().includes('.mp4')));
+            return !!passageHasContent;
+        }
+        const passageHasContent =
+            p &&
+            ((p.content && p.content.trim().length > 0) ||
+                p.image_url ||
+                p.image_path ||
+                (p.media_url && p.media_url.toLowerCase().includes('.mp4')) ||
+                (p.media_path && p.media_path.toLowerCase().includes('.mp4')));
+        const questionHasMedia =
+            q.image_url ||
+            q.image_path ||
+            (q.media_url && q.media_url.toLowerCase().includes('.mp4')) ||
+            (q.media_path && q.media_path.toLowerCase().includes('.mp4'));
+        return !!(passageHasContent || questionHasMedia);
+    });
+
+    const hasPassageAudio = computed(() => {
+        if (!currentQ.value) return false;
+        return !!(
+            currentQ.value.passage?.audio_url ||
+            currentQ.value.passage?.audio_path ||
+            currentQ.value.audio_url ||
+            currentQ.value.audio_path
+        );
+    });
+
+    const responsePaneClass = computed(() => {
+        if (!hasStimulusContent.value) return 'w-full bg-slate-50 min-h-0';
+        if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') return 'w-full lg:w-[55%] bg-white min-h-0';
+        return 'w-full lg:w-2/5 bg-white min-h-0';
+    });
+
+    const stimulusPaneClass = computed(() => {
+        if (currentQ.value?.type === 'writing' || currentQ.value?.type === 'short_answer') {
+            return 'w-full lg:w-[45%] bg-white p-4 flex flex-col h-full transition-all duration-700 min-h-0';
+        }
+        return 'w-full lg:w-3/5 bg-white p-4 flex flex-col h-full transition-all duration-700 min-h-0';
+    });
+
+    const shouldShowContent = computed(() => {
+        if (!currentQ.value) return false;
+        const audioUrl =
+            currentQ.value?.passage?.audio_url ||
+            currentQ.value?.passage?.audio_path ||
+            currentQ.value?.audio_url ||
+            currentQ.value?.audio_path;
+        if (!audioUrl) return true;
+        return hasListened.value;
+    });
+
+    // --- Helper Methods ---
+    const cleanHtml = (html: string | null | undefined): string => {
+        if (!html) return '';
+        let clean = html.replace(/&nbsp;/g, ' ');
+        clean = clean.replace(/(\.{3,})\s*([\d\u0660-\u0669]+)/g, '<span class="blank-line-wrapper"><span class="blank-line"></span><span class="blank-badge">$2</span></span>');
+        clean = clean.replace(/([\d\u0660-\u0669]+)\s*(\.{3,})/g, '<span class="blank-line-wrapper"><span class="blank-badge">$1</span><span class="blank-line"></span></span>');
+        clean = clean.replace(/(\.{3,})/g, '<span class="blank-line"></span>');
+        return clean;
+    };
+
+    const markCurrentAsListened = () => {
+        hasListened.value = true;
+        if (currentQ.value?.id) {
+            listenedQuestions.value.add(currentQ.value.id);
+        }
+        if (currentQ.value?.passage?.id) {
+            listenedPassages.value.add(currentQ.value.passage.id);
         }
     };
 
-    /**
-     * بدء امتحان جديد
-     */
-    const beginExam = async (skillId: number | string, levelId: number | string) => {
-        if (!attemptId.value || attemptId.value === 'start') {
-            try {
-                isLoading.value = true;
-                const payload = { skill_id: skillId, level_id: levelId };
-                const res = await api.post(`/exams/${examId}/start`, payload);
-                attemptId.value = res.data.attempt.id;
-                attempt.value = res.data.attempt as Attempt;
-                return { success: true, attemptId: attemptId.value };
-            } catch (err: unknown) {
-                const e = err as { response?: { data?: { error?: string } } };
-                return { success: false, error: e.response?.data?.error || 'Failed to start session' };
-            } finally {
-                isLoading.value = false;
-            }
+    const prevQuestion = () => {
+        if (currentIndex.value > 0) {
+            isNavigatingBack.value = true;
+            currentIndex.value--;
         }
-        return { success: true };
+    };
+
+    const startNextLevel = () => {
+        showLevelTransition.value = false;
     };
 
     /**
-     * جلب مجموعة الأسئلة التالية
+     * Fetches next batch of questions for the ongoing attempt
      */
     const fetchNextBatch = async () => {
         isLoading.value = true;
+        questions.value = [];
+
         try {
             const res = await api.get(`/attempts/${attemptId.value}/next-batch`);
             if (res.data.questions?.length > 0) {
                 currentSkill.value = res.data.skill;
 
-                // Record skill entry in proctoring
                 if (proctoringSessionId.value && res.data.skill?.id) {
                     proctoringService.recordSkillEntry(proctoringSessionId.value, res.data.skill.id);
                 }
 
-                // Handle level transition
-                if (currentLevel.value && res.data.level && res.data.level.id !== (currentLevel.value as Record<string, unknown>).id) {
+                if (currentLevel.value && res.data.level && res.data.level.id !== currentLevel.value.id) {
                     nextLevelName.value = res.data.level.name;
                 }
                 currentLevel.value = res.data.level;
 
-                // Set total questions count
                 if (res.data.skill_total_questions !== undefined) {
                     totalSkillQuestions.value = res.data.skill_total_questions;
                     globalOffset.value = res.data.skill_global_offset;
@@ -116,8 +202,9 @@ export const useExamFlow = (
                 }
 
                 questions.value = res.data.questions;
+                currentIndex.value = 0;
+                hasListened.value = false;
 
-                // Initialize timer config
                 timerConfig.value = {
                     type: res.data.timer_type,
                     globalLimit: res.data.time_limit,
@@ -125,58 +212,125 @@ export const useExamFlow = (
                     skillStartedAt: res.data.current_skill_started_at
                 };
 
-                isDemo.value = res.data.is_demo || false;
+                if (onAnswersReady) {
+                    onAnswersReady(questions.value);
+                }
 
-                return { success: true };
+                return { success: true, cheatWarnings: res.data.skill_cheat_warnings || 0 };
             } else {
-                errorMsg.value = res.data.error || "Module content empty.";
+                errorMsg.value = res.data.error || 'Module content empty.';
                 return { success: false };
             }
-        } catch (err: unknown) {
-            const e = err as { response?: { status?: number; data?: { error?: string } } };
-            if (e.response?.status === 404) {
-                errorMsg.value = e.response?.data?.error || "No more questions available for this level.";
+        } catch (err: any) {
+            if (err.response?.status === 404) {
+                errorMsg.value = err.response?.data?.error || 'No more questions available for this level.';
             } else {
-                errorMsg.value = e.response?.data?.error || "Assessment segment unavailable.";
+                errorMsg.value = err.response?.data?.error || 'Assessment segment unavailable.';
             }
             return { success: false };
+        } finally {
+            isLoading.value = false;
+            hasListened.value = false;
+            listenedPassages.value.clear();
+            if (onBatchLoaded) onBatchLoaded();
+            window.scrollTo(0, 0);
+        }
+    };
+
+    /**
+     * Initializes attempt or starts a new exam
+     */
+    const fetchData = async (autoStartProctoringFn?: () => Promise<void>, onStartTimerFn?: () => void) => {
+        isLoading.value = true;
+        try {
+            if (attemptId.value && attemptId.value !== 'start') {
+                const attRes = await api.get(`/attempts/${attemptId.value}`);
+                attempt.value = attRes.data;
+                if (attempt.value.status === 'completed' || attempt.value.status === 'voided') {
+                    await navigateSafely('/skill-selection');
+                    return;
+                }
+                if (autoStartProctoringFn) await autoStartProctoringFn();
+                await fetchNextBatch();
+                if (!proctoringRequired.value || enteredExam.value) {
+                    if (onStartTimerFn) onStartTimerFn();
+                }
+            } else {
+                await beginExam(autoStartProctoringFn, onStartTimerFn);
+            }
+            isIntentionallyLeaving.value = false;
+        } catch (err) {
+            errorMsg.value = 'Session initialization failed.';
         } finally {
             isLoading.value = false;
         }
     };
 
     /**
-     * الانتقال إلى المستوى التالي
+     * Starts brand new exam session
      */
-    const startNextLevel = () => {
-        showLevelTransition.value = false;
+    const beginExam = async (autoStartProctoringFn?: () => Promise<void>, onStartTimerFn?: () => void) => {
+        if (!attemptId.value || attemptId.value === 'start') {
+            try {
+                isLoading.value = true;
+                const payload = { skill_id: skillId, level_id: levelId };
+                const res = await api.post(`/exams/${examId}/start`, payload);
+                attemptId.value = res.data.attempt.id;
+                attempt.value = res.data.attempt;
+                if (autoStartProctoringFn) await autoStartProctoringFn();
+            } catch (err: any) {
+                await showAlert(err.response?.data?.error || 'Failed to start session');
+                isLoading.value = false;
+                isIntentionallyLeaving.value = true;
+                await navigateSafely('/skill-selection');
+                return;
+            }
+        }
+        isStarting.value = false;
+        await fetchNextBatch();
+        if (!proctoringRequired.value || enteredExam.value) {
+            if (onStartTimerFn) onStartTimerFn();
+        }
+        isIntentionallyLeaving.value = false;
     };
 
-    // Computed properties
-    const currentQuestion = computed(() => questions.value.length > 0 ? questions.value : null);
-
     return {
-        // States
         attempt,
         currentSkill,
         currentLevel,
         questions,
-        totalSkillQuestions,
+        currentIndex,
         globalOffset,
-        nextLevelName,
-        showLevelTransition,
-        showRetryNotification,
-        timerConfig,
-        errorMsg,
+        totalSkillQuestions,
+        isLoading,
+        isStarting,
         isDemo,
-
-        // Methods
-        fetchData,
-        beginExam,
-        fetchNextBatch,
+        showLevelTransition,
+        nextLevelName,
+        showRetryNotification,
+        errorMsg,
+        timerConfig,
+        isNavigatingBack,
+        hasListened,
+        listenedQuestions,
+        listenedPassages,
+        currentQ,
+        isFirstQuestionInPassage,
+        passageGeneralInstructions,
+        displayInstructions,
+        displayNumber,
+        formattedSkillName,
+        hasStimulusContent,
+        hasPassageAudio,
+        responsePaneClass,
+        stimulusPaneClass,
+        shouldShowContent,
+        cleanHtml,
+        markCurrentAsListened,
+        prevQuestion,
         startNextLevel,
-
-        // Computed
-        currentQuestion
+        fetchNextBatch,
+        fetchData,
+        beginExam
     };
-};
+}

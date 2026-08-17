@@ -14,7 +14,7 @@ const mobileMenuOpen = ref(false)
 
 const navigation = [
     { name: 'Dashboard', href: '/partner', icon: 'pi pi-home' },
-    { name: 'Students', href: '/partner/students', icon: 'pi pi-users' },
+    { name: 'Registered Students', href: '/partner/students', icon: 'pi pi-users' },
     { name: 'Student Reports', href: '/partner/reports', icon: 'pi pi-chart-bar' },
     { name: 'Certificates', href: '/partner/certificates', icon: 'pi pi-trophy' },
 ]

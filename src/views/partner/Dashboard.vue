@@ -167,7 +167,7 @@ const getStatusSeverity = (status) => {
                      
                      <Column :header="t.colStudent" style="min-width: 280px">
                         <template #body="{ data }">
-                            <div class="flex items-center space-x-4 py-2 group cursor-pointer" @click="router.push({ name: 'partner.reports.show', params: { id: data.id }})">
+                            <div class="flex items-center space-x-4 py-2 group cursor-pointer" @click="router.push({ name: 'partner.reports' })">
                                  <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center border border-slate-100 shadow-sm transition-all group-hover:bg-brand-primary group-hover:text-white group-hover:rotate-6">
                                      <i class="pi pi-user text-base"></i>
                                  </div>

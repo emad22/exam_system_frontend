@@ -1,64 +1,70 @@
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 
-/**
- * useInactivity - إدارة كشف عدم النشاط والمهلة الزمنية
- */
-export const useInactivity = (onTimeout?: () => void) => {
-    // States
-    const inactivityTimer = ref<ReturnType<typeof setTimeout> | null>(null);
-    const lastActivityAt = ref<Date | null>(null);
+const INACTIVITY_TIMEOUT = 1000 * 60 * 1000; // 1000 minutes or configured threshold
+
+export function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    return function executedFunction(...args: Parameters<T>) {
+        const later = () => {
+            if (timeout) clearTimeout(timeout);
+            func(...args);
+        };
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+export function useInactivity(
+    isDemo: Ref<boolean>,
+    isLoading: Ref<boolean>,
+    hasQuestions: Ref<boolean>,
+    onTimeout: () => Promise<void> | void
+) {
     const showInactivityModal = ref(false);
+    const lastActivityAt = ref(Date.now());
+    const inactivityTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
-    // Constants
-    const INACTIVITY_TIMEOUT = 1000 * 60 * 1000; // 60 minutes
-
-    /**
-     * إعادة تعيين مؤقت عدم النشاط
-     */
     const resetInactivityTimer = () => {
-        if (inactivityTimer.value) {
-            clearTimeout(inactivityTimer.value);
-        }
-
-        lastActivityAt.value = new Date();
-
-        inactivityTimer.value = setTimeout(() => {
-            showInactivityModal.value = true;
-            if (onTimeout) {
-                onTimeout();
-            }
-        }, INACTIVITY_TIMEOUT);
-    };
-
-    /**
-     * تحديث النشاط (يتم استدعاؤها عند أي تفاعل المستخدم)
-     */
-    const updateActivity = () => {
-        resetInactivityTimer();
-    };
-
-    /**
-     * إيقاف مؤقت عدم النشاط (عند الخروج)
-     */
-    const stopInactivityTimer = () => {
         if (inactivityTimer.value) {
             clearTimeout(inactivityTimer.value);
             inactivityTimer.value = null;
         }
+        lastActivityAt.value = Date.now();
+
+        if (!isDemo.value && !isLoading.value && hasQuestions.value) {
+            inactivityTimer.value = setTimeout(() => {
+                showInactivityModal.value = true;
+                setTimeout(() => {
+                    onTimeout();
+                }, 5000);
+            }, INACTIVITY_TIMEOUT);
+        }
+    };
+
+    const debouncedUpdateActivity = debounce(resetInactivityTimer, 500);
+
+    const setupInactivityListeners = () => {
+        document.addEventListener('mousemove', debouncedUpdateActivity);
+        document.addEventListener('keydown', debouncedUpdateActivity);
+        document.addEventListener('click', debouncedUpdateActivity);
+        resetInactivityTimer();
+    };
+
+    const cleanupInactivityListeners = () => {
+        if (inactivityTimer.value) {
+            clearTimeout(inactivityTimer.value);
+            inactivityTimer.value = null;
+        }
+        document.removeEventListener('mousemove', debouncedUpdateActivity);
+        document.removeEventListener('keydown', debouncedUpdateActivity);
+        document.removeEventListener('click', debouncedUpdateActivity);
     };
 
     return {
-        // States
-        inactivityTimer,
-        lastActivityAt,
         showInactivityModal,
-
-        // Methods
+        lastActivityAt,
         resetInactivityTimer,
-        updateActivity,
-        stopInactivityTimer,
-
-        // Constants
-        INACTIVITY_TIMEOUT
+        setupInactivityListeners,
+        cleanupInactivityListeners
     };
-};
+}

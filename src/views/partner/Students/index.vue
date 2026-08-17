@@ -6,6 +6,7 @@ import api from '@/services/api';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
+import DatePicker from 'primevue/datepicker';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Card from 'primevue/card';
@@ -15,10 +16,20 @@ const router = useRouter();
 const students = ref([]);
 const loading = ref(true);
 const search = ref('');
+const dateFrom = ref(null);
+const dateTo = ref(null);
+
 const totalRecords = ref(0);
 const currentPage = ref(1);
 const rowsPerPage = ref(15);
 const rowsPerPageOptions = [10, 15, 25, 50];
+
+const formatDateParam = (dateVal) => {
+    if (!dateVal) return undefined;
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return undefined;
+    return d.toISOString().split('T')[0];
+};
 
 const fetchStudents = async () => {
     loading.value = true;
@@ -26,7 +37,9 @@ const fetchStudents = async () => {
         const params = {
             page: currentPage.value,
             per_page: rowsPerPage.value,
-            search: search.value || undefined
+            search: search.value ? search.value.trim() : undefined,
+            from_date: formatDateParam(dateFrom.value),
+            to_date: formatDateParam(dateTo.value)
         };
         const res = await api.get('/partner/students', { params });
         if (res.data.data) {
@@ -43,14 +56,24 @@ const fetchStudents = async () => {
     }
 };
 
-let searchTimeout = null;
-watch(search, () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
+let filterTimeout = null;
+const triggerFilter = () => {
+    clearTimeout(filterTimeout);
+    filterTimeout = setTimeout(() => {
         currentPage.value = 1;
         fetchStudents();
-    }, 400);
+    }, 350);
+};
+
+watch([search, dateFrom, dateTo], () => {
+    triggerFilter();
 });
+
+const resetFilters = () => {
+    search.value = '';
+    dateFrom.value = null;
+    dateTo.value = null;
+};
 
 const onPageChange = (event) => {
     currentPage.value = event.page + 1;
@@ -108,15 +131,35 @@ const goToReportsForStudent = (student) => {
             </div>
         </div>
 
-        <!-- Search Bar Card -->
-        <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="relative w-full md:w-96">
+        <!-- Search & Date Filter Bar Card -->
+        <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <!-- Search Input (ID, Name, Email, Username, Code) -->
+            <div class="relative flex-1 min-w-[280px]">
                 <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                <InputText v-model="search" placeholder="Search by name, email, code..." 
-                           class="w-full pl-11 pr-4 py-3 text-xs font-bold rounded-xl border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" />
+                <InputText v-model="search" placeholder="Search by ID, Name, Email, Username, Code..." 
+                           class="w-full pl-11 pr-4 py-3 text-xs font-bold rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-slate-800 shadow-sm h-12" />
+            </div>
+
+            <!-- Date Range Filters -->
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div class="w-full sm:w-40 shrink-0">
+                    <DatePicker v-model="dateFrom" placeholder="From Date" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
+                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
+                </div>
+
+                <div class="w-full sm:w-40 shrink-0">
+                    <DatePicker v-model="dateTo" placeholder="To Date" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
+                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
+                </div>
+
+                <Button v-if="search || dateFrom || dateTo" 
+                        icon="pi pi-filter-slash" label="Reset" 
+                        text severity="secondary" 
+                        class="text-xs font-bold rounded-xl h-12 px-4 hover:bg-slate-100" 
+                        @click="resetFilters" />
             </div>
             
-            <div class="flex items-center gap-3 text-xs font-bold text-slate-400">
+            <div class="w-full flex justify-end text-xs font-bold text-slate-400 pt-1 border-t border-slate-50">
                 <span>Showing {{ students.length }} of {{ totalRecords }} students</span>
             </div>
         </div>
@@ -144,7 +187,7 @@ const goToReportsForStudent = (student) => {
                                               {{ data.user ? (data.user.first_name + ' ' + data.user.last_name) : 'Student #' + data.id }}
                                           </div>
                                           <div class="text-[11px] font-bold text-slate-400">
-                                              {{ data.user?.email || data.user?.username || 'No email' }}
+                                              {{ data.user?.username ? '@' + data.user.username : '' }} • {{ data.user?.email || 'No email' }}
                                           </div>
                                      </div>
                                 </div>
@@ -152,11 +195,15 @@ const goToReportsForStudent = (student) => {
                         </Column>
 
                         <!-- Student Code / ID -->
-                        <Column header="Student Code" style="min-width: 160px">
+                        <Column header="Student ID / Code" style="min-width: 160px">
                             <template #body="{ data }">
                                 <div class="flex flex-col space-y-0.5">
-                                    <span class="text-xs font-black text-slate-700 font-mono">{{ data.student_code || data.institution_code || '-' }}</span>
-                                    <span v-if="data.institution_code && data.student_code" class="text-[10px] font-bold text-slate-400">Inst: {{ data.institution_code }}</span>
+                                    <span class="text-xs font-black text-slate-700 font-mono">
+                                        {{ data.student_code || '#' + data.id }}
+                                    </span>
+                                    <span v-if="data.institution_code" class="text-[10px] font-bold text-slate-400">
+                                        Inst: {{ data.institution_code }}
+                                    </span>
                                 </div>
                             </template>
                         </Column>

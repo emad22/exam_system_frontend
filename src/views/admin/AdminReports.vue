@@ -212,7 +212,8 @@ const getValidSkills = (attempt) => {
             skillName.includes('read') ||
             skillName.includes('listen') ||
             skillName.includes('struct') ||
-            skillName.includes('struc')
+            skillName.includes('struc') ||
+            skillName.includes('grammar')
         );
     });
 };

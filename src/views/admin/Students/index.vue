@@ -14,6 +14,7 @@ import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
+import DatePicker from 'primevue/datepicker';
 
 const router = useRouter();
 const route = useRoute();
@@ -29,6 +30,8 @@ const skills = ref([]);
 const selectedStudents = ref([]);
 const searchQuery = ref('');
 const selectedPartner = ref(null);
+const dateFrom = ref(null);
+const dateTo = ref(null);
 
 // Bulk Skills State
 const showBulkSkillsModal = ref(false);
@@ -49,7 +52,10 @@ const t = {
         btnMatrixImport: "تسجيل من ملف Excel",
         btnBulkSkills: "تحديث مهارات الطلاب",
         btnPurge: "حذف المحدد",
-        searchPlaceholder: "بحث عن طالب...",
+        searchPlaceholder: "بحث بـ (ID، الاسم، البريد، اسم المستخدم، الكود)...",
+        dateFrom: "من تاريخ",
+        dateTo: "إلى تاريخ",
+        btnResetFilters: "إعادة تعيين",
         colIdentity: "حساب الطالب وبياناته",
         colInstitutionCode: "كود المؤسسة",
         colSubscription: "الباقة / الاشتراك",
@@ -125,7 +131,10 @@ const t = {
         btnMatrixImport: "Import from Excel",
         btnBulkSkills: "Update Students' Skills",
         btnPurge: "Delete Selected",
-        searchPlaceholder: "Search students...",
+        searchPlaceholder: "Search by ID, Name, Email, Username, Code...",
+        dateFrom: "From Date",
+        dateTo: "To Date",
+        btnResetFilters: "Reset",
         colIdentity: "Student",
         colInstitutionCode: "Institution Code",
         colSubscription: "Package",
@@ -231,6 +240,13 @@ const handleModalCancel = () => {
     if (modalConfig.value.onCancel) modalConfig.value.onCancel();
 };
 
+const resetFilters = () => {
+    searchQuery.value = '';
+    selectedPartner.value = null;
+    dateFrom.value = null;
+    dateTo.value = null;
+};
+
 const filteredStudents = computed(() => {
     let result = students.value;
 
@@ -239,13 +255,47 @@ const filteredStudents = computed(() => {
     }
 
     if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
+        const query = searchQuery.value.trim().toLowerCase();
         result = result.filter(s => {
-            const name = `${s.user?.first_name || ''} ${s.user?.last_name || ''}`.toLowerCase();
+            const idStr = String(s.id || '');
+            const userIdStr = String(s.user?.id || '');
+            const firstName = (s.user?.first_name || '').toLowerCase();
+            const lastName = (s.user?.last_name || '').toLowerCase();
+            const fullName = `${firstName} ${lastName}`.trim();
+            const username = (s.user?.username || '').toLowerCase();
             const email = (s.user?.email || '').toLowerCase();
             const code = (s.student_code || '').toLowerCase();
             const instCode = (s.institution_code || '').toLowerCase();
-            return name.includes(query) || email.includes(query) || code.includes(query) || instCode.includes(query);
+
+            return idStr === query ||
+                   userIdStr === query ||
+                   fullName.includes(query) ||
+                   firstName.includes(query) ||
+                   lastName.includes(query) ||
+                   username.includes(query) ||
+                   email.includes(query) ||
+                   code.includes(query) ||
+                   instCode.includes(query);
+        });
+    }
+
+    if (dateFrom.value) {
+        const fromTime = new Date(dateFrom.value).setHours(0, 0, 0, 0);
+        result = result.filter(s => {
+            const rawDate = s.registration_date || s.created_at;
+            if (!rawDate) return false;
+            const regTime = new Date(rawDate).setHours(0, 0, 0, 0);
+            return regTime >= fromTime;
+        });
+    }
+
+    if (dateTo.value) {
+        const toTime = new Date(dateTo.value).setHours(23, 59, 59, 999);
+        result = result.filter(s => {
+            const rawDate = s.registration_date || s.created_at;
+            if (!rawDate) return false;
+            const regTime = new Date(rawDate).getTime();
+            return regTime <= toTime;
         });
     }
 
@@ -583,23 +633,47 @@ onMounted(() => {
                 </transition>
 
 
-                <!-- Premium Search Bar -->
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-end gap-4">
-                     <div class="w-full sm:w-72 shrink-0">
-                        <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
-                            :placeholder="t[currentLang].allPartners" showClear 
-                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12 flex items-center" />
-                    </div>
-                    <div class="relative w-full md:w-96 shrink-0">
+                <!-- Premium Search & Filter Bar -->
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                    <!-- Left / Main Search Input -->
+                    <div class="relative flex-1 min-w-[280px]">
                         <i class="pi pi-search absolute text-slate-400 z-10 left-4 top-1/2 -translate-y-1/2" />
                         <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder"
                             class="w-full rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm h-12 pl-12" />
                     </div>
-                   
+
+                    <!-- Filters Group -->
+                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        <!-- Partner Select -->
+                        <div class="w-full sm:w-56 shrink-0">
+                            <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                                :placeholder="t[currentLang].allPartners" showClear 
+                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12 flex items-center" />
+                        </div>
+
+                        <!-- Date Range: From Date -->
+                        <div class="w-full sm:w-40 shrink-0">
+                            <DatePicker v-model="dateFrom" :placeholder="t[currentLang].dateFrom" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
+                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
+                        </div>
+
+                        <!-- Date Range: To Date -->
+                        <div class="w-full sm:w-40 shrink-0">
+                            <DatePicker v-model="dateTo" :placeholder="t[currentLang].dateTo" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
+                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
+                        </div>
+
+                        <!-- Reset Button -->
+                        <Button v-if="searchQuery || selectedPartner || dateFrom || dateTo" 
+                                icon="pi pi-filter-slash" :label="t[currentLang].btnResetFilters" 
+                                text severity="secondary" 
+                                class="text-xs font-bold rounded-xl h-12 px-4 hover:bg-slate-100" 
+                                @click="resetFilters" />
+                    </div>
                 </div>
 
                 <!-- Registry Table Card -->
-                <div v-if="students.length > 0 || searchQuery || selectedPartner">
+                <div v-if="students.length > 0 || searchQuery || selectedPartner || dateFrom || dateTo">
                     <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                         <template #content>
                             <DataTable :value="filteredStudents" v-model:selection="selectedStudents" dataKey="id" paginator

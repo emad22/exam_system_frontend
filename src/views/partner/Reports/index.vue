@@ -1,16 +1,17 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import PartnerLayout from '@/components/PartnerLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 
+const route = useRoute();
 const router = useRouter();
 const attempts = ref([]);
 const loading = ref(true);
-const search = ref('');
+const search = ref(route.query.search || '');
 
 const skillMap = {
     'listening': 'Listening',
@@ -56,12 +57,7 @@ const fetchReports = async () => {
     }
 };
 
-const viewDetails = (id) => {
-    router.push({ 
-        name: 'partner.reports.show', 
-        params: { id: id } 
-    });
-};
+
 
 const currentPage = ref(1);
 const rowsPerPage = ref(15);
@@ -152,7 +148,8 @@ const getValidSkills = (attempt) => {
             skillName.includes('read') ||
             skillName.includes('listen') ||
             skillName.includes('struct') ||
-            skillName.includes('struc')
+            skillName.includes('struc') ||
+            skillName.includes('grammar')
         );
     });
 };
@@ -270,9 +267,8 @@ onMounted(() => {
                     </thead>
                     <tbody class="divide-y divide-slate-50 text-sm">
                         <template v-for="attempt in paginatedAttempts" :key="attempt.id">
-                            <tr @click="viewDetails(attempt.id)"
-                                :class="{'pdf-ignore': !isSelected(attempt.id)}"
-                                class="hover:bg-slate-50/50 transition cursor-pointer group">
+                            <tr :class="{'pdf-ignore': !isSelected(attempt.id)}"
+                                class="hover:bg-slate-50/50 transition">
                                 <td class="p-6 text-center pdf-ignore" @click.stop>
                                     <input type="checkbox" :checked="isSelected(attempt.id)" @change="toggleSelection(attempt.id)" class="w-5 h-5 rounded border-slate-300 text-brand-primary focus:ring-brand-primary cursor-pointer">
                                 </td>
@@ -296,9 +292,9 @@ onMounted(() => {
                                 </td>
                                 <td class="p-6 text-center">
                                     <span :class="scoreColor(attempt.overall_score)" class="text-2xl font-black italic tracking-tighter">
-                                       {{ Number((Number(getTotalScore(attempt)) / getValidSkillsCount(attempt)).toFixed(2)) }}
+                                        {{ Number((Number(getTotalScore(attempt)) / getValidSkillsCount(attempt)).toFixed(2)) }}
                                     </span>
-                                    <span class="text-xl font-black text-slate-500"> / {{Number(getValidTotalLevels(attempt)* 100 / getValidSkillsCount(attempt) , 2)}} </span>
+                                    <span class="text-xl font-black text-slate-500"> / {{ Number(getValidTotalLevels(attempt) * 100 / getValidSkillsCount(attempt), 2) }} </span>
                                     <div v-if="attempt.cefr_actfl_level" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-2">{{ attempt.cefr_actfl_level }}</div>
                                 </td>
                                 <td class="p-6 text-center">
