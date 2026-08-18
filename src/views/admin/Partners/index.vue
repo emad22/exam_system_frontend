@@ -136,7 +136,7 @@ onMounted(fetchPartners);
                     <div class="flex flex-wrap items-center gap-4 relative z-10">
                         <Button :label="t.createBtn" icon="pi pi-plus" 
                             class="px-8 py-3 rounded-2xl bg-brand-primary border-none shadow-lg shadow-rose-100 text-xs font-black tracking-wider uppercase transition-all hover:-translate-y-1" 
-                            @click="router.push('/admin/staff/create?role=partner')" />
+                            @click="router.push('/admin/partners/create')" />
                     </div>
                 </div>
 
@@ -161,7 +161,7 @@ onMounted(fetchPartners);
                                          <i class="pi pi-briefcase text-lg"></i>
                                      </div>
                                      <div>
-                                         <div @click="router.push(`/admin/staff/${data.user_id}/edit`)" 
+                                         <div @click="router.push(`/admin/partners/${data.id}/edit`)" 
                                               class="font-black text-slate-800 hover:text-brand-primary cursor-pointer uppercase tracking-tight transition-colors">
                                                {{ data.partner_name }}
                                          </div>
@@ -224,7 +224,7 @@ onMounted(fetchPartners);
                              <template #body="{ data }">
                                  <div class="flex justify-end gap-1">
                                       <Button :icon="data.user?.is_active ? 'pi pi-pause' : 'pi pi-play'" text rounded severity="warning" size="small" @click="toggleHold(data)" />
-                                      <Button icon="pi pi-pencil" text rounded severity="secondary" size="small" @click="router.push(`/admin/staff/${data.user_id}/edit`)" />
+                                      <Button icon="pi pi-pencil" text rounded severity="secondary" size="small" @click="router.push(`/admin/partners/${data.id}/edit`)" />
                                       <Button icon="pi pi-trash" text rounded severity="danger" size="small" @click="deletePartner(data.id)" />
                                  </div>
                              </template>

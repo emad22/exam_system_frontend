@@ -10,6 +10,7 @@ import Textarea from 'primevue/textarea'
 import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
+import Dialog from 'primevue/dialog'
 
 const { resolveUrl } = useMediaUrl()
 
@@ -54,8 +55,23 @@ const t = {
 
 const attempt  = ref(null)
 const skills   = ref([])
-
 const grades = ref({})
+const attemptJustCompleted = ref(false)
+
+// ── Rubric Evaluator State ───────────────────────────────────────────────────
+const activeRubrics = ref({ criteria: [], categories: [], max_total: 900 })
+const rubricScores = ref({}) // map answer_id => { [criterion_id]: number }
+const showRubricDialog = ref(false)
+const currentRubricAnswer = ref(null)
+
+const fetchActiveRubrics = async () => {
+    try {
+        const res = await api.get('/admin/rubrics/active?skill_type=writing')
+        activeRubrics.value = res.data || { criteria: [], categories: [], max_total: 900 }
+    } catch (e) {
+        console.warn('Failed to load active rubrics', e)
+    }
+}
 
 const getFileExtension = (filePath) => {
     if (!filePath) return '';
@@ -120,28 +136,25 @@ const getFileTypeLabel = (filePath) => {
     return 'File';
 };
 
-const formatFileSize = (bytes) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-};
-
 const savingSkillKey = ref(null)
 
 const fetchAttempt = async () => {
     loading.value = true
     try {
+        await fetchActiveRubrics()
         const res = await api.get(`/admin/grading/attempt/${route.params.id}`)
         attempt.value = res.data.attempt
         skills.value  = res.data.skills
 
         res.data.skills.forEach(skill => {
             skill.answers.forEach(ans => {
+                const savedRubric = ans.grading_details?.rubric_scores || {}
+                rubricScores.value[ans.id] = { ...savedRubric }
+
                 grades.value[ans.id] = {
                     points_awarded:   ans.points_awarded ?? 0,
                     teacher_feedback: ans.teacher_feedback ?? '',
+                    grading_details:  ans.grading_details ?? null,
                     is_manual_graded: ans.is_manual_graded ?? false,
                     touched:          false,
                 }
@@ -170,10 +183,17 @@ const submitSkillGrades = async (skill) => {
             answer_id:        ans.id,
             points_awarded:   Number(grades.value[ans.id]?.points_awarded) || 0,
             teacher_feedback: grades.value[ans.id]?.teacher_feedback || '',
+            grading_details:  grades.value[ans.id]?.grading_details || null,
         }))
 
-        await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
-        goBackToGrading()
+        const res = await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
+
+        // If the server completed the attempt, show a guide then redirect to its report
+        if (res.data?.attempt_status === 'completed') {
+            attemptJustCompleted.value = true
+        } else {
+            goBackToGrading()
+        }
     } catch (err) {
         console.error('Failed to save skill grades', err)
     } finally {
@@ -199,6 +219,7 @@ const submitGrades = async () => {
                         answer_id:        ans.id,
                         points_awarded:   Number(g.points_awarded) || 0,
                         teacher_feedback: g.teacher_feedback || '',
+                        grading_details:  g.grading_details || null,
                     })
                 }
             }
@@ -210,12 +231,18 @@ const submitGrades = async () => {
                     answer_id:        parseInt(answerId),
                     points_awarded:   Number(g.points_awarded) || 0,
                     teacher_feedback: g.teacher_feedback || '',
+                    grading_details:  g.grading_details || null,
                 })
             })
         }
 
-        await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
-        goBackToGrading()
+        const res = await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
+
+        if (res.data?.attempt_status === 'completed') {
+            attemptJustCompleted.value = true
+        } else {
+            goBackToGrading()
+        }
     } catch (err) {
         console.error('Failed to save grades', err)
     } finally {
@@ -248,6 +275,77 @@ const studentName = computed(() => {
     return u ? `${u.first_name} ${u.last_name}` : '—'
 })
 
+// ── Rubric Evaluator Methods ──────────────────────────────────────────────────
+function openRubricEvaluator(ans) {
+    currentRubricAnswer.value = ans
+    if (!rubricScores.value[ans.id]) {
+        rubricScores.value[ans.id] = {}
+    }
+    // Initialize unassigned criteria to 0 or saved value
+    activeRubrics.value.criteria.forEach(c => {
+        if (rubricScores.value[ans.id][c.id] === undefined) {
+            rubricScores.value[ans.id][c.id] = 0
+        }
+    })
+    showRubricDialog.value = true
+}
+
+function calculateCategoryTotal(cat) {
+    if (!currentRubricAnswer.value) return 0
+    const ansId = currentRubricAnswer.value.id
+    const scores = rubricScores.value[ansId] || {}
+    return cat.items.reduce((sum, item) => sum + (Number(scores[item.id]) || 0), 0)
+}
+
+const currentRubricTotal = computed(() => {
+    if (!currentRubricAnswer.value) return 0
+    const ansId = currentRubricAnswer.value.id
+    const scores = rubricScores.value[ansId] || {}
+    return activeRubrics.value.criteria.reduce((sum, item) => sum + (Number(scores[item.id]) || 0), 0)
+})
+
+function quickScore(crit, factor) {
+    if (!currentRubricAnswer.value) return
+    const ansId = currentRubricAnswer.value.id
+    if (!rubricScores.value[ansId]) rubricScores.value[ansId] = {}
+    const score = Math.round((crit.max_points * factor) * 10) / 10
+    rubricScores.value[ansId][crit.id] = score
+}
+
+function setAllRubricScores(factor) {
+    if (!currentRubricAnswer.value) return
+    const ansId = currentRubricAnswer.value.id
+    activeRubrics.value.criteria.forEach(crit => {
+        rubricScores.value[ansId][crit.id] = Math.round((crit.max_points * factor) * 10) / 10
+    })
+}
+
+function applyRubricGrade() {
+    if (!currentRubricAnswer.value) return
+    const ans = currentRubricAnswer.value
+    const totalRubricEarned = currentRubricTotal.value
+    const maxRubric = activeRubrics.value.max_total || 900
+    const questionMax = ans.question?.points ?? maxRubric
+
+    // Scale if question max differs from rubric max (otherwise exact total)
+    let finalScore = totalRubricEarned
+    if (questionMax !== maxRubric && maxRubric > 0) {
+        finalScore = Math.round((totalRubricEarned / maxRubric) * questionMax * 10) / 10
+    }
+    finalScore = Math.min(finalScore, questionMax)
+
+    grades.value[ans.id].points_awarded = finalScore
+    grades.value[ans.id].touched = true
+    grades.value[ans.id].grading_details = {
+        rubric_scores: { ...rubricScores.value[ans.id] },
+        rubric_total_earned: totalRubricEarned,
+        rubric_max: maxRubric,
+        graded_at: new Date().toISOString(),
+    }
+
+    showRubricDialog.value = false
+}
+
 onMounted(fetchAttempt)
 </script>
 
@@ -261,7 +359,38 @@ onMounted(fetchAttempt)
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
             </div>
 
-            <div v-else-if="attempt" class="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-32 px-4">
+            <!-- ✅ Attempt Just Completed Banner -->
+            <div v-if="attemptJustCompleted" class="w-full px-4 md:px-10 pt-8">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-[2rem] p-8 shadow-xl shadow-emerald-900/20 text-white">
+                    <div class="flex flex-col sm:flex-row items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                            <i class="pi pi-check-circle text-4xl text-white"></i>
+                        </div>
+                        <div class="flex-1 text-center sm:text-left">
+                            <h2 class="text-xl font-black mb-1">🎓 Attempt Completed & Certificate Ready!</h2>
+                            <p class="text-emerald-100 text-sm font-semibold">
+                                All manual answers have been graded. The attempt status is now <strong>Completed</strong> and a certificate has been automatically generated.
+                            </p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3 flex-shrink-0">
+                            <button
+                                @click="$router.push(`/admin/reports/${route.params.id}`)"
+                                class="bg-white text-emerald-700 font-black text-xs px-5 py-3 rounded-xl hover:bg-emerald-50 transition-colors shadow-md"
+                            >
+                                <i class="pi pi-file-check mr-2"></i> View Report & Certificate
+                            </button>
+                            <button
+                                @click="goBackToGrading()"
+                                class="bg-white/20 text-white font-black text-xs px-5 py-3 rounded-xl hover:bg-white/30 transition-colors border border-white/30"
+                            >
+                                Back to Grading Desk
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-else-if="attempt" class="w-full space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-32 px-4 md:px-10">
 
                 <!-- Premium Header Navigation Card -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6 md:space-y-0 relative overflow-hidden group">
@@ -388,6 +517,11 @@ onMounted(fetchAttempt)
                                     value="Pending"
                                     severity="secondary"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
+                                
+                                <Tag v-if="grades[ans.id]?.grading_details?.rubric_scores"
+                                    value="تقييم تفصيلي بالمعايير ✓"
+                                    severity="help"
+                                    class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200" />
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t.maxPoints }}</span>
@@ -496,6 +630,42 @@ onMounted(fetchAttempt)
 
                             <!-- Right: Scoring inputs -->
                             <div class="space-y-6">
+
+                                <!-- Rubric Scorecard Button for Writing Tasks -->
+                                <div v-if="skill.question_type === 'writing' || ans.question?.type === 'writing'"
+                                    class="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-md border border-purple-800/40 space-y-4"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center border border-purple-500/30">
+                                                <i class="pi pi-list-check text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-sm font-black text-white">Writing Assessment Rubric</h4>
+                                                <p class="text-[10px] text-purple-200 font-medium">Structured grading across 4 core domains (Format, Grammar, Content, Rhetoric)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pt-2 border-t border-purple-800/50">
+                                        <div class="text-xs">
+                                            <span class="text-purple-300 font-bold mr-1">Status:</span>
+                                            <span v-if="grades[ans.id]?.grading_details?.rubric_scores" class="text-emerald-400 font-black">
+                                                Rubric Evaluated ({{ grades[ans.id]?.grading_details?.rubric_total_earned ?? grades[ans.id]?.points_awarded }} / {{ activeRubrics.max_total }} pts)
+                                            </span>
+                                            <span v-else class="text-slate-400 font-bold">Standard manual score</span>
+                                        </div>
+
+                                        <Button
+                                            label="Open Rubric Evaluator"
+                                            icon="pi pi-external-link"
+                                            size="small"
+                                            @click="openRubricEvaluator(ans)"
+                                            class="bg-purple-500 hover:bg-purple-600 text-white border-none rounded-xl px-4 py-2 text-xs font-black shadow-md transition-all hover:scale-105"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div class="bg-slate-50/60 rounded-2xl p-6 border border-slate-100 shadow-inner flex flex-col justify-center">
                                     <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3.5">{{ t.pointsInputLabel }}</p>
                                     <div class="flex items-center gap-4">
@@ -539,8 +709,6 @@ onMounted(fetchAttempt)
                     <p class="font-extrabold text-sm uppercase tracking-wider">{{ t.noQuestionsFound }}</p>
                 </div>
 
-
-
             </div>
 
             <!-- Not found -->
@@ -549,11 +717,248 @@ onMounted(fetchAttempt)
                 <p class="font-black text-lg tracking-tight">{{ t.attemptNotFound }}</p>
             </div>
         </div>
+
+       
+        <!-- Interactive Rubric Scorecard Dialog -->
+        <Dialog
+            v-model:visible="showRubricDialog"
+            :modal="true"
+            :style="{ width: '98vw', maxWidth: '1700px' }"
+            class="p-fluid rounded-4xl shadow-2xl"
+        >
+            <template #header>
+                <div class="flex items-center justify-between w-full pl-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-black">
+                            <i class="pi pi-pencil text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-slate-900 leading-tight">Writing Assessment Rubric</h3>
+                            <p class="text-xs text-slate-400 font-bold mt-0.5">Evaluate student submission using standardized criteria</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action Bar -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6">
+                        <div class="text-xs font-black text-slate-700 flex items-center gap-2">
+                            <i class="pi pi-bolt text-amber-500"></i>
+                            <span>Quick Score All Criteria:</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Button label="100% Full" size="small" severity="success" outlined @click="setAllRubricScores(1.0)" class="text-xs font-black rounded-xl" />
+                            <Button label="75% Very Good" size="small" severity="info" outlined @click="setAllRubricScores(0.75)" class="text-xs font-black rounded-xl" />
+                            <Button label="50% Average" size="small" severity="warning" outlined @click="setAllRubricScores(0.50)" class="text-xs font-black rounded-xl" />
+                            <Button label="Reset (0)" size="small" severity="secondary" outlined @click="setAllRubricScores(0)" class="text-xs font-black rounded-xl" />
+                        </div>
+                    </div>
+
+                    <!-- Live Total Badge -->
+                    <div class="flex items-center gap-3 pr-4">
+                        <div class="bg-slate-900 text-white rounded-2xl px-5 py-2 text-center shadow-md">
+                            <span class="text-[10px] font-black text-slate-400 uppercase block">Calculated Score</span>
+                            <div class="flex items-baseline justify-center gap-1">
+                                <span class="text-xl font-black text-emerald-400">{{ currentRubricTotal }}</span>
+                                <span class="text-xs text-slate-400 font-bold">/ {{ activeRubrics.max_total }}</span>
+                            </div>
+                        </div>
+                    </div>
+                     
+                </div>
+            </template>
+
+            <div v-if="currentRubricAnswer" class="pt-2 pb-0">
+
+               
+
+                <!-- Two-column layout: answer on the side, criteria on the side -->
+                
+                <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-6">
+
+                    <!-- LEFT: Student Answer (sticky, scrolls independently) -->
+                    <div class="lg:sticky lg:top-0 lg:self-start">
+                        <div class="bg-slate-900 rounded-2xl p-5 text-white border border-slate-800 shadow-inner flex flex-col max-h-[75vh]">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3 flex-shrink-0">
+                                <span class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                                    <i class="pi pi-file-edit text-rose-400"></i>
+                                    Student Submission (Writing Task)
+                                </span>
+                                <span v-if="currentRubricAnswer.word_count" class="text-xs font-bold text-slate-400">
+                                    {{ currentRubricAnswer.word_count }} words
+                                </span>
+                            </div>
+                            <div
+                                v-if="currentRubricAnswer.text_answer"
+                                class="prose prose-invert prose-sm max-w-none text-slate-200 leading-relaxed font-medium overflow-y-auto pr-2"
+                                dir="auto"
+                                v-html="currentRubricAnswer.text_answer"
+                            ></div>
+                            <p v-else class="text-slate-400 italic text-sm">No written text submitted.</p>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Criteria by Category -->
+                    <div class="space-y-6 max-h-[75vh] overflow-y-auto pr-1 pl-1">
+                        <div
+                            v-for="cat in activeRubrics.categories"
+                            :key="cat.category"
+                            class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+                        >
+                            <!-- Category Subheader -->
+                            <div class="bg-gradient-to-r from-slate-100 to-white px-6 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-2.5 h-6 bg-rose-600 rounded-full"></div>
+                                    <h4 class="font-black text-slate-800 text-sm">{{ cat.category }}</h4>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs font-bold text-slate-500">
+                                        Subtotal:
+                                        <strong class="text-rose-600 font-black">{{ calculateCategoryTotal(cat) }}</strong> / {{ cat.total_points }} pts
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Criteria Items -->
+                            <div class="divide-y divide-slate-100">
+                                <div
+                                    v-for="crit in cat.items"
+                                    :key="crit.id"
+                                    class="p-4 hover:bg-slate-50/50 transition-colors"
+                                >
+                                    <!-- Top row: Name + % badge + Score input -->
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
+                                        <!-- Criterion Info -->
+                                        <div class="space-y-0.5 min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="font-black text-slate-900 text-sm">{{ crit.name }}</span>
+                                                <span class="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                                                    {{ crit.percentage }}%
+                                                </span>
+                                                <span class="text-[10px] font-semibold text-slate-400">
+                                                    ({{ crit.max_points }} pts)
+                                                </span>
+                                            </div>
+                                            <p class="text-xs text-slate-500 leading-normal">
+                                                {{ crit.description || '—' }}
+                                            </p>
+                                        </div>
+
+                                        <!-- Score Input -->
+                                        <div class="flex items-center gap-2 flex-shrink-0 max-w-full">
+                                            <InputNumber
+                                                v-model="rubricScores[currentRubricAnswer.id][crit.id]"
+                                                :min="0"
+                                                :max="crit.max_points"
+                                                :minFractionDigits="0"
+                                                :maxFractionDigits="1"
+                                                class="w-28 flex-shrink-0"
+                                                inputClass="text-center font-black text-lg text-rose-600 bg-white border-2 border-slate-200 rounded-xl p-2 focus:border-rose-500 w-full"
+                                            />
+                                            <div class="flex flex-col items-start flex-shrink-0">
+                                                <span class="text-sm font-black text-slate-500 whitespace-nowrap">/ {{ crit.max_points }}</span>
+                                                <span class="text-[10px] font-semibold text-slate-400">pts</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Quick Score Buttons row -->
+                                    <div class="mt-2.5 flex items-center gap-2 flex-wrap">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick:</span>
+                                        <button
+                                            type="button"
+                                            @click="quickScore(crit, 1.0)"
+                                            class="text-[11px] font-bold px-3 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+                                            :title="'Full score: ' + crit.max_points + ' pts'"
+                                        >
+                                            Full &nbsp;<span class="font-black">({{ crit.max_points }} pts)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="quickScore(crit, 0.75)"
+                                            class="text-[11px] font-bold px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                                            :title="'75%: ' + Math.round(crit.max_points * 0.75 * 10) / 10 + ' pts'"
+                                        >
+                                            75% &nbsp;<span class="font-black">({{ Math.round(crit.max_points * 0.75 * 10) / 10 }} pts)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="quickScore(crit, 0.50)"
+                                            class="text-[11px] font-bold px-3 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors"
+                                            :title="'50%: ' + Math.round(crit.max_points * 0.5 * 10) / 10 + ' pts'"
+                                        >
+                                            50% &nbsp;<span class="font-black">({{ Math.round(crit.max_points * 0.5 * 10) / 10 }} pts)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="quickScore(crit, 0)"
+                                            class="text-[11px] font-bold px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
+                                            title="Zero score"
+                                        >
+                                            0 pts
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <template #footer>
+                <!-- Footer Summary & Actions — fixed outside scroll -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
+                    <div class="flex items-center gap-6">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Score</span>
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="text-3xl font-black text-emerald-600">{{ currentRubricTotal }}</span>
+                                <span class="text-base font-black text-slate-400">/ {{ activeRubrics.max_total }}</span>
+                                <span class="text-xs font-bold text-slate-400">pts</span>
+                            </div>
+                        </div>
+                        <div v-if="activeRubrics.max_total > 0" class="flex flex-col items-center">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Percentage</span>
+                            <span class="text-xl font-black" :class="{
+                                'text-emerald-600': (currentRubricTotal / activeRubrics.max_total) >= 0.75,
+                                'text-blue-600': (currentRubricTotal / activeRubrics.max_total) >= 0.5 && (currentRubricTotal / activeRubrics.max_total) < 0.75,
+                                'text-amber-600': (currentRubricTotal / activeRubrics.max_total) >= 0.25 && (currentRubricTotal / activeRubrics.max_total) < 0.5,
+                                'text-red-600': (currentRubricTotal / activeRubrics.max_total) < 0.25,
+                            }">
+                                {{ Math.round((currentRubricTotal / activeRubrics.max_total) * 100) }}%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <Button
+                            type="button"
+                            label="Cancel"
+                            severity="secondary"
+                            outlined
+                            @click="showRubricDialog = false"
+                            class="rounded-xl px-5 py-2.5 text-xs font-black border-slate-200"
+                        />
+                        <Button
+                            type="button"
+                            label="Apply Rubric Score"
+                            icon="pi pi-check"
+                            @click="applyRubricGrade"
+                            class="bg-rose-600 hover:bg-rose-700 text-white rounded-xl px-6 py-2.5 text-xs font-black shadow-lg shadow-rose-900/30 border-none"
+                        />
+                    </div>
+                </div>
+            </template>
+
+        </Dialog>
     </AdminLayout>
 </template>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+
+.font-cairo {
+    font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+}
 
 .arabic-theme {
     font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;

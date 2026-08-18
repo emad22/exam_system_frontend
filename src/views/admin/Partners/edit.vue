@@ -28,21 +28,22 @@ const editForm = ref({
     proctoring_mode: 'none',
 });
 
-const loadData = async () => {
+    const loadData = async () => {
     loading.value = true;
     try {
         const res = await api.get(`/admin/partners/${partnerId}`);
         const partner = res.data;
+        const user = partner.user ?? {};
         editForm.value = {
             partner_name: partner.partner_name || '',
-            fName_contact: partner.fName_contact || '',
-            lName_contact: partner.lName_contact || '',
-            email: partner?.email || '',
-            phone: partner?.phone || '',
+            fName_contact: user.first_name || partner.fName_contact || '',
+            lName_contact: user.last_name  || partner.lName_contact || '',
+            email: user.email   || partner.email   || '',
+            phone: user.phone   || partner.phone   || '',
             website: partner.website || '',
-            country: partner.country || '',
+            country: user.country || partner.country || '',
             note: partner.note || '',
-            is_active: !!partner.is_active,
+            is_active: user.hasOwnProperty('is_active') ? !!user.is_active : !!partner.is_active,
             proctoring_mode: partner.proctoring_mode || (partner.proctoring_required ? 'full' : 'none'),
         };
     } catch (err) {

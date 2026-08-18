@@ -280,6 +280,12 @@ const adminRoutes = [
     component: () => import('@/views/admin/CefrActflThresholds/index.vue'),
     meta: { title: 'CEFR & ACTFL Thresholds' }
   },
+  {
+    path: '/admin/rubrics',
+    name: 'admin.rubrics',
+    component: () => import('@/views/admin/Rubrics/index.vue'),
+    meta: { title: 'Writing Rubrics & Criteria' }
+  },
 ];
 
 // Map Admin routes to Teacher routes

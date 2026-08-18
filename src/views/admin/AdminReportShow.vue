@@ -22,6 +22,7 @@ const selectedAttempt = ref(null);
 const loading = ref(true);
 const currentUser = ref(null);
 const isCreatingCert = ref(false);
+const isEndingAttempt = ref(false);
 let totalLevels = 0;
 
 const { showAlert, showConfirm } = useModal();
@@ -119,11 +120,35 @@ const createCertificate = async () => {
         if (res.data.certificate) {
             selectedAttempt.value.certificate = res.data.certificate;
         }
+        // Sync attempt status if the server auto-completed it
+        if (res.data.attempt_status) {
+            selectedAttempt.value.status = res.data.attempt_status;
+        }
         showAlert('Certificate created successfully. You can toggle its visibility from the Certificates page.', 'Success', 'success');
     } catch (err) {
         showAlert(err.response?.data?.error || 'Failed to create certificate.', 'Error', 'danger');
     } finally {
         isCreatingCert.value = false;
+    }
+};
+
+const forceCompleteAttempt = async () => {
+    const confirmed = await showConfirm(
+        'This will mark the attempt as completed and generate a certificate if eligible. Are you sure?',
+        'End Attempt',
+        'warning',
+        'Yes, End Attempt'
+    );
+    if (!confirmed) return;
+    isEndingAttempt.value = true;
+    try {
+        const res = await api.post(`/admin/reports/${attemptId}/force-complete`);
+        selectedAttempt.value.status = res.data.attempt_status ?? 'completed';
+        showAlert('Attempt marked as completed successfully.', 'Success', 'success');
+    } catch (err) {
+        showAlert(err.response?.data?.error || 'Failed to end attempt.', 'Error', 'danger');
+    } finally {
+        isEndingAttempt.value = false;
     }
 };
 
@@ -966,9 +991,20 @@ onMounted(fetchDetails);
                         @click="downloadCertificate()" />
                     <Button v-else label="Create Certificate" icon="pi pi-award" severity="success" outlined size="small"
                         class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
-                        :loading="isCreatingCert" :disabled="selectedAttempt.status !== 'completed'"
-                        v-tooltip.left="selectedAttempt.status !== 'completed' ? 'Attempt must be completed' : 'Issue a certificate for this student'"
+                        :loading="isCreatingCert"
+                        v-tooltip.left="selectedAttempt.status !== 'completed' ? 'Attempt will be marked as completed automatically' : 'Issue a certificate for this student'"
                         @click="downloadCertificate()" />
+                    <Button
+                        v-if="selectedAttempt.status !== 'completed'"
+                        label="End Attempt"
+                        icon="pi pi-stop-circle"
+                        severity="warning"
+                        outlined
+                        size="small"
+                        class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
+                        :loading="isEndingAttempt"
+                        v-tooltip.left="'Force-end this attempt. All skills must have been started.'"
+                        @click="forceCompleteAttempt()" />
                     <Button label="Reset / Retry" severity="danger" outlined size="small"
                         class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
                         @click="voidAttempt(selectedAttempt)" />

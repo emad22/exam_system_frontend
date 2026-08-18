@@ -17,8 +17,9 @@ const mobileMenuOpen = ref(false);
 
 const allNavigation = [
     { name: 'Dashboard', href: '/admin', icon: 'pi pi-home' },
-    { name: 'Students', href: '/admin/students', icon: 'pi pi-users' },
+    { name: 'Registered Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
+    { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
     { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-folder-open' },
     { name: 'Partners', href: '/admin/partners', icon: 'pi pi-briefcase' },
     { name: 'Exam Categories', href: '/admin/exam-categories', icon: 'pi pi-tags' },
@@ -26,19 +27,44 @@ const allNavigation = [
     { name: 'Levels', href: '/admin/levels', icon: 'pi pi-sort-amount-up' },
     { name: 'Exams', href: '/admin/exams', icon: 'pi pi-file-edit' },
     { name: 'Questions', href: '/admin/questions', icon: 'pi pi-list' },
-    { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
-    { name: 'CEFR & ACTFL', href: '/admin/cefr-actfl-thresholds', icon: 'pi pi-sliders-h' },
-    { name: 'Skill Packages', href: '/admin/packages', icon: 'pi pi-box' },
-    { name: 'Proctoring', href: '/admin/proctoring', icon: 'pi pi-video' },
-    { name: 'Payments', href: '/admin/payments', icon: 'pi pi-credit-card' },
-    { name: 'Staff & Roles', href: '/admin/staff', icon: 'pi pi-shield' },
-    { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
-    { name: 'Activity Logs', href: '/admin/activity-logs', icon: 'pi pi-history' },
+
+    {
+        name: 'Standards & Setup',
+        icon: 'pi pi-wrench',
+        group: true,
+        children: [
+            { name: 'Staff & Roles', href: '/admin/staff', icon: 'pi pi-shield' },
+            { name: 'Skill Packages', href: '/admin/packages', icon: 'pi pi-box' },
+            { name: 'Writing Rubrics', href: '/admin/rubrics', icon: 'pi pi-list-check' },
+            { name: 'CEFR & ACTFL', href: '/admin/cefr-actfl-thresholds', icon: 'pi pi-sliders-h' },
+            { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
+            { name: 'Proctoring', href: '/admin/proctoring', icon: 'pi pi-video' },
+            { name: 'Activity Logs', href: '/admin/activity-logs', icon: 'pi pi-history' },
+
+        ]
+    },
 ]
 
 const navigation = allNavigation.filter(
     item => PROCTORING_ENABLED || item.href !== '/admin/proctoring'
 )
+
+// Track which groups are open
+const openGroups = ref({})
+
+const isGroupActive = (group) => {
+    return group.children?.some(child => route.path.startsWith(child.href))
+}
+
+const toggleGroup = (groupName) => {
+    openGroups.value[groupName] = !openGroups.value[groupName]
+}
+
+const isGroupOpen = (group) => {
+    // Auto-open the group if a child is active
+    if (isGroupActive(group)) return true
+    return !!openGroups.value[group.name]
+}
 
 const currentUser = computed(() => adminStore.user);
 const notifications = computed(() => adminStore.notifications);
@@ -218,7 +244,42 @@ const { resolveUrl } = useMediaUrl();
                     <!-- Navigation -->
                     <nav class="flex-1 px-4 py-8 space-y-1.5 overflow-y-auto no-scrollbar">
                         <template v-for="item in filteredNavigation" :key="item.name">
-                            <router-link :to="item.href" @click="mobileMenuOpen = false" :class="[
+                            <!-- Group with submenu -->
+                            <div v-if="item.group">
+                                <button @click="toggleGroup(item.name)" :class="[
+                                    isGroupActive(item) ? 'text-brand-primary bg-brand-primary/5 border-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary border-transparent hover:border-slate-100',
+                                    'w-full group flex items-center px-4 py-3.5 text-xs font-bold rounded-xl transition-all duration-300 border'
+                                ]">
+                                    <i :class="[item.icon, isGroupActive(item) ? 'text-brand-primary' : 'text-slate-400 group-hover:text-brand-secondary']"
+                                        class="text-lg mr-4 transition-colors"></i>
+                                    <span class="flex-1 text-left">{{ item.name }}</span>
+                                    <i class="pi pi-chevron-down text-xs transition-transform duration-300"
+                                        :class="{ 'rotate-180': isGroupOpen(item), 'text-brand-primary': isGroupActive(item), 'text-slate-400': !isGroupActive(item) }"></i>
+                                </button>
+                                <!-- Submenu Items -->
+                                <div class="submenu-wrapper" :class="{ 'submenu-open': isGroupOpen(item) }">
+                                    <div class="pl-3 pt-1 pb-1 space-y-1">
+                                        <router-link v-for="child in item.children" :key="child.name" :to="child.href"
+                                            @click="mobileMenuOpen = false" :class="[
+                                                isActive(child.href) ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-brand-primary',
+                                                'group flex items-center px-3 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 border border-transparent hover:border-slate-100'
+                                            ]">
+                                            <span class="w-4 mr-3 flex items-center justify-center">
+                                                <span
+                                                    :class="isActive(child.href) ? 'bg-white' : 'bg-slate-300 group-hover:bg-brand-secondary'"
+                                                    class="w-1.5 h-1.5 rounded-full transition-colors"></span>
+                                            </span>
+                                            <i :class="[child.icon, isActive(child.href) ? 'text-white' : 'text-slate-400 group-hover:text-brand-secondary']"
+                                                class="text-sm mr-3 transition-colors"></i>
+                                            {{ child.name }}
+                                            <div v-if="isActive(child.href)"
+                                                class="ml-auto w-1.5 h-1.5 bg-brand-accent rounded-full"></div>
+                                        </router-link>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Regular nav item -->
+                            <router-link v-else :to="item.href" @click="mobileMenuOpen = false" :class="[
                                 isActive(item.href) ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',
                                 'group flex items-center px-4 py-3.5 text-xs font-bold rounded-xl transition-all duration-300 border border-transparent hover:border-slate-100'
                             ]">
@@ -274,11 +335,43 @@ const { resolveUrl } = useMediaUrl();
 
                 <!-- Navigation -->
                 <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
-                    <!--<div class="px-4 mb-3">
-                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Core Modules</p>
-                    </div>-->
                     <template v-for="item in filteredNavigation" :key="item.name">
-                        <router-link :to="item.href" :class="[
+                        <!-- Group with submenu -->
+                        <div v-if="item.group">
+                            <button @click="toggleGroup(item.name)" :class="[
+                                isGroupActive(item) ? 'text-brand-primary bg-brand-primary/5 border-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary border-transparent hover:border-slate-100',
+                                'w-full group flex items-center px-4 py-3.5 text-xs font-bold rounded-xl transition-all duration-300 border'
+                            ]">
+                                <i :class="[item.icon, isGroupActive(item) ? 'text-brand-primary' : 'text-slate-400 group-hover:text-brand-secondary']"
+                                    class="text-lg mr-4 transition-colors"></i>
+                                <span class="flex-1 text-left">{{ item.name }}</span>
+                                <i class="pi pi-chevron-down text-xs transition-transform duration-300"
+                                    :class="{ 'rotate-180': isGroupOpen(item), 'text-brand-primary': isGroupActive(item), 'text-slate-400': !isGroupActive(item) }"></i>
+                            </button>
+                            <!-- Submenu Items -->
+                            <div class="submenu-wrapper" :class="{ 'submenu-open': isGroupOpen(item) }">
+                                <div class="pl-3 pt-1 pb-1 space-y-1">
+                                    <router-link v-for="child in item.children" :key="child.name" :to="child.href"
+                                        :class="[
+                                            isActive(child.href) ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-brand-primary',
+                                            'group flex items-center px-3 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 border border-transparent hover:border-slate-100'
+                                        ]">
+                                        <span class="w-4 mr-3 flex items-center justify-center">
+                                            <span
+                                                :class="isActive(child.href) ? 'bg-white' : 'bg-slate-300 group-hover:bg-brand-secondary'"
+                                                class="w-1.5 h-1.5 rounded-full transition-colors"></span>
+                                        </span>
+                                        <i :class="[child.icon, isActive(child.href) ? 'text-white' : 'text-slate-400 group-hover:text-brand-secondary']"
+                                            class="text-sm mr-3 transition-colors"></i>
+                                        {{ child.name }}
+                                        <div v-if="isActive(child.href)"
+                                            class="ml-auto w-1.5 h-1.5 bg-brand-accent rounded-full"></div>
+                                    </router-link>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Regular nav item -->
+                        <router-link v-else :to="item.href" :class="[
                             isActive(item.href) ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',
                             'group flex items-center px-4 py-3.5 text-xs font-bold rounded-xl transition-all duration-300 border border-transparent hover:border-slate-100'
                         ]">
@@ -493,5 +586,21 @@ const { resolveUrl } = useMediaUrl();
 .slide-right-enter-from,
 .slide-right-leave-to {
     transform: translateX(-100%);
+}
+
+/* Accordion Submenu */
+.submenu-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.submenu-wrapper>div {
+    overflow: hidden;
+}
+
+.submenu-wrapper.submenu-open {
+    grid-template-rows: 1fr;
 }
 </style>
