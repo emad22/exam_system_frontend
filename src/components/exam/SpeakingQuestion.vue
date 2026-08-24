@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue';
 import AudioRecorder from '@/components/AudioRecorder.vue';
+import { useMediaUrl } from '@/composables/useMediaUrl';
 
 const props = defineProps({
     question: {
@@ -18,6 +19,16 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:answer']);
+const { resolveUrl } = useMediaUrl();
+
+const cleanHtml = (html) => {
+    if (!html) return '';
+    let clean = html.replace(/&nbsp;/g, ' ');
+    clean = clean.replace(/(\.{3,})\s*([\d\u0660-\u0669]+)/g, '<span class="blank-line-wrapper"><span class="blank-line"></span><span class="blank-badge">$2</span></span>');
+    clean = clean.replace(/([\d\u0660-\u0669]+)\s*(\.{3,})/g, '<span class="blank-line-wrapper"><span class="blank-badge">$1</span><span class="blank-line"></span></span>');
+    clean = clean.replace(/(\.{3,})/g, '<span class="blank-line"></span>');
+    return clean;
+};
 
 const activeMode = ref('record'); // 'record' or 'upload'
 const fileInput = ref(null);
@@ -123,8 +134,13 @@ onUnmounted(() => {
             class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden flex flex-col gap-6">
 
             <!-- Content / Instruction if any -->
-            <div v-if="question.content" class=" max-w-3xl w-full mx-auto ql-content">
-                <div class="text-lg font-bold text-slate-800 leading-relaxed" v-html="question.content"></div>
+            <div v-if="question.content" class="max-w-3xl w-full mx-auto ql-content rtl-support bg-slate-50/70 p-6 md:p-8 rounded-2xl border border-slate-100/80" dir="auto">
+                <div class="speaking-prompt-content ql-content rtl-support" v-html="cleanHtml(question.content)"></div>
+            </div>
+
+            <!-- Optional Image if attached to speaking question or passage -->
+            <div v-if="question.image_url || question.image_path || question.passage?.image_url || question.passage?.image_path" class="max-w-3xl w-full mx-auto flex justify-center">
+                <img :src="resolveUrl(question.image_url || question.image_path || question.passage?.image_url || question.passage?.image_path)" class="max-h-[350px] w-auto rounded-2xl border border-slate-200 shadow-sm object-contain" alt="Speaking Prompt Image" />
             </div>
 
             <!-- Premium Mode Switcher (Tabs) -->
@@ -218,6 +234,26 @@ onUnmounted(() => {
 <style scoped>
 .animate-fade {
     animation: fadeIn 0.4s ease-out;
+}
+
+.speaking-prompt-content {
+    font-size: 22px;
+    line-height: 1.8;
+    color: #1e293b;
+}
+
+.speaking-prompt-content :deep(p),
+.speaking-prompt-content :deep(div),
+.speaking-prompt-content :deep(span),
+.speaking-prompt-content :deep(li),
+.speaking-prompt-content :deep(h1),
+.speaking-prompt-content :deep(h2),
+.speaking-prompt-content :deep(h3) {
+    font-family: 'Lotus Linotype', 'Myriad Arabic', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.speaking-prompt-content :deep(p) {
+    margin-bottom: 0.5rem;
 }
 
 @keyframes fadeIn {
