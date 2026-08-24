@@ -1025,7 +1025,7 @@ const editorModules = {
 
                     <div class="flex items-center gap-5 relative z-10">
                         <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded
-                            @click="router.push({ name: adminStore.user?.role === 'teacher' ? 'teacher.questions' : 'admin.questions' })"
+                            @click="router.back()"
                             class="hover:text-brand-primary hover:border-brand-primary/50 transition-colors"
                             :class="[currentLang === 'ar' ? 'rotate-180' : '']" />
                         <div>

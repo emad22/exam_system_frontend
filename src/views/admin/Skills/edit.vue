@@ -5,7 +5,7 @@ import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
-import ProgressSpinner from 'primevue/progressspinner';
+import FormSkeleton from '@/components/skeletons/FormSkeleton.vue';
 
 const { showAlert } = useModal();
 const router = useRouter();
@@ -95,10 +95,9 @@ onMounted(fetchSkill);
   <AdminLayout>
     <div dir="ltr" class="w-full">
       
-      <!-- Loading Indicator -->
-      <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-          <ProgressSpinner />
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ labels.loading }}</p>
+      <!-- Loading Skeleton -->
+      <div v-if="loading" class="mt-6 px-4 md:px-8">
+          <FormSkeleton :fieldsCount="6" />
       </div>
 
       <!-- Main Content -->

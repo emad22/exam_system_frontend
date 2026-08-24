@@ -7,7 +7,7 @@ import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import ProgressSpinner from 'primevue/progressspinner';
+import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton.vue';
 import Button from 'primevue/button';
 
 const adminStore = useAdminStore();
@@ -67,7 +67,7 @@ const t = {
 const fetchData = async () => {
     try {
         const statsRes = await api.get('/admin/stats');
-        stats.value = statsRes.data.data;
+        stats.value = statsRes.data?.stats ? statsRes.data : (statsRes.data?.data ?? statsRes.data);
     } catch (err) {
         console.error("Error loading stats", err);
         stats.value = null;
@@ -75,7 +75,7 @@ const fetchData = async () => {
     
     try {
         const liveRes = await api.get('/admin/live-students');
-        liveStudents.value = liveRes.data.data || [];
+        liveStudents.value = liveRes.data?.data ?? (Array.isArray(liveRes.data) ? liveRes.data : []);
     } catch (err) {
         console.error("Error loading live students", err);
         liveStudents.value = [];
@@ -88,7 +88,7 @@ const fetchData = async () => {
 const refreshLiveStudents = async () => {
     try {
         const liveRes = await api.get('/admin/live-students');
-        liveStudents.value = liveRes.data.data || [];
+        liveStudents.value = liveRes.data?.data ?? (Array.isArray(liveRes.data) ? liveRes.data : []);
     } catch (err) {
         console.error("Error refreshing live students", err);
     }
@@ -103,7 +103,7 @@ onMounted(() => {
         // Also refresh stats every 30 seconds
         if (Math.random() > 0.8) {
             api.get('/admin/stats').then(res => {
-                stats.value = res.data.data;
+                stats.value = res.data?.stats ? res.data : (res.data?.data ?? res.data);
             }).catch(err => console.error("Error refreshing stats", err));
         }
     }, 5000);
@@ -134,10 +134,9 @@ const translateStatus = (status) => {
   <AdminLayout>
         <div class="w-full">
       
-      <!-- Loading Indicator -->
-      <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-          <ProgressSpinner />
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
+      <!-- Loading Skeleton UI -->
+      <div v-if="loading" class="mt-6 px-4 md:px-8">
+          <DashboardSkeleton />
       </div>
 
       <!-- Main Dashboard Content -->

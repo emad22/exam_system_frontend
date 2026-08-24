@@ -8,7 +8,7 @@ import api from '@/services/api';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import ProgressSpinner from 'primevue/progressspinner';
+import StudentDetailSkeleton from '@/components/skeletons/StudentDetailSkeleton.vue';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -217,9 +217,8 @@ onMounted(() => {
         <div class="w-full">
             
             <!-- Loading student data -->
-            <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{{ t.queryLoading }}</p>
+            <div v-if="loading" class="mt-6 px-4 md:px-8">
+                <StudentDetailSkeleton />
             </div>
 
             <div v-else class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4">
@@ -231,7 +230,7 @@ onMounted(() => {
                     
                     <div class="relative z-10 flex items-center gap-6">
                         <Button icon="pi pi-arrow-left" severity="secondary" outlined rounded 
-                            @click="router.push('/admin/students')" 
+                            @click="router.back()" 
                             class="w-12 h-12 flex items-center justify-center border border-slate-200 hover:border-slate-300 shadow-sm bg-white shrink-0" />
                         <div>
                             <div class="flex items-center gap-2 text-xs font-extrabold text-brand-primary uppercase tracking-wider">

@@ -12,7 +12,7 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
 import Checkbox from 'primevue/checkbox';
-import ProgressSpinner from 'primevue/progressspinner';
+import FormSkeleton from '@/components/skeletons/FormSkeleton.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -112,9 +112,8 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Loading package...</p>
+            <div v-if="loading" class="mt-4 px-4 md:px-8">
+                <FormSkeleton :fieldsCount="8" />
             </div>
 
             <div v-else class="max-w-6xl mx-auto">

@@ -11,7 +11,7 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
-import ProgressSpinner from 'primevue/progressspinner';
+import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -284,9 +284,6 @@ onMounted(loadCriteria);
 
 <template>
   <AdminLayout>
-    <Toast />
-    <ConfirmDialog />
-
     <div class="w-full px-4 md:px-10 pt-8">
 
       <!-- Header Section -->
@@ -358,9 +355,8 @@ onMounted(loadCriteria);
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="flex flex-col items-center justify-center py-24 space-y-4 bg-white rounded-3xl border border-slate-100 shadow-sm">
-        <ProgressSpinner strokeWidth="4" class="w-12 h-12" />
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading rubric criteria...</p>
+      <div v-if="loading" class="mt-6 px-4 md:px-8">
+        <CardListSkeleton :rows="5" />
       </div>
 
       <!-- Categories & Criteria Tables -->

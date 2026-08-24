@@ -6,7 +6,7 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import ProgressSpinner from 'primevue/progressspinner';
+import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
 
 const certificates = ref({ data: [] });
 const isLoading = ref(false);
@@ -83,10 +83,8 @@ const downloadCertificate = (cert) => {
             </div>
 
             <!-- Loading Indicator -->
-            <div v-if="isLoading && certificates.data.length === 0"
-                class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading certificates...</p>
+            <div v-if="isLoading && certificates.data.length === 0" class="p-4">
+                <CardListSkeleton :rows="5" :showHeader="false" />
             </div>
 
             <!-- Premium DataTable Card -->

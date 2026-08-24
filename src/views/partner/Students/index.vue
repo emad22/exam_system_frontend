@@ -10,7 +10,7 @@ import DatePicker from 'primevue/datepicker';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Card from 'primevue/card';
-import ProgressSpinner from 'primevue/progressspinner';
+import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
 
 const router = useRouter();
 const students = ref([]);
@@ -167,9 +167,8 @@ const goToReportsForStudent = (student) => {
         <!-- Students Table Card -->
         <Card class="border border-slate-100 shadow-sm rounded-[2.5rem] overflow-hidden">
             <template #content>
-                <div v-if="loading" class="flex flex-col items-center justify-center py-28 space-y-4">
-                    <ProgressSpinner />
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Student Directory...</p>
+                <div v-if="loading" class="p-6">
+                    <TableSkeleton :rows="7" :columns="5" :showToolbar="false" />
                 </div>
 
                 <div v-else class="overflow-x-auto">

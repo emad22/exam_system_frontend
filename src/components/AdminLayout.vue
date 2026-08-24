@@ -19,14 +19,21 @@ const allNavigation = [
     { name: 'Dashboard', href: '/admin', icon: 'pi pi-home' },
     { name: 'Registered Students', href: '/admin/students', icon: 'pi pi-users' },
     { name: 'Reports', href: '/admin/reports', icon: 'pi pi-chart-bar' },
-    { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
     { name: 'Certificates', href: '/admin/certificates', icon: 'pi pi-folder-open' },
     { name: 'Partners', href: '/admin/partners', icon: 'pi pi-briefcase' },
-    { name: 'Exam Categories', href: '/admin/exam-categories', icon: 'pi pi-tags' },
-    { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
-    { name: 'Levels', href: '/admin/levels', icon: 'pi pi-sort-amount-up' },
-    { name: 'Exams', href: '/admin/exams', icon: 'pi pi-file-edit' },
-    { name: 'Questions', href: '/admin/questions', icon: 'pi pi-list' },
+    { name: 'Writing & Speaking', href: '/admin/grading', icon: 'pi pi-pencil' },
+    {
+        name: 'Exam Management',
+        icon: 'pi pi-book',
+        group: true,
+        children: [
+            { name: 'Exam Categories', href: '/admin/exam-categories', icon: 'pi pi-tags' },
+            { name: 'Skills', href: '/admin/skills', icon: 'pi pi-star' },
+            { name: 'Levels', href: '/admin/levels', icon: 'pi pi-sort-amount-up' },
+            { name: 'Exams', href: '/admin/exams', icon: 'pi pi-file-edit' },
+            { name: 'Questions', href: '/admin/questions', icon: 'pi pi-list' },
+        ]
+    },
 
     {
         name: 'Standards & Setup',
@@ -175,14 +182,34 @@ const filteredNavigation = computed(() => {
     if (isTeacher) {
         // Restricted list for Teachers
         const teacherAllowed = ['Dashboard', 'Questions', 'Reports', 'Writing & Speaking'];
-        baseNav = navigation.filter(item => teacherAllowed.includes(item.name));
+        baseNav = navigation.map(item => {
+            if (item.group) {
+                const allowedChildren = item.children?.filter(child => teacherAllowed.includes(child.name)) || [];
+                if (allowedChildren.length > 0) {
+                    return { ...item, children: allowedChildren };
+                }
+                return null;
+            }
+            return teacherAllowed.includes(item.name) ? item : null;
+        }).filter(Boolean);
     }
 
     // Map hrefs to /teacher if the user is a teacher
-    return baseNav.map(item => ({
-        ...item,
-        href: isTeacher ? item.href.replace('/admin', '/teacher') : item.href
-    }));
+    return baseNav.map(item => {
+        if (item.group) {
+            return {
+                ...item,
+                children: item.children?.map(child => ({
+                    ...child,
+                    href: isTeacher ? child.href.replace('/admin', '/teacher') : child.href
+                }))
+            };
+        }
+        return {
+            ...item,
+            href: isTeacher ? item.href.replace('/admin', '/teacher') : item.href
+        };
+    });
 });
 
 const isActive = (path) => {

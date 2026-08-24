@@ -1,11 +1,31 @@
 <script setup>
-import { watch } from 'vue';
+import { watch, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
 import BeautifulModal from '@/components/BeautifulModal.vue';
+import { registerToastListener } from '@/stores/notification';
 
 const route = useRoute();
+const toast = useToast();
+
+let unregister = null;
+
+onMounted(() => {
+  unregister = registerToastListener((toastItem) => {
+    toast.add({
+      severity: toastItem.severity,
+      summary: toastItem.summary,
+      detail: toastItem.detail,
+      life: toastItem.life ?? 4000,
+    });
+  });
+});
+
+onUnmounted(() => {
+  if (unregister) unregister();
+});
 
 const forceAdminEnglish = () => {
   if (typeof window === 'undefined') return;
@@ -23,7 +43,7 @@ watch(() => route.path, () => {
 
 <template>
   <router-view />
-  <Toast />
+  <Toast position="top-right" />
   <ConfirmDialog />
   <BeautifulModal />
 </template>

@@ -17,15 +17,20 @@ const selectedOptionId = computed({
 });
 
 /* ── layout detection ── */
+const stripHtml = (value) => {
+    if (!value) return '';
+    return value.replace(/<[^>]*>/g, '').trim();
+};
+
 // كل الاختيارات صور بدون نص → grid
 const isImageGrid = computed(() =>
-    props.question.options.length > 0 &&
-    props.question.options.every(o => o.image_url && !o.option_text)
+    props.question.options?.length > 0 &&
+    props.question.options.every(o => o.image_url && !stripHtml(o.option_text))
 );
 
 // أي اختيار فيه صوت → layout الصوت
 const hasSoundOptions = computed(() =>
-    props.question.options.some(o => o.sound_url)
+    props.question.options?.some(o => o.sound_url)
 );
 
 /* ── audio playback ── */
@@ -83,23 +88,22 @@ watch(
         <!-- ══════════════════════════════════════
              LAYOUT 1 — Image-only grid
         ══════════════════════════════════════ -->
-        <div v-if="isImageGrid" class="grid gap-3 py-1"
-            :class="question.options.length <= 2 ? 'grid-cols-2' : 'grid-cols-2'">
+        <div v-if="isImageGrid" class="flex flex-wrap gap-4 py-2 justify-center items-center">
 
             <button v-for="(opt, oIdx) in question.options" :key="opt.id" @click="selectedOptionId = opt.id"
                 :disabled="disabled"
-                class="relative rounded-2xl overflow-hidden border-2 transition-all duration-300 group shadow-sm"
-                style="aspect-ratio: 4/3;" :class="selectedOptionId === opt.id
+                class="relative rounded-2xl overflow-hidden border-2 transition-all duration-300 group shadow-sm w-[300px] h-[300px] max-w-full aspect-square bg-white flex items-center justify-center shrink-0"
+                :class="selectedOptionId === opt.id
                     ? 'border-brand-primary ring-4 ring-indigo-500/25 shadow-lg scale-[1.02]'
                     : 'border-slate-200 hover:border-indigo-400 hover:shadow-lg hover:scale-[1.02]'">
 
                 <!-- الصورة -->
                 <img :src="resolveUrl(opt.image_url)"
-                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    class="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
                     :alt="`option ${oIdx + 1}`" />
 
                 <!-- overlay عند hover -->
-                <div class="absolute inset-0 bg-gradient-to-t from-indigo-900/50 via-transparent to-transparent
+                <div class="absolute inset-0 bg-gradient-to-t from-indigo-900/30 via-transparent to-transparent
                             opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                 </div>
 
@@ -109,7 +113,7 @@ watch(
 
                 <!-- علامة الصح لما يتاختار -->
                 <div v-if="selectedOptionId === opt.id" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                            w-12 h-12 rounded-full bg-brand-primary/90 flex items-center justify-center shadow-xl">
+                            w-12 h-12 rounded-full bg-brand-primary/90 flex items-center justify-center shadow-xl z-10">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
@@ -117,7 +121,7 @@ watch(
 
                 <!-- رقم الاختيار (A B C D) -->
                 <div class="absolute top-2 right-2 w-7 h-7 rounded-full text-xs font-black
-                            flex items-center justify-center shadow-md transition-all duration-300" :class="selectedOptionId === opt.id
+                            flex items-center justify-center shadow-md transition-all duration-300 z-10" :class="selectedOptionId === opt.id
                                 ? 'bg-brand-primary text-white scale-110'
                                 : 'bg-white/85 text-slate-600 group-hover:bg-white'">
                     {{ String.fromCharCode(65 + oIdx) }}
@@ -166,7 +170,7 @@ watch(
 
                 <!-- نص الاختيار أو حرفه -->
                 <div class="option-text-content text-sm font-bold text-center leading-tight transition-colors duration-300 whitespace-normal break-words"
-                    :style="opt.font_size ? `font-size: ${opt.font_size}px !important;` : ''"
+                    :style="`font-size: ${opt.font_size || 25}px !important;`"
                     :class="selectedOptionId === opt.id
                         ? 'text-indigo-700'
                         : 'text-slate-500 group-hover:text-indigo-500'"
@@ -221,7 +225,7 @@ watch(
                     <!-- Option Text -->
                     <div v-if="opt.option_text"
                         class="option-text-content font-normal tracking-wide leading-snug transition-colors duration-300 grow whitespace-normal break-words text-right rtl:text-right ltr:text-left"
-                        :style="opt.font_size ? `font-size: ${opt.font_size}px !important;` : ''"
+                        :style="`font-size: ${opt.font_size || 25}px !important;`"
                         :class="[
                             selectedOptionId === opt.id ? 'text-[#1E3A8A]' : 'text-[#334155] group-hover:text-slate-800'
                         ]" v-html="opt.option_text">
@@ -238,10 +242,6 @@ watch(
 .space-y-2 {
     font-family: 'Myriad Arabic', 'Lotus Linotype', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
     font-weight: 400;
-}
-
-.option-text-content {
-    font-size: 24px;
 }
 
 :deep(.option-text-content),

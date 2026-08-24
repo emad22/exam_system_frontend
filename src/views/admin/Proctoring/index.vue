@@ -6,7 +6,7 @@ import api from '@/services/api'
 import AdminLayout from '@/components/AdminLayout.vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
-import ProgressSpinner from 'primevue/progressspinner'
+import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue'
 import Tooltip from 'primevue/tooltip'
 import Dialog from 'primevue/dialog'
 // @ts-ignore
@@ -269,10 +269,8 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
     <div class="w-full">
 
       <!-- Loading Indicator -->
-      <div v-if="loading && studentsList.length === 0"
-        class="flex flex-col items-center justify-center py-32 space-y-4">
-        <ProgressSpinner />
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
+      <div v-if="loading && studentsList.length === 0" class="mt-6 px-4 md:px-8">
+        <CardListSkeleton :rows="7" />
       </div>
 
       <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
@@ -404,12 +402,11 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
           </div>
         </div>
 
-        <!-- Loading spinner while refreshing -->
+        <!-- Loading while refreshing -->
         <div v-if="loading"
-          class="flex flex-col items-center justify-center py-24 bg-white rounded-[2rem] border border-slate-100 shadow-md gap-4 animate-in fade-in duration-500">
-          <ProgressSpinner />
-          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{{ t.loadingData }}
-          </p>
+          class="flex items-center justify-center gap-3 py-10 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse">
+          <div class="w-5 h-5 rounded-full border-2 border-brand-primary border-t-transparent animate-spin"></div>
+          <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ t.loadingData }}</span>
         </div>
 
         <!-- Empty State -->

@@ -5,7 +5,7 @@ import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import AdminLayout from '@/components/AdminLayout.vue'
 import Button from 'primevue/button'
-import ProgressSpinner from 'primevue/progressspinner'
+import StudentDetailSkeleton from '@/components/skeletons/StudentDetailSkeleton.vue'
 import Dialog from 'primevue/dialog'
 // @ts-ignore
 import { useModal } from '@/composables/useModal'
@@ -425,12 +425,8 @@ onMounted(fetchStudentSessions)
             class="w-full min-h-screen bg-slate-50/30">
 
             <!-- Loading -->
-            <div v-if="loading" class="flex flex-col items-center justify-center py-40 gap-5">
-                <div class="relative">
-                    <ProgressSpinner class="w-12 h-12" />
-                </div>
-                <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">{{ t[currentLang].loading }}
-                </p>
+            <div v-if="loading" class="mt-6 px-4 md:px-8">
+                <StudentDetailSkeleton />
             </div>
 
             <div v-else

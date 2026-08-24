@@ -6,7 +6,7 @@ import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import ProgressSpinner from 'primevue/progressspinner';
+import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton.vue';
 import Button from 'primevue/button';
 import { useRouter } from 'vue-router';
 
@@ -66,9 +66,8 @@ const getStatusSeverity = (status) => {
 
 <template>
   <PartnerLayout>
-    <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-        <ProgressSpinner />
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
+    <div v-if="loading" class="mt-6 px-4 md:px-8">
+        <DashboardSkeleton />
     </div>
 
     <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">

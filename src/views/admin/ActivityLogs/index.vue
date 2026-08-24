@@ -10,7 +10,7 @@ import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import DatePicker from 'primevue/datepicker';
 import Dialog from 'primevue/dialog';
-import ProgressSpinner from 'primevue/progressspinner';
+import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
 import { useConfirm } from "primevue/useconfirm";
 import { useModal } from '@/composables/useModal';
 
@@ -184,9 +184,8 @@ const bulkDelete = () => {
         <div class="w-full">
             
             <!-- Loading Indicator -->
-            <div v-if="loading && logs.length === 0" class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
+            <div v-if="loading && logs.length === 0" class="mt-6 px-4 md:px-8">
+                <TableSkeleton :rows="8" :columns="5" />
             </div>
             
 

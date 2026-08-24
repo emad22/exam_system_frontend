@@ -10,7 +10,7 @@ import Password from 'primevue/password';
 import Checkbox from 'primevue/checkbox';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
-import ProgressSpinner from 'primevue/progressspinner';
+import FormSkeleton from '@/components/skeletons/FormSkeleton.vue';
 import RadioButton from 'primevue/radiobutton';
 import Message from 'primevue/message';
 
@@ -118,9 +118,8 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div v-if="loading" class="flex flex-col items-center justify-center py-20">
-                <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading...</p>
+            <div v-if="loading" class="mt-4 px-4 md:px-8">
+                <FormSkeleton :fieldsCount="6" />
             </div>
 
             <div v-else class="relative">

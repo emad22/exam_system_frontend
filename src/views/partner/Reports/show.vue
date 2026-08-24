@@ -5,7 +5,7 @@ import PartnerLayout from '@/components/PartnerLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import ProgressSpinner from 'primevue/progressspinner';
+import ReportDetailSkeleton from '@/components/skeletons/ReportDetailSkeleton.vue';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -350,9 +350,8 @@ onMounted(fetchDetails);
                 </div>
             </div>
 
-            <div v-if="loading" class="flex flex-col items-center justify-center py-40">
-                <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-8">Fetching Data...</p>
+            <div v-if="loading" class="mt-4 px-4 md:px-6">
+                <ReportDetailSkeleton />
             </div>
 
             <div v-else-if="selectedAttempt" class="space-y-12">

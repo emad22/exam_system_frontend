@@ -31,4 +31,9 @@ app.use(ToastService);
 app.use(ConfirmationService);
 app.directive('tooltip', Tooltip);
 
+// Global Unhandled Vue Error Handler
+app.config.errorHandler = (err, instance, info) => {
+    console.error('Global Vue Error Handler:', err, info);
+};
+
 app.mount('#app')

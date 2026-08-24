@@ -5,7 +5,6 @@ import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import ProgressSpinner from 'primevue/progressspinner';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -13,6 +12,7 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import { useMediaUrl } from '@/composables/useMediaUrl';
 import { useModal } from '@/composables/useModal';
+import ReportDetailSkeleton from '@/components/skeletons/ReportDetailSkeleton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -969,582 +969,458 @@ onMounted(fetchDetails);
 
 <template>
     <AdminLayout>
-        <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4 md:px-12">
+        <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mt-6 px-4 md:px-6">
 
-            <!-- Header -->
-            <div
-                class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6 md:space-y-0">
-                <div class="flex items-center gap-4">
-                    <Button icon="pi pi-arrow-left" text severity="secondary" @click="router.back()"
-                        class="rounded-xl bg-slate-50" />
-                    <div>
-                        <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">
-                            Student Journey Matrix</h1>
-                        <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Detailed level
-                            movement & response timeline</p>
+            <!-- ── Header ─────────────────────────────────────────────────── -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <button @click="router.back()"
+                            class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white transition-all">
+                            <i class="pi pi-arrow-left text-sm"></i>
+                        </button>
+                        <div>
+                            <div class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Report Details</div>
+                            <h1 class="text-xl font-black text-slate-800 tracking-tight leading-none">Student Report</h1>
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-center space-x-3" v-if="selectedAttempt && currentUser?.role === 'admin'">
-                    <Button v-if="selectedAttempt.certificate" label="Download Certificate" icon="pi pi-download" severity="success" size="small"
-                        class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-sm"
-                        :loading="isDownloadingCert"
-                        @click="downloadCertificate()" />
-                    <Button v-else label="Create Certificate" icon="pi pi-award" severity="success" outlined size="small"
-                        class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
-                        :loading="isCreatingCert"
-                        v-tooltip.left="selectedAttempt.status !== 'completed' ? 'Attempt will be marked as completed automatically' : 'Issue a certificate for this student'"
-                        @click="downloadCertificate()" />
-                    <Button
-                        v-if="selectedAttempt.status !== 'completed'"
-                        label="End Attempt"
-                        icon="pi pi-stop-circle"
-                        severity="warning"
-                        outlined
-                        size="small"
-                        class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
-                        :loading="isEndingAttempt"
-                        v-tooltip.left="'Force-end this attempt. All skills must have been started.'"
-                        @click="forceCompleteAttempt()" />
-                    <Button label="Reset / Retry" severity="danger" outlined size="small"
-                        class="text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl"
-                        @click="voidAttempt(selectedAttempt)" />
+                    <div class="flex items-center gap-2" v-if="selectedAttempt && currentUser?.role === 'admin'">
+                        <Button v-if="selectedAttempt.certificate" label="Download Certificate" icon="pi pi-download"
+                            severity="success" size="small"
+                            class="!text-xs font-bold rounded-xl h-9 px-4"
+                            :loading="isDownloadingCert" @click="downloadCertificate()" />
+                        <Button v-else label="Create Certificate" icon="pi pi-award"
+                            severity="success" outlined size="small"
+                            class="!text-xs font-bold rounded-xl h-9 px-4"
+                            :loading="isCreatingCert"
+                            v-tooltip.left="selectedAttempt.status !== 'completed' ? 'Attempt will be marked as completed automatically' : 'Issue a certificate for this student'"
+                            @click="downloadCertificate()" />
+                        <Button v-if="selectedAttempt.status !== 'completed'"
+                            label="End Attempt" icon="pi pi-stop-circle"
+                            severity="warning" outlined size="small"
+                            class="!text-xs font-bold rounded-xl h-9 px-4"
+                            :loading="isEndingAttempt"
+                            v-tooltip.left="'Force-end this attempt. All skills must have been started.'"
+                            @click="forceCompleteAttempt()" />
+                        <Button label="Reset / Retry" icon="pi pi-refresh"
+                            severity="danger" outlined size="small"
+                            class="!text-xs font-bold rounded-xl h-9 px-4"
+                            @click="voidAttempt(selectedAttempt)" />
+                    </div>
                 </div>
             </div>
 
-            <div v-if="loading" class="flex flex-col items-center justify-center py-40">
-                <ProgressSpinner />
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-8">Fetching Identity
-                    Data...</p>
+            <!-- Loading -->
+            <div v-if="loading" class="mt-2">
+                <ReportDetailSkeleton />
             </div>
 
-            <div v-else-if="selectedAttempt" class="space-y-12">
-                <!-- Summary Card -->
-                <div
-                    class="bg-slate-900 rounded-[2.5rem] p-10 text-white grid grid-cols-1 md:grid-cols-3 gap-12 border border-slate-800 shadow-2xl relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-                        <i class="pi pi-chart-bar text-9xl"></i>
-                    </div>
+            <div v-else-if="selectedAttempt" class="space-y-6">
 
-                    <div class="space-y-2">
-                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-1">Candidate
-                            Profile</p>
-                        <p class="text-2xl font-black uppercase tracking-tight">
-                            {{ selectedAttempt.student?.user?.first_name || selectedAttempt.user?.first_name || 'DEMO'
-                            }}
-                            {{ selectedAttempt.student?.user?.last_name || selectedAttempt.user?.last_name || 'USER' }}
-                        </p>
-                        <p class="text-[10px] font-bold text-slate-400 tracking-widest">{{
-                            selectedAttempt.student?.student_code || 'STAFF_ACCOUNT' }}</p>
-                    </div>
+                <!-- ── Summary Card ────────────────────────────────────────── -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-5">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                    <div class="space-y-2">
-                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-1">Efficiency
-                            Index</p>
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-5xl font-black italic tracking-tighter text-brand-primary">
-                                {{ Math.round(Number(getTotalScore(selectedAttempt)) / getValidSkillsCount(selectedAttempt), 2)
-                                }}</span>
-                            <span class="text-xl font-black text-slate-500"> / {{ Number(getValidTotalLevels(selectedAttempt) *
-                                100 / getValidSkillsCount(selectedAttempt), 2) }} </span>
-
-                        </div>
-                        <div v-if="selectedAttempt.cefr_actfl_level" class="mt-1">
-                            <span class="text-sm font-black text-indigo-400 uppercase tracking-widest">{{ selectedAttempt.cefr_actfl_level }}</span>
-                        </div>
-                        <div class="flex items-baseline gap-2 mt-2">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2">Total
-                                Score:</span>
-                            <span class="text-lg font-black text-emerald-400">{{ selectedAttempt.overall_score }}</span>
-                            <span class="text-xl font-black text-slate-500">%</span>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-1">Execution
-                            Metrics</p>
-                        <p class="text-xs font-black uppercase tracking-wider">{{ selectedAttempt.finished_at ? new
-                            Date(selectedAttempt.finished_at).toLocaleString() : 'N/A' }}</p>
-                        <div class="mt-2 flex items-center gap-2">
-                            <Tag :value="selectedAttempt.status"
-                                :severity="selectedAttempt.status === 'completed' ? 'success' : 'warning'"
-                                class="text-[9px] font-black uppercase px-3" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Skills Tabs -->
-                <Tabs v-if="sortedAttemptSkills.length" :value="sortedAttemptSkills[0].skill_id.toString()">
-                    <TabList class="bg-transparent border-none mb-8 overflow-x-auto hide-scrollbar">
-                        <Tab v-for="skillResult in sortedAttemptSkills" :key="skillResult.id"
-                            :value="skillResult.skill_id.toString()" class="mr-4 group shrink-0">
-                            <div
-                                class="flex items-center space-x-3 px-6 py-3 rounded-2xl transition-all group-aria-selected:bg-brand-primary group-aria-selected:text-white group-aria-selected:shadow-lg group-aria-selected:shadow-indigo-200/50 bg-white border border-slate-100 hover:border-slate-200">
-                                <span
-                                    class="w-6 h-6 rounded-lg bg-indigo-50/50 text-indigo-500 group-aria-selected:bg-white/20 group-aria-selected:text-white flex items-center justify-center font-black text-[10px]">{{
-                                        skillResult.skill?.short_code || 'S' }}</span>
-                                <span class="text-[11px] font-black uppercase tracking-widest">{{
-                                    getSkillDisplayName(skillResult.skill?.name) }}</span>
+                        <!-- Candidate Info -->
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-black text-lg shadow-sm flex-shrink-0">
+                                {{ (selectedAttempt.student?.user?.first_name || selectedAttempt.user?.first_name || 'S')[0].toUpperCase() }}
                             </div>
-                        </Tab>
-                    </TabList>
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Candidate</div>
+                                <div class="font-black text-slate-800 text-base">
+                                    {{ selectedAttempt.student?.user?.first_name || selectedAttempt.user?.first_name || 'DEMO' }}
+                                    {{ selectedAttempt.student?.user?.last_name || selectedAttempt.user?.last_name || 'USER' }}
+                                </div>
+                                <div class="text-[11px] font-bold text-slate-400 mt-0.5">
+                                    {{ selectedAttempt.student?.student_code || 'STAFF / DEMO' }}
+                                </div>
+                                <div v-if="selectedAttempt.student?.institution_code" class="text-[10px] font-bold text-brand-primary mt-0.5">
+                                    🏛 {{ selectedAttempt.student.institution_code }}
+                                </div>
+                            </div>
+                        </div>
 
-                    <TabPanels class="bg-transparent p-0">
-                        <TabPanel v-for="skillResult in sortedAttemptSkills" :key="skillResult.id"
-                            :value="skillResult.skill_id.toString()">
+                        <!-- Score -->
+                        <div class="flex items-center gap-5 md:border-x border-slate-100 md:px-6">
+                            <div class="relative w-20 h-20 flex-shrink-0">
+                                <svg class="w-20 h-20 -rotate-90" viewBox="0 0 72 72">
+                                    <circle cx="36" cy="36" r="28" fill="none" stroke="#f1f5f9" stroke-width="6"/>
+                                    <circle cx="36" cy="36" r="28" fill="none"
+                                        :stroke="selectedAttempt.overall_score >= 70 ? '#10b981' : selectedAttempt.overall_score >= 40 ? '#f59e0b' : '#ef4444'"
+                                        stroke-width="6" stroke-linecap="round"
+                                        :stroke-dasharray="2 * Math.PI * 28"
+                                        :stroke-dashoffset="2 * Math.PI * 28 * (1 - (selectedAttempt.overall_score || 0) / 100)" />
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span class="text-base font-black text-slate-800 leading-none">
+                                        {{ Math.round(Number(getTotalScore(selectedAttempt)) / getValidSkillsCount(selectedAttempt)) }}
+                                    </span>
+                                    <span class="text-[9px] text-slate-400 font-bold">
+                                        / {{ Math.round(getValidTotalLevels(selectedAttempt) * 100 / getValidSkillsCount(selectedAttempt)) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Overall Score</div>
+                                <div class="text-3xl font-black text-slate-800 leading-none">
+                                    {{ selectedAttempt.overall_score }}<span class="text-lg text-slate-400">%</span>
+                                </div>
+                                <div v-if="selectedAttempt.cefr_actfl_level"
+                                    class="mt-2 inline-block bg-indigo-50 text-indigo-600 border border-indigo-100 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide">
+                                    {{ selectedAttempt.cefr_actfl_level }}
+                                </div>
+                                <div class="mt-1.5">
+                                    <Tag :value="selectedAttempt.status === 'completed' ? 'COMPLETED' : selectedAttempt.status.toUpperCase()"
+                                        :severity="selectedAttempt.status === 'completed' ? 'success' : 'warning'"
+                                        class="text-[9px] font-black uppercase px-2" />
+                                </div>
+                            </div>
+                        </div>
 
-                            <div class="space-y-10" :id="'skill-report-' + skillResult.skill_id">
-                                <!-- Skill Summary Card -->
-                                <div
-                                    class="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm space-y-8 relative overflow-hidden group">
-                                    <div
-                                        class="absolute top-0 right-0 p-8 opacity-5 text-8xl pointer-events-none group-hover:scale-110 transition-transform duration-700">
-                                        <i class="pi pi-verified"></i>
+                        <!-- Exam & Dates -->
+                        <div class="space-y-2">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exam</div>
+                            <div class="font-bold text-slate-700 text-sm">{{ selectedAttempt.exam?.title || '—' }}</div>
+                            <div class="text-[9px] font-black text-brand-primary uppercase tracking-widest">Placement Protocol</div>
+                            <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                                <div>
+                                    <div class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Started</div>
+                                    <div class="text-xs font-bold text-slate-700">
+                                        {{ selectedAttempt.started_at ? new Date(selectedAttempt.started_at).toLocaleDateString('en-GB') : '—' }}
                                     </div>
-                                    <div class="flex items-center justify-between relative z-10">
-                                        <div class="flex items-center space-x-4">
-                                            <div
-                                                class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center font-black text-lg border border-indigo-100">
-                                                {{ skillResult.skill?.short_code || 'S' }}</div>
-                                            <div>
-                                                <h4
-                                                    class="text-base font-black text-slate-800 uppercase tracking-wider">
-                                                    {{ getSkillDisplayName(skillResult.skill?.name) }}</h4>
-                                                <p
-                                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                    Skill Domain Assessment</p>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center space-x-6">
-                                            <div
-                                                class="flex items-center gap-8 mr-6 border-r border-slate-100 pr-8 py-2">
-                                                <div class="text-right">
-                                                    <p
-                                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                                        Started At</p>
-                                                    <p class="text-[11px] font-black text-slate-700">{{
-                                                        formatTime(skillResult.started_at) }}</p>
-                                                </div>
-                                                <div class="text-right">
-                                                    <p
-                                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                                        Finished At</p>
-                                                    <p class="text-[11px] font-black text-slate-700">{{
-                                                        formatTime(skillResult.finished_at) }}</p>
-                                                </div>
-                                                <div class="text-right">
-                                                    <p
-                                                        class="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">
-                                                        Duration</p>
-                                                    <p class="text-[11px] font-black text-indigo-600">{{
-                                                        calculateDuration(skillResult.started_at,
-                                                            skillResult.finished_at) }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="text-right border-l border-slate-100 pl-6 ml-2">
-                                                <div class="text-3xl font-black text-emerald-600 italic">
-                                                    {{ getCalculatedSkillScore(skillResult, selectedAttempt) !== null ?
-                                                        getCalculatedSkillScore(skillResult, selectedAttempt) : 0 }}
-                                                    <span class="text-lg text-emerald-400">{{ '/' +
-                                                        getMaxSkillScore(skillResult, selectedAttempt) }}</span>
-                                                </div>
-                                                <p
-                                                    class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                    Skill Score</p>
-                                            </div>
-
-
-
-                                            <div class="text-right border-l border-slate-100 pl-6 ml-2">
-                                                <div class="text-3xl font-black text-slate-800 italic">{{
-                                                    skillResult.max_level_reached }}</div>
-                                                <p
-                                                    class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                    Peak Tier Reached</p>
-                                            </div>
-
-                                            <div v-if="skillResult.cheat_warnings > 0"
-                                                class="text-right border-l border-slate-100 pl-6 ml-2">
-                                                <div class="text-3xl font-black text-rose-600 italic">{{
-                                                    skillResult.cheat_warnings }}</div>
-                                                <p
-                                                    class="text-[9px] font-black text-rose-400 uppercase tracking-widest">
-                                                    Skill Warnings</p>
-                                            </div>
-                                            <div class="flex items-center gap-2 ml-6 pl-6 border-l border-slate-100">
-                                                <Button v-if="currentUser?.role === 'admin'" label=""
-                                                    icon="pi pi-refresh" severity="danger" outlined size="small"
-                                                    class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl"
-                                                    @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
-
-                                                <!-- ✅ زرار Reset Last Level الجديد -->
-                                                <Button v-if="currentUser?.role === 'admin'" label=""
-                                                    icon="pi pi-step-backward" severity="warning" outlined size="small"
-                                                    class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl"
-                                                    v-tooltip.top="'Reset Last Level'"
-                                                    @click="resetLastLevel(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
-
-                                                <Button label="" icon="pi pi-file-pdf" severity="help" size="small"
-                                                    class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-indigo-600 border-none"
-                                                    @click="exportSkillToPdf(skillResult.skill_id)" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Movement Timeline -->
-                                    <div
-                                        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-slate-50 relative z-10">
-                                        <div v-for="log in (selectedAttempt.attempt_levels || []).filter(l => l.skill_id === skillResult.skill_id)"
-                                            :key="log.id"
-                                            class="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex justify-between items-center transition-all hover:bg-white hover:shadow-md">
-                                            <div>
-                                                <p
-                                                    class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">
-                                                    Level {{ log.level_number }}</p>
-                                                <div class="flex items-baseline gap-1">
-                                                    <span class="text-xl font-black italic"
-                                                        :class="log.status === 'passed' ? 'text-emerald-600' : 'text-rose-600'">{{
-                                                            log.score }}</span>
-                                                    <span class="text-[10px] font-black text-slate-400">%</span>
-                                                </div>
-                                            </div>
-                                            <div :class="log.status === 'passed' ? 'text-emerald-500 bg-emerald-100/50 border-emerald-100' : 'text-rose-500 bg-rose-100/50 border-rose-100'"
-                                                class="w-10 h-10 rounded-xl flex items-center justify-center text-sm border shadow-sm">
-                                                <i :class="log.status === 'passed' ? 'pi pi-check' : 'pi pi-times'"></i>
-                                            </div>
-                                        </div>
+                                    <div class="text-[10px] text-slate-500">
+                                        {{ selectedAttempt.started_at ? new Date(selectedAttempt.started_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : '' }}
                                     </div>
                                 </div>
+                                <div>
+                                    <div class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Completed</div>
+                                    <div class="text-xs font-bold text-slate-700">
+                                        {{ selectedAttempt.finished_at ? new Date(selectedAttempt.finished_at).toLocaleDateString('en-GB') : 'Pending' }}
+                                    </div>
+                                    <div class="text-[10px] text-emerald-500 font-bold" v-if="selectedAttempt.status === 'completed'">
+                                        Validated outcome
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                <!-- Detailed Response Timeline for this Skill -->
-                                <div class="space-y-6 pt-6">
-                                    <div class="flex items-center gap-6">
-                                        <h4
-                                            class="text-sm font-black text-slate-800 uppercase tracking-[0.2em] flex items-center">
-                                            <i class="pi pi-list mr-3 text-indigo-500"></i> Detailed Response Timeline
-                                        </h4>
-                                        <div class="flex-1 h-px bg-slate-100"></div>
-                                        <span
-                                            class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
-                                            {{(selectedAttempt.answers || []).filter(a => a.question?.skill_id ===
-                                                skillResult.skill_id).length}} Questions
-                                        </span>
+                <!-- ── Skills Tabs ─────────────────────────────────────────── -->
+                <Tabs v-if="sortedAttemptSkills.length" :value="sortedAttemptSkills[0].skill_id.toString()">
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <!-- Tab Headers -->
+                        <TabList class="bg-slate-50/60 border-b border-slate-100 px-4 pt-4 overflow-x-auto hide-scrollbar">
+                            <Tab v-for="skillResult in sortedAttemptSkills" :key="skillResult.id"
+                                :value="skillResult.skill_id.toString()" class="mr-2 group shrink-0">
+                                <div class="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all
+                                    group-aria-selected:bg-white group-aria-selected:text-brand-primary group-aria-selected:shadow-sm group-aria-selected:border group-aria-selected:border-slate-200
+                                    text-slate-500 hover:text-slate-700">
+                                    <span class="w-5 h-5 rounded-md bg-slate-100 group-aria-selected:bg-rose-50 group-aria-selected:text-brand-primary flex items-center justify-center font-black text-[9px]">
+                                        {{ skillResult.skill?.short_code || 'S' }}
+                                    </span>
+                                    <span class="text-[11px] font-black uppercase tracking-widest">
+                                        {{ getSkillDisplayName(skillResult.skill?.name) }}
+                                    </span>
+                                    <span v-if="getCalculatedSkillScore(skillResult, selectedAttempt) !== null"
+                                        class="text-[10px] font-bold ml-1"
+                                        :class="(getCalculatedSkillScore(skillResult, selectedAttempt) / getMaxSkillScore(skillResult, selectedAttempt)) >= 0.7 ? 'text-emerald-500' : (getCalculatedSkillScore(skillResult, selectedAttempt) / getMaxSkillScore(skillResult, selectedAttempt)) >= 0.4 ? 'text-amber-500' : 'text-rose-500'">
+                                        {{ getCalculatedSkillScore(skillResult, selectedAttempt) }}/{{ getMaxSkillScore(skillResult, selectedAttempt) }}
+                                    </span>
+                                </div>
+                            </Tab>
+                        </TabList>
+
+                        <!-- Tab Panels -->
+                        <TabPanels class="bg-transparent p-0">
+                            <TabPanel v-for="skillResult in sortedAttemptSkills" :key="skillResult.id"
+                                :value="skillResult.skill_id.toString()">
+                                <div class="p-5 space-y-5" :id="'skill-report-' + skillResult.skill_id">
+
+                                    <!-- ── Skill Header Card ───────────────────── -->
+                                    <div class="bg-slate-50 rounded-2xl border border-slate-100 p-5">
+                                        <div class="flex flex-wrap items-center justify-between gap-4">
+                                            <!-- Left: skill name + timing -->
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-indigo-500 flex items-center justify-center font-black text-base shadow-sm">
+                                                    {{ skillResult.skill?.short_code || 'S' }}
+                                                </div>
+                                                <div>
+                                                    <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide">
+                                                        {{ getSkillDisplayName(skillResult.skill?.name) }}
+                                                    </h4>
+                                                    <div class="flex items-center gap-3 mt-1 flex-wrap">
+                                                        <span class="text-[10px] text-slate-400 font-medium">
+                                                            <i class="pi pi-clock mr-1 text-[9px]"></i>
+                                                            {{ formatTime(skillResult.started_at) }} → {{ formatTime(skillResult.finished_at) }}
+                                                        </span>
+                                                        <span class="text-[10px] font-bold text-indigo-500">
+                                                            <i class="pi pi-stopwatch mr-1 text-[9px]"></i>
+                                                            {{ calculateDuration(skillResult.started_at, skillResult.finished_at) }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Right: metrics + action buttons -->
+                                            <div class="flex items-center gap-3 flex-wrap">
+                                                <!-- Score -->
+                                                <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-center min-w-[80px]">
+                                                    <div class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Score</div>
+                                                    <div class="text-xl font-black text-emerald-600 leading-tight">
+                                                        {{ getCalculatedSkillScore(skillResult, selectedAttempt) !== null ? getCalculatedSkillScore(skillResult, selectedAttempt) : 0 }}
+                                                        <span class="text-sm text-slate-400 font-bold">/{{ getMaxSkillScore(skillResult, selectedAttempt) }}</span>
+                                                    </div>
+                                                </div>
+                                                <!-- Peak Level -->
+                                                <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-center min-w-[70px]">
+                                                    <div class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Peak Level</div>
+                                                    <div class="text-xl font-black text-slate-800 leading-tight">{{ skillResult.max_level_reached || '—' }}</div>
+                                                </div>
+                                                <!-- Warnings -->
+                                                <div v-if="skillResult.cheat_warnings > 0"
+                                                    class="bg-rose-50 border border-rose-100 rounded-xl px-4 py-2.5 text-center min-w-[70px]">
+                                                    <div class="text-[9px] font-black text-rose-400 uppercase tracking-wider">Warnings</div>
+                                                    <div class="text-xl font-black text-rose-600 leading-tight">{{ skillResult.cheat_warnings }}</div>
+                                                </div>
+                                                <!-- Action buttons -->
+                                                <div class="flex items-center gap-2 pl-3 border-l border-slate-200">
+                                                    <Button v-if="currentUser?.role === 'admin'" icon="pi pi-refresh"
+                                                        severity="danger" outlined size="small"
+                                                        class="!w-9 !h-9 !p-0 rounded-xl"
+                                                        v-tooltip.top="'Reset Skill'"
+                                                        @click="resetSkill(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
+                                                    <Button v-if="currentUser?.role === 'admin'" icon="pi pi-step-backward"
+                                                        severity="warning" outlined size="small"
+                                                        class="!w-9 !h-9 !p-0 rounded-xl"
+                                                        v-tooltip.top="'Reset Last Level'"
+                                                        @click="resetLastLevel(skillResult.skill_id, getSkillDisplayName(skillResult.skill?.name))" />
+                                                    <Button icon="pi pi-file-pdf" size="small"
+                                                        class="!w-9 !h-9 !p-0 rounded-xl bg-indigo-600 border-none text-white"
+                                                        v-tooltip.top="'Export PDF'"
+                                                        @click="exportSkillToPdf(skillResult.skill_id)" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Movement Timeline -->
+                                        <div v-if="(selectedAttempt.attempt_levels || []).filter(l => l.skill_id === skillResult.skill_id).length"
+                                            class="mt-4 pt-4 border-t border-slate-200">
+                                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Level Progression</div>
+                                            <div class="flex flex-wrap gap-2">
+                                                <div v-for="log in (selectedAttempt.attempt_levels || []).filter(l => l.skill_id === skillResult.skill_id)"
+                                                    :key="log.id"
+                                                    class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-black transition-all"
+                                                    :class="log.status === 'passed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'">
+                                                    <span class="text-[10px] font-bold text-slate-500">Lvl {{ log.level_number }}</span>
+                                                    <span class="font-black">{{ log.score }}%</span>
+                                                    <i :class="log.status === 'passed' ? 'pi pi-check text-emerald-500' : 'pi pi-times text-rose-500'" class="text-xs"></i>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div class="grid grid-cols-1 gap-6">
-                                        <div v-for="(answer, idx) in (selectedAttempt.answers || []).filter(a => a.question?.skill_id === skillResult.skill_id)"
-                                            :key="answer.id"
-                                            class="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm hover:shadow-xl transition-all duration-500 group">
-                                            <div class="flex flex-col md:flex-row items-start gap-8">
-                                                <div class="w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center font-black text-lg transition-transform group-hover:scale-110"
-                                                    :class="answer.is_correct ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-lg shadow-emerald-50' : 'bg-rose-50 text-rose-600 border border-rose-100 shadow-lg shadow-rose-50'">
-                                                    {{ idx + 1 }}
-                                                </div>
-                                                <div class="grow space-y-6 w-full">
-                                                    <div
-                                                        class="flex flex-col md:flex-row justify-between items-start gap-4">
-                                                        <div class="space-y-3">
-                                                            <div class="flex items-center gap-3 flex-wrap">
-                                                                <Tag :value="answer.question?.type" severity="secondary"
-                                                                    class="text-[9px] font-black uppercase px-3 py-1 rounded-lg" />
-                                                                <div v-if="answer.question?.passage"
-                                                                    class="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">
-                                                                    <i
-                                                                        class="pi pi-file text-[10px] text-indigo-500"></i>
-                                                                    <span
-                                                                        class="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Context:
-                                                                        {{ answer.question.passage.title }}</span>
-                                                                </div>
-                                                            </div>
-                                                            <div class="text-base font-bold text-slate-700 leading-relaxed max-w-3xl"
-                                                                v-html="answer.question?.content"></div>
-                                                        </div>
-                                                        <div
-                                                            class="text-right flex-shrink-0 bg-slate-50 p-4 rounded-2xl border border-slate-100 min-w-[140px]">
-                                                            <div class="text-3xl font-black italic tracking-tighter"
-                                                                :class="answer.is_correct ? 'text-emerald-600' : 'text-rose-600'">
-                                                                +{{ answer.points_awarded }}
-                                                            </div>
-                                                            <div
-                                                                class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                                                                Efficiency Points</div>
+                                    <!-- ── Response Timeline ──────────────────────── -->
+                                    <div class="space-y-4">
+                                        <!-- Section header -->
+                                        <div class="flex items-center gap-3">
+                                            <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                                <i class="pi pi-list text-indigo-400"></i>
+                                                Detailed Response Timeline
+                                            </div>
+                                            <div class="flex-1 h-px bg-slate-100"></div>
+                                            <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                                                {{ (selectedAttempt.answers || []).filter(a => a.question?.skill_id === skillResult.skill_id).length }} Questions
+                                            </span>
+                                        </div>
+
+                                        <!-- Question cards -->
+                                        <div class="space-y-3">
+                                            <div v-for="(answer, idx) in (selectedAttempt.answers || []).filter(a => a.question?.skill_id === skillResult.skill_id)"
+                                                :key="answer.id"
+                                                class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+
+                                                <!-- Question header bar -->
+                                                <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-50"
+                                                    :class="answer.is_correct ? 'bg-emerald-50/50' : 'bg-rose-50/30'">
+                                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0"
+                                                        :class="answer.is_correct ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'">
+                                                        {{ idx + 1 }}
+                                                    </div>
+                                                    <div class="flex items-center gap-2 flex-wrap flex-1">
+                                                        <Tag :value="answer.question?.type" severity="secondary"
+                                                            class="text-[9px] font-black uppercase px-2 py-0.5 rounded-lg" />
+                                                        <div v-if="answer.question?.passage"
+                                                            class="flex items-center gap-1.5 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                                                            <i class="pi pi-file text-[9px] text-indigo-500"></i>
+                                                            <span class="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                                                                {{ answer.question.passage.title }}
+                                                            </span>
                                                         </div>
                                                     </div>
+                                                    <!-- Points badge -->
+                                                    <div class="text-right flex-shrink-0">
+                                                        <span class="text-sm font-black"
+                                                            :class="answer.is_correct ? 'text-emerald-600' : 'text-rose-500'">
+                                                            +{{ answer.points_awarded }}
+                                                        </span>
+                                                        <span class="text-[9px] text-slate-400 ml-1">pts</span>
+                                                    </div>
+                                                </div>
 
-                                                    <!-- Comparison -->
-                                                    <div class="grid grid-cols-1 gap-6 pt-6 border-t border-slate-50">
-                                                        <!-- Multi-part Answer Layout (Drag-Drop, etc) -->
-                                                        <!-- Matching Answer Layout -->
-                                                        <div v-if="answer.question?.type === 'matching'"
-                                                            class="space-y-4">
-                                                            <p
-                                                                class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                                                                Matching Pairs Evaluation</p>
-                                                            <div
-                                                                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                                <div v-for="pair in getMatchingPairs(answer)"
-                                                                    :key="pair.id"
-                                                                    class="p-4 rounded-2xl border flex flex-col gap-2 transition-all"
+                                                <!-- Question body -->
+                                                <div class="p-5 space-y-4">
+                                                    <!-- Question text -->
+                                                    <div class="text-sm font-medium text-slate-700 leading-relaxed"
+                                                        v-html="answer.question?.content"></div>
+
+                                                    <!-- Answer Comparison -->
+                                                    <div class="pt-3 border-t border-slate-50">
+
+                                                        <!-- Matching -->
+                                                        <div v-if="answer.question?.type === 'matching'" class="space-y-3">
+                                                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Matching Pairs</div>
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                                <div v-for="pair in getMatchingPairs(answer)" :key="pair.id"
+                                                                    class="p-3 rounded-xl border flex flex-col gap-1.5"
                                                                     :class="pair.isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'">
-                                                                    <div class="flex justify-between items-start">
-                                                                        <span
-                                                                            class="text-[8px] font-black uppercase tracking-wider"
-                                                                            :class="pair.isCorrect ? 'text-emerald-400' : 'text-rose-400'">
-                                                                            {{ pair.source }}
-                                                                        </span>
-                                                                        <i
-                                                                            :class="pair.isCorrect ? 'pi pi-check-circle text-emerald-500' : 'pi pi-times-circle text-rose-500'"></i>
+                                                                    <div class="flex justify-between items-center">
+                                                                        <span class="text-[8px] font-black uppercase"
+                                                                            :class="pair.isCorrect ? 'text-emerald-500' : 'text-rose-500'">{{ pair.source }}</span>
+                                                                        <i :class="pair.isCorrect ? 'pi pi-check-circle text-emerald-500' : 'pi pi-times-circle text-rose-500'" class="text-xs"></i>
                                                                     </div>
-                                                                    <div class="space-y-1">
-                                                                        <p
-                                                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                                            Student Matched:</p>
-                                                                        <p class="text-xs font-black"
-                                                                            :class="pair.isCorrect ? 'text-emerald-700' : 'text-rose-700'">
-                                                                            {{ pair.studentTarget || '—' }}
-                                                                        </p>
+                                                                    <div class="text-xs font-bold" :class="pair.isCorrect ? 'text-emerald-700' : 'text-rose-700'">
+                                                                        {{ pair.studentTarget || '—' }}
                                                                     </div>
-                                                                    <div v-if="!pair.isCorrect"
-                                                                        class="pt-1 border-t border-rose-100 mt-1">
-                                                                        <p
-                                                                            class="text-[10px] font-bold text-emerald-400 uppercase tracking-tighter">
-                                                                            Correct Target:</p>
-                                                                        <p class="text-xs font-black text-emerald-700">
-                                                                            {{ pair.target }}</p>
+                                                                    <div v-if="!pair.isCorrect" class="text-xs font-bold text-emerald-700 pt-1 border-t border-rose-100">
+                                                                        ✓ {{ pair.target }}
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <!-- Ordering Answer Layout -->
-                                                        <div v-else-if="answer.question?.type === 'ordering'"
-                                                            class="space-y-4">
-                                                            <p
-                                                                class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                                                                Sentence Construction Evaluation</p>
-                                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                                <div
-                                                                    class="p-6 rounded-3xl bg-slate-50 border border-slate-100 relative overflow-hidden">
-                                                                    <div
-                                                                        class="absolute top-0 right-0 p-4 opacity-5 text-4xl">
-                                                                        <i class="pi pi-user"></i>
-                                                                    </div>
-                                                                    <p
-                                                                        class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3">
-                                                                        Student Answer</p>
-                                                                    <div class="text-sm font-black flex items-center gap-2"
-                                                                        :class="answer.is_correct ? 'text-emerald-700' : 'text-rose-700'">
-                                                                        <span dir="auto">{{
-                                                                            getStudentParts(answer).join(' ') || '—'
-                                                                        }}</span>
-                                                                        <i v-if="answer.is_correct"
-                                                                            class="pi pi-check-circle text-emerald-500"></i>
-                                                                        <i v-else
-                                                                            class="pi pi-times-circle text-rose-500"></i>
+                                                        <!-- Ordering -->
+                                                        <div v-else-if="answer.question?.type === 'ordering'" class="space-y-2">
+                                                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Ordering</div>
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                <div class="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                                    <div class="text-[9px] font-black text-slate-400 uppercase mb-2">Student</div>
+                                                                    <div class="text-sm font-bold" :class="answer.is_correct ? 'text-emerald-700' : 'text-rose-700'" dir="auto">
+                                                                        {{ getStudentParts(answer).join(' ') || '—' }}
+                                                                        <i :class="answer.is_correct ? 'pi pi-check-circle text-emerald-500' : 'pi pi-times-circle text-rose-500'" class="ml-2 text-sm"></i>
                                                                     </div>
                                                                 </div>
-                                                                <div v-if="!answer.is_correct"
-                                                                    class="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 relative overflow-hidden">
-                                                                    <div
-                                                                        class="absolute top-0 right-0 p-4 opacity-10 text-4xl text-emerald-500">
-                                                                        <i class="pi pi-key"></i>
-                                                                    </div>
-                                                                    <p
-                                                                        class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-3">
-                                                                        Correct Answer</p>
-                                                                    <div class="text-sm font-black text-emerald-800"
-                                                                        dir="auto">
-                                                                        {{ getCorrectOptions(answer.question).join(' ')
-                                                                        }}
+                                                                <div v-if="!answer.is_correct" class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                                                                    <div class="text-[9px] font-black text-emerald-400 uppercase mb-2">Correct</div>
+                                                                    <div class="text-sm font-bold text-emerald-800" dir="auto">
+                                                                        {{ getCorrectOptions(answer.question).join(' ') }}
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <!-- Multi-part Answer Layout (Drag-Drop, Fill-Blank, etc) -->
-                                                        <div v-else-if="['drag_drop', 'fill_blank', 'word_selection', 'click_word', 'highlight'].includes(answer.question?.type)"
-                                                            class="space-y-4">
-                                                            <p
-                                                                class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                                                                Detailed Evaluation</p>
-                                                            <div
-                                                                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                                <div v-for="(correctVal, pIdx) in getCorrectOptions(answer.question)"
-                                                                    :key="pIdx"
-                                                                    class="p-4 rounded-2xl border flex flex-col gap-2 transition-all"
-                                                                    :class="isPartCorrect(answer, correctVal, pIdx) ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'">
-                                                                    <div class="flex justify-between items-start">
-                                                                        <span
-                                                                            class="text-[8px] font-black uppercase tracking-wider"
-                                                                            :class="isPartCorrect(answer, correctVal, pIdx) ? 'text-emerald-400' : 'text-rose-400'">
-                                                                            Part {{ pIdx + 1 }}
-                                                                        </span>
-                                                                        <i
-                                                                            :class="isPartCorrect(answer, correctVal, pIdx) ? 'pi pi-check-circle text-emerald-500' : 'pi pi-times-circle text-rose-500'"></i>
-                                                                    </div>
-                                                                    <div class="space-y-1">
-                                                                        <p
-                                                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                                            Student:</p>
-                                                                        <p class="text-xs font-black"
-                                                                            :class="isPartCorrect(answer, correctVal, pIdx) ? 'text-emerald-700' : 'text-rose-700'">
-                                                                            {{ ['word_selection', 'click_word',
-                                                                                'highlight'].includes(answer.question?.type)
-                                                                                ? (isPartCorrect(answer, correctVal, pIdx) ?
-                                                                                    correctVal : (getStudentParts(answer)[0] ||
-                                                                                        '—'))
-                                                                                : (getStudentParts(answer)[pIdx] || '—') }}
-                                                                        </p>
-                                                                    </div>
-                                                                    <div v-if="!isPartCorrect(answer, correctVal, pIdx)"
-                                                                        class="pt-1 border-t border-rose-100 mt-1">
-                                                                        <p
-                                                                            class="text-[10px] font-bold text-emerald-400 uppercase tracking-tighter">
-                                                                            Correct:</p>
-                                                                        <p class="text-xs font-black text-emerald-700">
-                                                                            {{ correctVal }}</p>
-                                                                    </div>
+                                                        <!-- Multi-part (fill_blank, word_selection, etc) -->
+                                                        <div v-else-if="['drag_drop','fill_blank','word_selection','click_word','highlight'].includes(answer.question?.type)"
+                                                            class="space-y-2">
+                                                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Parts Evaluation</div>
+                                                            <div class="flex flex-wrap gap-2">
+                                                                <div v-for="(correctVal, pIdx) in getCorrectOptions(answer.question)" :key="pIdx"
+                                                                    class="px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-2"
+                                                                    :class="isPartCorrect(answer, correctVal, pIdx) ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'">
+                                                                    <span class="text-[8px] text-slate-400 font-black">P{{ pIdx + 1 }}</span>
+                                                                    <span>{{ ['word_selection','click_word','highlight'].includes(answer.question?.type)
+                                                                        ? (isPartCorrect(answer, correctVal, pIdx) ? correctVal : (getStudentParts(answer)[0] || '—'))
+                                                                        : (getStudentParts(answer)[pIdx] || '—') }}</span>
+                                                                    <i :class="isPartCorrect(answer, correctVal, pIdx) ? 'pi pi-check text-emerald-500' : 'pi pi-times text-rose-500'" class="text-[9px]"></i>
+                                                                    <span v-if="!isPartCorrect(answer, correctVal, pIdx)" class="text-emerald-600 border-l border-rose-200 pl-2">{{ correctVal }}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <!-- Simple Answer Layout (MCQ, Short Answer, Writing, Speaking) -->
-                                                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                            <div
-                                                                class="p-6 rounded-3xl bg-slate-50 border border-slate-100 relative overflow-hidden">
-                                                                <div
-                                                                    class="absolute top-0 right-0 p-4 opacity-5 text-4xl">
-                                                                    <i class="pi pi-user"></i>
-                                                                </div>
-                                                                <p
-                                                                    class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3">
-                                                                    Student Input</p>
-                                                                <div class="text-sm font-black"
-                                                                    :class="answer.is_correct ? 'text-emerald-700' : (['writing', 'speaking', 'speaking_live'].includes(answer.question?.type) && !answer.is_manual_graded ? 'text-slate-700' : 'text-rose-700')">
-                                                                    
-                                                                    <!-- Text Answer if available -->
-                                                                    <div v-if="answer.text_answer" class="whitespace-pre-wrap font-medium text-slate-800 leading-relaxed mb-3" dir="auto">
+                                                        <!-- Simple (MCQ, writing, speaking) -->
+                                                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <!-- Student answer -->
+                                                            <div class="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                                <div class="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Student Input</div>
+                                                                <div class="text-sm font-medium"
+                                                                    :class="answer.is_correct ? 'text-emerald-700' : (['writing','speaking','speaking_live'].includes(answer.question?.type) && !answer.is_manual_graded ? 'text-slate-700' : 'text-rose-700')">
+
+                                                                    <div v-if="answer.text_answer" class="whitespace-pre-wrap leading-relaxed" dir="auto">
                                                                         {{ answer.text_answer }}
                                                                     </div>
-
-                                                                    <!-- Option if MCQ -->
                                                                     <template v-else-if="answer.option">
-                                                                        <img v-if="answer.option.image_url"
-                                                                            :src="answer.option.image_url"
-                                                                            alt="student answer"
-                                                                            class="max-h-24 rounded-lg border border-slate-200 object-contain" />
-                                                                        <audio v-else-if="answer.option.sound_url"
-                                                                            :src="answer.option.sound_url" controls
-                                                                            class="h-8"></audio>
+                                                                        <img v-if="answer.option.image_url" :src="answer.option.image_url" alt="student answer" class="max-h-24 rounded-lg border border-slate-200 object-contain" />
+                                                                        <audio v-else-if="answer.option.sound_url" :src="answer.option.sound_url" controls class="h-8"></audio>
                                                                         <span v-else>{{ answer.option.option_text || '—' }}</span>
                                                                     </template>
 
-                                                                    <!-- Media Answer Files (Images, Audio, PDF, Documents) -->
-                                                                    <div v-if="getMediaFiles(answer.media_answer).length > 0" class="space-y-4 my-3">
+                                                                    <!-- Media files -->
+                                                                    <div v-if="getMediaFiles(answer.media_answer).length > 0" class="space-y-3 mt-2">
                                                                         <div v-for="(file, fIdx) in getMediaFiles(answer.media_answer)" :key="fIdx">
-                                                                            <!-- Image File (Handwritten essay, student photo/scan) -->
                                                                             <div v-if="isImageFile(file)" class="space-y-2">
-                                                                                <a :href="resolveUrl(file)" target="_blank" class="inline-block group/img">
-                                                                                    <img :src="resolveUrl(file)" 
-                                                                                        alt="Student Uploaded Image" 
-                                                                                        class="rounded-2xl border border-slate-200 shadow-sm max-w-full max-h-80 object-contain cursor-pointer hover:opacity-90 hover:scale-[1.01] transition-all bg-white p-1" />
+                                                                                <a :href="resolveUrl(file)" target="_blank">
+                                                                                    <img :src="resolveUrl(file)" alt="Student Upload" class="rounded-xl border border-slate-200 max-w-full max-h-64 object-contain cursor-pointer hover:opacity-90 transition-all" />
                                                                                 </a>
-                                                                                <div class="flex items-center gap-2">
-                                                                                    <a :href="resolveUrl(file)" target="_blank" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 bg-indigo-50/80 px-3 py-1.5 rounded-lg border border-indigo-100/60 w-fit">
-                                                                                        <i class="pi pi-external-link text-[10px]"></i>
-                                                                                        Open Image in Full Size
-                                                                                    </a>
-                                                                                </div>
+                                                                                <a :href="resolveUrl(file)" target="_blank" class="text-xs font-bold text-indigo-600 flex items-center gap-1">
+                                                                                    <i class="pi pi-external-link text-[10px]"></i> Open Full Size
+                                                                                </a>
                                                                             </div>
-                                                                            
-                                                                            <!-- Audio File -->
-                                                                            <div v-else-if="isAudioFile(file)" class="space-y-2">
-                                                                                <audio :src="resolveUrl(file)" controls class="w-full h-10 rounded-xl shadow-sm border border-slate-200"></audio>
-                                                                                <p class="text-[10px] text-slate-500 font-semibold uppercase">{{ getFileTypeLabel(file) }} recording</p>
+                                                                            <div v-else-if="isAudioFile(file)">
+                                                                                <audio :src="resolveUrl(file)" controls class="w-full h-9 rounded-xl border border-slate-200"></audio>
                                                                             </div>
-                                                                            
-                                                                            <!-- Document / PDF File -->
-                                                                            <div v-else-if="isDocumentFile(file)" class="space-y-3">
-                                                                                <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
-                                                                                    <div class="flex items-center gap-3 min-w-0">
-                                                                                        <div class="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-lg">
-                                                                                            <i :class="['pi', getFileIcon(file), 'text-lg']"></i>
+                                                                            <div v-else-if="isDocumentFile(file)" class="space-y-2">
+                                                                                <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl">
+                                                                                    <div class="flex items-center gap-2">
+                                                                                        <div class="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-lg">
+                                                                                            <i :class="['pi', getFileIcon(file)]"></i>
                                                                                         </div>
-                                                                                        <div class="min-w-0">
-                                                                                            <p class="text-xs font-bold text-slate-800 truncate">{{ file.split('/').pop() }}</p>
-                                                                                            <p class="text-[10px] text-slate-400 font-semibold">{{ getFileTypeLabel(file) }}</p>
-                                                                                        </div>
+                                                                                        <span class="text-xs font-bold text-slate-700 truncate max-w-[150px]">{{ file.split('/').pop() }}</span>
                                                                                     </div>
-                                                                                    <a :href="resolveUrl(file)" 
-                                                                                        target="_blank"
-                                                                                        class="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                                                                                        <i class="pi pi-external-link"></i>
-                                                                                        Open File
+                                                                                    <a :href="resolveUrl(file)" target="_blank" class="text-xs font-bold text-brand-primary flex items-center gap-1">
+                                                                                        <i class="pi pi-external-link text-[10px]"></i> Open
                                                                                     </a>
                                                                                 </div>
-
-                                                                                <div v-if="isPdfFile(file)" class="rounded-xl border border-slate-200 overflow-hidden shadow-inner bg-slate-900">
-                                                                                    <iframe
-                                                                                        :src="resolveUrl(file)"
-                                                                                        class="w-full h-[400px] border-none"
-                                                                                        title="PDF Preview"
-                                                                                    ></iframe>
+                                                                                <div v-if="isPdfFile(file)" class="rounded-xl border border-slate-200 overflow-hidden">
+                                                                                    <iframe :src="resolveUrl(file)" class="w-full h-[350px] border-none" title="PDF Preview"></iframe>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
 
-                                                                    <!-- Fallback when no text and no media -->
-                                                                    <span v-if="!answer.text_answer && !answer.option && getMediaFiles(answer.media_answer).length === 0" class="text-slate-400 italic">
-                                                                        —
-                                                                    </span>
+                                                                    <span v-if="!answer.text_answer && !answer.option && getMediaFiles(answer.media_answer).length === 0" class="text-slate-400 italic">—</span>
 
-                                                                    <i v-if="answer.is_correct"
-                                                                        class="pi pi-check-circle ml-2 text-emerald-500"></i>
-                                                                    <i v-else-if="!['writing', 'speaking', 'speaking_live'].includes(answer.question?.type)"
-                                                                        class="pi pi-times-circle ml-2 text-rose-500"></i>
+                                                                    <i v-if="answer.is_correct" class="pi pi-check-circle ml-2 text-emerald-500"></i>
+                                                                    <i v-else-if="!['writing','speaking','speaking_live'].includes(answer.question?.type)" class="pi pi-times-circle ml-2 text-rose-500"></i>
                                                                 </div>
 
-                                                                <!-- Word Count Badge for Writing/Short Answer -->
-                                                                <div v-if="['writing', 'short_answer'].includes(answer.question?.type) && answer.word_count !== null"
-                                                                    class="mt-4 pt-4 border-t border-slate-200 flex items-center gap-2">
-                                                                    <i class="pi pi-align-right text-slate-400"></i>
-                                                                    <span
-                                                                        class="text-[10px] font-black text-slate-500 uppercase tracking-widest">عدد
-                                                                        الكلمات:</span>
-                                                                    <span
-                                                                        class="text-lg font-black text-brand-primary">{{
-                                                                            answer.word_count }}</span>
+                                                                <!-- Word count -->
+                                                                <div v-if="['writing','short_answer'].includes(answer.question?.type) && answer.word_count !== null"
+                                                                    class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                                                                    <i class="pi pi-align-right text-slate-400 text-xs"></i>
+                                                                    <span class="text-[10px] font-bold text-slate-500">Word Count:</span>
+                                                                    <span class="text-sm font-black text-brand-primary">{{ answer.word_count }}</span>
                                                                 </div>
 
-                                                                <!-- Teacher Feedback if graded -->
-                                                                <div v-if="answer.teacher_feedback" class="mt-4 pt-4 border-t border-slate-200">
-                                                                    <p class="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1">Teacher Feedback:</p>
-                                                                    <p class="text-xs text-slate-600 font-semibold italic bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">{{ answer.teacher_feedback }}</p>
+                                                                <!-- Teacher feedback -->
+                                                                <div v-if="answer.teacher_feedback" class="mt-3 pt-3 border-t border-slate-100">
+                                                                    <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Teacher Feedback</div>
+                                                                    <div class="text-xs text-slate-600 font-medium italic bg-indigo-50 p-3 rounded-xl border border-indigo-100">{{ answer.teacher_feedback }}</div>
                                                                 </div>
                                                             </div>
+
+                                                            <!-- Correct answer -->
                                                             <div v-if="!answer.is_correct && answer.question?.type !== 'speaking'"
-                                                                class="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 relative overflow-hidden">
-                                                                <div
-                                                                    class="absolute top-0 right-0 p-4 opacity-10 text-4xl text-emerald-500">
-                                                                    <i class="pi pi-key"></i>
-                                                                </div>
-                                                                <p
-                                                                    class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-3">
-                                                                    System Key</p>
-                                                                <div class="text-sm font-black text-emerald-800">
-                                                                    <!-- Render correct option as image / audio / text -->
-                                                                    <template
-                                                                        v-if="answer.question?.options?.find(o => o.is_correct)">
+                                                                class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                                                                <div class="text-[9px] font-black text-emerald-500 uppercase tracking-wider mb-2">Correct Answer</div>
+                                                                <div class="text-sm font-bold text-emerald-800">
+                                                                    <template v-if="answer.question?.options?.find(o => o.is_correct)">
                                                                         <img v-if="answer.question.options.find(o => o.is_correct).image_url"
                                                                             :src="answer.question.options.find(o => o.is_correct).image_url"
-                                                                            alt="correct answer"
-                                                                            class="max-h-24 rounded-lg border border-emerald-200 object-contain" />
-                                                                        <audio
-                                                                            v-else-if="answer.question.options.find(o => o.is_correct).sound_url"
-                                                                            :src="answer.question.options.find(o => o.is_correct).sound_url"
-                                                                            controls class="h-8"></audio>
-                                                                        <span v-else>{{answer.question.options.find(o=> o.is_correct).option_text || '—'
-                                                                            }}</span>
+                                                                            alt="correct answer" class="max-h-24 rounded-lg border border-emerald-200 object-contain" />
+                                                                        <audio v-else-if="answer.question.options.find(o => o.is_correct).sound_url"
+                                                                            :src="answer.question.options.find(o => o.is_correct).sound_url" controls class="h-8"></audio>
+                                                                        <span v-else>{{ answer.question.options.find(o => o.is_correct).option_text || '—' }}</span>
                                                                     </template>
                                                                     <span v-else>—</span>
                                                                 </div>
@@ -1553,50 +1429,34 @@ onMounted(fetchDetails);
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div v-if="!((selectedAttempt.answers || []).filter(a => a.question?.skill_id === skillResult.skill_id).length)"
-                                            class="bg-slate-50 rounded-[2rem] p-12 text-center border border-dashed border-slate-200">
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                                                No questions answered for this skill</p>
+
+                                            <!-- Empty state -->
+                                            <div v-if="!((selectedAttempt.answers || []).filter(a => a.question?.skill_id === skillResult.skill_id).length)"
+                                                class="bg-slate-50 rounded-2xl p-10 text-center border border-dashed border-slate-200">
+                                                <i class="pi pi-inbox text-3xl text-slate-300 mb-3 block"></i>
+                                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">No questions answered for this skill</p>
+                                            </div>
                                         </div>
                                     </div>
+
                                 </div>
-                            </div>
-                        </TabPanel>
-                    </TabPanels>
+                            </TabPanel>
+                        </TabPanels>
+                    </div>
                 </Tabs>
             </div>
         </div>
-
     </AdminLayout>
 </template>
 
 <style scoped>
 .animate-in {
-    animation-duration: 0.8s;
+    animation-duration: 0.7s;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-:deep(.p-tab) {
-    padding: 0;
-    border: none;
-    background: transparent;
-}
-
-:deep(.p-tab-list) {
-    border: none;
-}
-
-:deep(.p-tabpanels) {
-    padding: 0;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-
-.hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
+:deep(.p-tab) { padding: 0; border: none; background: transparent; }
+:deep(.p-tab-list) { border: none; background: transparent; }
+:deep(.p-tabpanels) { padding: 0; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

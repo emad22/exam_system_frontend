@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import { useModal } from '@/composables/useModal';
@@ -13,7 +13,7 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
-import ProgressSpinner from 'primevue/progressspinner';
+import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
 import DatePicker from 'primevue/datepicker';
 
 const router = useRouter();
@@ -28,10 +28,16 @@ const isSaving = ref(false);
 const skills = ref([]);
 
 const selectedStudents = ref([]);
-const searchQuery = ref('');
-const selectedPartner = ref(null);
-const dateFrom = ref(null);
-const dateTo = ref(null);
+
+// Restore filters from sessionStorage if coming back from edit/show
+const _savedFilters = (() => {
+    try { return JSON.parse(sessionStorage.getItem('students_filters') || 'null'); } catch { return null; }
+})();
+const searchQuery = ref(_savedFilters?.searchQuery ?? '');
+const selectedPartner = ref(_savedFilters?.selectedPartner ?? null);
+const selectedExamStatus = ref(_savedFilters?.selectedExamStatus ?? null);
+const dateFrom = ref(_savedFilters?.dateFrom ? new Date(_savedFilters.dateFrom) : null);
+const dateTo = ref(_savedFilters?.dateTo ? new Date(_savedFilters.dateTo) : null);
 
 // Bulk Skills State
 const showBulkSkillsModal = ref(false);
@@ -60,6 +66,8 @@ const t = {
         colInstitutionCode: "كود المؤسسة",
         colSubscription: "الباقة / الاشتراك",
         colCategory: "نوع التقييم",
+        colExamStatus: "تقدم مهارات الامتحان",
+        colAttemptStarted: "وقت بداية المحاولة",
         colRegistrationDate: "تاريخ التسجيل",
         colStatus: "النشاط",
         colActions: "العمليات",
@@ -68,6 +76,21 @@ const t = {
         customAsset: "باقة مخصصة / ذاتية",
         active: "نشط",
         inactive: "غير نشط",
+        examAllCompleted: "مكتمل بالكامل",
+        examPartiallyCompleted: "مكتمل جزئياً",
+        examInProgress: "قيد الاختبار الآن",
+        examNotTaken: "لم يبدأ الامتحان",
+        filterExamStatus: "تصفية بتقدم المهارات",
+        statusAll: "جميع الطلاب",
+        statusAllCompleted: "مكتمل بالكامل (أنهى جميع المهارات)",
+        statusPartiallyCompleted: "مكتمل جزئياً (أنهى بعض المهارات)",
+        statusInProgress: "بدأ الاختبار (المهارة الأولى)",
+        statusNotTaken: "لم يدخل الاختبار إطلاقاً",
+        attemptsCountSuffix: "محاولة",
+        scoreLabel: "الدرجة",
+        tooltipSkillCompleted: "مكتملة بنجاح",
+        tooltipSkillInProgress: "جاري الاختبار الآن",
+        tooltipSkillPending: "لم تبدأ بعد",
         tooltipView: "عرض الملف الشخصي",
         tooltipReset: "إعادة ضبط محاولات وتقدم الطالب",
         tooltipEdit: "تعديل التفاصيل",
@@ -139,6 +162,8 @@ const t = {
         colInstitutionCode: "Institution Code",
         colSubscription: "Package",
         colCategory: "Assessment Model",
+        colExamStatus: "Exam Skills Progress",
+        colAttemptStarted: "Attempt Started",
         colRegistrationDate: "Registered Date",
         colStatus: "Status",
         colActions: "Actions",
@@ -147,6 +172,21 @@ const t = {
         customAsset: "Custom Asset",
         active: "Active",
         inactive: "Inactive",
+        examAllCompleted: "All Completed",
+        examPartiallyCompleted: "Partially Done",
+        examInProgress: "In Progress",
+        examNotTaken: "Not Started",
+        filterExamStatus: "Filter by Exam Progress",
+        statusAll: "All Students",
+        statusAllCompleted: "Fully Completed (All Skills)",
+        statusPartiallyCompleted: "Partially Completed (Some Skills)",
+        statusInProgress: "In Progress (1st Skill)",
+        statusNotTaken: "Not Started Yet",
+        attemptsCountSuffix: "Attempt(s)",
+        scoreLabel: "Score",
+        tooltipSkillCompleted: "Completed successfully",
+        tooltipSkillInProgress: "Currently in progress",
+        tooltipSkillPending: "Not started yet",
         tooltipView: "View Profile",
         tooltipReset: "Reset Exam Progress",
         tooltipEdit: "Edit Details",
@@ -240,18 +280,160 @@ const handleModalCancel = () => {
     if (modalConfig.value.onCancel) modalConfig.value.onCancel();
 };
 
+const skillOrderMap = { 'L': 1, 'R': 2, 'G': 3, 'W': 4, 'S': 5 };
+
+const getStudentSkillProgress = (student) => {
+    if (!student) return null;
+
+    const rawAssigned = student.assigned_skills || student.package?.skills || null;
+    let targetSkills = [];
+
+    if (Array.isArray(rawAssigned) && rawAssigned.length > 0) {
+        targetSkills = rawAssigned.map(codeOrId => {
+            const found = skills.value.find(sk => 
+                sk.id === codeOrId || 
+                String(sk.id) === String(codeOrId) || 
+                (sk.short_code && sk.short_code.toUpperCase() === String(codeOrId).toUpperCase()) ||
+                (sk.name && sk.name.toLowerCase() === String(codeOrId).toLowerCase())
+            );
+            if (found) return found;
+            return {
+                id: codeOrId,
+                short_code: String(codeOrId).toUpperCase(),
+                name: String(codeOrId)
+            };
+        });
+    } else if (skills.value.length > 0) {
+        targetSkills = [...skills.value];
+    } else {
+        // Fallback standard skills if not loaded yet
+        targetSkills = [
+            { id: 1, short_code: 'L', name: 'Listening' },
+            { id: 2, short_code: 'R', name: 'Reading' },
+            { id: 3, short_code: 'G', name: 'Grammar' },
+            { id: 4, short_code: 'W', name: 'Writing' },
+            { id: 5, short_code: 'S', name: 'Speaking' }
+        ];
+    }
+
+    targetSkills.sort((a, b) => {
+        const codeA = (a.short_code || a.name || '').toUpperCase().charAt(0);
+        const codeB = (b.short_code || b.name || '').toUpperCase().charAt(0);
+        const orderA = skillOrderMap[codeA] || 99;
+        const orderB = skillOrderMap[codeB] || 99;
+        return orderA - orderB;
+    });
+
+    const latestAttempt = student.attempts?.[0];
+    const attemptSkills = latestAttempt?.attempt_skills || latestAttempt?.attemptSkills || [];
+
+    let completedCount = 0;
+    let inProgressCount = 0;
+
+    const skillChips = targetSkills.map(sk => {
+        const matchingAttemptSkill = attemptSkills.find(as => 
+            as.skill_id === sk.id || 
+            (as.skill?.short_code && as.skill.short_code.toUpperCase() === sk.short_code?.toUpperCase()) ||
+            (as.skill?.name && sk.name && as.skill.name.toLowerCase() === sk.name.toLowerCase())
+        );
+
+        let status = 'pending';
+        let score = null;
+        let finishedAt = null;
+
+        if (matchingAttemptSkill) {
+            score = matchingAttemptSkill.score;
+            finishedAt = matchingAttemptSkill.finished_at;
+            if (matchingAttemptSkill.status === 'completed' || finishedAt) {
+                status = 'completed';
+                completedCount++;
+            } else if (['in_progress', 'active', 'paused'].includes(matchingAttemptSkill.status) || matchingAttemptSkill.started_at) {
+                status = 'in_progress';
+                inProgressCount++;
+            }
+        }
+
+        return {
+            id: sk.id,
+            name: sk.name || sk.short_code,
+            short_code: (sk.short_code || sk.name || '?').toUpperCase(),
+            status,
+            score,
+            finishedAt
+        };
+    });
+
+    const totalCount = skillChips.length;
+    const hasAttempts = (student.attempts_count ?? student.attempts?.length ?? 0) > 0;
+
+    let overallState = 'not_taken'; // 'not_taken' | 'in_progress' | 'partially_completed' | 'completed'
+
+    if (!hasAttempts || (completedCount === 0 && inProgressCount === 0)) {
+        overallState = 'not_taken';
+    } else if (completedCount === totalCount && totalCount > 0) {
+        overallState = 'completed';
+    } else if (completedCount > 0) {
+        overallState = 'partially_completed';
+    } else if (inProgressCount > 0) {
+        overallState = 'in_progress';
+    }
+
+    return {
+        chips: skillChips,
+        completedCount,
+        totalCount,
+        inProgressCount,
+        overallState,
+        latestAttempt
+    };
+};
+
+const examStatusOptions = computed(() => [
+    { label: t[currentLang.value].statusAllCompleted, value: 'completed' },
+    { label: t[currentLang.value].statusPartiallyCompleted, value: 'partially_completed' },
+    { label: t[currentLang.value].statusInProgress, value: 'in_progress' },
+    { label: t[currentLang.value].statusNotTaken, value: 'not_taken' },
+]);
+
 const resetFilters = () => {
     searchQuery.value = '';
     selectedPartner.value = null;
+    selectedExamStatus.value = null;
     dateFrom.value = null;
     dateTo.value = null;
+    sessionStorage.removeItem('students_filters');
 };
+
+// Persist filters to sessionStorage whenever they change
+watch([searchQuery, selectedPartner, selectedExamStatus, dateFrom, dateTo], () => {
+    const toISO = (val) => {
+        if (!val) return null;
+        if (val instanceof Date && !isNaN(val)) return val.toISOString();
+        const d = new Date(val);
+        return !isNaN(d) ? d.toISOString() : null;
+    };
+    sessionStorage.setItem('students_filters', JSON.stringify({
+        searchQuery: searchQuery.value,
+        selectedPartner: selectedPartner.value,
+        selectedExamStatus: selectedExamStatus.value,
+        dateFrom: toISO(dateFrom.value),
+        dateTo: toISO(dateTo.value),
+    }));
+});
 
 const filteredStudents = computed(() => {
     let result = students.value;
 
     if (selectedPartner.value) {
         result = result.filter(s => s.partner_id === selectedPartner.value);
+    }
+
+    if (selectedExamStatus.value) {
+        result = result.filter(s => {
+            const progress = getStudentSkillProgress(s);
+            if (!progress) return false;
+            return progress.overallState === selectedExamStatus.value;
+        });
     }
 
     if (searchQuery.value) {
@@ -548,6 +730,15 @@ const formatDate = (dateStr) => {
     return d.toISOString().split('T')[0];
 };
 
+const formatDateTime = (dateStr) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const date = d.toISOString().split('T')[0];
+    const time = d.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+    return `${date} ${time}`;
+};
+
 onMounted(() => {
     fetchStudents();
     fetchPackages();
@@ -559,10 +750,9 @@ onMounted(() => {
 <template>
     <AdminLayout>
         <div dir="ltr" class="w-full">
-            <!-- Loading Spinner -->
-            <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+            <!-- Loading Skeleton -->
+            <div v-if="loading" class="mt-6 px-4 md:px-8">
+                <TableSkeleton :rows="8" :columns="6" />
             </div>
 
             <!-- Main Content -->
@@ -651,20 +841,22 @@ onMounted(() => {
                                 class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12 flex items-center" />
                         </div>
 
+                       
+
                         <!-- Date Range: From Date -->
-                        <div class="w-full sm:w-40 shrink-0">
+                        <div class="w-full sm:w-36 shrink-0">
                             <DatePicker v-model="dateFrom" :placeholder="t[currentLang].dateFrom" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
                                 class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
                         </div>
 
                         <!-- Date Range: To Date -->
-                        <div class="w-full sm:w-40 shrink-0">
+                        <div class="w-full sm:w-36 shrink-0">
                             <DatePicker v-model="dateTo" :placeholder="t[currentLang].dateTo" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
                                 class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
                         </div>
 
                         <!-- Reset Button -->
-                        <Button v-if="searchQuery || selectedPartner || dateFrom || dateTo" 
+                        <Button v-if="searchQuery || selectedPartner || selectedExamStatus || dateFrom || dateTo" 
                                 icon="pi pi-filter-slash" :label="t[currentLang].btnResetFilters" 
                                 text severity="secondary" 
                                 class="text-xs font-bold rounded-xl h-12 px-4 hover:bg-slate-100" 
@@ -673,7 +865,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Registry Table Card -->
-                <div v-if="students.length > 0 || searchQuery || selectedPartner || dateFrom || dateTo">
+                <div v-if="students.length > 0 || searchQuery || selectedPartner || selectedExamStatus || dateFrom || dateTo">
                     <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                         <template #content>
                             <DataTable :value="filteredStudents" v-model:selection="selectedStudents" dataKey="id" paginator
@@ -705,13 +897,13 @@ onMounted(() => {
                                     </template>
                                 </Column>
 
-                                <Column :header="t[currentLang].colInstitutionCode" style="min-width: 140px">
+                                <!-- <Column :header="t[currentLang].colInstitutionCode" style="min-width: 140px">
                                     <template #body="{ data }">
                                         <div class="font-mono text-xs font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block">
                                             {{ data.institution_code || '-' }}
                                         </div>
                                     </template>
-                                </Column>
+                                </Column> -->
 
                                 <Column :header="t[currentLang].colSubscription" style="min-width: 150px">
                                     <template #body="{ data }">
@@ -722,13 +914,98 @@ onMounted(() => {
                                     </template>
                                 </Column>
 
-                                <Column :header="t[currentLang].colCategory" style="min-width: 150px">
+                                <!-- <Column :header="t[currentLang].colCategory" style="min-width: 150px">
                                     <template #body="{ data }">
                                         <div class="flex flex-col space-y-1">
                                             <Tag :value="data.is_continue ? t[currentLang].nonAdaptive : t[currentLang].adaptive"
                                                  :severity="data.is_continue ? 'warn' : 'info'"
                                                  class="text-[9px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg" />
                                         </div>
+                                    </template>
+                                </Column> -->
+
+                                <Column :header="t[currentLang].colExamStatus" style="min-width: 220px">
+                                    <template #body="{ data }">
+                                        <div v-if="getStudentSkillProgress(data)" class="flex flex-col items-start gap-1.5 py-1">
+                                            <!-- Overall Status Header Tag -->
+                                            <div class="flex items-center gap-1.5">
+                                                <!-- Case 1: Fully Completed -->
+                                                <span v-if="getStudentSkillProgress(data).overallState === 'completed'"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-black text-[10px] tracking-wide shadow-2xs">
+                                                    <i class="pi pi-check-circle text-emerald-600 text-xs"></i>
+                                                    <span>{{ t[currentLang].examAllCompleted }} ({{ getStudentSkillProgress(data).completedCount }}/{{ getStudentSkillProgress(data).totalCount }})</span>
+                                                    <span v-if="getStudentSkillProgress(data).latestAttempt?.overall_score !== null && getStudentSkillProgress(data).latestAttempt?.overall_score !== undefined" class="text-emerald-800 font-extrabold ml-1">
+                                                        • {{ getStudentSkillProgress(data).latestAttempt.overall_score }}%
+                                                    </span>
+                                                </span>
+
+                                                <!-- Case 2: Partially Completed (Finished some skills, remaining others) -->
+                                                <span v-else-if="getStudentSkillProgress(data).overallState === 'partially_completed'"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-black text-[10px] tracking-wide shadow-2xs">
+                                                    <i class="pi pi-hourglass text-indigo-600 text-xs"></i>
+                                                    <span>{{ t[currentLang].examPartiallyCompleted }} ({{ getStudentSkillProgress(data).completedCount }}/{{ getStudentSkillProgress(data).totalCount }})</span>
+                                                </span>
+
+                                                <!-- Case 3: In Progress (Started first skill) -->
+                                                <span v-else-if="getStudentSkillProgress(data).overallState === 'in_progress'"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/80 font-black text-[10px] tracking-wide shadow-2xs">
+                                                    <i class="pi pi-spin pi-spinner text-amber-600 text-xs"></i>
+                                                    <span>{{ t[currentLang].examInProgress }} (0/{{ getStudentSkillProgress(data).totalCount }})</span>
+                                                </span>
+
+                                                <!-- Case 4: Not Started -->
+                                                <span v-else
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100/90 text-slate-500 border border-slate-200/70 font-extrabold text-[10px] tracking-wide">
+                                                    <i class="pi pi-minus-circle text-slate-400 text-xs"></i>
+                                                    <span>{{ t[currentLang].examNotTaken }}</span>
+                                                </span>
+                                            </div>
+
+                                            <!-- Skill Chips Horizontal Bar -->
+                                            <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                <template v-for="chip in getStudentSkillProgress(data).chips" :key="chip.id || chip.short_code">
+                                                    <!-- Completed Skill Chip (Green) -->
+                                                    <div v-if="chip.status === 'completed'"
+                                                        v-tooltip.top="`${chip.name}: ${t[currentLang].tooltipSkillCompleted}${chip.score !== null && chip.score !== undefined ? ` (${chip.score}%)` : ''}`"
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-100/90 text-emerald-800 border border-emerald-300/80 text-[10px] font-black cursor-help transition-all hover:scale-105 shadow-2xs">
+                                                        <span>{{ chip.short_code }}</span>
+                                                        <i class="pi pi-check text-[9px] text-emerald-700 font-black"></i>
+                                                    </div>
+
+                                                    <!-- In Progress Skill Chip (Yellow Pulsing) -->
+                                                    <div v-else-if="chip.status === 'in_progress'"
+                                                        v-tooltip.top="`${chip.name}: ${t[currentLang].tooltipSkillInProgress}`"
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black cursor-help animate-pulse transition-all hover:scale-105 shadow-2xs">
+                                                        <span>{{ chip.short_code }}</span>
+                                                        <i class="pi pi-spin pi-spinner text-[9px] text-amber-700"></i>
+                                                    </div>
+
+                                                    <!-- Pending / Not Started Skill Chip (Gray) -->
+                                                    <div v-else
+                                                        v-tooltip.top="`${chip.name}: ${t[currentLang].tooltipSkillPending}`"
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-400 border border-slate-200/80 text-[10px] font-bold cursor-help opacity-70 transition-all hover:scale-105">
+                                                        <span>{{ chip.short_code }}</span>
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </Column>
+
+                                <!-- Attempt Start Time Column -->
+                                <Column :header="t[currentLang].colAttemptStarted" style="min-width: 160px">
+                                    <template #body="{ data }">
+                                        <div v-if="data.attempts?.[0]?.started_at" class="flex flex-col gap-0.5">
+                                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700 font-mono">
+                                                <i class="pi pi-clock text-amber-500 text-xs"></i>
+                                                <span>{{ formatDateTime(data.attempts[0].started_at) }}</span>
+                                            </div>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-5">
+                                                {{ data.attempts[0].status === 'completed' ? (currentLang === 'ar' ? 'مكتملة' : 'Completed') : data.attempts[0].status === 'in_progress' ? (currentLang === 'ar' ? 'جارية' : 'In Progress') : data.attempts[0].status }}
+                                            </span>
+                                        </div>
+                                        <span v-else class="text-[10px] font-bold text-slate-300 uppercase tracking-wider italic">—</span>
                                     </template>
                                 </Column>
 

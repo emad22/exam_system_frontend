@@ -117,16 +117,22 @@ onMounted(async () => {
                 passing_score: exam.passing_score ?? 60,
                 is_continue: false,
                 selectedSkills: exam.skills.map(skill => {
+                    // API returns questionRules (camelCase), not question_rules
+                    const allRules = exam.questionRules || exam.question_rules || [];
                     return {
                         skill_id: skill.id,
-                        duration: skill.pivot.duration,
-                        is_optional: !!skill.pivot.is_optional,
-                        max_points: skill.pivot.max_points || 0,
-                        rules: (exam.question_rules || []).filter(r => r.skill_id === skill.id).map(r => ({
-                            level_id: r.level_id,
-                            quantity: r.quantity,
-                            randomize: !!r.randomize
-                        }))
+                        duration: skill.pivot?.duration ?? skill.duration ?? 30,
+                        is_optional: !!(skill.pivot?.is_optional ?? skill.is_optional),
+                        max_points: skill.pivot?.max_points ?? skill.max_points ?? 0,
+                        rules: allRules
+                            .filter(r => r.skill_id === skill.id)
+                            .map(r => ({
+                                level_id: r.level_id,
+                                quantity: r.quantity ?? 0,
+                                standalone_quantity: r.standalone_quantity ?? 0,
+                                passage_quantity: r.passage_quantity ?? 0,
+                                randomize: !!r.randomize
+                            }))
                     };
                 })
             };
@@ -157,8 +163,9 @@ onMounted(async () => {
             }
         }
     } catch (err) {
-        errorMsg.value = 'Failed to synchronize with administrative services.';
-        showAlert('Error', errorMsg.value);
+        const detail = err?.response?.data?.message || err?.message || 'Unknown error';
+        errorMsg.value = `Failed to synchronize with administrative services. (${detail})`;
+        showAlert(errorMsg.value, 'Error', 'danger');
     } finally {
         isLoading.value = false;
         if (form.value.selectedSkills.length > 0) {
@@ -467,6 +474,13 @@ const saveExam = async () => {
             duration: s.duration,
             is_optional: s.is_optional,
             max_points: s.max_points || 0,
+            rules: (s.rules || []).map(r => ({
+                level_id: r.level_id,
+                quantity: r.quantity ?? 0,
+                standalone_quantity: r.standalone_quantity ?? 0,
+                passage_quantity: r.passage_quantity ?? 0,
+                randomize: r.randomize ?? true,
+            }))
         }));
 
         const payload = {
@@ -484,7 +498,8 @@ const saveExam = async () => {
         showAlert(t.successMsg, 'Success', 'success');
         router.push('/admin/exams');
     } catch (err) {
-        showAlert('Failed to save exam.', 'Save Error', 'error');
+        const detail = err?.response?.data?.message || err?.response?.data?.error || err?.message || '';
+        showAlert(`Failed to save exam.${detail ? ' ' + detail : ''}`, 'Save Error', 'danger');
     } finally { isSubmitting.value = false; }
 };
 </script>

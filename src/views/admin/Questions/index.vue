@@ -15,7 +15,8 @@ import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
-import ProgressSpinner from 'primevue/progressspinner';
+import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
+import Skeleton from 'primevue/skeleton';
 import Textarea from 'primevue/textarea';
 import Tooltip from 'primevue/tooltip';
 
@@ -26,11 +27,17 @@ const first = ref(0);
 const { showAlert, showConfirm } = useModal();
 const adminStore = useAdminStore();
 const loading = ref(true);
-const filterSkill = ref(null);
-const filterExam = ref(null);
-const filterType = ref('');
-const searchQuery = ref('');
-const filterLevel = ref(null);
+
+// Restore filters from sessionStorage if coming back from edit
+const _savedFilters = (() => {
+    try { return JSON.parse(sessionStorage.getItem('questions_filters') || 'null'); } catch { return null; }
+})();
+const filterSkill = ref(_savedFilters?.filterSkill ?? null);
+const filterExam = ref(_savedFilters?.filterExam ?? null);
+const filterType = ref(_savedFilters?.filterType ?? '');
+const searchQuery = ref(_savedFilters?.searchQuery ?? '');
+const filterLevel = ref(_savedFilters?.filterLevel ?? null);
+const sortOrder = ref(_savedFilters?.sortOrder ?? 'id_asc');
 const skills = ref([]);
 const exams = ref([]);
 const showInstructionsModal = ref(false);
@@ -429,6 +436,12 @@ const levelOptions = computed(() => {
     ];
 });
 
+const sortOptions = computed(() => [
+    { label: currentLang.value === 'ar' ? 'ترتيب بـ ID (تصاعدي 1 ← 9)' : 'Sort: ID (Ascending 1 → 9)', value: 'id_asc' },
+    { label: currentLang.value === 'ar' ? 'ترتيب بـ ID (تنازلي 9 ← 1)' : 'Sort: ID (Descending 9 → 1)', value: 'id_desc' },
+    { label: currentLang.value === 'ar' ? 'ترتيب حسب المستوى' : 'Sort: By Level', value: 'level' },
+]);
+
 const filteredQuestions = computed(() => {
     let filtered = questions.value;
     
@@ -447,21 +460,29 @@ const filteredQuestions = computed(() => {
     
     if (filterType.value)  filtered = filtered.filter(q => q.type === filterType.value);
     if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase();
+        const q = searchQuery.value.toLowerCase().trim();
         filtered = filtered.filter(item =>
             item.content?.toLowerCase().includes(q) ||
             item.instructions?.toLowerCase().includes(q) ||
-            item.passage?.title?.toLowerCase().includes(q)
+            item.passage?.title?.toLowerCase().includes(q) ||
+            String(item.id).includes(q)
         );
     }
     return [...filtered].sort((a, b) => {
-        const lvA = a.level?.level_number || a.level_id || 0;
-        const lvB = b.level?.level_number || b.level_id || 0;
-        if (lvA !== lvB) return lvA - lvB;
-        const passA = a.passage_id || 0;
-        const passB = b.passage_id || 0;
-        if (passA !== passB) return passB - passA;
-        return (a.id - b.id);
+        if (sortOrder.value === 'id_desc') {
+            return (Number(b.id) || 0) - (Number(a.id) || 0);
+        } else if (sortOrder.value === 'level') {
+            const lvA = a.level?.level_number || a.level_id || 0;
+            const lvB = b.level?.level_number || b.level_id || 0;
+            if (lvA !== lvB) return lvA - lvB;
+            const passA = a.passage_id || 0;
+            const passB = b.passage_id || 0;
+            if (passA !== passB) return passB - passA;
+            return (Number(a.id) || 0) - (Number(b.id) || 0);
+        } else {
+            // Default: id_asc (1, 2, 3, ...)
+            return (Number(a.id) || 0) - (Number(b.id) || 0);
+        }
     });
 });
 
@@ -469,7 +490,6 @@ const filteredQuestions = computed(() => {
 const stats = computed(() => {
     const total = questions.value.length;
     const byType = {};
-    
     
     const mcqCount = byType['mcq'] || 0;
     const speakingCount = byType['speaking'] || 0;
@@ -479,8 +499,19 @@ const stats = computed(() => {
         total,
         mcqCount,
         interactiveCount: speakingCount + writingCount,
-
     };
+});
+
+// Persist filters to sessionStorage whenever they change
+watch([filterSkill, filterExam, filterLevel, filterType, searchQuery, sortOrder], () => {
+    sessionStorage.setItem('questions_filters', JSON.stringify({
+        filterSkill: filterSkill.value,
+        filterExam: filterExam.value,
+        filterLevel: filterLevel.value,
+        filterType: filterType.value,
+        searchQuery: searchQuery.value,
+        sortOrder: sortOrder.value,
+    }));
 });
 
 watch(filterExam, () => {
@@ -488,7 +519,7 @@ watch(filterExam, () => {
     fetchData();
 });
 
-watch([filterSkill, filterLevel, filterType, searchQuery], () => {
+watch([filterSkill, filterLevel, filterType, searchQuery, sortOrder], () => {
     first.value = 0;
 });
 
@@ -534,9 +565,8 @@ onMounted(fetchData);
     <div :class="{ 'arabic-theme': currentLang === 'ar' }" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'" class="w-full">
       
       <!-- Loading Indicator -->
-      <div v-if="loading && questions.length === 0" class="flex flex-col items-center justify-center py-32 space-y-4">
-          <ProgressSpinner />
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].loading }}</p>
+      <div v-if="loading && questions.length === 0" class="mt-6 px-4 md:px-8">
+          <TableSkeleton :rows="8" :columns="5" />
       </div>
 
       <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 px-4 md:px-8 pb-20">
@@ -628,10 +658,11 @@ onMounted(fetchData);
                   <Select v-model="filterExam" :options="[{title: t[currentLang].allExams, id:null}, ...exams]" optionLabel="title" optionValue="id" :placeholder="t[currentLang].examFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
                   <Select v-model="filterType" :options="[{label: t[currentLang].allTypes, value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label: getQuestionTypeLabel(k), value:k}))]" optionLabel="label" optionValue="value" :placeholder="t[currentLang].typeFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
                   <Select v-model="filterLevel" :options="levelOptions" optionLabel="label" optionValue="value" :placeholder="t[currentLang].levelFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[120px] focus:border-brand-primary transition-all flex items-center" />
+                  <Select v-model="sortOrder" :options="sortOptions" optionLabel="label" optionValue="value" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[185px] focus:border-brand-primary transition-all flex items-center" />
                   
-                  <Button v-if="searchQuery || filterExam || filterLevel || filterType" 
+                  <Button v-if="searchQuery || filterExam || filterLevel || filterType || sortOrder !== 'id_asc'" 
                           icon="pi pi-filter-slash" severity="danger" rounded outlined 
-                          @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" 
+                          @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''; sortOrder='id_asc'" 
                           v-tooltip.top="t[currentLang].resetFilters" class="h-11 w-11 shrink-0 cursor-pointer hover:bg-rose-50 hover:border-rose-400" />
               </div>
           </div>
@@ -645,7 +676,7 @@ onMounted(fetchData);
                   <h3 class="text-xl font-black text-slate-800 tracking-tight leading-tight">{{ t[currentLang].zeroResults }}</h3>
                   <p class="text-xs font-bold text-slate-400 max-w-sm leading-relaxed">{{ t[currentLang].adjustFilters }}</p>
               </div>
-              <Button :label="t[currentLang].clearParams" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''" class="rounded-2xl font-black text-xs px-8 py-3 cursor-pointer border-slate-200 hover:border-brand-primary hover:text-brand-primary transition-all" />
+              <Button :label="t[currentLang].clearParams" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''; sortOrder='id_asc'" class="rounded-2xl font-black text-xs px-8 py-3 cursor-pointer border-slate-200 hover:border-brand-primary hover:text-brand-primary transition-all" />
           </div>
 
           <!-- Content View Mode Selector -->
@@ -655,9 +686,11 @@ onMounted(fetchData);
               <div v-if="viewMode === 'table'" class="bg-white rounded-[2rem] border border-slate-100 shadow-md overflow-hidden">
                   <DataTable v-model:first="first" :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm text-sm" responsiveLayout="scroll" :rowClass="getRowClass">
                     
-                    <Column :header="t[currentLang].colId" style="width: 100px">
-                      <template #body="{ data, index }">
-                          <span class="text-[11px] font-mono font-black text-slate-400">{{ first + index + 1 }} (#{{ data.id }})</span>
+                    <Column field="id" :header="t[currentLang].colId" sortable style="width: 100px">
+                      <template #body="{ data }">
+                          <div class="inline-flex items-center gap-0.5 font-mono font-black text-xs text-slate-700 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                            <span class="text-slate-400 font-bold">#</span>{{ data.id }}
+                          </div>
                       </template>
                     </Column>
 
@@ -751,27 +784,43 @@ onMounted(fetchData);
                       </template>
                     </Column>
 
-                    <Column :header="t[currentLang].colAuthorship" style="width: 160px">
+                    <Column :header="t[currentLang].colAuthorship" style="width: 200px">
                       <template #body="{ data }">
-                        <div class="flex flex-col gap-1 text-[10px]">
-                          <div v-if="data.creator" class="flex items-center gap-2">
-                            <!-- Initials Avatar -->
-                            <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 border border-white shadow-xs flex items-center justify-center font-bold uppercase text-[9px] shrink-0">
-                                {{ data.creator.first_name[0] }}
+                        <div class="flex flex-col gap-2 text-xs py-0.5">
+                          <!-- 1. Creator -->
+                          <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center font-black uppercase text-[10px] shrink-0 shadow-2xs">
+                              {{ data.creator?.first_name ? data.creator.first_name[0] : 'S' }}
                             </div>
-                            <span class="font-extrabold text-slate-600 truncate max-w-[110px]" v-tooltip.top="`${data.creator.first_name} ${data.creator.last_name}`">
-                              {{ data.creator.first_name }} {{ data.creator.last_name }}
-                            </span>
+                            <div class="min-w-0 flex-1 leading-tight">
+                              <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                                {{ currentLang === 'ar' ? 'المنشئ' : 'Created By' }}
+                              </div>
+                              <div class="font-extrabold text-slate-800 truncate text-[11px]" v-tooltip.top="data.creator ? `${data.creator.first_name} ${data.creator.last_name || ''}` : t[currentLang].system">
+                                {{ data.creator ? `${data.creator.first_name} ${data.creator.last_name || ''}` : t[currentLang].system }}
+                              </div>
+                            </div>
                           </div>
                           
-                          <div v-if="data.updater && data.updated_by !== data.created_by" class="flex items-center gap-2 opacity-70">
-                            <i class="pi pi-pencil text-[9px] text-slate-400 shrink-0"></i>
-                            <span class="font-bold text-slate-500 truncate max-w-[110px]" v-tooltip.top="`${t[currentLang].lastEditedBy} ${data.updater.first_name}`">
-                              {{ data.updater.first_name }}
-                            </span>
+                          <!-- 2. Modifier / Last Edited By -->
+                          <div class="flex items-center gap-2 pt-1.5 border-t border-slate-100">
+                            <div class="w-6 h-6 rounded-full flex items-center justify-center font-black uppercase text-[10px] shrink-0 shadow-2xs"
+                                 :class="data.updater ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-slate-50 text-slate-300 border border-slate-100'">
+                              <i v-if="!data.updater" class="pi pi-minus text-[8px]"></i>
+                              <span v-else>{{ data.updater.first_name ? data.updater.first_name[0] : 'U' }}</span>
+                            </div>
+                            <div class="min-w-0 flex-1 leading-tight">
+                              <div class="text-[9px] font-bold text-amber-700/90 uppercase tracking-wider flex items-center gap-1">
+                                <i class="pi pi-pencil text-[8px]"></i>
+                                <span>{{ currentLang === 'ar' ? 'المعدل' : 'Modified By' }}</span>
+                              </div>
+                              <div class="font-bold truncate text-[11px]" 
+                                   :class="data.updater ? 'text-amber-900 font-extrabold' : 'text-slate-400 italic'"
+                                   v-tooltip.top="data.updater ? `${data.updater.first_name} ${data.updater.last_name || ''}` : ''">
+                                {{ data.updater ? `${data.updater.first_name} ${data.updater.last_name || ''}` : (currentLang === 'ar' ? 'لم يُعدّل' : 'Not modified') }}
+                              </div>
+                            </div>
                           </div>
-                          
-                          <span v-if="!data.creator" class="text-[9px] font-black text-slate-300 italic">{{ t[currentLang].system }}</span>
                         </div>
                       </template>
                     </Column>
@@ -836,11 +885,17 @@ onMounted(fetchData);
 
                       <!-- Card Header -->
                       <div class="flex items-center justify-between p-6 pb-3 border-b border-slate-50" :class="{ 'flex-row-reverse': currentLang === 'ar' }">
-                          <!-- Level difficulty badge -->
-                          <span class="inline-flex items-center gap-1 bg-brand-primary/5 text-brand-primary border border-brand-primary/10 rounded-xl px-3 py-1 text-xs font-black">
-                            <span class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
-                            <span>{{ t[currentLang].levelFilter }} {{ data.level?.level_number || data.level_id }}</span>
-                          </span>
+                          <div class="flex items-center gap-2">
+                              <!-- Question ID badge -->
+                              <span class="inline-flex items-center gap-0.5 bg-slate-100 text-slate-700 font-mono font-black border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+                                  <span class="text-slate-400 font-bold">#</span>{{ data.id }}
+                              </span>
+                              <!-- Level difficulty badge -->
+                              <span class="inline-flex items-center gap-1 bg-brand-primary/5 text-brand-primary border border-brand-primary/10 rounded-xl px-3 py-1 text-xs font-black">
+                                <span class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
+                                <span>{{ t[currentLang].levelFilter }} {{ data.level?.level_number || data.level_id }}</span>
+                              </span>
+                          </div>
 
                           <!-- Custom question type status badge -->
                           <span :class="questionTypeMeta[data.type]?.borderColor" class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase rounded-xl px-2.5 py-1 border shadow-2xs">
@@ -888,18 +943,31 @@ onMounted(fetchData);
                               <span class="text-xs font-black">{{ data.points }} <span class="text-[9px] uppercase font-bold">{{ currentLang === 'ar' ? 'نقاط' : 'Pts' }}</span></span>
                           </div>
 
-                          <!-- Author Attribution Profile -->
-                          <div v-if="data.creator" class="flex items-center gap-2 min-w-0">
-                              <!-- Avatar Circle -->
-                              <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-600 border-2 border-white shadow-sm flex items-center justify-center font-black uppercase text-[10px] shrink-0">
-                                  {{ data.creator.first_name[0] }}
+                          <!-- Author Attribution Profile (Creator & Modifier) -->
+                          <div class="flex flex-col gap-1 min-w-0">
+                              <!-- Creator -->
+                              <div class="flex items-center gap-1.5 min-w-0">
+                                  <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 border border-white shadow-2xs flex items-center justify-center font-black uppercase text-[8px] shrink-0">
+                                      {{ data.creator?.first_name ? data.creator.first_name[0] : 'S' }}
+                                  </div>
+                                  <div class="min-w-0 text-[10px] font-bold leading-tight">
+                                      <div class="text-slate-700 truncate max-w-[100px]" v-tooltip.top="data.creator ? `${data.creator.first_name} ${data.creator.last_name || ''}` : t[currentLang].system">
+                                          {{ data.creator ? `${data.creator.first_name} ${data.creator.last_name || ''}` : t[currentLang].system }}
+                                      </div>
+                                  </div>
                               </div>
-                              <div class="min-w-0 text-[10px] font-bold leading-tight">
-                                  <div class="text-slate-700 truncate max-w-[80px]" v-tooltip.top="`${data.creator.first_name} ${data.creator.last_name}`">{{ data.creator.first_name }}</div>
-                                  <div class="text-slate-400 font-bold text-[8px] mt-0.5 uppercase tracking-wide">{{ currentLang === 'ar' ? 'المنشئ' : 'Creator' }}</div>
+                              <!-- Modifier -->
+                              <div v-if="data.updater" class="flex items-center gap-1.5 min-w-0">
+                                  <div class="w-5 h-5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs flex items-center justify-center font-black uppercase text-[8px] shrink-0">
+                                      <i class="pi pi-pencil text-[7px]"></i>
+                                  </div>
+                                  <div class="min-w-0 text-[10px] font-bold leading-tight">
+                                      <div class="text-amber-800 truncate max-w-[100px]" v-tooltip.top="`${t[currentLang].lastEditedBy}: ${data.updater.first_name} ${data.updater.last_name || ''}`">
+                                          {{ data.updater.first_name }} {{ data.updater.last_name || '' }}
+                                      </div>
+                                  </div>
                               </div>
                           </div>
-                          <span v-else class="text-[9px] font-black text-slate-300 italic">{{ t[currentLang].system }}</span>
 
                           <!-- Custom Action Hub -->
                           <!-- Show full actions for standalone questions OR first card of a passage group -->
@@ -986,8 +1054,17 @@ onMounted(fetchData);
       </div>
 
       <!-- Loading -->
-      <div v-if="isLoadingPreview" class="flex-1 flex items-center justify-center py-20">
-        <ProgressSpinner />
+      <div v-if="isLoadingPreview" class="flex-1 flex flex-col gap-4 p-6 animate-pulse">
+        <div class="flex gap-3 items-center">
+          <Skeleton width="4rem" height="1.5rem" borderRadius="0.5rem" />
+          <Skeleton width="12rem" height="1rem" borderRadius="0.375rem" />
+        </div>
+        <Skeleton width="100%" height="2.5rem" borderRadius="0.75rem" />
+        <Skeleton width="90%" height="1rem" borderRadius="0.375rem" />
+        <Skeleton width="75%" height="1rem" borderRadius="0.375rem" />
+        <div class="grid grid-cols-2 gap-3 mt-2">
+          <Skeleton v-for="i in 4" :key="i" width="100%" height="2.75rem" borderRadius="0.75rem" />
+        </div>
       </div>
 
       <!-- Exam Split Screen -->

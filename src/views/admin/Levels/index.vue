@@ -11,7 +11,7 @@ import Select from 'primevue/select';
 import InputText from 'primevue/inputtext';
 
 import Tag from 'primevue/tag';
-import ProgressSpinner from 'primevue/progressspinner';
+import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
 
 
 const { showAlert, showConfirm } = useModal();
@@ -148,9 +148,8 @@ onMounted(fetchData);
         <div class="w-full">
             
             <!-- Loading Spinner -->
-            <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
+            <div v-if="loading" class="mt-6 px-4 md:px-8">
+                <CardListSkeleton :rows="6" />
             </div>
 
             <!-- Main Content -->

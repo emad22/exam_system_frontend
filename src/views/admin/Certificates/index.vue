@@ -7,7 +7,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
-import ProgressSpinner from 'primevue/progressspinner';
+import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import DatePicker from 'primevue/datepicker';
 
@@ -201,10 +201,8 @@ const deleteCertificate = async (cert) => {
         <div class="w-full">
 
             <!-- Loading Indicator -->
-            <div v-if="isLoading && certificates.data.length === 0"
-                class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
+            <div v-if="isLoading && certificates.data.length === 0" class="mt-6 px-4 md:px-8">
+                <CardListSkeleton :rows="6" />
             </div>
 
             <div v-else
@@ -323,8 +321,8 @@ const deleteCertificate = async (cert) => {
 
                 <!-- Premium DataTable Card -->
                 <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mt-6">
-                    <DataTable v-model:selection="selectedCertificates" :value="certificates.data" :loading="isLoading" :rows="certificates.per_page" lazy
-                        :totalRecords="certificates.total" @page="onPage" paginator class="p-datatable-sm text-sm"
+                    <DataTable v-model:selection="selectedCertificates" :value="certificates.data" :loading="isLoading" :rows="certificates.meta?.per_page ?? 20" lazy
+                        :totalRecords="certificates.meta?.total ?? 0" @page="onPage" paginator class="p-datatable-sm text-sm"
                         responsiveLayout="scroll" dataKey="id">
 
                         <!-- Selection Checkbox Column -->

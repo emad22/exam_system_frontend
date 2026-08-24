@@ -28,17 +28,21 @@ const packages = ref([]);
 const package_id = ref(null);
 const skills = ref([]);
 const assigned_skills = ref([]);
+const examCategories = ref([]);
+const exam_category_id = ref(null);
 
 const fetchData = async () => {
     try {
-        const [pRes, pkgRes, sRes] = await Promise.all([
+        const [pRes, pkgRes, sRes, catRes] = await Promise.all([
             api.get('/admin/partners/active'),
             api.get('/admin/packages'),
             api.get('/admin/skills'),
+            api.get('/admin/exam-categories'),
         ]);
         partners.value = pRes.data;
         packages.value = pkgRes.data;
         skills.value = sRes.data;
+        examCategories.value = catRes.data?.data ?? catRes.data;
     } catch (e) {
         console.error('Failed to load batch prerequisites', e);
     }
@@ -69,6 +73,7 @@ const triggerUpload = async () => {
     formData.append('file', selectedFile.value);
     formData.append('partner_id', partner_id.value);
     if (package_id.value) formData.append('package_id', package_id.value);
+    if (exam_category_id.value) formData.append('exam_category_id', exam_category_id.value);
     if (assigned_skills.value.length > 0) {
         formData.append('assigned_skills', JSON.stringify(assigned_skills.value));
     }
@@ -97,6 +102,7 @@ const reset = () => {
     uploadErrors.value = [];
     partner_id.value = '';
     package_id.value = null;
+    exam_category_id.value = null;
     assigned_skills.value = [];
     successMsg.value = '';
 };
@@ -217,8 +223,8 @@ const steps = [
             <!-- ── Step 1: Configure ───────────────────────────────────────── -->
             <div v-if="step === 1" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                <!-- Row 1: Partner + Package -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Row 1: Partner + Package + Exam Category -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                     <!-- Partner Selection -->
                     <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-5">
@@ -238,13 +244,14 @@ const steps = [
                             optionLabel="partner_name"
                             optionValue="id"
                             placeholder="Select a partner..."
+                            filter
                             class="w-full"
                         />
                     </div>
 
                     <!-- Package Selection -->
                     <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-5">
-                        <div class="flex items-center gap-3">
+                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center text-white shadow-md shadow-violet-200">
                                 <i class="pi pi-box text-sm"></i>
                             </div>
@@ -252,14 +259,38 @@ const steps = [
                                 <p class="text-xs font-black text-slate-800 uppercase tracking-widest">Package</p>
                                 <p class="text-[10px] font-bold text-slate-400">Global package for all students</p>
                             </div>
-                            <span class="ml-auto text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">Optional</span>
+                            <span class="ml-auto text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg border border-slate-100"></span>
                         </div>
                         <Select
                             v-model="package_id"
                             :options="packages"
                             optionLabel="name"
                             optionValue="id"
-                            placeholder="Select a package..."
+                            placeholder="Select a package......"
+                            filter
+                            class="w-full"
+                        />
+                    </div>
+
+                    <!-- Exam Category Selection -->
+                    <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-md shadow-amber-200">
+                                <i class="pi pi-tags text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-black text-slate-800 uppercase tracking-widest">Exam Category</p>
+                                <p class="text-[10px] font-bold text-slate-400">Override category for all students</p>
+                            </div>
+                            <span class="ml-auto text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg border border-slate-100"></span>
+                        </div>
+                        <Select
+                            v-model="exam_category_id"
+                            :options="examCategories"
+                            optionLabel="name"
+                            optionValue="id"
+                            placeholder="Select a category..."
+                            filter
                             class="w-full"
                         />
                     </div>

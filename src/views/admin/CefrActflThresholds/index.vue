@@ -11,7 +11,7 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
 import ToggleSwitch from 'primevue/toggleswitch';
-import ProgressSpinner from 'primevue/progressspinner';
+import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -211,9 +211,6 @@ onMounted(loadThresholds);
 
 <template>
   <AdminLayout>
-    <Toast />
-    <ConfirmDialog />
-
     <div class="w-full space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-6 px-4 md:px-8 pb-24">
 
       <!-- ── Header ──────────────────────────────────────────────────────── -->
@@ -318,9 +315,8 @@ onMounted(loadThresholds);
         </div>
 
         <!-- ── Table ──────────────────────────────────────────────────────── -->
-        <div v-if="loading" class="flex items-center justify-center py-24 gap-3">
-          <ProgressSpinner class="!w-8 !h-8" />
-          <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading thresholds…</span>
+        <div v-if="loading" class="mt-6 px-2">
+          <TableSkeleton :rows="5" :columns="4" :showToolbar="false" />
         </div>
 
         <div v-else class="overflow-x-auto">

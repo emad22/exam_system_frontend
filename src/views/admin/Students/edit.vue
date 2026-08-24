@@ -12,7 +12,7 @@ import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import DatePicker from 'primevue/datepicker';
-import ProgressSpinner from 'primevue/progressspinner';
+import FormSkeleton from '@/components/skeletons/FormSkeleton.vue';
 
 const { showAlert, showConfirm } = useModal();
 
@@ -344,10 +344,8 @@ onMounted(() => {
             class="w-full">
 
             <!-- Loading -->
-            <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
-                <ProgressSpinner />
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t[currentLang].queryLoading }}
-                </p>
+            <div v-if="loading" class="mt-6 px-4 md:px-8">
+                <FormSkeleton :fieldsCount="10" />
             </div>
 
             <div v-else class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-24 mt-6 px-4 md:px-8">
@@ -395,7 +393,7 @@ onMounted(() => {
                             severity="secondary"
                             outlined
                             class="text-xs font-extrabold uppercase tracking-wider rounded-xl border border-slate-200"
-                            @click="router.push('/admin/students')"
+                            @click="router.back()"
                         />
                     </div>
                 </div>

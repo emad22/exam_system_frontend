@@ -11,8 +11,10 @@ import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
 import Dialog from 'primevue/dialog'
+import { useToast } from 'primevue/usetoast'
 
 const { resolveUrl } = useMediaUrl()
+const toast = useToast()
 
 const route  = useRoute()
 const router = useRouter()
@@ -56,7 +58,23 @@ const t = {
 const attempt  = ref(null)
 const skills   = ref([])
 const grades = ref({})
-const attemptJustCompleted = ref(false)
+
+// ── HTML Entity Decoder ──────────────────────────────────────────────────────
+// Handles double-encoded HTML from backend (e.g. &lt;p&gt; → <p>)
+function decodeHtml(str) {
+    if (!str) return ''
+    let decoded = str
+    let prev = ''
+    let count = 0
+    while (decoded !== prev && (decoded.includes('&lt;') || decoded.includes('&amp;') || decoded.includes('&#')) && count < 3) {
+        prev = decoded
+        const el = document.createElement('textarea')
+        el.innerHTML = decoded
+        decoded = el.value
+        count++
+    }
+    return decoded
+}
 
 // ── Rubric Evaluator State ───────────────────────────────────────────────────
 const activeRubrics = ref({ criteria: [], categories: [], max_total: 900 })
@@ -186,16 +204,13 @@ const submitSkillGrades = async (skill) => {
             grading_details:  grades.value[ans.id]?.grading_details || null,
         }))
 
-        const res = await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
+        await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
 
-        // If the server completed the attempt, show a guide then redirect to its report
-        if (res.data?.attempt_status === 'completed') {
-            attemptJustCompleted.value = true
-        } else {
-            goBackToGrading()
-        }
+        toast.add({ severity: 'success', summary: 'تم', detail: 'تم حفظ الدرجات بنجاح', life: 2000 })
+        setTimeout(() => goBackToGrading(), 500)
     } catch (err) {
         console.error('Failed to save skill grades', err)
+        toast.add({ severity: 'error', summary: 'خطأ', detail: 'حدث خطأ أثناء حفظ الدرجات', life: 3000 })
     } finally {
         savingSkillKey.value = null
     }
@@ -236,15 +251,13 @@ const submitGrades = async () => {
             })
         }
 
-        const res = await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
+        await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
 
-        if (res.data?.attempt_status === 'completed') {
-            attemptJustCompleted.value = true
-        } else {
-            goBackToGrading()
-        }
+        toast.add({ severity: 'success', summary: 'تم', detail: 'تم حفظ جميع الدرجات بنجاح', life: 2000 })
+        setTimeout(() => goBackToGrading(), 500)
     } catch (err) {
         console.error('Failed to save grades', err)
+        toast.add({ severity: 'error', summary: 'خطأ', detail: 'حدث خطأ أثناء حفظ الدرجات', life: 3000 })
     } finally {
         saving.value = false
     }
@@ -357,37 +370,6 @@ onMounted(fetchAttempt)
             <div v-if="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
                 <i class="pi pi-spin pi-spinner text-4xl text-brand-primary"></i>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ t.loading }}</p>
-            </div>
-
-            <!-- ✅ Attempt Just Completed Banner -->
-            <div v-if="attemptJustCompleted" class="w-full px-4 md:px-10 pt-8">
-                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-[2rem] p-8 shadow-xl shadow-emerald-900/20 text-white">
-                    <div class="flex flex-col sm:flex-row items-center gap-6">
-                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-                            <i class="pi pi-check-circle text-4xl text-white"></i>
-                        </div>
-                        <div class="flex-1 text-center sm:text-left">
-                            <h2 class="text-xl font-black mb-1">🎓 Attempt Completed & Certificate Ready!</h2>
-                            <p class="text-emerald-100 text-sm font-semibold">
-                                All manual answers have been graded. The attempt status is now <strong>Completed</strong> and a certificate has been automatically generated.
-                            </p>
-                        </div>
-                        <div class="flex flex-col sm:flex-row gap-3 flex-shrink-0">
-                            <button
-                                @click="$router.push(`/admin/reports/${route.params.id}`)"
-                                class="bg-white text-emerald-700 font-black text-xs px-5 py-3 rounded-xl hover:bg-emerald-50 transition-colors shadow-md"
-                            >
-                                <i class="pi pi-file-check mr-2"></i> View Report & Certificate
-                            </button>
-                            <button
-                                @click="goBackToGrading()"
-                                class="bg-white/20 text-white font-black text-xs px-5 py-3 rounded-xl hover:bg-white/30 transition-colors border border-white/30"
-                            >
-                                Back to Grading Desk
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div v-else-if="attempt" class="w-full space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-32 px-4 md:px-10">
@@ -537,7 +519,7 @@ onMounted(fetchAttempt)
                                     <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-3">{{ t.questionPrompt }}</p>
                                     <div v-if="ans.question?.content"
                                         class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
-                                        v-html="ans.question.content"></div>
+                                        v-html="decodeHtml(ans.question.content)"></div>
                                     <div v-else-if="ans.question?.image_url || ans.question?.image_path"
                                         class="flex justify-center">
                                         <img :src="resolveUrl(ans.question.image_url || ans.question.image_path)"
@@ -554,7 +536,7 @@ onMounted(fetchAttempt)
                                         <p v-if="ans.question.passage.title" class="text-slate-200 font-black text-sm">{{ ans.question.passage.title }}</p>
                                         <div v-if="ans.question.passage.content"
                                             class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
-                                            v-html="ans.question.passage.content"></div>
+                                            v-html="decodeHtml(ans.question.passage.content)"></div>
                                         <p v-else class="text-slate-400 italic text-xs">{{ t.noContent }}</p>
                                     </div>
                                     <p v-else class="text-slate-400 italic text-xs">{{ t.noContent }}</p>
@@ -565,8 +547,8 @@ onMounted(fetchAttempt)
                                     <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-4">{{ t.studentAnswer }}</p>
                                     
                                     <div v-if="ans.text_answer"
-                                        class="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap font-medium" dir="auto"
-                                        v-html="ans.text_answer"></div>
+                                        class="prose prose-sm max-w-none text-slate-700 leading-relaxed font-medium" dir="auto"
+                                        v-html="decodeHtml(ans.text_answer)"></div>
                                     
                                     <div v-if="['writing', 'short_answer'].includes(ans.question?.type) && ans.word_count !== null && ans.word_count !== undefined"
                                         class="mt-4 pt-4 border-t border-slate-200 flex items-center gap-3">
@@ -712,7 +694,7 @@ onMounted(fetchAttempt)
             </div>
 
             <!-- Not found -->
-            <div v-else class="text-center py-32 text-slate-400 bg-white rounded-[2rem] border border-slate-100 shadow-sm max-w-md mx-auto mt-20">
+            <div v-else-if="!loading" class="text-center py-32 text-slate-400 bg-white rounded-[2rem] border border-slate-100 shadow-sm max-w-md mx-auto mt-20">
                 <i class="pi pi-exclamation-triangle text-5xl mb-4 block text-amber-500"></i>
                 <p class="font-black text-lg tracking-tight">{{ t.attemptNotFound }}</p>
             </div>
@@ -790,7 +772,7 @@ onMounted(fetchAttempt)
                                 v-if="currentRubricAnswer.text_answer"
                                 class="prose prose-invert prose-sm max-w-none text-slate-200 leading-relaxed font-medium overflow-y-auto pr-2"
                                 dir="auto"
-                                v-html="currentRubricAnswer.text_answer"
+                                v-html="decodeHtml(currentRubricAnswer.text_answer)"
                             ></div>
                             <p v-else class="text-slate-400 italic text-sm">No written text submitted.</p>
                         </div>
