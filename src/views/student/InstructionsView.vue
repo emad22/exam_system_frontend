@@ -169,6 +169,20 @@ const SKILL_SPECIFIC_INSTRUCTIONS = {
             '<strong>How will it be conducted?</strong><br>The test will be conducted by a human examiner via MS Teams.'
         ]
     },
+    'live speaking': {
+        title: 'Live Speaking Interview',
+        subtitle: 'Get ready for your live speaking session with an examiner.',
+        isAdaptive: false,
+        hideOverview: true,
+        icon: 'pi pi-video',
+        overviewSubtitle: '',
+        overviewCards: [],
+        tips: [
+            '<strong>What is measured in this test?</strong><br>The Speaking test measures your ability to communicate orally in Modern Standard Arabic.',
+            '<strong>What does it cover?</strong><br>Topics covered in the test vary between daily life, sports, jobs, society, health issues, economy, etc.',
+            '<strong>How will it be conducted?</strong><br>The test will be conducted by a human examiner via MS Teams.'
+        ]
+    },
     speaking: {
         title: 'Speaking',
         subtitle: 'Get ready to assess your speaking skills.',
