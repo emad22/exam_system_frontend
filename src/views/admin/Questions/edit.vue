@@ -910,8 +910,8 @@ const updateBatch = async () => {
                 is_correct: opt.is_correct,
                 dir: opt.dir || 'ltr',
                 font_size: opt.font_size || null,
-                clear_audio: opt.clear_audio || false,
-                clear_image: opt.clear_image || false
+                clear_audio: opt.audio instanceof File ? false : (opt.clear_audio || false),
+                clear_image: opt.image instanceof File ? false : (opt.clear_image || false)
             }))
         }));
         fd.append('questions', JSON.stringify(cleanQuestions));
@@ -934,7 +934,7 @@ const updateBatch = async () => {
         await api.post(`/admin/questions/${questionId}`, fd, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        await showAlert(t[currentLang.value].saveSuccessMsg, currentLang.value === 'ar' ? 'ØªÙ… Ø§Ù„ØªØ¹Ø¯ÙŠÙ„' : 'Saved', 'success');
+        await showAlert(t[currentLang.value].saveSuccessMsg, currentLang.value === 'ar' ? 'تم التعديل' : 'Saved', 'success');
         const isTeacher = adminStore.user?.role === 'teacher';
         router.push({ name: isTeacher ? 'teacher.questions' : 'admin.questions' });
     } catch (err) {
@@ -953,6 +953,7 @@ const handleOptionImageChange = (e, qIdx, oIdx) => {
     revokeIfBlob(opt.image_preview);
     opt.image = file;
     opt.image_preview = URL.createObjectURL(file);
+    opt.clear_image = false;
 };
 
 const triggerOptionImage = (qIdx, oIdx) => {

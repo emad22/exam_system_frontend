@@ -344,9 +344,9 @@ onUnmounted(() => {
                 class="flex flex-col md:flex-row items-end justify-between mb-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0 border-b border-slate-100 pb-4">
                 <div>
                     <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase leading-tight">
-                        Arabic Language Proficiency Test (ALPT)</h1>
+                        {{ exams[0]?.title || 'Loading...' }}</h1>
                     <p class="text-slate-400 font-bold text-[9px] uppercase tracking-[0.3em] mt-2">Select a skill to
-                        begin your ALPT</p>
+                        begin your exam</p>
                 </div>
 
                 <div class="flex items-center gap-3">

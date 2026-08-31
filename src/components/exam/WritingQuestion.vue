@@ -28,7 +28,7 @@ const props = defineProps({
 const { resolveUrl } = useMediaUrl();
 const emit = defineEmits(['update:answer']);
 
-const activeTab = ref('write'); // 'write' or 'upload'
+const activeTab = ref('upload'); // 'write' or 'upload'
 const hasStartedWriting = ref(false); // Controls the active view screens
 
 const textAnswer = computed({
@@ -319,18 +319,18 @@ onUnmounted(() => {
 
                 <!-- Tabs -->
                 <div class="flex items-center gap-8 px-4">
-                    <button @click="activeTab = 'write'"
-                        class="pb-3 text-sm font-black flex items-center gap-2 transition-all relative"
-                        :class="activeTab === 'write' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'">
-                        <i class="pi pi-pen-to-square text-base"></i> Write Text
-                        <div v-if="activeTab === 'write'"
-                            class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
-                    </button>
                     <button @click="activeTab = 'upload'"
                         class="pb-3 text-sm font-black flex items-center gap-2 transition-all relative"
                         :class="activeTab === 'upload' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'">
                         <i class="pi pi-cloud-upload text-base"></i> Upload File
                         <div v-if="activeTab === 'upload'"
+                            class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+                    </button>
+                    <button @click="activeTab = 'write'"
+                        class="pb-3 text-sm font-black flex items-center gap-2 transition-all relative"
+                        :class="activeTab === 'write' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'">
+                        <i class="pi pi-pen-to-square text-base"></i> Write Text
+                        <div v-if="activeTab === 'write'"
                             class="absolute -bottom-2.5 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
                     </button>
                 </div>

@@ -145,13 +145,28 @@ const SKILL_SPECIFIC_INSTRUCTIONS = {
             { title: 'Topic selection', icon: 'pi pi-list' },
             { title: 'Handwritten essay', icon: 'pi pi-pencil' },
             { title: '250-word composition', icon: 'pi pi-align-left' },
-            { title: 'Email submission', icon: 'pi pi-envelope' }
+            { title: 'Upload submission', icon: 'pi pi-cloud-upload' }
         ],
         tips: [
             '<strong>What measures this section?</strong><br>The Writing Part measures your ability to write in Modern Standard Arabic.',
             '<strong>Delivery:</strong><br>This test is to be completed by hand. You are given a number of topics. Select one topic and write a composition of 250 words on your answer sheet.',
-            '<strong>Finalizing:</strong><br>After completing your composition, make sure your full name and other required details are written on your answer sheet before submitting it by email to the examiner.',
-            '<strong>Test Activation:</strong><br>Click the <strong>Start the Test</strong> button only at the scheduled test time; otherwise, the test will be marked as <strong>Taken.</strong>'
+            '<strong>Finalizing:</strong><br>After completing your composition, make sure your full name and other required details are written on your answer sheet before uploading it to the system.',
+            '<strong>Test Activation:</strong><br>Click the <strong>Start the Test</strong> button only at the scheduled test time; otherwise, the test will be marked as <strong>Taken.</strong>',
+            '<strong>Accepted file format:</strong><br>Images (PNG, JPG, JPEG...) or Documents (PDF, DOCX, DOC...)<br>Max size per file: 50 MB'
+        ]
+    },
+    'live speaking': {
+        title: 'Live Speaking Interview',
+        subtitle: 'Get ready for your live speaking session with an examiner.',
+        isAdaptive: false,
+        hideOverview: true,
+        icon: 'pi pi-video',
+        overviewSubtitle: '',
+        overviewCards: [],
+        tips: [
+            '<strong>What is measured in this test?</strong><br>The Speaking test measures your ability to communicate orally in Modern Standard Arabic.',
+            '<strong>What does it cover?</strong><br>Topics covered in the test vary between daily life, sports, jobs, society, health issues, economy, etc.',
+            '<strong>How will it be conducted?</strong><br>The test will be conducted by a human examiner via MS Teams.'
         ]
     },
     speaking: {
@@ -196,8 +211,17 @@ const SKILL_SPECIFIC_INSTRUCTIONS = {
 
 const getSkillSpecificInstructions = (name) => {
     if (!name) return SKILL_SPECIFIC_INSTRUCTIONS.default;
-    const lowerName = name.toLowerCase().replace('writting', 'writing');
-    const matchedKey = Object.keys(SKILL_SPECIFIC_INSTRUCTIONS).find(key => lowerName.includes(key));
+    // Normalize: lowercase, fix typos, collapse multiple spaces
+    const lowerName = name.toLowerCase()
+        .replace('writting', 'writing')
+        .replace(/[_-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    // Sort keys by length descending so more-specific keys (e.g. 'live speaking') match before 'speaking'
+    const sortedKeys = Object.keys(SKILL_SPECIFIC_INSTRUCTIONS)
+        .filter(k => k !== 'default')
+        .sort((a, b) => b.length - a.length);
+    const matchedKey = sortedKeys.find(key => lowerName.includes(key));
     return matchedKey ? SKILL_SPECIFIC_INSTRUCTIONS[matchedKey] : SKILL_SPECIFIC_INSTRUCTIONS.default;
 };
 </script>
@@ -247,28 +271,29 @@ const getSkillSpecificInstructions = (name) => {
                         <div class="w-12 h-12 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin"></div>
                     </div>
 
-                    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                    <div v-else :class="getSkillSpecificInstructions(skill?.name).hideOverview ? 'max-w-3xl mx-auto w-full flex flex-col' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8'">
                         
-                        <!-- Left Layout: TEST OVERVIEW and 4 Cards, plus Adaptive alert box -->
-                        <div class="flex flex-col space-y-4 justify-start">
+                        <!-- Left Layout: TEST OVERVIEW and 4 Cards, plus Adaptive alert box (Shown only if overview is not hidden) -->
+                        <div v-if="!getSkillSpecificInstructions(skill?.name).hideOverview" class="flex flex-col space-y-4 justify-start">
+
+                            <!-- Section Title: TEST OVERVIEW with Dynamic Skill Icon -->
                             <div>
-                                <!-- Section Title: TEST OVERVIEW with Dynamic Skill Icon -->
                                 <div class="flex items-center gap-3 mb-4">
                                     <div class="w-10 h-10 rounded-xl bg-[#F0F6FC] flex items-center justify-center shrink-0 border border-slate-100">
                                         <i :class="[getSkillSpecificInstructions(skill?.name).icon, 'text-blue-600 text-sm']"></i>
                                     </div>
                                     <h2 class="text-lg font-bold text-slate-800 tracking-tight">TEST OVERVIEW</h2>
                                 </div>
-                                
+
                                 <!-- Overview Subtitle -->
                                 <p class="text-slate-500 text-sm font-medium mb-4">
                                     {{ getSkillSpecificInstructions(skill?.name).overviewSubtitle }}
                                 </p>
 
-                                <!-- Grid of 4 Cards: clean layouts with centered icons and labels -->
+                                <!-- Grid of 4 Cards -->
                                 <div class="grid grid-cols-4 gap-3 md:gap-4">
-                                    <div v-for="(card, index) in getSkillSpecificInstructions(skill?.name).overviewCards" 
-                                         :key="index" 
+                                    <div v-for="(card, index) in getSkillSpecificInstructions(skill?.name).overviewCards"
+                                         :key="index"
                                          class="bg-[#F8FBFC] border border-slate-100 rounded-xl p-3 md:p-4 lg:p-5 flex flex-col items-center text-center justify-center min-h-[120px] lg:min-h-[135px] transition-transform duration-200 hover:-translate-y-0.5 shadow-sm">
                                         <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-blue-500 mb-3 border border-slate-50">
                                             <i :class="[card.icon, 'text-base font-semibold']"></i>
@@ -298,41 +323,48 @@ const getSkillSpecificInstructions = (name) => {
                             </div>
                         </div>
 
-                        <!-- Right Layout: IMPORTANT DIRECTIONS -->
-                        <div class="bg-[#FBFCFD] rounded-3xl p-4 md:p-6 border border-slate-100 shadow-sm flex flex-col">
+                        <!-- Right / Main Layout: IMPORTANT DIRECTIONS -->
+                        <div class="bg-[#FBFCFD] rounded-3xl border border-slate-100 shadow-sm flex flex-col"
+                             :class="getSkillSpecificInstructions(skill?.name).hideOverview ? 'p-6 md:p-8 space-y-6' : 'p-4 md:p-6'">
                             <!-- Header for column -->
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                                    <i class="pi pi-sparkles text-emerald-500 text-sm"></i>
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
+                                    <i class="pi pi-sparkles text-emerald-600 text-sm"></i>
                                 </div>
-                                <h2 class="text-base font-bold text-slate-800 tracking-tight uppercase">IMPORTANT DIRECTIONS</h2>
+                                <h2 :class="getSkillSpecificInstructions(skill?.name).hideOverview ? 'text-lg font-bold text-slate-800 tracking-tight uppercase' : 'text-base font-bold text-slate-800 tracking-tight uppercase'">
+                                    IMPORTANT DIRECTIONS
+                                </h2>
                             </div>
 
-                            <!-- Scrollable list: displays the first 2 items and allows internal scrollbar for remaining items (Font size: 12px) -->
-                            <div class="flex-grow max-h-[175px] overflow-y-auto pr-2 space-y-4 custom-vertical-scrollbar">
+                            <!-- Scrollable list / Full list -->
+                            <div class="flex-grow overflow-y-auto pr-2 custom-vertical-scrollbar"
+                                 :class="getSkillSpecificInstructions(skill?.name).hideOverview ? 'space-y-5 max-h-[260px]' : 'space-y-4 max-h-[175px]'">
                                 <div v-for="(tip, index) in getSkillSpecificInstructions(skill?.name).tips" 
                                      :key="index" 
-                                     class="flex items-start gap-4">
+                                     class="flex items-start gap-4 bg-white/70 p-3.5 rounded-2xl border border-slate-100/80 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.04)]">
                                     
                                     <!-- Green Circular Number Badge -->
-                                    <div class="w-6 h-6 rounded-full bg-[#E6F4EA] flex items-center justify-center shrink-0 text-[12px] font-bold text-emerald-600 border border-[#CEEAD6]">
+                                    <div class="w-7 h-7 rounded-full bg-[#E6F4EA] flex items-center justify-center shrink-0 text-xs font-bold text-emerald-700 border border-[#CEEAD6] shadow-sm">
                                         {{ index + 1 }}
                                     </div>
 
                                     <!-- Tip Details with Mixed Casing and Proper Spacing -->
-                                    <div class="instruction-tip text-slate-700 text-[12px] font-medium leading-relaxed pt-0.5" 
+                                    <div class="instruction-tip text-slate-700 font-medium leading-relaxed pt-0.5" 
+                                         :class="getSkillSpecificInstructions(skill?.name).hideOverview ? 'text-[13px] md:text-sm' : 'text-[12px]'"
                                          v-html="tip">
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- System Ready Box -->
-                            <div class="mt-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm shrink-0">
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm shrink-0"
+                                 :class="getSkillSpecificInstructions(skill?.name).hideOverview ? 'mt-2' : 'mt-4'">
                                 <div class="flex items-center gap-2.5 mb-2">
                                     <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">System Ready</span>
                                 </div>
-                                <p class="text-[11px] font-medium text-slate-500 leading-normal">
+                                <p class="font-medium text-slate-500 leading-normal"
+                                   :class="getSkillSpecificInstructions(skill?.name).hideOverview ? 'text-xs md:text-[13px]' : 'text-[11px]'">
                                     All technical requirements met. You are ready to start the {{ getSkillDisplayName(skill?.name) }} section.
                                 </p>
                             </div>
@@ -394,7 +426,7 @@ const getSkillSpecificInstructions = (name) => {
     color: #1e293b;
     display: inline-block;
     margin-bottom: 0.25rem;
-    font-size: 12px;
+    font-size: inherit;
 }
 
 .instruction-tip :deep(strong) + br,
