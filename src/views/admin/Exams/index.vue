@@ -15,6 +15,10 @@ import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
 import InputNumber from 'primevue/inputnumber';
+import DatePicker from 'primevue/datepicker';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
+import { watch } from 'vue';
 
 const { showAlert, showConfirm } = useModal();
 
@@ -22,6 +26,8 @@ const router = useRouter();
 const exams = ref([]);
 const loading = ref(true);
 const searchQuery = ref('');
+const dateFrom = ref(null);
+const dateTo = ref(null);
 
 const t = {
     loading: "Loading exams...",
@@ -64,14 +70,54 @@ const t = {
 };
 
 const filteredExams = computed(() => {
-    if (!searchQuery.value) return exams.value;
-    const query = searchQuery.value.toLowerCase();
-    return exams.value.filter(e => {
-        const title = (e.title || '').toLowerCase();
-        const desc = (e.description || '').toLowerCase();
-        const cat = (e.category?.name || '').toLowerCase();
-        return title.includes(query) || desc.includes(query) || cat.includes(query);
-    });
+    let result = exams.value;
+
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(e => {
+            const title = (e.title || '').toLowerCase();
+            const desc = (e.description || '').toLowerCase();
+            const cat = (e.category?.name || '').toLowerCase();
+            return title.includes(query) || desc.includes(query) || cat.includes(query);
+        });
+    }
+
+    if (dateFrom.value) {
+        const fromTime = new Date(dateFrom.value).setHours(0, 0, 0, 0);
+        result = result.filter(e => {
+            if (!e.created_at) return false;
+            return new Date(e.created_at).getTime() >= fromTime;
+        });
+    }
+
+    if (dateTo.value) {
+        const toTime = new Date(dateTo.value).setHours(23, 59, 59, 999);
+        result = result.filter(e => {
+            if (!e.created_at) return false;
+            return new Date(e.created_at).getTime() <= toTime;
+        });
+    }
+
+    return result;
+});
+
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+
+watch([searchQuery, dateFrom, dateTo], () => {
+    currentPage.value = 1;
+});
+
+const resetFilters = () => {
+    searchQuery.value = '';
+    dateFrom.value = null;
+    dateTo.value = null;
+    currentPage.value = 1;
+};
+
+const paginatedExams = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredExams.value.slice(start, start + rowsPerPage.value);
 });
 
 const stats = computed(() => {
@@ -216,32 +262,21 @@ onMounted(fetchExams);
                     </div>
                 </div>
 
-                <div v-if="exams.length > 0 || searchQuery" class="space-y-6">
+                <div v-if="exams.length > 0 || searchQuery || dateFrom || dateTo" class="space-y-6">
                     
-                    <!-- Integrated Search & HUD Stats -->
-                    <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6 justify-between">
-                        <div class="relative w-full max-w-xl">
-                            <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
-                            <InputText v-model="searchQuery" :placeholder="t.placeholderSearch" class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
-                        </div>
-                        
-                        <div class="hidden md:flex items-center gap-6 border-s border-slate-100 ps-6">
-                            <div class="flex flex-col items-end">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t.totalExams }}</span>
-                                <span class="text-lg font-black text-slate-800 mt-0.5">{{ exams.length }} {{ t.active }}</span>
-                            </div>
-                            <div class="w-px h-8 bg-slate-100"></div>
-                            <div class="flex flex-col items-end">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ t.defaultExams }}</span>
-                                <span class="text-lg font-black text-brand-primary mt-0.5">{{ stats.defaultExams }} {{ t.mapped }}</span>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Filter Bar -->
+                    <FilterBar
+                        v-model="searchQuery"
+                        :search-placeholder="t.placeholderSearch"
+                        v-model:dateFrom="dateFrom"
+                        v-model:dateTo="dateTo"
+                        @reset="resetFilters"
+                    />
 
                     <!-- Premium DataTable Card -->
                     <Card class="border border-slate-100 shadow-sm rounded-[2rem] overflow-hidden pb-4 bg-white">
                         <template #content>
-                            <DataTable :value="filteredExams" dataKey="id" paginator :rows="10" 
+                            <DataTable :value="paginatedExams" dataKey="id"
                                 class="p-datatable-sm text-sm" responsiveLayout="scroll">
 
                                 <!-- Exam Information Column -->
@@ -323,6 +358,9 @@ onMounted(fetchExams);
                                     </template>
                                 </Column>
                             </DataTable>
+
+                            <!-- Pagination -->
+                            <CustomPagination :totalRecords="filteredExams.length" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" />
                         </template>
                     </Card>
                 </div>

@@ -12,6 +12,7 @@ import InputText from 'primevue/inputtext';
 
 import Tag from 'primevue/tag';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
+import FilterBar from '@/components/FilterBar.vue';
 
 
 const { showAlert, showConfirm } = useModal();
@@ -176,23 +177,19 @@ onMounted(fetchData);
                      </div>
                  </div>
 
-                 <!-- Premium Search & Filters -->
-                 <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-                     <div class="flex items-center space-x-4 w-full md:w-auto bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex-shrink-0 mx-2">
-                             {{ t.domainFilter }}
-                         </span>
-                         <Select v-model="selectedSkill" :options="skills" optionLabel="name"
-                             :placeholder="t.allDomains"
-                             class="w-full md:w-64 rounded-xl border-none bg-white text-xs font-bold shadow-sm"
-                             showClear />
-                     </div>
-                     <div class="w-full md:w-80 relative">
-                         <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
-                         <InputText v-model="searchQuery" :placeholder="t.placeholderSearch"
-                             class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
-                     </div>
-                 </div>
+                 <!-- Filter Bar -->
+                 <FilterBar
+                     v-model="searchQuery"
+                     :search-placeholder="t.placeholderSearch"
+                     :show-date-filter="false"
+                     :active-count="selectedSkill ? 1 : 0"
+                     @reset="searchQuery = ''; selectedSkill = null"
+                 >
+                     <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+                     <Select v-model="selectedSkill" :options="skills" optionLabel="name"
+                         :placeholder="t.allDomains" showClear
+                         class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[180px] hover:!border-brand-primary/30 transition-all flex items-center" />
+                 </FilterBar>
 
                  <!-- Page Registry (DataTable in Card) -->
                  <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">

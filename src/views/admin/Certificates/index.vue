@@ -10,6 +10,8 @@ import Select from 'primevue/select';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import DatePicker from 'primevue/datepicker';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
 
 const certificates = ref({ data: [] });
 const isLoading = ref(false);
@@ -20,6 +22,8 @@ const selectedCertificates = ref([]);
 const isDownloadingBulk = ref(false);
 const dateFrom = ref(null);
 const dateTo = ref(null);
+const currentPage = ref(1);
+const rowsPerPage = ref(20);
 
 const t = {
     loading: "Loading certificates...",
@@ -73,6 +77,26 @@ const clearDateFilter = () => {
     fetchCertificates(1);
 };
 
+const resetAllFilters = () => {
+    searchQuery.value = '';
+    selectedPartnerId.value = null;
+    dateFrom.value = null;
+    dateTo.value = null;
+    fetchCertificates(1);
+};
+
+let searchTimeout = null;
+watch(searchQuery, () => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        fetchCertificates(1);
+    }, 400);
+});
+
+watch(selectedPartnerId, () => {
+    fetchCertificates(1);
+});
+
 watch(dateFrom, () => {
     if (dateTo.value && dateFrom.value && dateTo.value < dateFrom.value) {
         dateTo.value = null;
@@ -85,9 +109,10 @@ watch(dateTo, () => {
 });
 
 const fetchCertificates = async (page = 1) => {
+    currentPage.value = page;
     isLoading.value = true;
     try {
-        let url = `/admin/certificates?page=${page}&search=${searchQuery.value}`;
+        let url = `/admin/certificates?page=${page}&per_page=${rowsPerPage.value}&search=${encodeURIComponent(searchQuery.value || '')}`;
         if (selectedPartnerId.value) {
             url += `&partner_id=${selectedPartnerId.value}`;
         }
@@ -236,94 +261,36 @@ const deleteCertificate = async (cert) => {
                     </div>
                 </div>
 
-                <!-- Premium Search & Filter Bar -->
-                <div
-                    class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-                    <!-- Row 1: Search + Partner + Bulk Download -->
-                    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div class="relative w-full md:max-w-md">
-                            <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
-                            <InputText v-model="searchQuery" @input="fetchCertificates(1)"
-                                :placeholder="t.placeholderSearch"
-                                class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
-                        </div>
+                <!-- Filter Bar -->
+                <FilterBar
+                    v-model="searchQuery"
+                    :search-placeholder="t.placeholderSearch"
+                    v-model:dateFrom="dateFrom"
+                    v-model:dateTo="dateTo"
+                    :active-count="selectedPartnerId ? 1 : 0"
+                    @apply="fetchCertificates(1)"
+                    @reset="resetAllFilters"
+                >
+                    <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+                    <Select v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
+                        showClear :placeholder="t.filterPartner" @change="fetchCertificates(1)"
+                        class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[200px] hover:!border-brand-primary/30 transition-all flex items-center" />
 
-                        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-                            <!-- Partner Filter Dropdown -->
-                            <Select v-model="selectedPartnerId" :options="partners" optionLabel="partner_name" optionValue="id"
-                                showClear :placeholder="t.filterPartner" @change="fetchCertificates(1)"
-                                class="w-full md:w-64 text-xs font-bold rounded-2xl border-slate-200" />
-
-                            <!-- Bulk ZIP Download Button -->
-                            <Button
-                                :label="selectedCertificates.length > 0 ? `${t.bulkDownload} (${selectedCertificates.length})` : (selectedPartnerId ? t.bulkDownloadPartner : t.bulkDownload)"
-                                icon="pi pi-file-export"
-                                severity="success"
-                                class="text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm"
-                                :disabled="selectedCertificates.length === 0 && !selectedPartnerId"
-                                :loading="isDownloadingBulk"
-                                @click="bulkDownloadCertificates()" />
-                        </div>
-                    </div>
-
-                    <!-- Row 2: Date Range Filter -->
-                    <div class="flex flex-col md:flex-row items-center gap-3 pt-3 border-t border-slate-100">
-                        <div class="flex items-center gap-2 text-slate-400">
-                            <i class="pi pi-calendar text-sm"></i>
-                            <span class="text-xs font-bold uppercase tracking-wider">{{ t.filterDates }}</span>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-3">
-                            <!-- From Date -->
-                            <div class="flex items-center gap-2">
-                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t.dateFrom }}</label>
-                                <DatePicker
-                                    v-model="dateFrom"
-                                    dateFormat="yy-mm-dd"
-                                    :placeholder="t.dateFrom"
-                                    showIcon
-                                    iconDisplay="input"
-                                    class="text-xs font-bold rounded-2xl"
-                                    inputClass="rounded-2xl border-slate-200 bg-slate-50/50 text-xs font-bold"
-                                    style="width: 170px"
-                                />
-                            </div>
-
-                            <!-- To Date -->
-                            <div class="flex items-center gap-2">
-                                <label class="text-xs font-bold text-slate-500 whitespace-nowrap">{{ t.dateTo }}</label>
-                                <DatePicker
-                                    v-model="dateTo"
-                                    dateFormat="yy-mm-dd"
-                                    :placeholder="t.dateTo"
-                                    :minDate="dateFrom || undefined"
-                                    showIcon
-                                    iconDisplay="input"
-                                    class="text-xs font-bold rounded-2xl"
-                                    inputClass="rounded-2xl border-slate-200 bg-slate-50/50 text-xs font-bold"
-                                    style="width: 170px"
-                                />
-                            </div>
-
-                            <!-- Clear Dates Button -->
-                            <Button
-                                v-if="dateFrom || dateTo"
-                                :label="t.clearDates"
-                                icon="pi pi-times-circle"
-                                severity="secondary"
-                                outlined
-                                size="small"
-                                class="text-xs font-bold rounded-xl"
-                                @click="clearDateFilter()" />
-                        </div>
-                    </div>
-                </div>
+                    <!-- Bulk ZIP Download Button -->
+                    <Button
+                        :label="selectedCertificates.length > 0 ? `${t.bulkDownload} (${selectedCertificates.length})` : (selectedPartnerId ? t.bulkDownloadPartner : t.bulkDownload)"
+                        icon="pi pi-file-export"
+                        severity="success"
+                        class="!text-xs !font-black uppercase tracking-wider !px-4 !h-11 !rounded-2xl shadow-sm shrink-0"
+                        :disabled="selectedCertificates.length === 0 && !selectedPartnerId"
+                        :loading="isDownloadingBulk"
+                        @click="bulkDownloadCertificates()" />
+                </FilterBar>
 
                 <!-- Premium DataTable Card -->
                 <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mt-6">
-                    <DataTable v-model:selection="selectedCertificates" :value="certificates.data" :loading="isLoading" :rows="certificates.meta?.per_page ?? 20" lazy
-                        :totalRecords="certificates.meta?.total ?? 0" @page="onPage" paginator class="p-datatable-sm text-sm"
-                        responsiveLayout="scroll" dataKey="id">
+                    <DataTable v-model:selection="selectedCertificates" :value="certificates.data" :loading="isLoading"
+                        class="p-datatable-sm text-sm" responsiveLayout="scroll" dataKey="id">
 
                         <!-- Selection Checkbox Column -->
                         <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
@@ -432,6 +399,9 @@ const deleteCertificate = async (cert) => {
                             </div>
                         </template>
                     </DataTable>
+
+                    <!-- Pagination -->
+                    <CustomPagination :totalRecords="certificates.total || certificates.meta?.total || 0" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" @pageChange="fetchCertificates(currentPage)" />
                 </div>
             </div>
         </div>

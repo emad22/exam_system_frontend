@@ -7,9 +7,13 @@ import api from '@/services/api';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
+import DatePicker from 'primevue/datepicker';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
+import { watch } from 'vue';
 
 const { showAlert, showConfirm } = useModal();
 
@@ -17,6 +21,8 @@ const router = useRouter();
 const partners = ref([]);
 const loading = ref(true);
 const searchQuery = ref('');
+const dateFrom = ref(null);
+const dateTo = ref(null);
 
 const t = {
     loading: "Loading partners...",
@@ -57,15 +63,55 @@ const t = {
 };
 
 const filteredPartners = computed(() => {
-    if (!searchQuery.value) return partners.value;
-    const query = searchQuery.value.toLowerCase();
-    return partners.value.filter(p => {
-        const name = (p.partner_name || '').toLowerCase();
-        const contact = `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.toLowerCase();
-        const email = (p.user?.email || '').toLowerCase();
-        const website = (p.website || '').toLowerCase();
-        return name.includes(query) || contact.includes(query) || email.includes(query) || website.includes(query);
-    });
+    let result = partners.value;
+
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(p => {
+            const name = (p.partner_name || '').toLowerCase();
+            const contact = `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.toLowerCase();
+            const email = (p.user?.email || '').toLowerCase();
+            const website = (p.website || '').toLowerCase();
+            return name.includes(query) || contact.includes(query) || email.includes(query) || website.includes(query);
+        });
+    }
+
+    if (dateFrom.value) {
+        const fromTime = new Date(dateFrom.value).setHours(0, 0, 0, 0);
+        result = result.filter(p => {
+            if (!p.created_at) return false;
+            return new Date(p.created_at).getTime() >= fromTime;
+        });
+    }
+
+    if (dateTo.value) {
+        const toTime = new Date(dateTo.value).setHours(23, 59, 59, 999);
+        result = result.filter(p => {
+            if (!p.created_at) return false;
+            return new Date(p.created_at).getTime() <= toTime;
+        });
+    }
+
+    return result;
+});
+
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+
+watch([searchQuery, dateFrom, dateTo], () => {
+    currentPage.value = 1;
+});
+
+const resetFilters = () => {
+    searchQuery.value = '';
+    dateFrom.value = null;
+    dateTo.value = null;
+    currentPage.value = 1;
+};
+
+const paginatedPartners = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredPartners.value.slice(start, start + rowsPerPage.value);
 });
 
 const fetchPartners = async () => {
@@ -139,18 +185,18 @@ onMounted(fetchPartners);
                     </div>
                 </div>
 
-                <!-- Premium Search Bar -->
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between">
-                    <div class="relative w-full max-w-xl">
-                        <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
-                        <InputText v-model="searchQuery" :placeholder="t.placeholderSearch"
-                            class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
-                    </div>
-                </div>
+                <!-- Filter Bar -->
+                <FilterBar
+                    v-model="searchQuery"
+                    :search-placeholder="t.placeholderSearch"
+                    v-model:dateFrom="dateFrom"
+                    v-model:dateTo="dateTo"
+                    @reset="resetFilters"
+                />
 
                 <!-- Registry Table Card -->
                 <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-                    <DataTable :value="filteredPartners" dataKey="id" paginator :rows="10" 
+                    <DataTable :value="paginatedPartners" dataKey="id"
                                class="p-datatable-sm text-sm" responsiveLayout="scroll">
                         
                         <Column :header="t.colEntity" style="min-width: 250px">
@@ -236,6 +282,9 @@ onMounted(fetchPartners);
                              </div>
                          </template>
                      </DataTable>
+
+                     <!-- Pagination -->
+                     <CustomPagination :totalRecords="filteredPartners.length" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" />
                  </div>
              </div>
          </div>

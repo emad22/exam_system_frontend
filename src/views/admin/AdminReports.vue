@@ -11,6 +11,7 @@ import Select from 'primevue/select';
 import DatePicker from 'primevue/datepicker';
 import ReportListSkeleton from '@/components/skeletons/ReportListSkeleton.vue';
 import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
+import FilterBar from '@/components/FilterBar.vue';
 const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
@@ -395,40 +396,44 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Filters row -->
-                <div class="flex flex-wrap items-center gap-2.5 justify-end">
+                <!-- Header Actions -->
+                <div class="flex items-center gap-2.5">
                     <Button v-if="selectedReports.length > 0"
                         :label="'Download PDF (' + selectedReports.length + ')'"
                         icon="pi pi-file-pdf"
                         severity="danger"
                         :loading="isPrinting"
                         @click="generatePDF"
-                        class="!text-xs font-bold rounded-xl h-9 px-4" />
-
-                    <DatePicker v-model="startDate" placeholder="Start Date" dateFormat="dd/mm/yy"
-                        class="!w-36 !text-xs !rounded-xl" />
-                    <DatePicker v-model="endDate" placeholder="End Date" dateFormat="dd/mm/yy"
-                        class="!w-36 !text-xs !rounded-xl" />
-                    <Button v-if="startDate || endDate" icon="pi pi-times" severity="danger" text rounded
-                        @click="clearDates" class="!w-9 !h-9 !p-0" />
-
-                    <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
-                        placeholder="Filter by Partner" showClear
-                        class="!w-44 !text-xs !rounded-xl" />
-
-                    <span class="relative">
-                        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs z-10" />
-                        <input v-model="search" type="text" placeholder="Filter identities / codes..."
-                            class="bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:bg-white focus:border-slate-300 transition-all w-56 outline-none">
-                    </span>
+                        class="!text-xs font-bold rounded-xl h-10 px-4" />
 
                     <button @click="fetchReports"
-                        class="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-white transition-all">
+                        class="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-white transition-all cursor-pointer">
                         <i class="pi pi-refresh text-sm"></i>
                     </button>
                 </div>
             </div>
         </div>
+
+        <!-- ── Filter Bar ───────────────────────────────────────────────── -->
+        <FilterBar
+            v-model="search"
+            search-placeholder="Filter identities / codes..."
+            v-model:dateFrom="startDate"
+            v-model:dateTo="endDate"
+            :active-count="selectedPartner ? 1 : 0"
+            @reset="search = ''; startDate = null; endDate = null; selectedPartner = null; fetchReports()"
+            @apply="fetchReports"
+        >
+            <div class="w-full sm:w-48">
+                <label class="block text-[11px] font-bold text-slate-600 mb-1.5 tracking-tight flex items-center gap-1.5">
+                    <i class="pi pi-users text-[10px] text-slate-400" />
+                    <span>Partner</span>
+                </label>
+                <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                    placeholder="All Partners" showClear
+                    class="w-full !h-11 !rounded-xl !border-slate-200/80 !bg-slate-50/70 !text-xs !font-semibold" />
+            </div>
+        </FilterBar>
 
         <!-- ── Loading ───────────────────────────────────────────────────── -->
         <div v-if="loading" class="mt-2">
@@ -499,11 +504,11 @@ onMounted(() => {
                                 </div>
                                 <div>
                                     <div class="font-black text-slate-800 text-sm">
-                                        {{ attempt.student?.user?.first_name || attempt.user?.first_name || 'DEMO' }}
-                                        {{ attempt.student?.user?.last_name || attempt.user?.last_name || 'USER' }}
+                                        {{ attempt.student?.user?.first_name || attempt.user?.first_name }}
+                                        {{ attempt.student?.user?.last_name || attempt.user?.last_name }}
                                     </div>
                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">
-                                        {{ attempt.student?.student_code || 'STAFF/DEMO' }}
+                                        {{ attempt.student?.student_code }}
                                     </div>
                                     <div v-if="attempt.student?.institution_code"
                                          class="text-[10px] font-bold text-brand-primary mt-0.5">
@@ -515,9 +520,6 @@ onMounted(() => {
                             <!-- Exam Details -->
                             <div>
                                 <div class="font-bold text-slate-700 text-sm">{{ attempt.exam?.title || '—' }}</div>
-                                <div class="text-[9px] font-black text-brand-primary uppercase tracking-widest mt-1">
-                                    Placement Protocol
-                                </div>
                                 <div v-if="attempt.cefr_actfl_level"
                                      class="mt-1.5 inline-block bg-indigo-50 text-indigo-600 border border-indigo-100 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide">
                                     {{ attempt.cefr_actfl_level }}
@@ -570,9 +572,15 @@ onMounted(() => {
                             </div>
 
                             <!-- Action -->
-                            <div class="flex justify-end" @click.stop>
+                            <div class="flex items-center justify-end gap-1.5" @click.stop>
+                                <button @click="$router.push(`/admin/grading/attempt/${attempt.id}`)"
+                                    title="Edit Speaking / Writing Grades (تصحيح وتعديل الدرجات)"
+                                    class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-800 text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-xs border border-slate-200 hover:border-slate-800 cursor-pointer">
+                                    <i class="pi pi-file-edit text-xs"></i>
+                                </button>
                                 <button @click="viewDetails(attempt.id)"
-                                    class="w-9 h-9 rounded-xl bg-rose-50 hover:bg-brand-primary text-brand-primary hover:text-white flex items-center justify-center transition-all shadow-sm border border-rose-100 hover:border-brand-primary group/btn">
+                                    title="View Report Details"
+                                    class="w-9 h-9 rounded-xl bg-rose-50 hover:bg-brand-primary text-brand-primary hover:text-white flex items-center justify-center transition-all shadow-xs border border-rose-100 hover:border-brand-primary group/btn cursor-pointer">
                                     <i class="pi pi-eye text-sm"></i>
                                 </button>
                             </div>

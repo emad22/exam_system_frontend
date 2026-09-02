@@ -11,6 +11,7 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Card from 'primevue/card';
 import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
+import FilterBar from '@/components/FilterBar.vue';
 
 const router = useRouter();
 const students = ref([]);
@@ -94,6 +95,10 @@ onMounted(() => {
 
 const totalPages = computed(() => Math.ceil(totalRecords.value / rowsPerPage.value) || 1);
 
+const changePage = (page) => {
+    if (page >= 1 && page <= totalPages.value) currentPage.value = page;
+};
+
 const goToReportsForStudent = (student) => {
     const studentName = `${student.user?.first_name || ''} ${student.user?.last_name || ''}`.trim();
     router.push({
@@ -131,38 +136,14 @@ const goToReportsForStudent = (student) => {
             </div>
         </div>
 
-        <!-- Search & Date Filter Bar Card -->
-        <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
-            <!-- Search Input (ID, Name, Email, Username, Code) -->
-            <div class="relative flex-1 min-w-[280px]">
-                <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                <InputText v-model="search" placeholder="Search by ID, Name, Email, Username, Code..." 
-                           class="w-full pl-11 pr-4 py-3 text-xs font-bold rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-slate-800 shadow-sm h-12" />
-            </div>
-
-            <!-- Date Range Filters -->
-            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                <div class="w-full sm:w-40 shrink-0">
-                    <DatePicker v-model="dateFrom" placeholder="From Date" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
-                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
-                </div>
-
-                <div class="w-full sm:w-40 shrink-0">
-                    <DatePicker v-model="dateTo" placeholder="To Date" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
-                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
-                </div>
-
-                <Button v-if="search || dateFrom || dateTo" 
-                        icon="pi pi-filter-slash" label="Reset" 
-                        text severity="secondary" 
-                        class="text-xs font-bold rounded-xl h-12 px-4 hover:bg-slate-100" 
-                        @click="resetFilters" />
-            </div>
-            
-            <div class="w-full flex justify-end text-xs font-bold text-slate-400 pt-1 border-t border-slate-50">
-                <span>Showing {{ students.length }} of {{ totalRecords }} students</span>
-            </div>
-        </div>
+        <!-- Filter Bar -->
+        <FilterBar
+            v-model="search"
+            search-placeholder="Search by ID, Name, Email, Username, Code..."
+            v-model:dateFrom="dateFrom"
+            v-model:dateTo="dateTo"
+            @reset="resetFilters"
+        />
 
         <!-- Students Table Card -->
         <Card class="border border-slate-100 shadow-sm rounded-[2.5rem] overflow-hidden">
@@ -193,12 +174,12 @@ const goToReportsForStudent = (student) => {
                             </template>
                         </Column>
 
-                        <!-- Student Code / ID -->
-                        <Column header="Student ID / Code" style="min-width: 160px">
+                        <!-- Student Code -->
+                        <Column header="Student Code" style="min-width: 160px">
                             <template #body="{ data }">
                                 <div class="flex flex-col space-y-0.5">
                                     <span class="text-xs font-black text-slate-700 font-mono">
-                                        {{ data.student_code || '#' + data.id }}
+                                         {{ data.student_code  }}
                                     </span>
                                     <span v-if="data.institution_code" class="text-[10px] font-bold text-slate-400">
                                         Inst: {{ data.institution_code }}
@@ -207,27 +188,14 @@ const goToReportsForStudent = (student) => {
                             </template>
                         </Column>
 
-                        <!-- Package / Category -->
-                        <Column header="Package / Model" style="min-width: 180px">
+                        <!-- Attempt Status -->
+                        <Column header="Attempt Status" style="min-width: 140px">
                             <template #body="{ data }">
-                                <div class="flex flex-col space-y-1">
-                                    <span class="text-xs font-extrabold text-slate-700">{{ data.package?.name || 'Standard Package' }}</span>
-                                    <span v-if="data.category?.name" class="text-[10px] font-bold text-slate-400">{{ data.category.name }}</span>
-                                </div>
-                            </template>
-                        </Column>
-
-                        <!-- Attempts Count -->
-                        <Column header="Attempts" style="min-width: 140px" class="text-center">
-                            <template #body="{ data }">
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-xs font-black text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                        {{ data.attempts_count ?? data.attempts?.length ?? 0 }} Total
-                                    </span>
-                                    <span v-if="data.completed_attempts_count > 0" class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
-                                        {{ data.completed_attempts_count }} Completed
-                                    </span>
-                                </div>
+                                <Tag v-if="data.attempts?.[0]?.status || data.latest_attempt_status"
+                                     :value="data.attempts?.[0]?.status || data.latest_attempt_status"
+                                     :severity="(data.attempts?.[0]?.status || data.latest_attempt_status) === 'completed' ? 'success' : (data.attempts?.[0]?.status || data.latest_attempt_status) === 'in_progress' ? 'warning' : 'secondary'"
+                                     class="text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-xl border-none shadow-sm" />
+                                <span v-else class="text-xs font-bold text-slate-300">Not Started</span>
                             </template>
                         </Column>
 
@@ -269,14 +237,59 @@ const goToReportsForStudent = (student) => {
 
                     </DataTable>
 
-                    <!-- Pagination -->
-                    <div v-if="totalRecords > rowsPerPage" class="p-6 border-t border-slate-50 flex items-center justify-between">
-                        <div class="text-xs font-bold text-slate-400">
-                            Page {{ currentPage }} of {{ totalPages }}
+                    <!-- Pagination Bar -->
+                    <div v-if="totalRecords > 0" class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50">
+                        <!-- Left: record info + rows per page -->
+                        <div class="flex items-center gap-4">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                Showing
+                                <span class="text-slate-700 font-black">
+                                    {{ (currentPage - 1) * rowsPerPage + 1 }}–{{ Math.min(currentPage * rowsPerPage, totalRecords) }}
+                                </span>
+                                of
+                                <span class="text-slate-700 font-black">{{ totalRecords }}</span>
+                                records
+                            </span>
+                            <select v-model="rowsPerPage" @change="currentPage = 1; fetchStudents()"
+                                class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all">
+                                <option v-for="opt in rowsPerPageOptions" :key="opt" :value="opt">{{ opt }} / page</option>
+                            </select>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <Button icon="pi pi-chevron-left" text :disabled="currentPage <= 1" @click="currentPage--; fetchStudents()" />
-                            <Button icon="pi pi-chevron-right" text :disabled="currentPage >= totalPages" @click="currentPage++; fetchStudents()" />
+
+                        <!-- Right: page buttons -->
+                        <div class="flex items-center gap-1">
+                            <button @click="changePage(1); fetchStudents()" :disabled="currentPage === 1"
+                                class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="First page">
+                                <i class="pi pi-angle-double-left text-xs" />
+                            </button>
+                            <button @click="changePage(currentPage - 1); fetchStudents()" :disabled="currentPage === 1"
+                                class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Previous">
+                                <i class="pi pi-angle-left text-xs" />
+                            </button>
+
+                            <template v-for="page in totalPages" :key="page">
+                                <button v-if="page === 1 || page === totalPages || (page >= currentPage - 2 && page <= currentPage + 2)"
+                                    @click="changePage(page); fetchStudents()"
+                                    :class="[
+                                        'w-8 h-8 rounded-xl text-[11px] font-black transition-all',
+                                        page === currentPage
+                                            ? 'bg-brand-primary text-white shadow-sm'
+                                            : 'text-slate-500 hover:bg-slate-100'
+                                    ]">
+                                    {{ page }}
+                                </button>
+                                <span v-else-if="page === currentPage - 3 || page === currentPage + 3"
+                                    class="w-8 h-8 flex items-center justify-center text-slate-300 text-xs font-bold">…</span>
+                            </template>
+
+                            <button @click="changePage(currentPage + 1); fetchStudents()" :disabled="currentPage === totalPages"
+                                class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Next">
+                                <i class="pi pi-angle-right text-xs" />
+                            </button>
+                            <button @click="changePage(totalPages); fetchStudents()" :disabled="currentPage === totalPages"
+                                class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Last page">
+                                <i class="pi pi-angle-double-right text-xs" />
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -1029,11 +1029,11 @@ onMounted(fetchDetails);
                             <div>
                                 <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Candidate</div>
                                 <div class="font-black text-slate-800 text-base">
-                                    {{ selectedAttempt.student?.user?.first_name || selectedAttempt.user?.first_name || 'DEMO' }}
-                                    {{ selectedAttempt.student?.user?.last_name || selectedAttempt.user?.last_name || 'USER' }}
+                                    {{ selectedAttempt.student?.user?.first_name || selectedAttempt.user?.first_name }}
+                                    {{ selectedAttempt.student?.user?.last_name || selectedAttempt.user?.last_name  }}
                                 </div>
                                 <div class="text-[11px] font-bold text-slate-400 mt-0.5">
-                                    {{ selectedAttempt.student?.student_code || 'STAFF / DEMO' }}
+                                    {{ selectedAttempt.student?.student_code  }}
                                 </div>
                                 <div v-if="selectedAttempt.student?.institution_code" class="text-[10px] font-bold text-brand-primary mt-0.5">
                                     🏛 {{ selectedAttempt.student.institution_code }}
@@ -1082,7 +1082,6 @@ onMounted(fetchDetails);
                         <div class="space-y-2">
                             <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exam</div>
                             <div class="font-bold text-slate-700 text-sm">{{ selectedAttempt.exam?.title || '—' }}</div>
-                            <div class="text-[9px] font-black text-brand-primary uppercase tracking-widest">Placement Protocol</div>
                             <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
                                 <div>
                                     <div class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Started</div>

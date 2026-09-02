@@ -209,21 +209,21 @@ const updateLevel = async () => {
                                         <div class="space-y-4 pt-4 border-t border-slate-100">
                                             <div class="space-y-2">
                                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default Standalone Qs</label>
-                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الافتراضي للأسئلة المستقلة</p>
+                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">Default number of standalone questions</p>
                                                 <InputNumber v-model="form.default_standalone_quantity" showButtons :min="0" 
                                                     class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-emerald-600" />
                                             </div>
 
                                             <div class="space-y-2">
                                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default Passages</label>
-                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الافتراضي للقطع (Reading/Listening)</p>
+                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">Default number of passages (Reading / Listening)</p>
                                                 <InputNumber v-model="form.default_passage_quantity" showButtons :min="0" 
                                                     class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-brand-primary" />
                                             </div>
 
                                             <div class="space-y-2 opacity-50">
                                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Legacy Total Count</label>
-                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">العدد الإجمالي الافتراضي (في حال عدم تحديد أعلاه)</p>
+                                                <p class="text-[9px] text-slate-400 ml-1 mb-2">Default total count (if not specified above)</p>
                                                 <InputNumber v-model="form.default_question_count" showButtons :min="0"
                                                     class="w-full" inputClass="rounded-xl bg-slate-50 border-slate-100 font-black text-slate-500" />
                                             </div>

@@ -160,7 +160,7 @@ const addStudent = async () => {
 
     try {
         await api.post('/admin/students', form.value);
-        showAlert(currentLang.value === 'ar' ? 'تم تسجيل الطالب بنجاح وتفعيل حسابه!' : 'Student successfully registered!');
+        showAlert('Student successfully registered!');
         router.push('/admin/students');
     } catch (err) {
         console.error(err);

@@ -15,6 +15,7 @@ import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
 import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
 import DatePicker from 'primevue/datepicker';
+import FilterBar from '@/components/FilterBar.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -404,8 +405,13 @@ const resetFilters = () => {
     sessionStorage.removeItem('students_filters');
 };
 
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+const rowsPerPageOptions = [10, 15, 25, 50, 100];
+
 // Persist filters to sessionStorage whenever they change
 watch([searchQuery, selectedPartner, selectedExamStatus, dateFrom, dateTo], () => {
+    currentPage.value = 1;
     const toISO = (val) => {
         if (!val) return null;
         if (val instanceof Date && !isNaN(val)) return val.toISOString();
@@ -484,6 +490,18 @@ const filteredStudents = computed(() => {
     return result;
 });
 
+const totalRecords = computed(() => filteredStudents.value.length);
+const totalPages = computed(() => Math.ceil(totalRecords.value / rowsPerPage.value) || 1);
+
+const paginatedStudents = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredStudents.value.slice(start, start + rowsPerPage.value);
+});
+
+const changePage = (page) => {
+    if (page >= 1 && page <= totalPages.value) currentPage.value = page;
+};
+
 const fetchStudents = async () => {
     loading.value = true;
     try {
@@ -549,9 +567,9 @@ const deleteStudent = async (student) => {
     try {
         await api.delete(`/admin/students/${student.id}`);
         students.value = students.value.filter(s => s.id !== student.id);
-        await showAlert(t[currentLang.value].deleteSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+        await showAlert(t[currentLang.value].deleteSuccess, 'Success', 'success');
     } catch (err) {
-        showAlert(t[currentLang.value].deleteError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+        showAlert(t[currentLang.value].deleteError, 'Error', 'danger');
     }
 };
 
@@ -563,7 +581,7 @@ const toggleHold = async (student) => {
         confirmMsg,
         t[currentLang.value].title,
         action === 'hold' ? 'warning' : 'info',
-        currentLang.value === 'ar' ? 'تأكيد' : 'Confirm'
+        'Confirm'
     );
     if (!confirmed) return;
 
@@ -572,7 +590,7 @@ const toggleHold = async (student) => {
         if (student.user) student.user.is_active = !student.user.is_active;
         await showAlert(
             action === 'hold' ? t[currentLang.value].holdPlaced : t[currentLang.value].unholdPlaced,
-            currentLang.value === 'ar' ? 'نجاح' : 'Success',
+            'Success',
             'success'
         );
         fetchStudents();
@@ -580,7 +598,7 @@ const toggleHold = async (student) => {
         console.error(err);
         showAlert(
             action === 'hold' ? t[currentLang.value].failedHold : t[currentLang.value].failedUnhold,
-            currentLang.value === 'ar' ? 'خطأ' : 'Error',
+            'Error',
             'danger'
         );
     }
@@ -592,7 +610,7 @@ const resetProgress = async (student) => {
         t[currentLang.value].resetConfirmMessage.replace('{name}', fullName),
         t[currentLang.value].resetConfirmTitle,
         'warning',
-        currentLang.value === 'ar' ? 'نعم، أعد الضبط' : 'Yes, Reset'
+        'Yes, Reset'
     );
 
     if (!confirmed) return;
@@ -602,7 +620,7 @@ const resetProgress = async (student) => {
         await showAlert(t[currentLang.value].resetSuccess, t[currentLang.value].resetConfirmTitle, 'success');
         fetchStudents();
     } catch (err) {
-        showAlert(err.response?.data?.error || t[currentLang.value].resetError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+        showAlert(err.response?.data?.error || t[currentLang.value].resetError, 'Error', 'danger');
     }
 };
 
@@ -613,7 +631,7 @@ const bulkDelete = async () => {
         t[currentLang.value].bulkDeleteMessage.replace('{count}', selectedStudents.value.length),
         t[currentLang.value].bulkDeleteTitle,
         'danger',
-        currentLang.value === 'ar' ? 'نعم، احذف المحدد' : 'Yes, Delete Selected'
+        'Yes, Delete Selected'
     );
 
     if (!confirmed) return;
@@ -623,9 +641,9 @@ const bulkDelete = async () => {
         await api.post('/admin/students/bulk-delete', { ids });
         students.value = students.value.filter(s => !ids.includes(s.id));
         selectedStudents.value = [];
-        await showAlert(t[currentLang.value].bulkDeleteSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+        await showAlert(t[currentLang.value].bulkDeleteSuccess, 'Success', 'success');
     } catch (err) {
-        showAlert(t[currentLang.value].bulkDeleteError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+        showAlert(t[currentLang.value].bulkDeleteError, 'Error', 'danger');
     }
 };
 
@@ -633,9 +651,7 @@ const bulkToggleHold = async () => {
     if (!selectedStudents.value.length) return;
 
     const targetIsActive = !selectedStudents.value[0].user?.is_active;
-    const actionTextAr = targetIsActive ? 'إعادة تنشيط' : 'تعليق';
-    const actionTextEn = targetIsActive ? 'reactivate' : 'place on hold';
-    const actionText = currentLang.value === 'ar' ? actionTextAr : actionTextEn;
+    const actionText = targetIsActive ? 'reactivate' : 'place on hold';
     
     const confirmMsg = t[currentLang.value].bulkHoldConfirm
         .replace('{action}', actionText)
@@ -645,7 +661,7 @@ const bulkToggleHold = async () => {
         confirmMsg,
         t[currentLang.value].bulkHoldTitle,
         targetIsActive ? 'info' : 'warning',
-        currentLang.value === 'ar' ? 'تأكيد' : 'Confirm'
+        'Confirm'
     );
     
     if (!confirmed) return;
@@ -656,12 +672,12 @@ const bulkToggleHold = async () => {
             api.patch(`/admin/students/${student.id}`, { is_active: targetIsActive })
         ));
         
-        await showAlert(t[currentLang.value].bulkHoldSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+        await showAlert(t[currentLang.value].bulkHoldSuccess, 'Success', 'success');
         selectedStudents.value = [];
         fetchStudents();
     } catch (err) {
         console.error(err);
-        showAlert(t[currentLang.value].bulkHoldError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+        showAlert(t[currentLang.value].bulkHoldError, 'Error', 'danger');
     } finally {
         isSaving.value = false;
     }
@@ -696,9 +712,9 @@ const submitBulkSkills = async () => {
             });
             showBulkSkillsModal.value = false;
             fetchStudents();
-            await showAlert(t[currentLang.value].updateSkillsSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+            await showAlert(t[currentLang.value].updateSkillsSuccess, 'Success', 'success');
         } catch (err) {
-            showAlert(t[currentLang.value].importFileError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'error');
+            showAlert(t[currentLang.value].importFileError, 'Error', 'error');
         } finally {
             isBulkSaving.value = false;
         }
@@ -714,9 +730,9 @@ const submitBulkSkills = async () => {
             });
             showBulkSkillsModal.value = false;
             fetchStudents();
-            await showAlert(t[currentLang.value].updateSkillsSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+            await showAlert(t[currentLang.value].updateSkillsSuccess, 'Success', 'success');
         } catch (err) {
-            showAlert(t[currentLang.value].updateSkillsError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'error');
+            showAlert(t[currentLang.value].updateSkillsError, 'Error', 'error');
         } finally {
             isBulkSaving.value = false;
         }
@@ -823,53 +839,27 @@ onMounted(() => {
                 </transition>
 
 
-                <!-- Premium Search & Filter Bar -->
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
-                    <!-- Left / Main Search Input -->
-                    <div class="relative flex-1 min-w-[280px]">
-                        <i class="pi pi-search absolute text-slate-400 z-10 left-4 top-1/2 -translate-y-1/2" />
-                        <InputText v-model="searchQuery" :placeholder="t[currentLang].searchPlaceholder"
-                            class="w-full rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm h-12 pl-12" />
-                    </div>
-
-                    <!-- Filters Group -->
-                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        <!-- Partner Select -->
-                        <div class="w-full sm:w-56 shrink-0">
-                            <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
-                                :placeholder="t[currentLang].allPartners" showClear 
-                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12 flex items-center" />
-                        </div>
-
-                       
-
-                        <!-- Date Range: From Date -->
-                        <div class="w-full sm:w-36 shrink-0">
-                            <DatePicker v-model="dateFrom" :placeholder="t[currentLang].dateFrom" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
-                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
-                        </div>
-
-                        <!-- Date Range: To Date -->
-                        <div class="w-full sm:w-36 shrink-0">
-                            <DatePicker v-model="dateTo" :placeholder="t[currentLang].dateTo" dateFormat="yy-mm-dd" showIcon iconDisplay="input"
-                                class="w-full rounded-2xl border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-bold shadow-sm h-12" />
-                        </div>
-
-                        <!-- Reset Button -->
-                        <Button v-if="searchQuery || selectedPartner || selectedExamStatus || dateFrom || dateTo" 
-                                icon="pi pi-filter-slash" :label="t[currentLang].btnResetFilters" 
-                                text severity="secondary" 
-                                class="text-xs font-bold rounded-xl h-12 px-4 hover:bg-slate-100" 
-                                @click="resetFilters" />
-                    </div>
-                </div>
+                <!-- Filter Bar -->
+                <FilterBar
+                    v-model="searchQuery"
+                    :search-placeholder="t[currentLang].searchPlaceholder"
+                    v-model:dateFrom="dateFrom"
+                    v-model:dateTo="dateTo"
+                    :active-count="(selectedPartner ? 1 : 0) + (selectedExamStatus ? 1 : 0)"
+                    @reset="resetFilters"
+                >
+                    <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+                    <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                        :placeholder="t[currentLang].allPartners" showClear 
+                        class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[180px] hover:!border-brand-primary/30 transition-all flex items-center" />
+                </FilterBar>
 
                 <!-- Registry Table Card -->
                 <div v-if="students.length > 0 || searchQuery || selectedPartner || selectedExamStatus || dateFrom || dateTo">
                     <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                         <template #content>
-                            <DataTable :value="filteredStudents" v-model:selection="selectedStudents" dataKey="id" paginator
-                                :rows="10" class="p-datatable-sm text-sm" responsiveLayout="scroll">
+                            <DataTable :value="paginatedStudents" v-model:selection="selectedStudents" dataKey="id"
+                                class="p-datatable-sm text-sm" responsiveLayout="scroll">
 
                                 <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
@@ -1053,6 +1043,62 @@ onMounted(() => {
                                     <div class="p-8 text-center text-slate-400 font-medium">{{ t[currentLang].emptySearch }}</div>
                                 </template>
                             </DataTable>
+
+                            <!-- Pagination Bar -->
+                            <div v-if="filteredStudents.length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50">
+                                <!-- Left: record info + rows per page -->
+                                <div class="flex items-center gap-4">
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                        Showing
+                                        <span class="text-slate-700 font-black">
+                                            {{ (currentPage - 1) * rowsPerPage + 1 }}–{{ Math.min(currentPage * rowsPerPage, totalRecords) }}
+                                        </span>
+                                        of
+                                        <span class="text-slate-700 font-black">{{ totalRecords }}</span>
+                                        records
+                                    </span>
+                                    <select v-model="rowsPerPage" @change="currentPage = 1"
+                                        class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all">
+                                        <option v-for="opt in rowsPerPageOptions" :key="opt" :value="opt">{{ opt }} / page</option>
+                                    </select>
+                                </div>
+
+                                <!-- Right: page buttons -->
+                                <div class="flex items-center gap-1">
+                                    <button @click="changePage(1)" :disabled="currentPage === 1"
+                                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="First page">
+                                        <i class="pi pi-angle-double-left text-xs" />
+                                    </button>
+                                    <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
+                                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Previous">
+                                        <i class="pi pi-angle-left text-xs" />
+                                    </button>
+
+                                    <template v-for="page in totalPages" :key="page">
+                                        <button v-if="page === 1 || page === totalPages || (page >= currentPage - 2 && page <= currentPage + 2)"
+                                            @click="changePage(page)"
+                                            :class="[
+                                                'w-8 h-8 rounded-xl text-[11px] font-black transition-all',
+                                                page === currentPage
+                                                    ? 'bg-brand-primary text-white shadow-sm'
+                                                    : 'text-slate-500 hover:bg-slate-100'
+                                            ]">
+                                            {{ page }}
+                                        </button>
+                                        <span v-else-if="page === currentPage - 3 || page === currentPage + 3"
+                                            class="w-8 h-8 flex items-center justify-center text-slate-300 text-xs font-bold">…</span>
+                                    </template>
+
+                                    <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
+                                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Next">
+                                        <i class="pi pi-angle-right text-xs" />
+                                    </button>
+                                    <button @click="changePage(totalPages)" :disabled="currentPage === totalPages"
+                                        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" title="Last page">
+                                        <i class="pi pi-angle-double-right text-xs" />
+                                    </button>
+                                </div>
+                            </div>
                         </template>
                     </Card>
                 </div>

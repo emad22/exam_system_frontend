@@ -363,10 +363,10 @@ const confirmDeleteSession = async (sessionId: number) => {
         await api.delete(`/admin/proctoring/${sessionId}`);
         selectedSessions.value = selectedSessions.value.filter(id => id !== sessionId);
         await fetchStudentSessions();
-        await showAlert(t[currentLang.value].deleteSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+        await showAlert(t[currentLang.value].deleteSuccess, 'Success', 'success');
     } catch (error) {
         console.error('Failed to delete session:', error);
-        await showAlert(t[currentLang.value].deleteError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+        await showAlert(t[currentLang.value].deleteError, 'Error', 'danger');
     }
 }
 
@@ -377,7 +377,7 @@ const deleteSelectedSessions = async () => {
         t[currentLang.value].bulkDeleteMessage.replace('{count}', selectedSessions.value.length.toString()),
         t[currentLang.value].bulkDeleteTitle,
         'danger',
-        currentLang.value === 'ar' ? 'نعم، احذف المحدد' : 'Yes, Delete Selected'
+        'Yes, Delete Selected'
     );
 
     if (!confirmed) return;
@@ -386,10 +386,10 @@ const deleteSelectedSessions = async () => {
         await api.post('/admin/proctoring/bulk-delete', { ids: selectedSessions.value });
         selectedSessions.value = [];
         await fetchStudentSessions();
-        await showAlert(t[currentLang.value].bulkDeleteSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+        await showAlert(t[currentLang.value].bulkDeleteSuccess, 'Success', 'success');
     } catch (error) {
         console.error('Failed to delete selected sessions:', error);
-        await showAlert(t[currentLang.value].bulkDeleteError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+        await showAlert(t[currentLang.value].bulkDeleteError, 'Error', 'danger');
     }
 }
 
@@ -400,7 +400,7 @@ const deleteAllStudentSessions = async () => {
         t[currentLang.value].deleteAllMessage,
         t[currentLang.value].deleteAllTitle,
         'danger',
-        currentLang.value === 'ar' ? 'نعم، احذف الكل' : 'Yes, Delete All'
+        'Yes, Delete All'
     );
 
     if (!confirmed) return;
@@ -409,10 +409,10 @@ const deleteAllStudentSessions = async () => {
         await api.delete(`/admin/proctoring/student/${studentData.value.student.id}/all`);
         selectedSessions.value = [];
         await fetchStudentSessions();
-        await showAlert(t[currentLang.value].deleteAllSuccess, currentLang.value === 'ar' ? 'تم بنجاح' : 'Success', 'success');
+        await showAlert(t[currentLang.value].deleteAllSuccess, 'Success', 'success');
     } catch (error) {
         console.error('Failed to delete all student sessions:', error);
-        await showAlert(t[currentLang.value].deleteAllError, currentLang.value === 'ar' ? 'خطأ' : 'Error', 'danger');
+        await showAlert(t[currentLang.value].deleteAllError, 'Error', 'danger');
     }
 }
 

@@ -11,6 +11,8 @@ import Select from 'primevue/select';
 import DatePicker from 'primevue/datepicker';
 import Dialog from 'primevue/dialog';
 import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
 import { useConfirm } from "primevue/useconfirm";
 import { useModal } from '@/composables/useModal';
 
@@ -29,7 +31,8 @@ const filters = ref({
     model_type: '',
     date_from: null,
     date_to: null,
-    page: 1
+    page: 1,
+    per_page: 25
 });
 
 const t = {
@@ -80,7 +83,8 @@ const actionOptions = computed(() => [
 const selectedLog = ref(null);
 const showDetail = ref(false);
 
-const fetchLogs = async () => {
+const fetchLogs = async (page = 1) => {
+    filters.value.page = page;
     loading.value = true;
     try {
         const params = {
@@ -177,6 +181,17 @@ const bulkDelete = () => {
         }
     });
 };
+
+const resetFilters = () => {
+    filters.value = {
+        action: null,
+        model_type: '',
+        date_from: null,
+        date_to: null,
+        page: 1,
+        per_page: 25
+    };
+};
 </script>
 
 <template>
@@ -211,33 +226,25 @@ const bulkDelete = () => {
                     </div>
                 </div>
 
-                <!-- Premium Filter HUD -->
-                <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-wrap gap-6 items-end relative overflow-hidden">
-                    <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.actionType }}</label>
-                        <Select v-model="filters.action" :options="actionOptions" optionLabel="label" optionValue="value" class="w-48 rounded-xl border-slate-100 text-xs font-bold" />
-                    </div>
-                    
-                    <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.entityType }}</label>
-                        <InputText v-model="filters.model_type" :placeholder="t.placeholderEntity" class="w-48 rounded-xl border-slate-100 text-xs font-bold" />
-                    </div>
-
-                    <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.fromDate }}</label>
-                        <DatePicker v-model="filters.date_from" dateFormat="yy-mm-dd" class="w-48 rounded-xl text-xs font-bold" :showIcon="true" />
-                    </div>
-
-                    <div class="flex flex-col space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-2">{{ t.toDate }}</label>
-                        <DatePicker v-model="filters.date_to" dateFormat="yy-mm-dd" class="w-48 rounded-xl text-xs font-bold" :showIcon="true" />
-                    </div>
-                </div>
+                <!-- Filter Bar -->
+                <FilterBar
+                    v-model="filters.model_type"
+                    :search-placeholder="t.placeholderEntity"
+                    v-model:dateFrom="filters.date_from"
+                    v-model:dateTo="filters.date_to"
+                    :active-count="filters.action ? 1 : 0"
+                    @reset="resetFilters"
+                >
+                    <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+                    <Select v-model="filters.action" :options="actionOptions" optionLabel="label" optionValue="value"
+                        placeholder="Action Type" showClear
+                        class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[160px] hover:!border-brand-primary/30 transition-all flex items-center" />
+                </FilterBar>
 
                 <!-- Premium DataTable Card -->
                 <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mt-6">
-                    <DataTable v-model:selection="selectedLogs" :value="logs" :loading="loading" :lazy="true" :paginator="true" :rows="50" :totalRecords="totalRecords" 
-                               @page="onPage" class="p-datatable-sm text-sm" responsiveLayout="scroll" dataKey="id">
+                    <DataTable v-model:selection="selectedLogs" :value="logs" :loading="loading"
+                               class="p-datatable-sm text-sm" responsiveLayout="scroll" dataKey="id">
                         
                         <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
@@ -308,6 +315,9 @@ const bulkDelete = () => {
                             </div>
                         </template>
                     </DataTable>
+
+                    <!-- Pagination -->
+                    <CustomPagination :totalRecords="totalRecords" v-model:currentPage="filters.page" v-model:rowsPerPage="filters.per_page" @pageChange="fetchLogs(filters.page)" />
                 </div>
             </div>
             

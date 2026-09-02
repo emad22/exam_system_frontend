@@ -187,11 +187,20 @@ const fetchAttempt = async () => {
 
 const totalAwarded = computed(() =>
     Object.values(grades.value).reduce((s, g) => s + (Number(g.points_awarded) || 0), 0)
-)
+);
 
 const totalPossible = computed(() =>
     skills.value.flatMap(s => s.answers).reduce((s, a) => s + (a.question?.points ?? 0), 0)
-)
+);
+
+const isAttemptGraded = computed(() => {
+    if (!skills.value || skills.value.length === 0) return false;
+    return skills.value.every(s => s.answers.every(a => a.is_manual_graded));
+});
+
+const isSkillGraded = (skill) => {
+    return skill && skill.answers && skill.answers.every(a => a.is_manual_graded);
+};
 
 const submitSkillGrades = async (skill) => {
     const groupKey = `${skill.skill_id}-${skill.question_type}`
@@ -206,11 +215,11 @@ const submitSkillGrades = async (skill) => {
 
         await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
 
-        toast.add({ severity: 'success', summary: 'تم', detail: 'تم حفظ الدرجات بنجاح', life: 2000 })
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Skill grades saved successfully.', life: 2000 })
         setTimeout(() => goBackToGrading(), 500)
     } catch (err) {
         console.error('Failed to save skill grades', err)
-        toast.add({ severity: 'error', summary: 'خطأ', detail: 'حدث خطأ أثناء حفظ الدرجات', life: 3000 })
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to save skill grades.', life: 3000 })
     } finally {
         savingSkillKey.value = null
     }
@@ -253,11 +262,11 @@ const submitGrades = async () => {
 
         await api.patch(`/admin/grading/attempt/${route.params.id}`, { grades: payload })
 
-        toast.add({ severity: 'success', summary: 'تم', detail: 'تم حفظ جميع الدرجات بنجاح', life: 2000 })
+        toast.add({ severity: 'success', summary: 'Success', detail: 'All grades saved successfully.', life: 2000 })
         setTimeout(() => goBackToGrading(), 500)
     } catch (err) {
         console.error('Failed to save grades', err)
-        toast.add({ severity: 'error', summary: 'خطأ', detail: 'حدث خطأ أثناء حفظ الدرجات', life: 3000 })
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to save grades.', life: 3000 })
     } finally {
         saving.value = false
     }
@@ -399,6 +408,13 @@ onMounted(fetchAttempt)
 
                     <div class="flex items-center gap-3 relative z-10">
                         <Tag :value="`${t.attempt} ${attempt.id}`" severity="info" class="text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl border-none shadow-sm" />
+                        <Tag v-if="isAttemptGraded" value="Graded (Editable)" severity="success" class="text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl" />
+                        <Button
+                            :label="isAttemptGraded ? 'Update All Grades' : 'Save All Grades'"
+                            :icon="isAttemptGraded ? 'pi pi-save' : 'pi pi-check'"
+                            :loading="saving"
+                            @click="submitGrades"
+                            class="rounded-2xl px-5 py-2.5 font-black text-xs bg-brand-primary hover:bg-rose-900 text-white border-none shadow-md shadow-rose-900/20 transition-all hover:scale-105" />
                     </div>
                 </div>
 
@@ -432,17 +448,66 @@ onMounted(fetchAttempt)
                     <i class="pi pi-pen-to-square absolute -right-8 -bottom-8 text-[10rem] text-white/5 opacity-40 group-hover:scale-110 transition-transform duration-700"></i>
                 </div>
 
+                <!-- Skills Quick Status Ribbon (Shows which skills are graded and which are pending) -->
+                <div class="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <i class="pi pi-list-check text-brand-primary"></i>
+                            <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest">Skills Assessment Overview</h4>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400">
+                            {{ skills.filter(s => isSkillGraded(s)).length }} of {{ skills.length }} Skills Graded
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-for="skill in skills" :key="`summary-${skill.skill_id}-${skill.question_type}`"
+                            class="p-4 rounded-2xl border-2 transition-all flex items-center justify-between"
+                            :class="isSkillGraded(skill)
+                                ? 'border-emerald-200 bg-emerald-50/40 text-emerald-900'
+                                : 'border-amber-200 bg-amber-50/40 text-amber-900'">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black"
+                                    :class="isSkillGraded(skill) ? 'bg-emerald-500 text-white shadow-sm' : 'bg-amber-500 text-white shadow-sm'">
+                                    <i :class="isSkillGraded(skill) ? 'pi pi-check' : 'pi pi-clock'"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-black leading-tight">{{ skill.skill_name }}</p>
+                                    <p class="text-[9px] font-bold opacity-75 mt-0.5">
+                                        {{ isSpeakingGroup(skill) ? 'Speaking Section' : 'Writing Section' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <Tag :value="isSkillGraded(skill) ? '✓ Graded' : '⏳ Pending'"
+                                    :severity="isSkillGraded(skill) ? 'success' : 'warn'"
+                                    class="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-lg" />
+                                <p class="text-[10px] font-black mt-1">
+                                    {{ skillAwarded(skill) }} / {{ skill.total_possible ?? skillPossible(skill) }} pts
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Per-skill blocks -->
-                <div v-for="skill in skills" :key="`${skill.skill_id}-${skill.question_type}`" class="space-y-6">
+                <div v-for="skill in skills" :key="`${skill.skill_id}-${skill.question_type}`"
+                    class="space-y-6 rounded-[2.5rem] p-6 transition-all"
+                    :class="isSkillGraded(skill) ? 'border-2 border-emerald-100 bg-emerald-50/10' : 'border-2 border-amber-100 bg-amber-50/10'">
 
                     <!-- Skill header -->
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 mt-8 gap-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 gap-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-2.5 h-8 rounded-full"
-                                :class="isSpeakingGroup(skill) ? 'bg-amber-500' : 'bg-rose-600'"></div>
+                            <div class="w-3 h-10 rounded-full"
+                                :class="isSkillGraded(skill) ? 'bg-emerald-500' : (isSpeakingGroup(skill) ? 'bg-amber-500' : 'bg-rose-600')"></div>
                             <div>
-                                <h3 class="font-black text-slate-800 text-lg leading-tight">{{ skill.skill_name }}</h3>
-                                <div class="flex items-center gap-2 mt-0.5">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-black text-slate-800 text-lg leading-tight">{{ skill.skill_name }}</h3>
+                                    <Tag :value="isSkillGraded(skill) ? '✓ Graded' : '⏳ Needs Grading'"
+                                        :severity="isSkillGraded(skill) ? 'success' : 'warn'"
+                                        class="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md" />
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
                                     <span
                                         class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg"
                                         :class="isSpeakingGroup(skill)
@@ -470,20 +535,23 @@ onMounted(fetchAttempt)
                                 <p class="font-black text-rose-600 text-base mt-0.5">{{ skill.max_points }} pts</p>
                             </div>
                             <Button
-                                :label="`Save ${skillTypeLabel(skill)}`"
-                                icon="pi pi-check"
+                                :label="isSkillGraded(skill) ? `Update ${skillTypeLabel(skill)}` : `Save ${skillTypeLabel(skill)}`"
+                                :icon="isSkillGraded(skill) ? 'pi pi-pencil' : 'pi pi-check'"
                                 :loading="savingSkillKey === `${skill.skill_id}-${skill.question_type}`"
                                 @click="submitSkillGrades(skill)"
-                                class="rounded-2xl px-4 py-2.5 font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-md transition-all hover:scale-105" />
+                                :class="isSkillGraded(skill) ? 'bg-slate-800 hover:bg-slate-900' : 'bg-emerald-600 hover:bg-emerald-700'"
+                                class="rounded-2xl px-4 py-2.5 font-black text-xs text-white border-none shadow-md transition-all hover:scale-105" />
                         </div>
                     </div>
 
                     <!-- Answer cards -->
                     <div v-for="(ans, idx) in skill.answers" :key="ans.id"
-                        class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-all duration-300">
+                        class="bg-white rounded-[2rem] shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300"
+                        :class="ans.is_manual_graded ? 'border-emerald-100' : 'border-amber-200/70 shadow-amber-50'">
 
                         <!-- Card header -->
-                        <div class="flex items-center justify-between px-8 py-5 bg-slate-50/50 border-b border-slate-100">
+                        <div class="flex items-center justify-between px-8 py-5 border-b"
+                            :class="ans.is_manual_graded ? 'bg-slate-50/50 border-slate-100' : 'bg-amber-50/30 border-amber-100'">
                             <div class="flex items-center gap-3">
                                 <span class="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-center text-xs font-black text-slate-500">
                                     {{ idx + 1 }}
@@ -492,16 +560,16 @@ onMounted(fetchAttempt)
                                     :severity="['speaking', 'speaking_live'].includes(ans.question?.type) ? 'warning' : 'info'"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                                 <Tag v-if="ans.is_manual_graded"
-                                    value="Graded"
+                                    value="✓ Graded"
                                     severity="success"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                                 <Tag v-else
-                                    value="Pending"
-                                    severity="secondary"
+                                    value="⏳ Awaiting Grading"
+                                    severity="warn"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1" />
                                 
                                 <Tag v-if="grades[ans.id]?.grading_details?.rubric_scores"
-                                    value="تقييم تفصيلي بالمعايير ✓"
+                                    value="Detailed Rubric ✓"
                                     severity="help"
                                     class="text-[9px] font-black tracking-wider rounded-lg px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200" />
                             </div>
@@ -511,53 +579,58 @@ onMounted(fetchAttempt)
                             </div>
                         </div>
 
-                        <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <!-- Left: Question + Student answer -->
-                            <div class="space-y-5">
-                                <div class="bg-slate-900 rounded-2xl p-5 text-white text-sm relative overflow-hidden shadow-inner">
-                                    <div class="absolute right-0 top-0 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
-                                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-3">{{ t.questionPrompt }}</p>
+                        <!-- Grid: 8 Cols for Question & Student Answer, 4 Cols for Scoring & Feedback -->
+                        <div class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            <!-- Left (8 Cols): Question + Student answer -->
+                            <div class="lg:col-span-8 space-y-6">
+                                <!-- Question Prompt Card -->
+                                <div class="bg-slate-900 rounded-2xl p-6 text-white text-sm relative overflow-hidden shadow-inner">
+                                    <div class="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+                                    <div class="flex items-center justify-between mb-3">
+                                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">{{ t.questionPrompt }}</p>
+                                        <span class="text-xs font-black text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-lg border border-amber-400/20">
+                                            {{ ans.question?.points ?? 0 }} pts
+                                        </span>
+                                    </div>
                                     <div v-if="ans.question?.content"
-                                        class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
+                                        class="prose prose-invert prose-base max-w-none text-slate-100 font-medium leading-relaxed"
                                         v-html="decodeHtml(ans.question.content)"></div>
                                     <div v-else-if="ans.question?.image_url || ans.question?.image_path"
-                                        class="flex justify-center">
+                                        class="flex justify-center my-2">
                                         <img :src="resolveUrl(ans.question.image_url || ans.question.image_path)"
-                                            class="rounded-2xl border border-slate-800 shadow-lg max-w-full h-auto"
+                                            class="rounded-2xl border border-slate-800 shadow-lg max-w-full max-h-96 object-contain"
                                             alt="Question image" />
                                     </div>
                                     <div v-else-if="(ans.question?.media_url || ans.question?.media_path) && (ans.question.media_url || ans.question.media_path).toLowerCase().includes('.mp4')"
-                                        class="flex justify-center">
+                                        class="flex justify-center my-2">
                                         <video :src="resolveUrl(ans.question.media_url || ans.question.media_path)"
-                                            controls class="rounded-2xl shadow-lg max-w-full"></video>
+                                            controls class="rounded-2xl shadow-lg max-w-full max-h-96"></video>
                                     </div>
                                     <div v-else-if="ans.question?.passage"
                                         class="space-y-4">
-                                        <p v-if="ans.question.passage.title" class="text-slate-200 font-black text-sm">{{ ans.question.passage.title }}</p>
+                                        <p v-if="ans.question.passage.title" class="text-slate-100 font-black text-base">{{ ans.question.passage.title }}</p>
                                         <div v-if="ans.question.passage.content"
-                                            class="prose prose-invert prose-sm max-w-none text-slate-200 font-medium"
+                                            class="prose prose-invert prose-base max-w-none text-slate-200 font-medium leading-relaxed"
                                             v-html="decodeHtml(ans.question.passage.content)"></div>
                                         <p v-else class="text-slate-400 italic text-xs">{{ t.noContent }}</p>
                                     </div>
                                     <p v-else class="text-slate-400 italic text-xs">{{ t.noContent }}</p>
                                 </div>
 
-                                <!-- Student answer -->
-                                <div class="bg-slate-50/60 rounded-2xl p-6 border border-slate-100 shadow-inner min-h-[120px]">
-                                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-4">{{ t.studentAnswer }}</p>
-                                    
-                                    <div v-if="ans.text_answer"
-                                        class="prose prose-sm max-w-none text-slate-700 leading-relaxed font-medium" dir="auto"
-                                        v-html="decodeHtml(ans.text_answer)"></div>
-                                    
-                                    <div v-if="['writing', 'short_answer'].includes(ans.question?.type) && ans.word_count !== null && ans.word_count !== undefined"
-                                        class="mt-4 pt-4 border-t border-slate-200 flex items-center gap-3">
-                                        <i class="pi pi-align-right text-slate-400 text-lg"></i>
-                                        <div class="flex flex-col">
-                                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Word Count</span>
-                                            <span class="text-2xl font-black text-brand-primary mt-0.5">{{ ans.word_count }}</span>
+                                <!-- Student Answer Card (Wide & Comfortable) -->
+                                <div class="bg-slate-50/70 rounded-2xl p-6 border border-slate-200/70 shadow-xs min-h-[140px]">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest">{{ t.studentAnswer }}</p>
+                                        <div v-if="['writing', 'short_answer'].includes(ans.question?.type) && ans.word_count !== null && ans.word_count !== undefined"
+                                            class="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                                            <i class="pi pi-align-right text-slate-400"></i>
+                                            <span>{{ ans.word_count }} words</span>
                                         </div>
                                     </div>
+                                    
+                                    <div v-if="ans.text_answer"
+                                        class="prose prose-base max-w-none text-slate-800 leading-relaxed font-medium bg-white p-5 rounded-xl border border-slate-200/60 shadow-inner" dir="auto"
+                                        v-html="decodeHtml(ans.text_answer)"></div>
                                     
                                     <div v-if="getMediaFiles(ans.media_answer).length > 0" class="mt-4 space-y-4">
                                         <div v-for="(file, fIdx) in getMediaFiles(ans.media_answer)" :key="fIdx">
@@ -565,20 +638,23 @@ onMounted(fetchAttempt)
                                                 <a :href="resolveUrl(file)" target="_blank" class="inline-block">
                                                     <img :src="resolveUrl(file)" 
                                                         alt="Student Image" 
-                                                        class="rounded-lg border border-slate-200 max-w-sm max-h-64 object-contain cursor-pointer hover:opacity-80 transition-opacity" />
+                                                        class="rounded-xl border border-slate-200 max-w-md max-h-80 object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm" />
                                                 </a>
-                                                <p class="text-xs text-slate-500">Click to view full size</p>
+                                                <p class="text-xs text-slate-500 font-semibold">Click to open full resolution</p>
                                             </div>
                                             
-                                            <div v-else-if="isAudioFile(file)" class="space-y-2">
-                                                <audio :src="resolveUrl(file)" controls class="w-full h-11 rounded-xl shadow-sm border border-slate-200"></audio>
-                                                <p class="text-xs text-slate-500">{{ getFileTypeLabel(file) }}</p>
+                                            <div v-else-if="isAudioFile(file)" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+                                                <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                                                    <i class="pi pi-volume-up text-brand-primary"></i>
+                                                    <span>Student Voice Recording</span>
+                                                </div>
+                                                <audio :src="resolveUrl(file)" controls class="w-full h-11 rounded-xl shadow-xs"></audio>
                                             </div>
                                             
                                             <div v-else-if="isDocumentFile(file)" class="space-y-3">
-                                                <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                                <div class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
                                                     <div class="flex items-center gap-3 min-w-0">
-                                                        <div class="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-600 rounded-lg">
+                                                        <div class="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-600 rounded-xl">
                                                             <i :class="['pi', getFileIcon(file), 'text-lg']"></i>
                                                         </div>
                                                         <div class="min-w-0">
@@ -588,16 +664,16 @@ onMounted(fetchAttempt)
                                                     </div>
                                                     <a :href="resolveUrl(file)" 
                                                         target="_blank"
-                                                        class="px-3.5 py-1.5 bg-brand-primary hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                                                        <i class="pi pi-external-link"></i>
-                                                        Open in new tab
+                                                        class="px-4 py-2 bg-brand-primary hover:bg-rose-900 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs">
+                                                        <i class="pi pi-external-link text-xs"></i>
+                                                        Open file
                                                     </a>
                                                 </div>
 
-                                                <div v-if="isPdfFile(file)" class="rounded-xl border border-slate-200 overflow-hidden shadow-inner bg-slate-900">
+                                                <div v-if="isPdfFile(file)" class="rounded-2xl border border-slate-200 overflow-hidden shadow-sm bg-slate-900">
                                                     <iframe
                                                         :src="resolveUrl(file)"
-                                                        class="w-full h-[450px] border-none"
+                                                        class="w-full h-[550px] border-none"
                                                         title="PDF Preview"
                                                     ></iframe>
                                                 </div>
@@ -610,32 +686,30 @@ onMounted(fetchAttempt)
                                 </div>
                             </div>
 
-                            <!-- Right: Scoring inputs -->
-                            <div class="space-y-6">
+                            <!-- Right (4 Cols): Scoring & Feedback (Compact Dock) -->
+                            <div class="lg:col-span-4 space-y-4">
 
                                 <!-- Rubric Scorecard Button for Writing Tasks -->
                                 <div v-if="skill.question_type === 'writing' || ans.question?.type === 'writing'"
-                                    class="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-md border border-purple-800/40 space-y-4"
+                                    class="bg-gradient-to-br from-purple-950 via-slate-900 to-indigo-950 rounded-2xl p-4 text-white shadow-sm border border-purple-800/40 space-y-3"
                                 >
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-2.5">
-                                            <div class="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center border border-purple-500/30">
-                                                <i class="pi pi-list-check text-sm"></i>
-                                            </div>
-                                            <div>
-                                                <h4 class="text-sm font-black text-white">Writing Assessment Rubric</h4>
-                                                <p class="text-[10px] text-purple-200 font-medium">Structured grading across 4 core domains (Format, Grammar, Content, Rhetoric)</p>
-                                            </div>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center border border-purple-500/30 text-xs">
+                                            <i class="pi pi-list-check"></i>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <h4 class="text-xs font-black text-white truncate">Rubric Evaluator</h4>
+                                            <p class="text-[9px] text-purple-200 truncate">4 criteria scoring</p>
                                         </div>
                                     </div>
 
-                                    <div class="flex items-center justify-between pt-2 border-t border-purple-800/50">
-                                        <div class="text-xs">
-                                            <span class="text-purple-300 font-bold mr-1">Status:</span>
-                                            <span v-if="grades[ans.id]?.grading_details?.rubric_scores" class="text-emerald-400 font-black">
-                                                Rubric Evaluated ({{ grades[ans.id]?.grading_details?.rubric_total_earned ?? grades[ans.id]?.points_awarded }} / {{ activeRubrics.max_total }} pts)
+                                    <div class="pt-2 border-t border-purple-800/50 flex flex-col gap-2">
+                                        <div class="text-[11px] flex items-center justify-between">
+                                            <span class="text-purple-300 font-medium">Status:</span>
+                                            <span v-if="grades[ans.id]?.grading_details?.rubric_scores" class="text-emerald-400 font-bold">
+                                                ✓ Evaluated ({{ grades[ans.id]?.grading_details?.rubric_total_earned ?? grades[ans.id]?.points_awarded }} pts)
                                             </span>
-                                            <span v-else class="text-slate-400 font-bold">Standard manual score</span>
+                                            <span v-else class="text-slate-400">Manual score</span>
                                         </div>
 
                                         <Button
@@ -643,40 +717,51 @@ onMounted(fetchAttempt)
                                             icon="pi pi-external-link"
                                             size="small"
                                             @click="openRubricEvaluator(ans)"
-                                            class="bg-purple-500 hover:bg-purple-600 text-white border-none rounded-xl px-4 py-2 text-xs font-black shadow-md transition-all hover:scale-105"
+                                            class="w-full bg-purple-600 hover:bg-purple-700 text-white border-none rounded-xl py-2 text-xs font-bold shadow-xs transition-all"
                                         />
                                     </div>
                                 </div>
 
-                                <div class="bg-slate-50/60 rounded-2xl p-6 border border-slate-100 shadow-inner flex flex-col justify-center">
-                                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3.5">{{ t.pointsInputLabel }}</p>
-                                    <div class="flex items-center gap-4">
+                                <!-- Compact Points Graded Box -->
+                                <div class="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-black text-slate-600 uppercase tracking-wider">{{ t.pointsInputLabel }}</span>
+                                        <span class="text-xs font-black text-brand-primary">Max: {{ ans.question?.points ?? 0 }} pts</span>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-2">
                                         <InputNumber
                                             v-model="grades[ans.id].points_awarded"
                                             @update:modelValue="grades[ans.id].touched = true"
                                             :min="0" :max="ans.question?.points ?? 0"
                                             showButtons buttonLayout="horizontal"
-                                            class="h-14"
-                                            inputClass="w-20 text-center text-2xl font-black text-brand-primary bg-white border border-slate-200 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
-                                            incrementButtonClass="bg-white text-slate-400 border border-slate-200 hover:text-brand-primary rounded-e-xl"
-                                            decrementButtonClass="bg-white text-slate-400 border border-slate-200 hover:text-brand-primary rounded-s-xl"
+                                            class="h-11 flex-1"
+                                            inputClass="w-full text-center text-lg font-black text-brand-primary bg-white border border-slate-200 rounded-xl focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 transition-all shadow-2xs"
+                                            incrementButtonClass="bg-white text-slate-500 border border-slate-200 hover:text-brand-primary hover:bg-slate-50 rounded-e-xl px-2.5"
+                                            decrementButtonClass="bg-white text-slate-500 border border-slate-200 hover:text-brand-primary hover:bg-slate-50 rounded-s-xl px-2.5"
                                             incrementButtonIcon="pi pi-plus"
                                             decrementButtonIcon="pi pi-minus" />
-                                        <div class="text-slate-300 text-xl font-black">/</div>
-                                        <div class="text-slate-400 text-2xl font-black">{{ ans.question?.points ?? 0 }}</div>
+                                        <div class="text-slate-400 text-xs font-black px-1">/ {{ ans.question?.points ?? 0 }}</div>
+                                    </div>
+
+                                    <div v-if="ans.is_manual_graded" class="text-[10px] font-bold text-emerald-600 flex items-center gap-1 pt-1">
+                                        <i class="pi pi-check-circle text-[10px]"></i>
+                                        <span>Current saved grade: {{ ans.points_awarded }} pts</span>
                                     </div>
                                 </div>
 
-                                <div class="space-y-2 flex flex-col">
-                                    <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 mr-1">
-                                        {{ t.feedbackLabel }}
+                                <!-- Compact Teacher Feedback Box -->
+                                <div class="space-y-1.5 flex flex-col">
+                                    <label class="text-[10px] font-black text-slate-600 uppercase tracking-wider flex items-center justify-between px-0.5">
+                                        <span>{{ t.feedbackLabel }}</span>
+                                        <span class="text-[9px] font-normal text-slate-400 normal-case">(Optional)</span>
                                     </label>
                                     <Textarea
                                         v-model="grades[ans.id].teacher_feedback"
                                         @input="grades[ans.id].touched = true"
-                                        rows="4" autoResize
+                                        rows="3" autoResize
                                         :placeholder="t.feedbackPlaceholder"
-                                        class="w-full rounded-2xl border border-slate-200 p-4 font-medium text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-slate-50/20 shadow-sm" />
+                                        class="w-full rounded-xl border border-slate-200 p-3 font-medium text-xs focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 transition-all bg-slate-50/40 shadow-2xs leading-relaxed" />
                                 </div>
                             </div>
                         </div>

@@ -90,11 +90,7 @@ onMounted(() => {
 .speaking-prompt-content :deep(h1),
 .speaking-prompt-content :deep(h2),
 .speaking-prompt-content :deep(h3) {
-<<<<<<< HEAD
     font-family: 'Inter', system-ui, -apple-system, 'Lotus Linotype', 'Myriad Arabic', 'Cairo', sans-serif;
-=======
-    font-family: 'Lotus Linotype', 'Myriad Arabic', 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
->>>>>>> e6974c52c52db85e8e0563d2939917b9a290b9c0
 }
 
 .speaking-prompt-content :deep(p) {

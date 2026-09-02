@@ -10,11 +10,20 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
+import Select from 'primevue/select';
+import DatePicker from 'primevue/datepicker';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
+import { watch } from 'vue';
 
 const { showAlert, showConfirm } = useModal();
 
 const staff = ref([]);
+const partners = ref([]);
+const selectedPartner = ref(null);
+const dateFrom = ref(null);
+const dateTo = ref(null);
 const loading = ref(true);
 const isDeleting = ref(false);
 const searchQuery = ref('');
@@ -45,13 +54,58 @@ const labels = {
 };
 
 const filteredStaff = computed(() => {
-    if (!searchQuery.value) return staff.value;
-    const query = searchQuery.value.toLowerCase();
-    return staff.value.filter(user => {
-        const name = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
-        const email = (user.email || '').toLowerCase();
-        return name.includes(query) || email.includes(query);
-    });
+    let result = staff.value;
+
+    if (selectedPartner.value) {
+        result = result.filter(u => u.partner_id === selectedPartner.value || u.partner?.id === selectedPartner.value);
+    }
+
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(user => {
+            const name = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+            const email = (user.email || '').toLowerCase();
+            return name.includes(query) || email.includes(query);
+        });
+    }
+
+    if (dateFrom.value) {
+        const fromTime = new Date(dateFrom.value).setHours(0, 0, 0, 0);
+        result = result.filter(u => {
+            if (!u.created_at) return false;
+            return new Date(u.created_at).getTime() >= fromTime;
+        });
+    }
+
+    if (dateTo.value) {
+        const toTime = new Date(dateTo.value).setHours(23, 59, 59, 999);
+        result = result.filter(u => {
+            if (!u.created_at) return false;
+            return new Date(u.created_at).getTime() <= toTime;
+        });
+    }
+
+    return result;
+});
+
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+
+watch([searchQuery, selectedPartner, dateFrom, dateTo], () => {
+    currentPage.value = 1;
+});
+
+const resetFilters = () => {
+    searchQuery.value = '';
+    selectedPartner.value = null;
+    dateFrom.value = null;
+    dateTo.value = null;
+    currentPage.value = 1;
+};
+
+const paginatedStaff = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredStaff.value.slice(start, start + rowsPerPage.value);
 });
 
 const roles = [
@@ -63,8 +117,12 @@ const roles = [
 const fetchData = async () => {
     loading.value = true;
     try {
-        const res = await api.get('/admin/staff');
-        staff.value = res.data.data || res.data;
+        const [staffRes, partnersRes] = await Promise.all([
+            api.get('/admin/staff'),
+            api.get('/admin/partners/active').catch(() => api.get('/admin/partners')).catch(() => ({ data: [] }))
+        ]);
+        staff.value = staffRes.data.data || staffRes.data;
+        partners.value = partnersRes.data || [];
     } catch (err) {
         const error = err.response?.data?.message || err.response?.data?.errors || 'Failed to load staff.';
         showAlert(error, 'Error', 'danger');
@@ -133,21 +191,27 @@ onMounted(fetchData);
               </div>
           </div>
           
+          <!-- Filter Bar -->
+          <FilterBar
+              v-model="searchQuery"
+              :search-placeholder="labels.searchPlaceholder"
+              v-model:dateFrom="dateFrom"
+              v-model:dateTo="dateTo"
+              :active-count="selectedPartner ? 1 : 0"
+              @reset="resetFilters"
+          >
+              <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+              <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                  placeholder="All Partners" showClear 
+                  class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[180px] hover:!border-brand-primary/30 transition-all flex items-center" />
+          </FilterBar>
+
           <!-- Page Registry (DataTable in Card) -->
-          <div v-if="staff.length > 0 || searchQuery">
+          <div v-if="staff.length > 0 || searchQuery || selectedPartner || dateFrom || dateTo">
             <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                 <template #content>
-                    <DataTable :value="filteredStaff" dataKey="id" paginator :rows="10" 
+                    <DataTable :value="paginatedStaff" dataKey="id"
                         class="p-datatable-sm text-sm" responsiveLayout="scroll">
-                        
-                        <template #header>
-                            <div class="flex justify-end p-2 pb-4">
-                                <span class="relative">
-                                            <i class="pi pi-search absolute text-slate-400 z-10 left-3 top-1/2 -translate-y-1/2" />
-                                    <InputText v-model="searchQuery" :placeholder="labels.searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl pl-10" />
-                                </span>
-                            </div>
-                        </template>
 
                         <Column :header="labels.colName" style="min-width: 250px">
                             <template #body="{ data }">
@@ -195,6 +259,9 @@ onMounted(fetchData);
                             <div class="p-8 text-center text-slate-400 font-medium">{{ labels.emptySearch }}</div>
                         </template>
                     </DataTable>
+
+                    <!-- Pagination -->
+                    <CustomPagination :totalRecords="filteredStaff.length" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" />
                 </template>
             </Card>
           </div>

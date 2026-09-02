@@ -171,7 +171,6 @@ const handleEnterExam = () => {
     enteredExam.value = true;
     startTimer();
     startSessionPolling();
-    playCurrentAudio();
 };
 
 const reloadPage = () => {
@@ -252,7 +251,8 @@ const {
 
 const {
     audioRef, isAudioPlaying, audioProgress, audioCurrentTime, audioDuration, autoplayFailed,
-    updateAudioProgress, toggleAudioManual
+    audioError, isAudioLoaded, updateAudioProgress, onLoadedMetadata, onAudioError, toggleAudioManual,
+    playStimulusAudio
 } = useAudioEngine();
 
 const handleVisibilityChange = () => logCheatWarning(isStarting.value, showTimeoutModal.value);
@@ -640,15 +640,7 @@ const advanceQuestion = async () => {
         hasListened.value = false;
         window.scrollTo(0, 0);
     } else {
-        // Show upload overlay if there is an audio file to upload
-        const hasAudio = prevAns?.recorded_file && !prevAns?.is_media_uploaded;
-        if (hasAudio) isUploadingAnswer.value = true;
-        try {
-            await saveCurrentAnswerDraft(prevAns, prevQ); // await last draft before submitting
-            await submitCurrentBatch();
-        } finally {
-            isUploadingAnswer.value = false;
-        }
+        await submitCurrentBatch();
     }
 };
 
@@ -697,7 +689,7 @@ const saveCurrentAnswerDraft = async (ansToSave = null, qToSave = null) => {
         await api.post(`/attempts/${attemptId.value}/save-answer`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        if (ans.recorded_file) {
+        if (ans.recorded_file || (ans.recorded_files && ans.recorded_files.length > 0) || ans.pdf_file) {
             ans.is_media_uploaded = true;
         }
     } catch (err) {
@@ -761,7 +753,7 @@ const submitCurrentBatch = async (isTimeout = false) => {
             return;
         }
         if (res.data.finished_exam) {
-            isIntentionallyLeaving.value = true; // âœ… Ø£Ø¶Ù Ø¯Ù‡
+            isIntentionallyLeaving.value = true;
             if (cheatAttempts.value.length > 0) {
                 try {
                     await api.post(`/attempts/${attemptId.value}/cheat-report`, {
@@ -772,7 +764,6 @@ const submitCurrentBatch = async (isTimeout = false) => {
                     console.warn('Failed to send cheat report', err);
                 }
             }
-            // await endProctoringSession('exam_submitted');
             await navigateSafely(`/exam/${attemptId.value}/result`);
         } else if (res.data.next_step === 'dashboard') {
             await navigateSafely('/skill-selection');
@@ -789,7 +780,8 @@ const submitCurrentBatch = async (isTimeout = false) => {
         if (isTimeout) {
             await navigateSafely('/skill-selection');
         } else {
-            showAlert('Data transmission error. Try again.');
+            const serverMsg = err.response?.data?.message || err.response?.data?.error || 'Data transmission error. Please try again.';
+            showAlert(serverMsg, 'Submission Error', 'error');
         }
     } finally {
         isSubmittingBatch.value = false;
@@ -876,92 +868,21 @@ const cleanHtml = (html) => {
 
 const { resolveUrl } = useMediaUrl();
 
-const playCurrentAudio = () => {
-    if (isLoading.value || showLevelTransition.value || showRetryNotification.value || isStarting.value || !proctoringComplete.value || (proctoringRequired.value && !enteredExam.value)) {
-        if (audioRef.value) {
-            audioRef.value.pause();
-            audioRef.value.currentTime = 0;
-            lastAudioUrl.value = '';
-        }
-        return;
+const stopCurrentAudio = () => {
+    if (audioRef.value) {
+        audioRef.value.pause();
+        audioRef.value.currentTime = 0;
     }
-
-    if (isNavigatingBack.value) {
-        isNavigatingBack.value = false;
-        if (audioRef.value) {
-            audioRef.value.pause();
-            audioRef.value.currentTime = 0;
-            lastAudioUrl.value = '';
-        }
-        isAudioPlaying.value = false;
-        return;
-    }
-
-    const audioUrl = currentQ.value?.passage?.audio_url || currentQ.value?.passage?.audio_path || currentQ.value?.audio_url || currentQ.value?.audio_path;
-    if (audioUrl) {
-        const resolved = resolveUrl(audioUrl);
-        if (resolved === lastAudioUrl.value) {
-            return;
-        }
-        lastAudioUrl.value = resolved;
-        nextTick(() => {
-            if (audioRef.value) {
-                audioRef.value.pause();
-                audioRef.value.load();
-                audioRef.value.play()
-                    .then(() => {
-                        autoplayFailed.value = false;
-                        isAudioPlaying.value = true;
-                    })
-                    .catch(err => {
-                        if (err.name === 'AbortError') {
-                            return;
-                        }
-                        console.warn('Autoplay blocked by browser. User interaction required.', err);
-                        autoplayFailed.value = true;
-                        isAudioPlaying.value = false;
-                    });
-            } else {
-                setTimeout(() => {
-                    if (audioRef.value) {
-                        audioRef.value.pause();
-                        audioRef.value.load();
-                        audioRef.value.play()
-                            .then(() => {
-                                autoplayFailed.value = false;
-                                isAudioPlaying.value = true;
-                            })
-                            .catch(err => {
-                                if (err.name === 'AbortError') {
-                                    return;
-                                }
-                                console.warn('Autoplay blocked by browser in fallback. User interaction required.', err);
-                                autoplayFailed.value = true;
-                                isAudioPlaying.value = false;
-                            });
-                    } else {
-                        autoplayFailed.value = true;
-                    }
-                }, 150);
-            }
-        });
-    } else {
-        lastAudioUrl.value = '';
-        autoplayFailed.value = false;
-        isAudioPlaying.value = false;
-        if (audioRef.value) {
-            audioRef.value.pause();
-            audioRef.value.currentTime = 0;
-        }
-    }
+    isAudioPlaying.value = false;
+    audioProgress.value = 0;
+    audioCurrentTime.value = '0:00';
+    lastAudioUrl.value = '';
 };
 
 watch(currentQ, (newQ) => {
     if (!newQ) return;
+    stopCurrentAudio();
     autoplayFailed.value = false;
-    audioProgress.value = 0;
-    audioCurrentTime.value = '0:00';
-    audioDuration.value = '0:00';
 
     // Check if user already listened to this question or the associated passage fully
     const isPassage = !!(newQ.passage?.audio_url || newQ.passage?.audio_path);
@@ -973,6 +894,21 @@ watch(currentQ, (newQ) => {
         hasListened.value = false;
     }
 
+    // Attempt autoplay once audio is available for this question
+    if (!hasListened.value) {
+        const rawAudio = newQ.passage?.audio_url || newQ.passage?.audio_path
+            || newQ.audio_url || newQ.audio_path;
+        if (rawAudio) {
+            const resolvedUrl = resolveUrl(rawAudio);
+            nextTick(() => {
+                // Give the <audio> element time to bind the new src, then try autoplay
+                setTimeout(() => {
+                    playStimulusAudio(resolvedUrl);
+                }, 300);
+            });
+        }
+    }
+
     if (newQ && newQ.id) {
         api.patch(`/attempts/${attemptId.value}/progress`, { question_id: newQ.id })
             .catch(err => console.warn('Progress update failed', err));
@@ -981,25 +917,6 @@ watch(currentQ, (newQ) => {
         nextTick(() => {
             saveCurrentAnswerDraft();
         });
-    }
-    playCurrentAudio();
-});
-
-watch(isLoading, (loading) => {
-    if (!loading) {
-        playCurrentAudio();
-    }
-});
-
-watch(proctoringComplete, (complete) => {
-    if (complete) {
-        playCurrentAudio();
-    }
-});
-
-watch(showLevelTransition, (inTransition) => {
-    if (!inTransition) {
-        playCurrentAudio();
     }
 });
 
@@ -1210,8 +1127,14 @@ onUnmounted(() => {
 
             <audio ref="audioRef"
                 :src="currentQ ? resolveUrl(currentQ.passage?.audio_url || currentQ.passage?.audio_path || currentQ.audio_url || currentQ.audio_path) : ''"
-                @play="isAudioPlaying = true" @pause="isAudioPlaying = false" @ended="markCurrentAsListened"
-                @timeupdate="updateAudioProgress" class="hidden">
+                @loadedmetadata="onLoadedMetadata"
+                @timeupdate="updateAudioProgress"
+                @play="isAudioPlaying = true; autoplayFailed = false"
+                @pause="isAudioPlaying = false"
+                @ended="markCurrentAsListened"
+                @error="onAudioError"
+                preload="auto"
+                class="hidden">
             </audio>
 
             <!-- Exam Interface Container: Hidden when proctor checking is active -->
@@ -1401,58 +1324,102 @@ onUnmounted(() => {
                                 <div
                                     class="max-w-3xl w-full bg-white border border-slate-100 rounded-[2rem] shadow-xl p-8 sm:p-10 flex flex-col items-center text-center gap-6 animate-in fade-in duration-500">
 
-                                    <!-- Headphone Icon -->
-                                    <!-- <div
-                                        class="w-16 h-16 rounded-full bg-rose-100/60 flex items-center justify-center text-rose-600 shrink-0 shadow-sm">
-                                        <i class="pi pi-headphones text-2xl"></i>
-                                    </div> -->
-
-                                    <!-- Title -->
-                                    <!-- <h2 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Listening Test</h2> -->
-
                                     <!-- General Instructions -->
                                     <div v-if="passageGeneralInstructions"
                                         class="text-slate-600 text-sm font-medium leading-relaxed max-w-2xl ql-content rtl-support general-instructions-content"
                                         v-html="cleanHtml(passageGeneralInstructions)" dir="auto">
                                     </div>
 
-                                    <!-- Audio Player (large, centered) -->
+                                    <!-- Audio Player (compact box with inline play button & track) -->
                                     <div
-                                        class="w-full bg-slate-50 rounded-2xl border border-slate-200/60 shadow-inner p-6 mt-2">
-                                        <div class="flex items-center gap-3 mb-4" dir="rtl">
-                                            <div
-                                                class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-brand-primary">
-                                                <i class="pi pi-volume-up text-base"
-                                                    :class="isAudioPlaying ? 'animate-pulse' : ''"></i>
+                                        class="w-full bg-slate-50/90 rounded-2xl border border-slate-200/80 shadow-sm px-4 py-2.5 flex flex-col gap-1.5 mt-1">
+                                        
+                                        <!-- Header Label -->
+                                        <div class="flex items-center justify-between w-full border-b border-slate-200/60 pb-1.5">
+                                            <div class="flex items-center gap-1.5">
+                                                <div class="w-5 h-5 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                                    <i class="pi pi-headphones" style="font-size: 10px"></i>
+                                                </div>
+                                                <span class="text-[10px] font-black text-slate-700 uppercase tracking-wider">
+                                                    {{ currentLang === 'ar' ? 'المقطع الصوتي للاستماع' : 'Listening Audio Track' }}
+                                                </span>
                                             </div>
-                                            <span
-                                                class="text-xs font-black text-slate-400 uppercase tracking-widest">Audio</span>
+                                            <!-- Status badge -->
+                                            <span v-if="isAudioPlaying" class="flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 animate-pulse">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                {{ currentLang === 'ar' ? 'جاري التشغيل...' : 'Playing...' }}
+                                            </span>
+                                            <span v-else-if="autoplayFailed" class="flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                                <i class="pi pi-volume-off" style="font-size:9px"></i>
+                                                {{ currentLang === 'ar' ? 'اضغط للتشغيل' : 'Tap to Play' }}
+                                            </span>
+                                            <span v-else class="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                                                {{ currentLang === 'ar' ? 'جاهز للتشغيل' : 'Ready' }}
+                                            </span>
                                         </div>
 
-                                        <!-- Autoplay failed banner -->
-                                        <div v-if="autoplayFailed && !isAudioPlaying && !hasListened"
-                                            class="mb-4 flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-xl animate-in fade-in slide-in-from-top-2 duration-500">
+                                        <!-- Inline Play Button + Track Row -->
+                                        <div class="flex items-center gap-2 w-full" dir="ltr">
+                                            <!-- Play / Pause Button -->
+                                            <button @click="toggleAudioManual"
+                                                type="button"
+                                                :class="isAudioPlaying 
+                                                    ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-200' 
+                                                    : autoplayFailed
+                                                        ? 'bg-brand-primary hover:bg-brand-primary/90 text-white shadow-brand-primary/25 animate-bounce hover:animate-none'
+                                                        : 'bg-brand-primary hover:bg-brand-primary/90 text-white shadow-brand-primary/25'"
+                                                class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center shadow-md transition-all active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                                                :title="isAudioPlaying ? 'Pause' : 'Play'">
+                                                <i :class="isAudioPlaying ? 'pi pi-pause text-xs' : 'pi pi-play text-xs ml-0.5'"></i>
+                                            </button>
+
+                                            <!-- Current Time -->
+                                            <span class="text-[10px] font-mono font-bold text-brand-primary w-7 text-center shrink-0">
+                                                {{ audioCurrentTime }}
+                                            </span>
+
+                                            <!-- Progress Bar Track -->
+                                            <div class="flex-1 bg-slate-200 h-1.5 rounded-full overflow-hidden cursor-default shadow-inner">
+                                                <div class="bg-brand-primary h-full transition-all duration-150 ease-linear rounded-full"
+                                                    :style="{ width: audioProgress + '%' }"></div>
+                                            </div>
+
+                                            <!-- Total Duration -->
+                                            <span class="text-[10px] font-mono font-bold text-slate-500 w-7 text-center shrink-0">
+                                                {{ audioDuration }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Subtitle Note -->
+                                        <p class="text-[9px] text-center font-medium"
+                                           :class="autoplayFailed && !isAudioPlaying ? 'text-amber-500' : 'text-slate-400'">
+                                            <template v-if="autoplayFailed && !isAudioPlaying">
+                                                {{ currentLang === 'ar' 
+                                                    ? 'لم يتشغل الصوت تلقائياً — اضغط زر التشغيل للاستمرار' 
+                                                    : 'Audio blocked — press Play to continue' 
+                                                }}
+                                            </template>
+                                            <template v-else>
+                                                {{ currentLang === 'ar' 
+                                                    ? 'سيتم الانتقال للأسئلة تلقائياً عند اكتمال الاستماع' 
+                                                    : 'Questions will appear automatically once audio finishes' 
+                                                }}
+                                            </template>
+                                        </p>
+
+                                        <!-- Error Recovery Banner if audio file fails -->
+                                        <div v-if="audioError"
+                                            class="w-full flex items-center justify-between p-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-[11px] font-bold mt-1">
                                             <div class="flex items-center gap-2">
-                                                <i class="pi pi-exclamation-triangle text-rose-500 text-sm"></i>
-                                                <span class="text-sm font-bold text-rose-700">Click to start
-                                                    listening</span>
+                                                <i class="pi pi-exclamation-circle text-rose-500"></i>
+                                                <span>{{ currentLang === 'ar' ? 'تعذر تشغيل الصوت.' : 'Audio failed to load.' }}</span>
                                             </div>
                                             <button @click="toggleAudioManual"
-                                                class="px-5 py-2 bg-rose-600 text-white rounded-lg text-sm font-black hover:bg-rose-700 transition-all shadow-sm">
-                                                Play audio
+                                                class="px-2 py-0.5 bg-rose-600 text-white rounded-lg text-[10px] font-black hover:bg-rose-700">
+                                                {{ currentLang === 'ar' ? 'إعادة المحاولة' : 'Retry' }}
                                             </button>
                                         </div>
 
-                                        <!-- Progress bar -->
-                                        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                                            <div class="bg-brand-primary h-full transition-all duration-150 ease-linear"
-                                                :style="{ width: audioProgress + '%' }"></div>
-                                        </div>
-                                        <div
-                                            class="flex justify-between mt-2 text-xs font-bold text-slate-400 font-mono">
-                                            <span class="text-brand-primary">{{ audioCurrentTime }}</span>
-                                            <span>{{ audioDuration }}</span>
-                                        </div>
                                     </div>
 
                                 </div>

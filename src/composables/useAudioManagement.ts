@@ -95,17 +95,12 @@ export const useAudioManagement = (
     const playAudio = () => {
         if (!audioRef.value) return;
 
-        audioRef.value.pause();
-        audioRef.value.load();
         audioRef.value.play()
             .then(() => {
                 autoplayFailed.value = false;
                 isAudioPlaying.value = true;
             })
             .catch((err: Error) => {
-                if (err.name === 'AbortError') {
-                    return;
-                }
                 console.warn('Autoplay blocked by browser. User interaction required.', err);
                 autoplayFailed.value = true;
                 isAudioPlaying.value = false;

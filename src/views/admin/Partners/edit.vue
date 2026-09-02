@@ -98,13 +98,40 @@ onMounted(() => {
 
             <div class="bg-white rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full overflow-hidden flex flex-col border border-slate-100">
                 <div class="p-10 space-y-12">
-                    <!-- Section 1: Core -->
+                    <!-- Section 1: Organization Details -->
                     <div class="space-y-6">
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="flex items-center space-x-3 pb-2 border-b border-slate-100">
+                            <div class="w-2 h-2 rounded-full bg-brand-primary"></div>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Organization Details</h3>
+                        </div>
+
+                        <!-- Row 1: Partner Name (Full Width) -->
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Partner Name <span class="text-rose-500">*</span></label>
+                            <input v-model="editForm.partner_name" type="text" class="premium-input text-sm font-bold uppercase" placeholder="ORGANIZATION / PARTNER NAME">
+                        </div>
+
+                        <!-- Row 2: Country & Website -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Partner Name</label>
-                                <input v-model="editForm.partner_name" type="text" class="premium-input text-xs uppercase" placeholder="PARTNER_NAME">
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Country</label>
+                                <input v-model="editForm.country" type="text" class="premium-input text-xs uppercase" placeholder="COUNTRY">
                             </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Website</label>
+                                <input v-model="editForm.website" type="text" class="premium-input text-xs" placeholder="HTTPS://WEBSITE.COM">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Contact Person -->
+                    <div class="space-y-6">
+                        <div class="flex items-center space-x-3 pb-2 border-b border-slate-100">
+                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Primary Contact Person</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">First Name Contact</label>
                                 <input v-model="editForm.fName_contact" type="text" class="premium-input text-xs uppercase" placeholder="FIRST_NAME">
@@ -113,33 +140,34 @@ onMounted(() => {
                                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Last Name Contact</label>
                                 <input v-model="editForm.lName_contact" type="text" class="premium-input text-xs uppercase" placeholder="LAST_NAME">
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Country</label>
-                                <input v-model="editForm.country" type="text" class="premium-input text-xs uppercase" placeholder="COUNTRY">
-                            </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Identifier (Email)</label>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Identifier (Email) <span class="text-rose-500">*</span></label>
                                 <input v-model="editForm.email" type="email" class="premium-input text-xs" placeholder="EMAIL@DOMAIN.COM">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Contact Phone</label>
                                 <input v-model="editForm.phone" type="text" class="premium-input text-xs" placeholder="+XX XXX XXXX">
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Website</label>
-                                <input v-model="editForm.website" type="text" class="premium-input text-xs" placeholder="HTTPS://WEBSITE.COM">
-                            </div>
-                             <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Notes</label>
-                                <input v-model="editForm.note" type="text" class="premium-input text-xs" placeholder="NOTES">
-                            </div>
                         </div>
                     </div>
 
-                    <!-- Section 2: Active Status & Proctoring Mode Selection -->
+                    <!-- Section 3: Notes -->
+                    <div class="space-y-6">
+                        <div class="flex items-center space-x-3 pb-2 border-b border-slate-100">
+                            <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Additional Notes</h3>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Notes / Remarks</label>
+                            <textarea v-model="editForm.note" rows="3" class="premium-input text-xs" placeholder="Enter any relevant internal notes or remarks..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Active Status & Proctoring Mode Selection -->
                     <div class="space-y-6 p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
                         <div class="flex items-center justify-between border-b border-slate-200/60 pb-6 mb-6">
                             <div>
@@ -160,7 +188,7 @@ onMounted(() => {
                         <!-- 3-Way Proctoring Mode Selection Cards -->
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">
-                                Proctoring & Identity Mode (نموذج المراقبة والتحقق)
+                                Proctoring & Identity Mode
                             </label>
                             
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -183,9 +211,9 @@ onMounted(() => {
                                                 Mode 1
                                             </span>
                                         </div>
-                                        <h4 class="text-xs font-black uppercase tracking-wide mb-1">بدون مراقبة</h4>
+                                        <h4 class="text-xs font-black uppercase tracking-wide mb-1">Non-Proctored</h4>
                                         <p class="text-[10px] font-medium leading-relaxed opacity-70">
-                                            فحص متطلبات الجهاز فقط قبل الاختبار. لا توجد مراقبة حية ولا فحص للبطاقة/الصورة.
+                                            System check only before the exam. No live proctoring, webcam recording, or ID verification.
                                         </p>
                                     </div>
                                     <div class="mt-4 pt-3 border-t text-[9px] font-bold uppercase tracking-widest"
@@ -213,9 +241,9 @@ onMounted(() => {
                                                 Mode 2
                                             </span>
                                         </div>
-                                        <h4 class="text-xs font-black uppercase tracking-wide mb-1">مراقبة كاملة</h4>
+                                        <h4 class="text-xs font-black uppercase tracking-wide mb-1">Full Proctored</h4>
                                         <p class="text-[10px] font-medium leading-relaxed opacity-70">
-                                            فحص الهوية (تصوير + بطاقة + مطابقة الذكاء الاصطناعي) + مراقبة حية وتسجيل فيديو ورصد تنقلات أثناء الاختبار.
+                                            ID verification (photo capture + ID card + AI match) + live proctoring, webcam video recording, and tab switch detection.
                                         </p>
                                     </div>
                                     <div class="mt-4 pt-3 border-t text-[9px] font-bold uppercase tracking-widest"
@@ -240,12 +268,12 @@ onMounted(() => {
                                             </div>
                                             <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
                                                 :class="editForm.proctoring_mode === 'identity_only' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-emerald-100 text-emerald-700'">
-                                                Mode 3 ✨ جديد
+                                                Mode 3 ✨ NEW
                                             </span>
                                         </div>
-                                        <h4 class="text-xs font-black uppercase tracking-wide mb-1">تحقق هوية فقط بدون مراقبة</h4>
+                                        <h4 class="text-xs font-black uppercase tracking-wide mb-1">Identity Verification Only</h4>
                                         <p class="text-[10px] font-medium leading-relaxed opacity-70">
-                                            فحص الهوية (تصوير + بطاقة + مطابقة الذكاء الاصطناعي) قبل الاختبار، وبدون مراقبة حية أثناء حل الاختبار.
+                                            ID verification (photo capture + ID card + AI face match) before the exam, without live proctoring or webcam recording during the exam.
                                         </p>
                                     </div>
                                     <div class="mt-4 pt-3 border-t text-[9px] font-bold uppercase tracking-widest"

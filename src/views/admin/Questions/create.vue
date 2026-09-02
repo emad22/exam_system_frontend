@@ -705,7 +705,7 @@ const saveBatch = async () => {
         await api.post('/admin/questions', fd, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        await showAlert(t[currentLang.value].saveSuccessMsg, currentLang.value === 'ar' ? 'تم الحفظ' : 'Saved', 'success');
+        await showAlert(t[currentLang.value].saveSuccessMsg, 'Saved', 'success');
         const isTeacher = adminStore.user?.role === 'teacher';
         router.push({ name: isTeacher ? 'teacher.questions' : 'admin.questions' });
     } catch (err) {

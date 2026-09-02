@@ -5,13 +5,26 @@ import PartnerLayout from '@/components/PartnerLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import DatePicker from 'primevue/datepicker';
 import ReportListSkeleton from '@/components/skeletons/ReportListSkeleton.vue';
+import FilterBar from '@/components/FilterBar.vue';
 
 const route = useRoute();
 const router = useRouter();
 const attempts = ref([]);
 const loading = ref(true);
 const search = ref(route.query.search || '');
+const dateFrom = ref(null);
+const dateTo = ref(null);
+
+const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
 
 const skillMap = {
     'listening': 'Listening',
@@ -73,9 +86,32 @@ const filteredAttempts = computed(() => {
             a.exam?.title?.toLowerCase().includes(q)
         );
     }
-    
+
+    if (dateFrom.value) {
+        const fromTime = new Date(dateFrom.value).setHours(0, 0, 0, 0);
+        result = result.filter(a => {
+            if (!a.started_at) return false;
+            return new Date(a.started_at).getTime() >= fromTime;
+        });
+    }
+
+    if (dateTo.value) {
+        const toTime = new Date(dateTo.value).setHours(23, 59, 59, 999);
+        result = result.filter(a => {
+            if (!a.started_at) return false;
+            return new Date(a.started_at).getTime() <= toTime;
+        });
+    }
+
     return result;
 });
+
+const resetFilters = () => {
+    search.value = '';
+    dateFrom.value = null;
+    dateTo.value = null;
+    currentPage.value = 1;
+};
 
 const totalRecords = computed(() => filteredAttempts.value.length);
 const totalPages = computed(() => Math.ceil(totalRecords.value / rowsPerPage.value) || 1);
@@ -227,7 +263,7 @@ onMounted(() => {
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight lowercase first-letter:uppercase">Student Registry</h1>
                 <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Performance outcomes for your students</p>
             </div>
-            <div class="flex items-center space-x-3 relative z-10">
+            <div class="flex items-center gap-3 relative z-10">
                 <Button v-if="selectedReports.length > 0"
                         :label="'Download PDF (' + selectedReports.length + ')'"
                         icon="pi pi-file-pdf"
@@ -235,14 +271,18 @@ onMounted(() => {
                         :loading="isPrinting"
                         @click="generatePDF"
                         class="!text-xs font-bold rounded-xl h-10 px-4" />
-                <span class="relative">
-                    <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 text-xs" />
-                    <input v-model="search" type="text" placeholder="Search by student or exam..."
-                        class="bg-slate-50 border border-slate-100 rounded-xl px-10 py-2.5 text-xs font-bold focus:bg-white transition-all w-64 outline-none">
-                </span>
                 <Button icon="pi pi-refresh" outlined severity="secondary" @click="fetchReports" />
             </div>
         </div>
+
+        <!-- Filter Bar -->
+        <FilterBar
+            v-model="search"
+            search-placeholder="Search by student or exam..."
+            v-model:dateFrom="dateFrom"
+            v-model:dateTo="dateTo"
+            @reset="resetFilters"
+        />
 
         <div v-if="loading" class="mt-4 px-4 md:px-6">
             <ReportListSkeleton :rows="6" />

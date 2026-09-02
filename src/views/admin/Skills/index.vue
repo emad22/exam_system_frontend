@@ -7,15 +7,21 @@ import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
+import DatePicker from 'primevue/datepicker';
 import Tag from 'primevue/tag';
 import Card from 'primevue/card';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
+import { watch } from 'vue';
 
 const { showAlert, showConfirm } = useModal();
 
 const skills = ref([]);
 const loading = ref(true);
 const searchQuery = ref('');
+const dateFrom = ref(null);
+const dateTo = ref(null);
 
 const labels = {
     loading: "Loading skills...",
@@ -42,9 +48,49 @@ const labels = {
 };
 
 const filteredSkills = computed(() => {
-    if (!searchQuery.value) return skills.value;
-    const query = searchQuery.value.toLowerCase();
-    return skills.value.filter(s => s.name.toLowerCase().includes(query) || s.short_code?.toLowerCase().includes(query));
+    let result = skills.value;
+
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(s => s.name.toLowerCase().includes(query) || s.short_code?.toLowerCase().includes(query));
+    }
+
+    if (dateFrom.value) {
+        const fromTime = new Date(dateFrom.value).setHours(0, 0, 0, 0);
+        result = result.filter(s => {
+            if (!s.created_at) return false;
+            return new Date(s.created_at).getTime() >= fromTime;
+        });
+    }
+
+    if (dateTo.value) {
+        const toTime = new Date(dateTo.value).setHours(23, 59, 59, 999);
+        result = result.filter(s => {
+            if (!s.created_at) return false;
+            return new Date(s.created_at).getTime() <= toTime;
+        });
+    }
+
+    return result;
+});
+
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+
+watch([searchQuery, dateFrom, dateTo], () => {
+    currentPage.value = 1;
+});
+
+const resetFilters = () => {
+    searchQuery.value = '';
+    dateFrom.value = null;
+    dateTo.value = null;
+    currentPage.value = 1;
+};
+
+const paginatedSkills = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredSkills.value.slice(start, start + rowsPerPage.value);
 });
 
 
@@ -108,22 +154,22 @@ onMounted(fetchSkills);
                     </div>
                 </div>
 
-                <!-- Registry Table Card -->
-                <div v-if="skills.length > 0 || searchQuery">
+                <!-- Filter Bar -->
+                <FilterBar
+                    v-model="searchQuery"
+                    :search-placeholder="labels.searchPlaceholder"
+                    v-model:dateFrom="dateFrom"
+                    v-model:dateTo="dateTo"
+                    @reset="resetFilters"
+                />
+
+                <!-- Page Registry (DataTable in Card) -->
+                <div v-if="skills.length > 0 || searchQuery || dateFrom || dateTo">
                     <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                         <template #content>
-                            <DataTable :value="filteredSkills" dataKey="id" paginator :rows="10" 
+                            <DataTable :value="paginatedSkills" dataKey="id"
                                 class="p-datatable-sm text-sm" responsiveLayout="scroll">
                                 
-                                <template #header>
-                                    <div class="flex justify-end p-2 pb-4">
-                                        <span class="relative">
-                                            <i class="pi pi-search absolute text-slate-400 z-10 left-3 top-1/2 -translate-y-1/2" />
-                                            <InputText v-model="searchQuery" :placeholder="labels.searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl pl-10" />
-                                        </span>
-                                    </div>
-                                </template>
-
                                 <Column :header="labels.colSkill" style="min-width: 250px">
                                     <template #body="{ data }">
                                         <div class="flex items-center space-x-4">
@@ -175,6 +221,9 @@ onMounted(fetchSkills);
                                     <div class="p-8 text-center text-slate-400 font-medium">{{ labels.emptySearch }}</div>
                                 </template>
                             </DataTable>
+
+                            <!-- Pagination -->
+                            <CustomPagination :totalRecords="filteredSkills.length" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" />
                         </template>
                     </Card>
                 </div>

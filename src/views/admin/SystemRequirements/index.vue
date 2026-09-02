@@ -10,7 +10,11 @@ import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
 import Card from 'primevue/card';
+import DatePicker from 'primevue/datepicker';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
+import { watch } from 'vue';
 
 
 const { showAlert, showConfirm } = useModal();
@@ -21,6 +25,8 @@ const router = useRouter();
 const requirements = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
+const dateFrom = ref(null);
+const dateTo = ref(null);
 
 const labels = {
     loading: "Loading system requirements...",
@@ -70,13 +76,53 @@ const fetchRequirements = async () => {
 };
 
 const filteredRequirements = computed(() => {
-    if (!searchQuery.value) return requirements.value;
-    const query = searchQuery.value.toLowerCase();
-    return requirements.value.filter(r => {
-        return r.title.toLowerCase().includes(query) || 
-               r.category.toLowerCase().includes(query) ||
-               r.description?.toLowerCase().includes(query);
-    });
+    let result = requirements.value;
+
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(r => {
+            return r.title.toLowerCase().includes(query) || 
+                   r.category.toLowerCase().includes(query) ||
+                   r.description?.toLowerCase().includes(query);
+        });
+    }
+
+    if (dateFrom.value) {
+        const fromTime = new Date(dateFrom.value).setHours(0, 0, 0, 0);
+        result = result.filter(r => {
+            if (!r.created_at) return false;
+            return new Date(r.created_at).getTime() >= fromTime;
+        });
+    }
+
+    if (dateTo.value) {
+        const toTime = new Date(dateTo.value).setHours(23, 59, 59, 999);
+        result = result.filter(r => {
+            if (!r.created_at) return false;
+            return new Date(r.created_at).getTime() <= toTime;
+        });
+    }
+
+    return result;
+});
+
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+
+watch([searchQuery, dateFrom, dateTo], () => {
+    currentPage.value = 1;
+});
+
+const resetFilters = () => {
+    searchQuery.value = '';
+    dateFrom.value = null;
+    dateTo.value = null;
+    currentPage.value = 1;
+};
+
+const paginatedRequirements = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredRequirements.value.slice(start, start + rowsPerPage.value);
 });
 
 const getCategoryLabel = (cat) => {
@@ -136,21 +182,21 @@ onMounted(fetchRequirements);
                     </div>
                 </div>
 
+                <!-- Filter Bar -->
+                <FilterBar
+                    v-model="searchQuery"
+                    :search-placeholder="labels.searchPlaceholder"
+                    v-model:dateFrom="dateFrom"
+                    v-model:dateTo="dateTo"
+                    @reset="resetFilters"
+                />
+
                 <!-- Registry Table Card -->
-                <div v-if="requirements.length > 0 || searchQuery">
+                <div v-if="requirements.length > 0 || searchQuery || dateFrom || dateTo">
                     <Card class="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[2rem] overflow-hidden">
                         <template #content>
-                            <DataTable :value="filteredRequirements" dataKey="id" paginator :rows="10" 
+                            <DataTable :value="paginatedRequirements" dataKey="id"
                                        class="p-datatable-sm text-sm" responsiveLayout="scroll">
-                                
-                                <template #header>
-                                    <div class="flex justify-end p-2 pb-4">
-                                        <span class="relative">
-                                            <i class="pi pi-search absolute text-slate-400 z-10 left-3 top-1/2 -translate-y-1/2" />
-                                            <InputText v-model="searchQuery" :placeholder="labels.searchPlaceholder" class="w-full md:w-80 shadow-sm rounded-xl pl-10" />
-                                        </span>
-                                    </div>
-                                </template>
 
                                 <Column :header="labels.colOrder" style="width: 80px">
                                     <template #body="{ data }">
@@ -204,6 +250,9 @@ onMounted(fetchRequirements);
                                     <div class="p-8 text-center text-slate-400 font-medium">{{ labels.emptySearch }}</div>
                                 </template>
                             </DataTable>
+
+                            <!-- Pagination -->
+                            <CustomPagination :totalRecords="filteredRequirements.length" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" />
                         </template>
                     </Card>
                 </div>

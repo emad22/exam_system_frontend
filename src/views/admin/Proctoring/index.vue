@@ -9,6 +9,9 @@ import Select from 'primevue/select'
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue'
 import Tooltip from 'primevue/tooltip'
 import Dialog from 'primevue/dialog'
+import DatePicker from 'primevue/datepicker'
+import CustomPagination from '@/components/CustomPagination.vue'
+import FilterBar from '@/components/FilterBar.vue'
 // @ts-ignore
 import { useModal } from '@/composables/useModal'
 
@@ -122,6 +125,8 @@ const filters = ref({
   status: '',
   has_violations: '' as boolean | string,
   min_risk_score: '',
+  date_from: null as Date | null,
+  date_to: null as Date | null,
 })
 
 const statusOptions = computed(() => [
@@ -149,6 +154,11 @@ const riskOptions = computed(() => [
 const fetchSessions = async () => {
   loading.value = true
   try {
+    const formatDateParam = (date: Date | null) => {
+      if (!date) return undefined
+      const d = new Date(date)
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    }
     const params = {
       page: currentPage.value,
       per_page: pagination.value.per_page,
@@ -159,6 +169,8 @@ const fetchSessions = async () => {
       ...(filters.value.status && { status: filters.value.status }),
       ...(filters.value.has_violations !== '' && { has_violations: filters.value.has_violations }),
       ...(filters.value.min_risk_score && { min_risk_score: filters.value.min_risk_score }),
+      ...(filters.value.date_from && { date_from: formatDateParam(filters.value.date_from) }),
+      ...(filters.value.date_to && { date_to: formatDateParam(filters.value.date_to) }),
     }
     const response = await api.get('/admin/proctoring', { params })
     studentsList.value = response.data.data || []
@@ -187,7 +199,7 @@ const sortBy = (field: string) => {
 }
 
 const resetFilters = () => {
-  filters.value = { search: '', status: '', has_violations: '', min_risk_score: '' }
+  filters.value = { search: '', status: '', has_violations: '', min_risk_score: '', date_from: null, date_to: null }
   currentPage.value = 1
 }
 
@@ -296,12 +308,6 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
           </div>
 
           <div class="flex flex-wrap items-center gap-4 relative z-10">
-            <span class="relative">
-              <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 text-xs" />
-              <input v-model="filters.search" type="text" :placeholder="t.searchPlaceholder"
-                @input="currentPage = 1"
-                class="bg-slate-50 border border-slate-100 rounded-xl pl-9 pr-4 py-2.5 text-xs font-bold focus:bg-white transition-all w-64 outline-none focus:border-brand-primary" />
-            </span>
             <Button icon="pi pi-refresh" outlined severity="secondary" @click="fetchSessions" class="cursor-pointer" />
           </div>
         </div>
@@ -377,30 +383,26 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
         </div>
 
         <!-- ─── STUDENTS LIST ─── -->
-        <!-- Filters Section -->
-        <div
-          class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md flex flex-col xl:flex-row justify-between items-center gap-6">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-filter text-slate-400"></i>
-            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">{{ t.filtersTitle }}
-            </h3>
-          </div>
-          <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
-            <Select v-model="filters.status" :options="statusOptions" optionLabel="label" optionValue="value"
-              :placeholder="t.filterStatus" @change="currentPage = 1"
-              class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[160px] focus:border-brand-primary transition-all" />
-            <Select v-model="filters.has_violations" :options="violationOptions" optionLabel="label" optionValue="value"
-              :placeholder="t.filterViolations" @change="currentPage = 1"
-              class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[180px] focus:border-brand-primary transition-all" />
-            <Select v-model="filters.min_risk_score" :options="riskOptions" optionLabel="label" optionValue="value"
-              :placeholder="t.filterRisk" @change="currentPage = 1"
-              class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[180px] focus:border-brand-primary transition-all" />
-            <Button v-if="filters.status || filters.has_violations !== '' || filters.min_risk_score"
-              icon="pi pi-filter-slash" severity="danger" rounded outlined @click="resetFilters"
-              v-tooltip.top="t.resetFilters"
-              class="h-11 w-11 shrink-0 cursor-pointer hover:bg-rose-50 hover:border-rose-400" />
-          </div>
-        </div>
+        <!-- Filter Bar -->
+        <FilterBar
+          v-model="filters.search"
+          :search-placeholder="t.searchPlaceholder"
+          v-model:dateFrom="filters.date_from"
+          v-model:dateTo="filters.date_to"
+          :active-count="(filters.status ? 1 : 0) + (filters.has_violations !== '' ? 1 : 0) + (filters.min_risk_score ? 1 : 0)"
+          @reset="resetFilters"
+        >
+          <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+          <Select v-model="filters.status" :options="statusOptions" optionLabel="label" optionValue="value"
+            :placeholder="t.filterStatus" @change="currentPage = 1"
+            class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[150px] hover:!border-brand-primary/30 transition-all flex items-center" />
+          <Select v-model="filters.has_violations" :options="violationOptions" optionLabel="label" optionValue="value"
+            :placeholder="t.filterViolations" @change="currentPage = 1"
+            class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[170px] hover:!border-brand-primary/30 transition-all flex items-center" />
+          <Select v-model="filters.min_risk_score" :options="riskOptions" optionLabel="label" optionValue="value"
+            :placeholder="t.filterRisk" @change="currentPage = 1"
+            class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[160px] hover:!border-brand-primary/30 transition-all flex items-center" />
+        </FilterBar>
 
         <!-- Loading while refreshing -->
         <div v-if="loading"
@@ -508,14 +510,8 @@ const deleteAllStudentSessions = async (studentId: number, studentName: string, 
         </div>
 
         <!-- Pagination -->
-        <div v-if="pagination.total > 0" class="flex items-center justify-center gap-4">
-          <Button icon="pi pi-chevron-right" @click="currentPage--" :disabled="currentPage === 1" outlined
-            severity="secondary" class="text-xs font-black cursor-pointer" />
-          <span class="text-sm font-black text-slate-600 uppercase tracking-wider">
-            {{ t.page }} {{ currentPage }} {{ t.of }} {{ pagination.last_page }}
-          </span>
-          <Button icon="pi pi-chevron-left" @click="currentPage++" :disabled="currentPage === pagination.last_page"
-            outlined severity="secondary" class="text-xs font-black cursor-pointer" />
+        <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+          <CustomPagination :totalRecords="pagination.total" v-model:currentPage="currentPage" v-model:rowsPerPage="pagination.per_page" @pageChange="fetchSessions()" />
         </div>
 
       </div>

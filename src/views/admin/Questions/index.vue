@@ -15,10 +15,12 @@ import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
+import DatePicker from 'primevue/datepicker';
 import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
 import Skeleton from 'primevue/skeleton';
-import Textarea from 'primevue/textarea';
 import Tooltip from 'primevue/tooltip';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
 
 const router = useRouter();
 const vTooltip = Tooltip;
@@ -38,6 +40,8 @@ const filterType = ref(_savedFilters?.filterType ?? '');
 const searchQuery = ref(_savedFilters?.searchQuery ?? '');
 const filterLevel = ref(_savedFilters?.filterLevel ?? null);
 const sortOrder = ref(_savedFilters?.sortOrder ?? 'id_asc');
+const filterDateFrom = ref(_savedFilters?.filterDateFrom ? new Date(_savedFilters.filterDateFrom) : null);
+const filterDateTo = ref(_savedFilters?.filterDateTo ? new Date(_savedFilters.filterDateTo) : null);
 const skills = ref([]);
 const exams = ref([]);
 const showInstructionsModal = ref(false);
@@ -285,7 +289,7 @@ const openPreview = async (id) => {
         showPreviewModal.value = true;
     } catch (err) {
         console.error('Failed to load preview', err);
-        showAlert('فشل تحميل معاينة السؤال', t[currentLang.value].error, 'error');
+        showAlert('Failed to load question preview.', 'Error', 'error');
     } finally {
         isLoadingPreview.value = false;
     }
@@ -468,6 +472,15 @@ const filteredQuestions = computed(() => {
             String(item.id).includes(q)
         );
     }
+
+    if (filterDateFrom.value) {
+        const fromTime = new Date(filterDateFrom.value).setHours(0, 0, 0, 0);
+        filtered = filtered.filter(q => q.created_at && new Date(q.created_at).getTime() >= fromTime);
+    }
+    if (filterDateTo.value) {
+        const toTime = new Date(filterDateTo.value).setHours(23, 59, 59, 999);
+        filtered = filtered.filter(q => q.created_at && new Date(q.created_at).getTime() <= toTime);
+    }
     return [...filtered].sort((a, b) => {
         if (sortOrder.value === 'id_desc') {
             return (Number(b.id) || 0) - (Number(a.id) || 0);
@@ -486,6 +499,14 @@ const filteredQuestions = computed(() => {
     });
 });
 
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+
+const paginatedQuestions = computed(() => {
+    const start = (currentPage.value - 1) * rowsPerPage.value;
+    return filteredQuestions.value.slice(start, start + rowsPerPage.value);
+});
+
 // Dynamic stats derived from the global question set
 const stats = computed(() => {
     const total = questions.value.length;
@@ -502,8 +523,8 @@ const stats = computed(() => {
     };
 });
 
-// Persist filters to sessionStorage whenever they change
-watch([filterSkill, filterExam, filterLevel, filterType, searchQuery, sortOrder], () => {
+watch([filterSkill, filterExam, filterLevel, filterType, searchQuery, sortOrder, filterDateFrom, filterDateTo], () => {
+    currentPage.value = 1;
     sessionStorage.setItem('questions_filters', JSON.stringify({
         filterSkill: filterSkill.value,
         filterExam: filterExam.value,
@@ -511,8 +532,22 @@ watch([filterSkill, filterExam, filterLevel, filterType, searchQuery, sortOrder]
         filterType: filterType.value,
         searchQuery: searchQuery.value,
         sortOrder: sortOrder.value,
+        filterDateFrom: filterDateFrom.value ? filterDateFrom.value.toISOString() : null,
+        filterDateTo: filterDateTo.value ? filterDateTo.value.toISOString() : null,
     }));
 });
+
+const resetAllFilters = () => {
+    searchQuery.value = '';
+    filterSkill.value = null;
+    filterExam.value = null;
+    filterLevel.value = null;
+    filterType.value = '';
+    sortOrder.value = 'id_asc';
+    filterDateFrom.value = null;
+    filterDateTo.value = null;
+    currentPage.value = 1;
+};
 
 watch(filterExam, () => {
     first.value = 0;
@@ -624,48 +659,51 @@ onMounted(fetchData);
               </button>
           </div>
 
-          <!-- Premium Filter & View Mode Control Bar -->
-          <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md flex flex-col xl:flex-row justify-between items-center gap-6">
-              
-              <!-- Left side: Search & View Mode Switcher -->
-              <div class="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-                  <!-- Search -->
-                  <div class="relative w-full sm:w-[280px]">
-                      <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 text-xs" />
-                      <InputText v-model="searchQuery" :placeholder="t[currentLang].placeholderSearch"
-                          class="w-full pl-11 pr-4 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:border-brand-primary focus:bg-white text-xs font-bold shadow-sm transition-all h-11" />
-                  </div>
-                  
-                  <!-- View Mode segmented selector -->
-                  <div class="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 w-full sm:w-auto shrink-0">
-                      <button @click="setViewMode('table')" 
-                              :class="viewMode === 'table' ? 'bg-white text-brand-primary shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 font-bold'"
-                              class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs uppercase tracking-wide transition-all duration-300 cursor-pointer active:scale-95">
-                          <i class="pi pi-table"></i>
-                          <span>{{ t[currentLang].viewTable }}</span>
-                      </button>
-                      <button @click="setViewMode('grid')" 
-                              :class="viewMode === 'grid' ? 'bg-white text-brand-primary shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 font-bold'"
-                              class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs uppercase tracking-wide transition-all duration-300 cursor-pointer active:scale-95">
-                          <i class="pi pi-th-large"></i>
-                          <span>{{ t[currentLang].viewGrid }}</span>
-                      </button>
-                  </div>
+          <!-- Premium Filter Bar -->
+          <FilterBar
+              v-model="searchQuery"
+              :search-placeholder="t[currentLang].placeholderSearch"
+              v-model:dateFrom="filterDateFrom"
+              v-model:dateTo="filterDateTo"
+              :active-count="(filterExam ? 1 : 0) + (filterLevel !== null && filterLevel !== '' ? 1 : 0) + (filterType ? 1 : 0) + (sortOrder !== 'id_asc' ? 1 : 0)"
+              @reset="resetAllFilters"
+          >
+              <!-- Extra filter pills inside the bar -->
+              <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+              <Select v-model="filterExam"
+                  :options="[{title: t[currentLang].allExams, id:null}, ...exams]"
+                  optionLabel="title" optionValue="id"
+                  :placeholder="t[currentLang].examFilter"
+                  class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[140px] hover:!border-brand-primary/30 transition-all" />
+              <Select v-model="filterType"
+                  :options="[{label: t[currentLang].allTypes, value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label: getQuestionTypeLabel(k), value:k}))]"
+                  optionLabel="label" optionValue="value"
+                  :placeholder="t[currentLang].typeFilter"
+                  class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[130px] hover:!border-brand-primary/30 transition-all" />
+              <Select v-model="filterLevel"
+                  :options="levelOptions" optionLabel="label" optionValue="value"
+                  :placeholder="t[currentLang].levelFilter"
+                  class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[110px] hover:!border-brand-primary/30 transition-all" />
+              <Select v-model="sortOrder"
+                  :options="sortOptions" optionLabel="label" optionValue="value"
+                  class="!h-11 !rounded-2xl !border-slate-100 !bg-slate-50 !text-xs !font-bold min-w-[180px] hover:!border-brand-primary/30 transition-all" />
+              <!-- View Mode Toggle -->
+              <div class="hidden sm:block h-8 w-px bg-slate-100 shrink-0" />
+              <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shrink-0">
+                  <button @click="setViewMode('table')"
+                          :class="viewMode === 'table' ? 'bg-white text-brand-primary shadow-sm font-black' : 'text-slate-400 hover:text-slate-700'"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-wide transition-all cursor-pointer">
+                      <i class="pi pi-table" />
+                      <span>{{ t[currentLang].viewTable }}</span>
+                  </button>
+                  <button @click="setViewMode('grid')"
+                          :class="viewMode === 'grid' ? 'bg-white text-brand-primary shadow-sm font-black' : 'text-slate-400 hover:text-slate-700'"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-wide transition-all cursor-pointer">
+                      <i class="pi pi-th-large" />
+                      <span>{{ t[currentLang].viewGrid }}</span>
+                  </button>
               </div>
-
-              <!-- Right side: Dropdown filter menus (Skill Filter removed to avoid redundancy) -->
-              <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
-                  <Select v-model="filterExam" :options="[{title: t[currentLang].allExams, id:null}, ...exams]" optionLabel="title" optionValue="id" :placeholder="t[currentLang].examFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
-                  <Select v-model="filterType" :options="[{label: t[currentLang].allTypes, value:''}, ...Object.entries(questionTypeMeta).map(([k,v])=>({label: getQuestionTypeLabel(k), value:k}))]" optionLabel="label" optionValue="value" :placeholder="t[currentLang].typeFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[140px] focus:border-brand-primary transition-all flex items-center" />
-                  <Select v-model="filterLevel" :options="levelOptions" optionLabel="label" optionValue="value" :placeholder="t[currentLang].levelFilter" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[120px] focus:border-brand-primary transition-all flex items-center" />
-                  <Select v-model="sortOrder" :options="sortOptions" optionLabel="label" optionValue="value" class="h-11 rounded-2xl border-2 border-slate-100 text-xs font-bold min-w-[185px] focus:border-brand-primary transition-all flex items-center" />
-                  
-                  <Button v-if="searchQuery || filterExam || filterLevel || filterType || sortOrder !== 'id_asc'" 
-                          icon="pi pi-filter-slash" severity="danger" rounded outlined 
-                          @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''; sortOrder='id_asc'" 
-                          v-tooltip.top="t[currentLang].resetFilters" class="h-11 w-11 shrink-0 cursor-pointer hover:bg-rose-50 hover:border-rose-400" />
-              </div>
-          </div>
+          </FilterBar>
 
           <!-- Empty State -->
           <div v-if="filteredQuestions.length === 0" class="flex flex-col items-center justify-center py-24 bg-white rounded-[2rem] border border-slate-100 shadow-md gap-6 animate-in fade-in duration-500">
@@ -676,7 +714,7 @@ onMounted(fetchData);
                   <h3 class="text-xl font-black text-slate-800 tracking-tight leading-tight">{{ t[currentLang].zeroResults }}</h3>
                   <p class="text-xs font-bold text-slate-400 max-w-sm leading-relaxed">{{ t[currentLang].adjustFilters }}</p>
               </div>
-              <Button :label="t[currentLang].clearParams" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''; sortOrder='id_asc'" class="rounded-2xl font-black text-xs px-8 py-3 cursor-pointer border-slate-200 hover:border-brand-primary hover:text-brand-primary transition-all" />
+              <Button :label="t[currentLang].clearParams" icon="pi pi-refresh" severity="secondary" outlined @click="searchQuery=''; filterSkill=null; filterExam=null; filterLevel=null; filterType=''; sortOrder='id_asc'; filterDateFrom=null; filterDateTo=null;" class="rounded-2xl font-black text-xs px-8 py-3 cursor-pointer border-slate-200 hover:border-brand-primary hover:text-brand-primary transition-all" />
           </div>
 
           <!-- Content View Mode Selector -->
@@ -684,7 +722,7 @@ onMounted(fetchData);
               
               <!-- 1. COMPACT TABLE VIEW -->
               <div v-if="viewMode === 'table'" class="bg-white rounded-[2rem] border border-slate-100 shadow-md overflow-hidden">
-                  <DataTable v-model:first="first" :value="filteredQuestions" paginator :rows="15" class="p-datatable-sm text-sm" responsiveLayout="scroll" :rowClass="getRowClass">
+                  <DataTable :value="paginatedQuestions" class="p-datatable-sm text-sm" responsiveLayout="scroll" :rowClass="getRowClass">
                     
                     <Column field="id" :header="t[currentLang].colId" sortable style="width: 100px">
                       <template #body="{ data }">
@@ -857,12 +895,15 @@ onMounted(fetchData);
                       </template>
                     </Column>
                   </DataTable>
+                  <!-- Pagination for Table View -->
+                  <CustomPagination :totalRecords="filteredQuestions.length" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" />
               </div>
 
               <!-- 2. CREATIVE GRID CARD VIEW -->
-              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  <div v-for="data in filteredQuestions" :key="data.id" 
-                       :class="data.passage ? 'border-brand-primary/25 bg-rose-50/5 shadow-sm' : 'border-slate-100 bg-white'"
+              <div v-else class="space-y-6">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      <div v-for="data in paginatedQuestions" :key="data.id" 
+                           :class="data.passage ? 'border-brand-primary/25 bg-rose-50/5 shadow-sm' : 'border-slate-100 bg-white'"
                        class="relative rounded-[2rem] border hover:border-brand-primary/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group">
                       
                       <!-- Top Color Border Band based on question type severity (Only for standalone questions) -->
@@ -1002,6 +1043,11 @@ onMounted(fetchData);
 
                       </div>
 
+                      </div>
+                  </div>
+                  <!-- Pagination for Grid View -->
+                  <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                      <CustomPagination :totalRecords="filteredQuestions.length" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" />
                   </div>
               </div>
 

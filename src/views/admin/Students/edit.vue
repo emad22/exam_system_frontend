@@ -321,7 +321,7 @@ const saveStudent = async () => {
         }
 
         await api.patch(`/admin/students/${studentId}`, payload);
-        showAlert(currentLang.value === 'ar' ? 'تم تحديث هوية الطالب بنجاح!' : 'Student updated successfully.');
+        showAlert('Student updated successfully.');
         router.push('/admin/students');
     } catch (err) {
         const msg = err.response?.data?.message || 

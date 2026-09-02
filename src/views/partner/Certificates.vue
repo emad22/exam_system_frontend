@@ -6,16 +6,37 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import DatePicker from 'primevue/datepicker';
 import CardListSkeleton from '@/components/skeletons/CardListSkeleton.vue';
+import CustomPagination from '@/components/CustomPagination.vue';
+import FilterBar from '@/components/FilterBar.vue';
+import { watch } from 'vue';
 
 const certificates = ref({ data: [] });
 const isLoading = ref(false);
 const searchQuery = ref('');
+const dateFrom = ref(null);
+const dateTo = ref(null);
+const currentPage = ref(1);
+const rowsPerPage = ref(15);
+
+const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
 
 const fetchCertificates = async (page = 1) => {
+    currentPage.value = page;
     isLoading.value = true;
     try {
-        const res = await api.get(`/partner/certificates?page=${page}&search=${searchQuery.value}`);
+        let url = `/partner/certificates?page=${page}&per_page=${rowsPerPage.value}&search=${encodeURIComponent(searchQuery.value || '')}`;
+        if (dateFrom.value) url += `&date_from=${formatDate(dateFrom.value)}`;
+        if (dateTo.value) url += `&date_to=${formatDate(dateTo.value)}`;
+        const res = await api.get(url);
         certificates.value = res.data;
     } catch (err) {
         console.error('Failed to fetch certificates', err);
@@ -23,6 +44,25 @@ const fetchCertificates = async (page = 1) => {
         isLoading.value = false;
     }
 };
+
+let searchTimeout = null;
+watch(searchQuery, () => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        fetchCertificates(1);
+    }, 400);
+});
+
+const resetFilters = () => {
+    searchQuery.value = '';
+    dateFrom.value = null;
+    dateTo.value = null;
+    fetchCertificates(1);
+};
+
+watch([dateFrom, dateTo], () => {
+    fetchCertificates(1);
+});
 
 onMounted(() => fetchCertificates());
 
@@ -71,16 +111,15 @@ const downloadCertificate = (cert) => {
                 </div>
             </div>
 
-            <!-- Premium Search Bar -->
-            <div
-                class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between">
-                <div class="relative w-full max-w-xl">
-                    <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
-                    <InputText v-model="searchQuery" @input="fetchCertificates(1)"
-                        placeholder="Search by student name, username or certificate number..."
-                        class="w-full pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white text-xs font-bold shadow-sm" />
-                </div>
-            </div>
+            <!-- Filter Bar -->
+            <FilterBar
+                v-model="searchQuery"
+                search-placeholder="Search by student name, username or certificate number..."
+                v-model:dateFrom="dateFrom"
+                v-model:dateTo="dateTo"
+                @apply="fetchCertificates(1)"
+                @reset="resetFilters"
+            />
 
             <!-- Loading Indicator -->
             <div v-if="isLoading && certificates.data.length === 0" class="p-4">
@@ -89,8 +128,7 @@ const downloadCertificate = (cert) => {
 
             <!-- Premium DataTable Card -->
             <div v-else class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mt-6">
-                <DataTable :value="certificates.data" :loading="isLoading" :rows="certificates.per_page" lazy
-                    :totalRecords="certificates.total" @page="onPage" paginator class="p-datatable-sm text-sm"
+                <DataTable :value="certificates.data" :loading="isLoading" class="p-datatable-sm text-sm"
                     responsiveLayout="scroll">
 
                     <!-- ID Column -->
@@ -175,6 +213,9 @@ const downloadCertificate = (cert) => {
                         </div>
                     </template>
                 </DataTable>
+
+                <!-- Pagination -->
+                <CustomPagination :totalRecords="certificates.total || 0" v-model:currentPage="currentPage" v-model:rowsPerPage="rowsPerPage" @pageChange="fetchCertificates(currentPage)" />
             </div>
         </div>
     </PartnerLayout>
