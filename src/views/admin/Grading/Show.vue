@@ -297,6 +297,107 @@ const studentName = computed(() => {
     return u ? `${u.first_name} ${u.last_name}` : '—'
 })
 
+// ── Upload Student Paper Dialog ─────────────────────────────────────────────
+const showUploadDialog = ref(false)
+const targetAnswer = ref(null)
+const selectedFiles = ref([])
+const uploadTextAnswer = ref('')
+const uploadAppendMode = ref(true)
+const uploadingPaper = ref(false)
+const fileInputRef = ref(null)
+
+const openUploadDialog = (ans) => {
+    targetAnswer.value = ans
+    selectedFiles.value = []
+    uploadTextAnswer.value = ans.text_answer || ''
+    uploadAppendMode.value = true
+    showUploadDialog.value = true
+}
+
+const triggerFileInput = () => {
+    fileInputRef.value?.click()
+}
+
+const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
+    selectedFiles.value.push(...files)
+    if (event.target) event.target.value = ''
+}
+
+const handleFileDrop = (event) => {
+    const files = Array.from(event.dataTransfer.files || [])
+    if (!files.length) return
+    selectedFiles.value.push(...files)
+}
+
+const removeSelectedFile = (idx) => {
+    selectedFiles.value.splice(idx, 1)
+}
+
+const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+const uploadStudentPaper = async () => {
+    if (!selectedFiles.value.length && !uploadTextAnswer.value.trim()) {
+        toast.add({ severity: 'warn', summary: 'Missing file', detail: 'Please select at least one file to upload.', life: 3000 })
+        return
+    }
+    uploadingPaper.value = true
+    try {
+        const formData = new FormData()
+        formData.append('answer_id', targetAnswer.value.id)
+        if (targetAnswer.value.question_id) {
+            formData.append('question_id', targetAnswer.value.question_id)
+        }
+        formData.append('append', uploadAppendMode.value ? '1' : '0')
+        if (uploadTextAnswer.value) {
+            formData.append('text_answer', uploadTextAnswer.value)
+        }
+        selectedFiles.value.forEach((file, idx) => {
+            formData.append(`files[${idx}]`, file)
+        })
+
+        const res = await api.post(`/admin/reports/${route.params.id}/upload-writing-file`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+
+        // Update local state directly
+        if (targetAnswer.value) {
+            targetAnswer.value.media_answer = res.data.answer.media_answer
+            targetAnswer.value.text_answer = res.data.answer.text_answer
+            targetAnswer.value.word_count = res.data.answer.word_count
+        }
+
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Student paper uploaded successfully.', life: 3000 })
+        showUploadDialog.value = false
+    } catch (err) {
+        console.error('Failed to upload file', err)
+        toast.add({ severity: 'error', summary: 'Upload Failed', detail: err.response?.data?.error || 'Could not upload file.', life: 4000 })
+    } finally {
+        uploadingPaper.value = false
+    }
+}
+
+const confirmDeleteFile = async (ans, filePath) => {
+    if (!confirm('Are you sure you want to remove this attached file?')) return
+    try {
+        const res = await api.post(`/admin/reports/${route.params.id}/answers/${ans.id}/delete-file`, {
+            file_path: filePath
+        })
+        ans.media_answer = res.data.answer.media_answer
+        toast.add({ severity: 'success', summary: 'Deleted', detail: 'File removed successfully.', life: 2500 })
+    } catch (err) {
+        console.error('Failed to delete file', err)
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Could not delete file.', life: 3000 })
+    }
+}
+
 // ── Rubric Evaluator Methods ──────────────────────────────────────────────────
 function openRubricEvaluator(ans) {
     currentRubricAnswer.value = ans
@@ -619,8 +720,19 @@ onMounted(fetchAttempt)
 
                                 <!-- Student Answer Card (Wide & Comfortable) -->
                                 <div class="bg-slate-50/70 rounded-2xl p-6 border border-slate-200/70 shadow-xs min-h-[140px]">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest">{{ t.studentAnswer }}</p>
+                                    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                        <div class="flex items-center gap-3">
+                                            <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest">{{ t.studentAnswer }}</p>
+                                            <button
+                                                type="button"
+                                                @click="openUploadDialog(ans)"
+                                                class="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 transition-all shadow-2xs cursor-pointer"
+                                                title="Upload handwritten paper or external response for this student"
+                                            >
+                                                <i class="pi pi-upload text-xs text-indigo-600"></i>
+                                                <span>Upload Student Paper</span>
+                                            </button>
+                                        </div>
                                         <div v-if="['writing', 'short_answer'].includes(ans.question?.type) && ans.word_count !== null && ans.word_count !== undefined"
                                             class="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-xl border border-slate-200 shadow-2xs">
                                             <i class="pi pi-align-right text-slate-400"></i>
@@ -635,18 +747,40 @@ onMounted(fetchAttempt)
                                     <div v-if="getMediaFiles(ans.media_answer).length > 0" class="mt-4 space-y-4">
                                         <div v-for="(file, fIdx) in getMediaFiles(ans.media_answer)" :key="fIdx">
                                             <div v-if="isImageFile(file)" class="space-y-2">
+                                                <div class="flex items-center justify-between">
+                                                    <p class="text-xs text-slate-500 font-semibold">Click to open full resolution</p>
+                                                    <button
+                                                        type="button"
+                                                        @click="confirmDeleteFile(ans, file)"
+                                                        class="px-2 py-1 text-[11px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                                                        title="Remove this file"
+                                                    >
+                                                        <i class="pi pi-trash text-[10px]"></i>
+                                                        <span>Remove</span>
+                                                    </button>
+                                                </div>
                                                 <a :href="resolveUrl(file)" target="_blank" class="inline-block">
                                                     <img :src="resolveUrl(file)" 
                                                         alt="Student Image" 
                                                         class="rounded-xl border border-slate-200 max-w-md max-h-80 object-contain cursor-pointer hover:opacity-90 transition-opacity shadow-sm" />
                                                 </a>
-                                                <p class="text-xs text-slate-500 font-semibold">Click to open full resolution</p>
                                             </div>
                                             
                                             <div v-else-if="isAudioFile(file)" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-                                                <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                                    <i class="pi pi-volume-up text-brand-primary"></i>
-                                                    <span>Student Voice Recording</span>
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                                                        <i class="pi pi-volume-up text-brand-primary"></i>
+                                                        <span>Student Voice Recording</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        @click="confirmDeleteFile(ans, file)"
+                                                        class="px-2 py-1 text-[11px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                                                        title="Remove recording"
+                                                    >
+                                                        <i class="pi pi-trash text-[10px]"></i>
+                                                        <span>Remove</span>
+                                                    </button>
                                                 </div>
                                                 <audio :src="resolveUrl(file)" controls class="w-full h-11 rounded-xl shadow-xs"></audio>
                                             </div>
@@ -662,12 +796,23 @@ onMounted(fetchAttempt)
                                                             <p class="text-[10px] text-slate-400 font-semibold">{{ getFileTypeLabel(file) }}</p>
                                                         </div>
                                                     </div>
-                                                    <a :href="resolveUrl(file)" 
-                                                        target="_blank"
-                                                        class="px-4 py-2 bg-brand-primary hover:bg-rose-900 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs">
-                                                        <i class="pi pi-external-link text-xs"></i>
-                                                        Open file
-                                                    </a>
+                                                    <div class="flex items-center gap-2">
+                                                        <a :href="resolveUrl(file)" 
+                                                            target="_blank"
+                                                            class="px-4 py-2 bg-brand-primary hover:bg-rose-900 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs">
+                                                            <i class="pi pi-external-link text-xs"></i>
+                                                            Open file
+                                                        </a>
+                                                        <button
+                                                            type="button"
+                                                            @click="confirmDeleteFile(ans, file)"
+                                                            class="px-3 py-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                                                            title="Remove file"
+                                                        >
+                                                            <i class="pi pi-trash text-xs"></i>
+                                                            <span>Remove</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div v-if="isPdfFile(file)" class="rounded-2xl border border-slate-200 overflow-hidden shadow-sm bg-slate-900">
@@ -1016,6 +1161,131 @@ onMounted(fetchAttempt)
                 </div>
             </template>
 
+        </Dialog>
+
+        <!-- ── Upload Student Paper Dialog ──────────────────────────────── -->
+        <Dialog
+            v-model:visible="showUploadDialog"
+            modal
+            :header="`Upload Student Paper — ${targetAnswer?.question?.passage?.title || 'Writing Task'}`"
+            :style="{ width: '640px', maxWidth: '95vw' }"
+            class="p-dialog-modern"
+        >
+            <div class="space-y-5 py-2">
+                <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
+                    <i class="pi pi-info-circle text-indigo-600 text-lg mt-0.5"></i>
+                    <div class="text-xs text-slate-700 space-y-1">
+                        <p class="font-bold text-indigo-900">Upload handwritten paper or external response</p>
+                        <p class="text-slate-600">The uploaded file(s) will be attached directly to this student's exam attempt without changing the original exam date or resetting attempt progress.</p>
+                    </div>
+                </div>
+
+                <!-- Drop zone / File input -->
+                <div
+                    @dragover.prevent
+                    @drop.prevent="handleFileDrop"
+                    @click="triggerFileInput"
+                    class="border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50/50 hover:bg-indigo-50/20 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2"
+                >
+                    <input
+                        ref="fileInputRef"
+                        type="file"
+                        multiple
+                        accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx"
+                        class="hidden"
+                        @change="handleFileSelect"
+                    />
+                    <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mx-auto text-indigo-600 shadow-xs">
+                        <i class="pi pi-cloud-upload text-xl"></i>
+                    </div>
+                    <p class="text-xs font-bold text-slate-700">Click to browse or drag & drop files here</p>
+                    <p class="text-[11px] text-slate-400 font-medium">Supports multiple files: Images (JPG, PNG, WEBP), PDFs, Documents (Max 20MB each)</p>
+                </div>
+
+                <!-- Selected files list -->
+                <div v-if="selectedFiles.length > 0" class="space-y-2">
+                    <p class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Selected Files to Upload ({{ selectedFiles.length }})</p>
+                    <div class="max-h-48 overflow-y-auto space-y-2 pr-1">
+                        <div
+                            v-for="(f, idx) in selectedFiles"
+                            :key="idx"
+                            class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-2xs"
+                        >
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <i class="pi pi-file text-indigo-500"></i>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-bold text-slate-800 truncate max-w-[340px]">{{ f.name }}</p>
+                                    <p class="text-[10px] text-slate-400">{{ formatFileSize(f.size) }}</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                @click="removeSelectedFile(idx)"
+                                class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                title="Remove file"
+                            >
+                                <i class="pi pi-times text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Existing files on this answer (if any) -->
+                <div v-if="targetAnswer && getMediaFiles(targetAnswer.media_answer).length > 0" class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                            Currently Attached Files ({{ getMediaFiles(targetAnswer.media_answer).length }})
+                        </p>
+                        <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
+                            <input type="checkbox" v-model="uploadAppendMode" class="rounded border-slate-300 text-indigo-600" />
+                            <span>Keep existing files (Append)</span>
+                        </label>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <span
+                            v-for="(file, fIdx) in getMediaFiles(targetAnswer.media_answer)"
+                            :key="fIdx"
+                            class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700"
+                        >
+                            <i class="pi pi-paperclip text-[10px] text-slate-500"></i>
+                            <span class="max-w-[180px] truncate">{{ file.split('/').pop() }}</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Optional Text Transcription / Notes -->
+                <div class="space-y-1.5">
+                    <label class="block text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                        Transcribed Text / Notes (Optional)
+                    </label>
+                    <Textarea
+                        v-model="uploadTextAnswer"
+                        rows="3"
+                        class="w-full text-xs font-medium border-slate-200 rounded-xl"
+                        placeholder="You may optionally type student's text or admin notes here..."
+                    />
+                </div>
+            </div>
+
+            <template #footer>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <Button
+                        label="Cancel"
+                        icon="pi pi-times"
+                        text
+                        class="text-xs font-bold text-slate-500"
+                        @click="showUploadDialog = false"
+                        :disabled="uploadingPaper"
+                    />
+                    <Button
+                        label="Upload Paper"
+                        icon="pi pi-upload"
+                        class="text-xs font-bold bg-brand-primary hover:bg-rose-900 border-none px-4 py-2 text-white rounded-xl shadow-xs"
+                        :loading="uploadingPaper"
+                        @click="uploadStudentPaper"
+                    />
+                </div>
+            </template>
         </Dialog>
     </AdminLayout>
 </template>
