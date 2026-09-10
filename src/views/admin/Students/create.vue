@@ -125,6 +125,7 @@ const form = ref({
     is_demo_proctored: false,
     bypass_identity_verification: false,
     is_continue: false,
+    exam_date: null,
 });
 
 const isSubmitting = ref(false);
@@ -159,7 +160,12 @@ const addStudent = async () => {
     isSubmitting.value = true;
 
     try {
-        await api.post('/admin/students', form.value);
+        const payload = { ...form.value };
+        if (payload.exam_date instanceof Date) {
+            const d = payload.exam_date;
+            payload.exam_date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        await api.post('/admin/students', payload);
         showAlert('Student successfully registered!');
         router.push('/admin/students');
     } catch (err) {
@@ -366,6 +372,17 @@ const filteredExams = computed(() => {
                                                 <InputText v-model="form.institution_code"
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm font-mono"
                                                     :placeholder="currentLang === 'ar' ? 'كود الطالب الخاص بالمؤسسة / الشريك' : 'Student code in institution'" />
+                                            </div>
+                                            <div class="flex flex-col space-y-1.5">
+                                                <div class="flex items-center justify-between ml-1 mr-1">
+                                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                        {{ currentLang === 'ar' ? 'تاريخ الاختبار (يوم فتح المهارات)' : 'Exam Date (Skill Unlock Day)' }}
+                                                    </label>
+                                                </div>
+                                                <DatePicker v-model="form.exam_date" dateFormat="yy-mm-dd" showIcon
+                                                    class="w-full flex-1 rounded-xl bg-slate-50 border-slate-100 shadow-sm"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-mono"
+                                                    :placeholder="currentLang === 'ar' ? 'حدد موعد الاختبار' : 'Select exam date'" />
                                             </div>
                                         </div>
                                     </div>

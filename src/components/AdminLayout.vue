@@ -46,8 +46,8 @@ const allNavigation = [
             { name: 'CEFR & ACTFL', href: '/admin/cefr-actfl-thresholds', icon: 'pi pi-sliders-h' },
             { name: 'System Requirements', href: '/admin/system-requirements', icon: 'pi pi-cog' },
             { name: 'Proctoring', href: '/admin/proctoring', icon: 'pi pi-video' },
+            { name: 'Live Speaking management', href: '/admin/live-speaking', icon: 'pi pi-microphone' },
             { name: 'Activity Logs', href: '/admin/activity-logs', icon: 'pi pi-history' },
-
         ]
     },
 ]

@@ -16,7 +16,31 @@ const isLoading = ref(true);
 const fetchSkillData = async () => {
     isLoading.value = true;
     try {
-        const res = await api.get(`/exams/${examId}`);
+        const [res, userRes] = await Promise.all([
+            api.get(`/exams/${examId}`),
+            api.get('/user').catch(() => null)
+        ]);
+
+        if (userRes?.data) {
+            const userData = userRes.data;
+            const isDemo = ['demo', 'deom', 'staff'].includes((userData?.role || '').toLowerCase()) || !!userData?.student?.is_demo;
+            const rawExamDate = userData?.student?.exam_date;
+            if (!isDemo && rawExamDate) {
+                const str = String(rawExamDate).trim();
+                let examDateStr = str.split('T')[0];
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    examDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                if (examDateStr > todayStr) {
+                    router.replace('/skill-selection');
+                    return;
+                }
+            }
+        }
+
         const foundSkill = res.data.skills.find(s => String(s.id) === String(skillId));
         skill.value = foundSkill;
     } catch (err) {

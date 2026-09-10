@@ -145,6 +145,7 @@ const editForm = ref({
     is_demo_proctored: false,
     bypass_identity_verification: false,
     is_continue: false,
+    exam_date: null,
 });
 
 // Flag to indicate user explicitly selected a package (prevent auto-reconcile)
@@ -194,8 +195,7 @@ const loadData = async () => {
             is_demo_proctored: !!student.is_demo_proctored,
             bypass_identity_verification: !!student.bypass_identity_verification,
             is_continue: student.is_continue !== undefined ? !!student.is_continue : false,
-
-
+            exam_date: student.exam_date ? new Date(student.exam_date) : null,
         };
 
         manualPackageSelected.value = true;
@@ -311,6 +311,10 @@ const saveStudent = async () => {
             ...editForm.value,
             is_active: editForm.value.is_active ? 1 : 0
         };
+        if (payload.exam_date instanceof Date) {
+            const d = payload.exam_date;
+            payload.exam_date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
         // Remove password if empty to prevent updating it to blank
         if (!payload.password) delete payload.password;
 
@@ -494,6 +498,7 @@ onMounted(() => {
                                                 <Password v-model="editForm.password" toggleMask :feedback="false"
                                                     class="w-full"
                                                     inputClass="w-full rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm font-mono font-bold tracking-[0.15em] !text-left"
+                                                    :inputProps="{ autocomplete: 'new-password' }"
                                                     placeholder="••••••••" />
                                                 <div class="text-[8px] font-bold text-slate-400 uppercase tracking-widest ml-1 mr-1">
                                                     {{ t[currentLang].overrideSubtitle }}
@@ -521,6 +526,17 @@ onMounted(() => {
                                                 <InputText v-model="editForm.institution_code"
                                                     class="w-full rounded-xl bg-slate-50 border-slate-100 shadow-sm font-mono"
                                                     :placeholder="currentLang === 'ar' ? 'كود الطالب الخاص بالمؤسسة / الشريك' : 'Student code in institution'" />
+                                            </div>
+                                            <div class="flex flex-col space-y-1.5">
+                                                <div class="flex items-center justify-between ml-1 mr-1">
+                                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                        {{ currentLang === 'ar' ? 'تاريخ الاختبار (يوم فتح المهارات)' : 'Exam Date (Skill Unlock Day)' }}
+                                                    </label>
+                                                </div>
+                                                <DatePicker v-model="editForm.exam_date" dateFormat="yy-mm-dd" showIcon
+                                                    class="w-full flex-1 rounded-xl bg-slate-50 border-slate-100 shadow-sm"
+                                                    inputClass="rounded-xl bg-slate-50 border-slate-100 font-mono"
+                                                    :placeholder="currentLang === 'ar' ? 'حدد موعد الاختبار' : 'Select exam date'" />
                                             </div>
                                         </div>
                                     </div>

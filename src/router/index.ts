@@ -319,6 +319,12 @@ const adminRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/Rubrics/index.vue'),
     meta: { title: 'Writing Rubrics & Criteria', roles: ['admin', 'demo'] }
   },
+  {
+    path: '/admin/live-speaking',
+    name: 'admin.live-speaking',
+    component: () => import('@/views/admin/AdminLiveSpeakingView.vue'),
+    meta: { title: 'Live Speaking Management', roles: ['admin', 'demo'] }
+  },
 ];
 
 // Explicitly derive Teacher routes ONLY for routes authorized for teachers
@@ -362,6 +368,12 @@ const partnerRoutes: RouteRecordRaw[] = [
     name: 'partner.certificates',
     component: () => import('@/views/partner/Certificates.vue'),
     meta: { title: 'Student Certificates', roles: ['partner', 'admin', 'demo'] }
+  },
+  {
+    path: '/partner/live-speaking',
+    name: 'partner.live-speaking',
+    component: () => import('@/views/partner/LiveSpeakingView.vue'),
+    meta: { title: 'Live Speaking Bookings', roles: ['partner', 'admin', 'demo'] }
   }
 ];
 

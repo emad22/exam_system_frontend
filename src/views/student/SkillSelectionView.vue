@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import StudentHeader from '@/components/StudentHeader.vue';
+import LiveSpeakingBookingModal from '@/components/LiveSpeakingBookingModal.vue';
 
 const router = useRouter();
 const exams = ref([]);
@@ -277,6 +278,7 @@ const isSkillInProgress = (exam, skillId) => {
 
 const selectSkill = (skillId, levelId = null) => {
     if (isSessionRestricted.value) return;
+    if (isBeforeExamDate.value) return;
     const exam = exams.value[0];
     if (!exam) return;
 
@@ -302,17 +304,105 @@ const activeSkillId = computed(() => {
     return null;
 });
 
+const studentExamDate = computed(() => {
+    const raw = student.value?.student?.exam_date;
+    if (!raw) return null;
+    const str = String(raw).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return str;
+    }
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return str.split('T')[0];
+});
+
+const isBeforeExamDate = computed(() => {
+    const isDemo = ['demo', 'deom', 'staff'].includes((student.value?.role || '').toLowerCase()) || !!student.value?.student?.is_demo;
+    if (isDemo) return false;
+
+    const examDateStr = studentExamDate.value;
+    if (!examDateStr) return false;
+
+    // Compare YYYY-MM-DD in local time
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    return examDateStr > todayStr;
+});
+
 const isSkillLocked = (exam, skillId) => {
     const isDemo = ['demo', 'deom', 'staff'].includes((student.value?.role || '').toLowerCase()) || !!student.value?.student?.is_demo;
     if (isDemo) return false;
+
+    // Before exam date, all regular skills are locked!
+    if (isBeforeExamDate.value) return true;
+
     if (!activeSkillId.value) return false;
     if (skillId === activeSkillId.value) return false;
     if (isSkillCompleted(exam, skillId)) return false;
     return true;
 };
 
+// ── Live Speaking Booking ────────────────────────────────────────────────────
+const liveSpeakingFeatureEnabled = ref(false);
+const liveSpeakingBooking = ref(null);
+const showBookingModal = ref(false);
+const bookingModalMode = ref('book'); // 'book' | 'reschedule'
+const countdownStr = ref('');
+let countdownInterval = null;
+
+const isLiveSpeakingSkill = (skillName) => {
+    if (!skillName) return false;
+    const n = skillName.toLowerCase();
+    return n.includes('live') || (n.includes('speak') && n.includes('live'));
+};
+
+const fetchLiveSpeakingStatus = async () => {
+    try {
+        const { data } = await api.get('/live-speaking/status');
+        liveSpeakingFeatureEnabled.value = data.feature_enabled;
+        liveSpeakingBooking.value = data.booking;
+        startCountdown();
+    } catch (e) {
+        // Feature not critical — fail silently
+    }
+};
+
+const startCountdown = () => {
+    if (countdownInterval) clearInterval(countdownInterval);
+    const updateCountdown = () => {
+        const booking = liveSpeakingBooking.value;
+        if (!booking?.starts_at_iso) { countdownStr.value = ''; return; }
+        const diff = new Date(booking.starts_at_iso).getTime() - Date.now();
+        if (diff <= 0) { countdownStr.value = 'Time is up!'; return; }
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        countdownStr.value = h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
+    };
+    updateCountdown();
+    countdownInterval = setInterval(updateCountdown, 1000);
+};
+
+const openBookingModal = (mode = 'book') => {
+    bookingModalMode.value = mode;
+    showBookingModal.value = true;
+};
+
+const onBooked = (booking) => {
+    liveSpeakingBooking.value = booking;
+    startCountdown();
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 onMounted(async () => {
     await fetchExamsAndUser();
+    await fetchLiveSpeakingStatus();
     if (proctoringRequired.value) {
         await checkProctoringStatus();
         sessionStatusInterval = setInterval(checkProctoringStatus, 10000);
@@ -321,6 +411,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
     if (sessionStatusInterval) clearInterval(sessionStatusInterval);
+    if (countdownInterval) clearInterval(countdownInterval);
 });
 
 
@@ -384,8 +475,8 @@ onUnmounted(() => {
                     </p>
                     <p class="text-xs font-medium text-rose-400 mt-0.5">
                         {{ proctoringSessionStatus === 'paused'
-                            ? 'تم إيقاف جلسة المراقبة الخاصة بك مؤقتاً. يُرجى الانتظار حتى يُعيدها المُراقب.'
-                            : 'انتهت جلسة المراقبة. يُرجى التواصل مع المنسق لاستئناف الاختبار.'
+                            ? 'Your proctoring session has been paused. Please wait for the proctor to resume it.'
+                            : 'Your proctoring session has ended. Please contact your coordinator to resume the exam.'
                         }}
                     </p>
                 </div>
@@ -407,18 +498,121 @@ onUnmounted(() => {
                 </div>
 
                 <div v-else class="pt-2 pr-1.5 flex flex-col gap-5">
+                    <!-- ═══ EXAM DATE NOTICE BANNER ═══ -->
+                    <div v-if="isBeforeExamDate"
+                        class="bg-gradient-to-r from-blue-50 via-indigo-50 to-sky-50 border border-blue-200/80 rounded-xl p-4 flex items-center justify-between gap-4 shadow-sm animate-in fade-in duration-500">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
+                                <i class="pi pi-calendar text-lg"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Exam Start Date</span>
+                                    <span class="text-xs font-black text-slate-800">{{ studentExamDate }}</span>
+                                </div>
+                                <p class="text-[11px] text-slate-600 mt-1 font-medium">
+                                    {{ liveSpeakingBooking 
+                                        ? 'Your Live Speaking session has been booked. All other exam skills will open on your scheduled exam date.' 
+                                        : 'All exam skills are locked until your scheduled exam date. Please book your Live Speaking session from the card below.' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="space-y-2 pb-1 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        <div v-for="skill in sortedSkills" :key="skill.id"
-                            @click="!isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) && selectSkill(skill.id)"
+                        <!-- ═══ LIVE SPEAKING CARD (special handling) ═══ -->
+                        <template v-for="skill in sortedSkills" :key="skill.id">
+
+                        <!-- ── Live Speaking Skill Card ── -->
+                        <div v-if="isLiveSpeakingSkill(skill.name) && liveSpeakingFeatureEnabled"
+                            class="group relative bg-white border-2 rounded-xl px-6 py-4 min-h-[80px] transition-all duration-300 flex items-center gap-5 shadow-sm overflow-hidden"
+                            :class="liveSpeakingBooking ? 'border-[#0EA5E9] shadow-[#0EA5E9]/10' : 'border-dashed border-[#0EA5E9]/40 hover:border-[#0EA5E9] hover:shadow-md hover:shadow-[#0EA5E9]/10'">
+
+                            <!-- Gradient shimmer bar -->
+                            <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#0EA5E9] to-[#6366F1]"></div>
+
+                            <!-- Icon -->
+                            <div class="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300"
+                                :class="liveSpeakingBooking?.status === 'completed' ? 'bg-emerald-50' : 'bg-gradient-to-br from-[#E0F2FE] to-[#EEF2FF]'">
+                                <i v-if="liveSpeakingBooking?.status === 'completed'" class="pi pi-check-circle text-emerald-500 text-2xl"></i>
+                                <i v-else class="pi pi-video text-[#0EA5E9] text-2xl"></i>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="flex-grow">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-wide">{{ skill.name }}</h3>
+                                    <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                                        :class="liveSpeakingBooking?.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                liveSpeakingBooking ? 'bg-[#E0F2FE] text-[#0369A1]' : 'bg-slate-100 text-slate-500'">
+                                        {{ liveSpeakingBooking?.status === 'completed' ? '✓ Completed' :
+                                           liveSpeakingBooking ? '📅 Booked' : '⚪ Not Booked Yet' }}
+                                    </span>
+                                </div>
+
+                                <!-- Booked state info -->
+                                <template v-if="liveSpeakingBooking && liveSpeakingBooking.status !== 'completed'">
+                                    <p class="text-[11px] text-slate-500 font-medium">
+                                        📅 {{ liveSpeakingBooking.slot_date }}
+                                        &nbsp;·&nbsp;
+                                        ⏰ {{ liveSpeakingBooking.start_time }} – {{ liveSpeakingBooking.end_time }}
+                                        <span v-if="liveSpeakingBooking.teacher_name" class="ml-2 text-indigo-600 font-bold">
+                                            (Examiner: {{ liveSpeakingBooking.teacher_name }})
+                                        </span>
+                                    </p>
+                                    <p v-if="countdownStr" class="text-[10px] font-black text-[#0EA5E9] mt-0.5">
+                                        ⏳ Remaining: {{ countdownStr }}
+                                    </p>
+                                    <p v-if="isBeforeExamDate" class="text-[10px] font-bold text-amber-600 mt-0.5">
+                                        🔒 Session opens on your exam date
+                                    </p>
+                                </template>
+                                <template v-else-if="!liveSpeakingBooking">
+                                    <p class="text-[11px] text-slate-400 font-medium">Book a 1-on-1 interview session with your examiner</p>
+                                </template>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="shrink-0 flex flex-col items-end gap-2">
+                                <!-- Join button (active near session time ONLY if on or after exam date) -->
+                                <a v-if="!isBeforeExamDate && liveSpeakingBooking?.can_join && liveSpeakingBooking?.meeting_link"
+                                    :href="liveSpeakingBooking.meeting_link" target="_blank"
+                                    class="flex items-center gap-1.5 bg-gradient-to-r from-[#0EA5E9] to-[#6366F1] text-white font-black text-[10px] uppercase tracking-wide px-4 py-2 rounded-lg shadow-md shadow-[#0EA5E9]/30 hover:shadow-lg hover:shadow-[#0EA5E9]/40 transition-all animate-pulse">
+                                    <i class="pi pi-play-circle text-sm"></i>
+                                    Join Session
+                                </a>
+
+                                <!-- Book button (available if not booked yet) -->
+                                <button v-else-if="!liveSpeakingBooking"
+                                    @click.stop="openBookingModal('book')"
+                                    class="flex items-center gap-1.5 bg-gradient-to-r from-[#0EA5E9] to-[#6366F1] text-white font-black text-[10px] uppercase tracking-wide px-4 py-2 rounded-lg shadow-sm hover:shadow-md hover:shadow-[#0EA5E9]/25 transition-all">
+                                    <i class="pi pi-calendar-plus text-xs"></i>
+                                    Book Session
+                                </button>
+
+                                <!-- Reschedule button (allowed to change date before or after exam date) -->
+                                <button v-if="liveSpeakingBooking && liveSpeakingBooking.status !== 'completed' && (liveSpeakingBooking?.can_reschedule || isBeforeExamDate)"
+                                    @click.stop="openBookingModal('reschedule')"
+                                    class="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 transition-colors shadow-sm">
+                                    <i class="pi pi-refresh text-xs text-[#0EA5E9]"></i>
+                                    Reschedule Session
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ── Regular Skill Card ── -->
+                        <div v-else-if="!isLiveSpeakingSkill(skill.name) || !liveSpeakingFeatureEnabled"
+                            @click="!isBeforeExamDate && !isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) && selectSkill(skill.id)"
                             class="group relative bg-white border border-slate-200 border-l-[3px] rounded-lg px-6 py-3 min-h-[72px] transition-all duration-300 flex items-center gap-5 shadow-sm"
                             :class="[
                                 getSkillStyle(skill.name).borderColor,
                                 getSkillStyle(skill.name).hoverBorder,
                                 getSkillStyle(skill.name).hoverShadow,
+                                isBeforeExamDate ? 'opacity-60 cursor-not-allowed' : '',
                                 isSessionRestricted ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : '',
                                 isSkillCompleted(exams[0], skill.id) ? 'opacity-50 grayscale pointer-events-none' : '',
-                                !isSessionRestricted && isSkillLocked(exams[0], skill.id) ? 'opacity-40 grayscale cursor-not-allowed' : '',
-                                !isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) ? 'cursor-pointer hover:-translate-y-0.5' : ''
+                                !isBeforeExamDate && !isSessionRestricted && isSkillLocked(exams[0], skill.id) ? 'opacity-40 grayscale cursor-not-allowed' : '',
+                                !isBeforeExamDate && !isSessionRestricted && !isSkillCompleted(exams[0], skill.id) && !isSkillLocked(exams[0], skill.id) ? 'cursor-pointer hover:-translate-y-0.5' : ''
                             ]">
 
                             <!-- Icon -->
@@ -456,36 +650,24 @@ onUnmounted(() => {
                                     </div>
                                 </div>
 
-                                <div v-if="isSkillLocked(exams[0], skill.id) && !student?.student?.is_demo"
+                                <div v-if="isBeforeExamDate"
+                                    class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200 text-[9px] font-bold">
+                                    <i class="pi pi-calendar text-[9px]"></i>
+                                    <span>Opens on {{ studentExamDate }}</span>
+                                </div>
+                                <div v-else-if="isSkillLocked(exams[0], skill.id) && !student?.student?.is_demo"
                                     class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 text-[8px] font-bold uppercase tracking-widest leading-none">
                                     <i class="pi pi-lock text-[8px]"></i>
                                     <span>Locked</span>
                                 </div>
-
-                                <!-- COMMENTED: Demo level selector buttons (1-6)
-                                <div v-if="student?.student?.is_demo" class="flex flex-wrap items-center gap-1 mt-1"
-                                    @click.stop>
-                                    <span
-                                        class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mr-1">Select
-                                        starting level:</span>
-                                    <button v-for="lvl in 6" :key="lvl" @click="selectSkill(skill.id, lvl)"
-                                        class="w-5 h-5 rounded bg-slate-100 hover:bg-brand-primary hover:text-white transition-colors text-[8px] font-bold flex items-center justify-center border border-slate-200">
-                                        {{ lvl }}
-                                    </button>
-                                </div>
-                                -->
                             </div>
 
                             <!-- Action "Link" Style -->
                             <div class="shrink-0 flex items-center gap-4">
-                                <!-- COMMENTED: Demo "Select Level to Start" action
-                                <div v-if="student?.student?.is_demo"
-                                    class="flex items-center gap-1.5 text-brand-primary transition-all font-bold text-xs tracking-wide">
-                                    <span>Select Level to Start</span>
-                                    <i class="pi pi-arrow-right text-[10px]"></i>
+                                <div v-if="isBeforeExamDate" class="text-slate-400 font-bold text-xs tracking-wide">
+                                    Locked until exam date
                                 </div>
-                                -->
-                                <div v-if="!isSkillCompleted(exams[0], skill.id)"
+                                <div v-else-if="!isSkillCompleted(exams[0], skill.id)"
                                     class="flex items-center gap-1.5 font-bold text-xs tracking-wide transition-colors text-[#2563EB] group-hover:text-[#1d4ed8]">
                                     <span>{{ isSkillInProgress(exams[0], skill.id) ? 'Resume Test' : 'Start Test'
                                     }}</span>
@@ -497,6 +679,8 @@ onUnmounted(() => {
                                 </div>
                             </div>
                         </div>
+
+                        </template><!-- end v-for template -->
                     </div>
 
                     <!-- About the test banner at the bottom -->
@@ -525,6 +709,15 @@ onUnmounted(() => {
             </div>
         </div>
     </div>
+
+    <!-- Live Speaking Booking Modal -->
+    <LiveSpeakingBookingModal
+        :visible="showBookingModal"
+        :mode="bookingModalMode"
+        @close="showBookingModal = false"
+        @booked="onBooked"
+    />
+
 </template>
 
 <style scoped>

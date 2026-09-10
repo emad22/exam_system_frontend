@@ -12,6 +12,7 @@ import Message from 'primevue/message';
 import FileUpload from 'primevue/fileupload';
 import Checkbox from 'primevue/checkbox';
 import ProgressSpinner from 'primevue/progressspinner';
+import DatePicker from 'primevue/datepicker';
 
 const { showAlert } = useModal();
 
@@ -30,6 +31,7 @@ const skills = ref([]);
 const assigned_skills = ref([]);
 const examCategories = ref([]);
 const exam_category_id = ref(null);
+const exam_date = ref(null);
 
 const fetchData = async () => {
     try {
@@ -77,6 +79,12 @@ const triggerUpload = async () => {
     if (assigned_skills.value.length > 0) {
         formData.append('assigned_skills', JSON.stringify(assigned_skills.value));
     }
+    if (exam_date.value) {
+        // Serialize to YYYY-MM-DD regardless of the local Date object timezone
+        const d = new Date(exam_date.value);
+        const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        formData.append('exam_date', formatted);
+    }
 
     try {
         const res = await api.post('/admin/students/batch', formData, {
@@ -103,6 +111,7 @@ const reset = () => {
     partner_id.value = '';
     package_id.value = null;
     exam_category_id.value = null;
+    exam_date.value = null;
     assigned_skills.value = [];
     successMsg.value = '';
 };
@@ -296,8 +305,33 @@ const steps = [
                     </div>
                 </div>
 
-                <!-- Skills Override -->
-                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-6">
+                <!-- Exam Date -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-5 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-sky-500 flex items-center justify-center text-white shadow-sm shadow-sky-200">
+                            <i class="pi pi-calendar text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-black text-slate-800 uppercase tracking-widest">Exam Date <span class="text-[9px] font-bold text-slate-400 normal-case tracking-normal ml-1">(optional — locks students until this date)</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <DatePicker
+                            v-model="exam_date"
+                            placeholder="dd/mm/yyyy"
+                            dateFormat="dd/mm/yy"
+                            showButtonBar
+                            inputClass="!rounded-xl !bg-slate-50 !border-slate-100 !text-sm !font-bold"
+                            class="w-56"
+                        />
+                        <p v-if="exam_date" class="text-[11px] font-bold text-sky-600 flex items-center gap-1.5">
+                            <i class="pi pi-lock text-[10px]"></i>
+                            Locked until <span class="font-black ml-1">{{ new Date(exam_date).toLocaleDateString('en-GB') }}</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Skills Override -->                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-6">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-200">

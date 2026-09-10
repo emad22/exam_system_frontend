@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import AdminLayout from '@/components/AdminLayout.vue';
 import api from '@/services/api';
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
 
 const { showAlert } = useModal();
 
@@ -28,12 +29,19 @@ const editForm = ref({
     proctoring_mode: 'none',
 });
 
-    const loadData = async () => {
+// ── Login credentials state ───────────────────────────────────────────────────
+const partnerUser = ref(null);           // the raw User record from the API
+const showPasswordDialog = ref(false);
+const newPassword = ref('');
+const isResettingPassword = ref(false);
+
+const loadData = async () => {
     loading.value = true;
     try {
         const res = await api.get(`/admin/partners/${partnerId}`);
         const partner = res.data;
         const user = partner.user ?? {};
+        partnerUser.value = user;
         editForm.value = {
             partner_name: partner.partner_name || '',
             fName_contact: user.first_name || partner.fName_contact || '',
@@ -72,6 +80,35 @@ const savePartner = async () => {
     } finally {
         isSaving.value = false;
     }
+};
+
+// ── Password reset ────────────────────────────────────────────────────────────
+const openPasswordDialog = () => {
+    newPassword.value = '';
+    showPasswordDialog.value = true;
+};
+
+const resetPassword = async () => {
+    if (!newPassword.value || newPassword.value.length < 6) {
+        showAlert('Password must be at least 6 characters.', 'Validation', 'warning');
+        return;
+    }
+    isResettingPassword.value = true;
+    try {
+        await api.patch(`/admin/partners/${partnerId}`, { password: newPassword.value });
+        showPasswordDialog.value = false;
+        showAlert('Password updated successfully.', 'Success', 'success');
+    } catch (err) {
+        showAlert(err.response?.data?.message || 'Failed to update password.', 'Error', 'danger');
+    } finally {
+        isResettingPassword.value = false;
+    }
+};
+
+const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert('Copied to clipboard.', 'Copied', 'success');
+    });
 };
 
 onMounted(() => {
@@ -283,8 +320,57 @@ onMounted(() => {
                                 </div>
                             </div>
                         </div>
-
                     </div>
+
+                    <!-- Section 5: Login Credentials -->
+                    <div class="space-y-5">
+                        <div class="flex items-center space-x-3 pb-2 border-b border-slate-100">
+                            <div class="w-2 h-2 rounded-full bg-sky-500"></div>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">Login Credentials</h3>
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-auto">Partner Portal Access</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Login (email) -->
+                            <div class="bg-slate-50 rounded-2xl border border-slate-100 px-5 py-4 flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Login (Email)</p>
+                                    <p class="text-sm font-bold text-slate-800 font-mono">{{ editForm.email || '—' }}</p>
+                                </div>
+                                <button @click="copyToClipboard(editForm.email)"
+                                    title="Copy email"
+                                    class="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-300 flex items-center justify-center transition-all shrink-0">
+                                    <i class="pi pi-copy text-xs"></i>
+                                </button>
+                            </div>
+
+                            <!-- Default Password hint + reset -->
+                            <div class="bg-slate-50 rounded-2xl border border-slate-100 px-5 py-4 flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Password</p>
+                                    <p class="text-sm font-bold text-slate-500 font-mono tracking-widest">••••••••</p>
+                                    <p class="text-[9px] text-slate-400 mt-0.5">Default: <span class="font-black text-slate-600">Partner@123456</span> (if never changed)</p>
+                                </div>
+                                <button @click="openPasswordDialog"
+                                    title="Reset password"
+                                    class="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-brand-primary hover:border-brand-primary flex items-center justify-center transition-all shrink-0">
+                                    <i class="pi pi-pencil text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick login info -->
+                        <div class="flex items-start gap-2 bg-sky-50 border border-sky-100 rounded-xl px-4 py-3 text-[10px] font-bold text-sky-700">
+                            <i class="pi pi-info-circle text-sky-500 mt-0.5 shrink-0"></i>
+                            <span>
+                                To log in as this partner, go to the
+                                <a href="/login" target="_blank" class="underline font-black hover:text-sky-900">/login</a>
+                                page and use the email above with the partner's password.
+                                The system will redirect automatically to the Partner portal.
+                            </span>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Footer -->
@@ -299,6 +385,38 @@ onMounted(() => {
             </div>
         </div>
     </AdminLayout>
+
+    <!-- ── Reset Password Dialog ─────────────────────────────────────────────── -->
+    <Dialog v-model:visible="showPasswordDialog" modal header="Reset Partner Password" :style="{ width: '380px' }">
+        <div class="space-y-4 pt-2">
+            <p class="text-[11px] font-bold text-slate-500">
+                Set a new password for <span class="font-black text-slate-800">{{ editForm.email }}</span>
+            </p>
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">New Password</label>
+                <input
+                    v-model="newPassword"
+                    type="text"
+                    autocomplete="new-password"
+                    placeholder="Min. 6 characters"
+                    class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-mono font-bold focus:outline-none focus:border-brand-primary transition-all"
+                />
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-2 pt-2">
+                <Button label="Cancel" severity="secondary" text @click="showPasswordDialog = false"
+                    class="!text-xs font-bold rounded-xl h-9 px-4" />
+                <Button
+                    label="Update Password"
+                    icon="pi pi-check"
+                    :loading="isResettingPassword"
+                    :disabled="!newPassword || newPassword.length < 6"
+                    @click="resetPassword"
+                    class="!text-xs font-bold rounded-xl h-9 px-4" />
+            </div>
+        </template>
+    </Dialog>
 </template>
 
 <style scoped>

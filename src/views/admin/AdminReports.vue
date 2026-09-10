@@ -12,6 +12,8 @@ import DatePicker from 'primevue/datepicker';
 import ReportListSkeleton from '@/components/skeletons/ReportListSkeleton.vue';
 import TableSkeleton from '@/components/skeletons/TableSkeleton.vue';
 import FilterBar from '@/components/FilterBar.vue';
+import Dialog from 'primevue/dialog';
+import { exportGradesToExcel, exportAnswersToExcel } from '@/utils/reportsExport';
 const { showAlert, showConfirm } = useModal();
 
 const router = useRouter();
@@ -42,17 +44,24 @@ const clearDates = () => {
 
 const skillMap = {
     'listening': 'Listening',
+    'list': 'Listening',
     'reading': 'Reading',
-    'grammar': 'Grammar',
+    'read': 'Reading',
+    'structure': 'Structure',
+    'struct': 'Structure',
+    'grammar': 'Structure',
+    'gram': 'Structure',
     'writing': 'Writing',
     'writting': 'Writing',
-    'speaking': 'Speaking'
+    'writ': 'Writing',
+    'speaking': 'Speaking',
+    'speak': 'Speaking'
 };
 
 const skillIcons = {
     'Listening': 'pi pi-headphones',
     'Reading': 'pi pi-book',
-    'Grammar': 'pi pi-pencil',
+    'Structure': 'pi pi-pencil',
     'Writing': 'pi pi-file-edit',
     'Speaking': 'pi pi-microphone',
 };
@@ -71,7 +80,7 @@ const getSortedSkills = (skills) => {
     const orderMap = {
         'Listening': 1,
         'Reading': 2,
-        'Grammar': 3,
+        'Structure': 3,
         'Writing': 4,
         'Speaking': 5
     };
@@ -126,6 +135,8 @@ const filteredAttempts = computed(() => {
         result = result.filter(a => {
             const searchableText = [
                 `${a.student?.user?.first_name || ''} ${a.student?.user?.last_name || ''}`,
+                a.student?.user?.username,
+                a.student?.user?.email,
                 a.student?.student_code,
                 a.student?.institution_code,
                 a.exam?.title,
@@ -303,6 +314,21 @@ const summaryStats = computed(() => {
     };
 });
 
+// ── Status helpers ────────────────────────────────────────────────────────────
+const isFullyCompleted = (attempt) => {
+    return attempt.status === 'completed';
+};
+
+const getStatusLabel = (attempt) => {
+    return (attempt.status || '').toUpperCase();
+};
+
+const getStatusSeverity = (attempt) => {
+    if (attempt.status === 'completed') return 'success';
+    if (attempt.status === 'paused') return 'secondary';
+    return 'warning';
+};
+
 // ── Score circle stroke calculation ──────────────────────────────────────────
 const getCircleStroke = (percent) => {
     const radius = 28;
@@ -348,6 +374,157 @@ const generatePDF = () => {
         window.print();
         isPrinting.value = false;
     }, 300);
+};
+
+// ── Export Grades as Excel ───────────────────────────────────────────────────
+const isExportingExcel = ref(false);
+
+const downloadGradesExcel = async () => {
+    if (selectedReports.value.length === 0 && !selectedPartner.value) {
+        showAlert('Please select at least one student or choose a partner first.', 'Selection Required', 'warning');
+        return;
+    }
+
+    try {
+        isExportingExcel.value = true;
+        let targets = [];
+        if (selectedReports.value.length > 0) {
+            targets = filteredAttempts.value.filter(a => selectedReports.value.includes(a.id));
+        } else {
+            targets = filteredAttempts.value.filter(a => a.student?.partner_id === selectedPartner.value);
+        }
+
+        if (!targets.length) {
+            showAlert('No reports available to export.', 'Notice', 'warning');
+            return;
+        }
+
+        let prefix = 'Exam_Grades';
+        if (selectedPartner.value) {
+            const p = partners.value.find(item => item.id === selectedPartner.value);
+            if (p?.partner_name) {
+                prefix = `Grades_${p.partner_name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, '_')}`;
+            }
+        }
+
+        await exportGradesToExcel(targets, {
+            partners: partners.value,
+            fileNamePrefix: prefix
+        });
+    } catch (err) {
+        console.error('Failed to export Excel', err);
+        showAlert('Failed to generate Excel file.', 'Error', 'danger');
+    } finally {
+        isExportingExcel.value = false;
+    }
+};
+
+// ── Download Answers as PDF ───────────────────────────────────────────────────
+const showDownloadDialog = ref(false);
+const downloadMode = ref('selected'); // 'selected' | 'partner'
+const downloadPartner = ref(null);
+const isDownloadingAnswers = ref(false);
+const isPrintingAnswers = ref(false);
+const answersForPrint = ref([]); // full attempt data with answers
+
+const openDownloadDialog = () => {
+    downloadMode.value = selectedReports.value.length > 0 ? 'selected' : 'partner';
+    downloadPartner.value = selectedPartner.value;
+    showDownloadDialog.value = true;
+};
+
+// Resolve which attempt IDs to print based on mode
+const resolveDownloadIds = () => {
+    if (downloadMode.value === 'selected') {
+        return selectedReports.value;
+    }
+    // partner mode — filter loaded attempts by partner
+    const pid = downloadPartner.value;
+    if (!pid) return [];
+    return filteredAttempts.value
+        .filter(a => a.student?.partner_id === pid)
+        .map(a => a.id);
+};
+
+const downloadAnswers = async () => {
+    const ids = resolveDownloadIds();
+    if (ids.length === 0) {
+        showAlert(
+            downloadMode.value === 'selected'
+                ? 'Please select at least one student first.'
+                : 'Please select a partner.',
+            'No Selection', 'warning'
+        );
+        return;
+    }
+
+    isDownloadingAnswers.value = true;
+    try {
+        // Fetch full details (with answers) for each selected attempt in parallel
+        const results = await Promise.all(
+            ids.map(id => api.get(`/admin/reports/${id}`).then(r => r.data))
+        );
+        answersForPrint.value = results;
+        showDownloadDialog.value = false;
+        // Give Vue a tick to render the print view, then print
+        await new Promise(r => setTimeout(r, 400));
+        isPrintingAnswers.value = true;
+        await new Promise(r => setTimeout(r, 300));
+        window.print();
+    } catch (err) {
+        console.error('Download failed', err);
+        showAlert('Failed to load answers for printing.', 'Error', 'danger');
+    } finally {
+        isDownloadingAnswers.value = false;
+        // Reset after print dialog closes
+        setTimeout(() => { isPrintingAnswers.value = false; }, 1000);
+    }
+};
+
+const isDownloadingAnswersExcel = ref(false);
+
+const downloadAnswersExcel = async () => {
+    const ids = resolveDownloadIds();
+    if (ids.length === 0) {
+        showAlert(
+            downloadMode.value === 'selected'
+                ? 'Please select at least one student first.'
+                : 'Please select a partner.',
+            'No Selection', 'warning'
+        );
+        return;
+    }
+
+    isDownloadingAnswersExcel.value = true;
+    try {
+        const results = await Promise.all(
+            ids.map(id => api.get(`/admin/reports/${id}`).then(r => r.data))
+        );
+        exportAnswersToExcel(results, {
+            fileNamePrefix: 'Student_Answers_Report'
+        });
+        showDownloadDialog.value = false;
+    } catch (err) {
+        console.error('Download answers excel failed', err);
+        showAlert('Failed to export answers to Excel.', 'Error', 'danger');
+    } finally {
+        isDownloadingAnswersExcel.value = false;
+    }
+};
+
+// Render a student answer text for print
+const renderAnswer = (answer) => {
+    if (!answer) return '—';
+    if (answer.option?.option_text) return answer.option.option_text;
+    if (answer.text_answer) return String(answer.text_answer).replace(/<[^>]*>/g, '').trim();
+    if (answer.option_id) return `Option #${answer.option_id}`;
+    return '—';
+};
+
+const renderCorrectAnswer = (question) => {
+    if (!question?.options) return '—';
+    const correct = question.options.filter(o => o.is_correct).map(o => o.option_text);
+    return correct.length ? correct.join(' / ') : '—';
 };
 
 // ── Format helpers ────────────────────────────────────────────────────────────
@@ -398,15 +575,27 @@ onMounted(() => {
 
                 <!-- Header Actions -->
                 <div class="flex items-center gap-2.5">
+                    <Button
+                        :label="selectedReports.length > 0 ? ('Download Excel (' + selectedReports.length + ')') : (selectedPartner ? 'Download Excel (Partner)' : 'Download Excel')"
+                        icon="pi pi-file-excel"
+                        severity="success"
+                        :loading="isExportingExcel"
+                        :disabled="selectedReports.length === 0 && !selectedPartner"
+                        :title="selectedReports.length === 0 && !selectedPartner ? 'Please select at least one student or choose a partner first' : 'Download Excel'"
+                        @click="downloadGradesExcel"
+                        class="!text-xs font-bold rounded-xl h-10 px-4 shadow-xs hover:shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" />
+
                     <Button v-if="selectedReports.length > 0"
-                        :label="'Download PDF (' + selectedReports.length + ')'"
+                        :label="'Print PDF (' + selectedReports.length + ')'"
                         icon="pi pi-file-pdf"
                         severity="danger"
+                        variant="outlined"
                         :loading="isPrinting"
                         @click="generatePDF"
-                        class="!text-xs font-bold rounded-xl h-10 px-4" />
+                        class="!text-xs font-bold rounded-xl h-10 px-4 cursor-pointer" />
 
                     <button @click="fetchReports"
+                        title="Refresh reports"
                         class="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-white transition-all cursor-pointer">
                         <i class="pi pi-refresh text-sm"></i>
                     </button>
@@ -417,7 +606,7 @@ onMounted(() => {
         <!-- ── Filter Bar ───────────────────────────────────────────────── -->
         <FilterBar
             v-model="search"
-            search-placeholder="Filter identities / codes..."
+            search-placeholder="Search by name, username, email, code..."
             v-model:dateFrom="startDate"
             v-model:dateTo="endDate"
             :active-count="selectedPartner ? 1 : 0"
@@ -481,7 +670,11 @@ onMounted(() => {
             <div v-if="filteredAttempts.length > 0" id="reports-table-container" class="space-y-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
                 <!-- Table Header -->
-                <div class="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_2fr_1fr] gap-4 px-6 py-3 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <div class="grid grid-cols-[auto_2fr_2fr_1.5fr_1.5fr_2fr_1fr] gap-4 px-6 py-3 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div class="flex items-center">
+                        <input type="checkbox" :checked="selectAll" @change="e => selectAll = e.target.checked"
+                            class="w-4 h-4 rounded accent-brand-primary cursor-pointer" />
+                    </div>
                     <div>Student</div>
                     <div>Exam Details</div>
                     <div class="text-center">Overall Score</div>
@@ -493,8 +686,15 @@ onMounted(() => {
                 <template v-for="attempt in paginatedAttempts" :key="attempt.id">
                     <!-- Main Row -->
                     <div class="border-b border-slate-50 last:border-0">
-                        <div class="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_2fr_1fr] gap-4 px-6 py-5 items-center hover:bg-slate-50/60 transition-colors cursor-pointer group"
+                        <div class="grid grid-cols-[auto_2fr_2fr_1.5fr_1.5fr_2fr_1fr] gap-4 px-6 py-5 items-center hover:bg-slate-50/60 transition-colors cursor-pointer group"
                              @click="viewDetails(attempt.id)">
+
+                            <!-- Checkbox -->
+                            <div @click.stop>
+                                <input type="checkbox" :checked="isSelected(attempt.id)"
+                                    @change="toggleSelection(attempt.id)"
+                                    class="w-4 h-4 rounded accent-brand-primary cursor-pointer" />
+                            </div>
 
                             <!-- Student -->
                             <div class="flex items-center gap-3">
@@ -548,8 +748,8 @@ onMounted(() => {
 
                             <!-- Status -->
                             <div class="flex flex-col items-center gap-1">
-                                <Tag :value="attempt.status === 'completed' ? 'COMPLETED' : attempt.status.toUpperCase()"
-                                     :severity="attempt.status === 'completed' ? 'success' : 'warning'"
+                                <Tag :value="getStatusLabel(attempt)"
+                                     :severity="getStatusSeverity(attempt)"
                                      class="text-[9px] font-black uppercase tracking-wider px-3 rounded-lg" />
                                 <div v-if="attempt.status === 'completed'"
                                      class="text-[9px] font-bold text-emerald-500 flex items-center gap-1">
@@ -683,6 +883,89 @@ onMounted(() => {
     </div>
   </AdminLayout>
 
+  <!-- ── Download Answers Dialog ───────────────────────────────────────────── -->
+  <Dialog v-model:visible="showDownloadDialog" modal header="Download Answers" :style="{ width: '460px' }"
+      class="!rounded-2xl">
+      <div class="space-y-5 pt-2">
+
+          <!-- Mode Toggle -->
+          <div class="flex gap-2">
+              <button @click="downloadMode = 'selected'"
+                  :class="[
+                      'flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all',
+                      downloadMode === 'selected'
+                          ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
+                          : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                  ]">
+                  <i class="pi pi-check-square mr-1.5"></i>
+                  Selected ({{ selectedReports.length }})
+              </button>
+              <button @click="downloadMode = 'partner'"
+                  :class="[
+                      'flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all',
+                      downloadMode === 'partner'
+                          ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
+                          : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                  ]">
+                  <i class="pi pi-users mr-1.5"></i>
+                  By Partner
+              </button>
+          </div>
+
+          <!-- Selected mode info -->
+          <div v-if="downloadMode === 'selected'">
+              <div v-if="selectedReports.length === 0"
+                   class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs font-bold text-amber-700">
+                  <i class="pi pi-exclamation-triangle mr-1.5"></i>
+                  No students selected. Use the checkboxes in the table to select students first, or switch to "By Partner" mode.
+              </div>
+              <div v-else class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-xs font-bold text-emerald-700">
+                  <i class="pi pi-check-circle mr-1.5"></i>
+                  {{ selectedReports.length }} student(s) selected — their answers will be exported.
+              </div>
+          </div>
+
+          <!-- Partner mode -->
+          <div v-if="downloadMode === 'partner'" class="space-y-2">
+              <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider">Select Partner</label>
+              <Select v-model="downloadPartner" :options="partners" optionLabel="partner_name" optionValue="id"
+                  placeholder="Choose a partner..." showClear
+                  class="w-full !rounded-xl !border-slate-200 !bg-slate-50 !text-xs !font-semibold" />
+              <p class="text-[10px] text-slate-400 font-bold">All completed attempt answers for this partner will be exported.</p>
+          </div>
+
+          <!-- Format note -->
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-[10px] font-bold text-slate-400 flex items-start gap-2">
+              <i class="pi pi-file-pdf text-rose-500 text-sm mt-0.5"></i>
+              <span>Opens a print-ready PDF view with every answer — student info, question, correct answer, and student response — grouped by student.</span>
+          </div>
+      </div>
+
+      <template #footer>
+          <div class="flex justify-end gap-2 pt-2">
+              <Button label="Cancel" severity="secondary" text @click="showDownloadDialog = false"
+                  class="!text-xs font-bold rounded-xl h-9 px-4" />
+              <Button
+                  label="Print / Save PDF"
+                  icon="pi pi-file-pdf"
+                  severity="danger"
+                  variant="outlined"
+                  :loading="isDownloadingAnswers"
+                  :disabled="(downloadMode === 'selected' && selectedReports.length === 0) || (downloadMode === 'partner' && !downloadPartner)"
+                  @click="downloadAnswers"
+                  class="!text-xs font-bold rounded-xl h-9 px-4 cursor-pointer" />
+              <Button
+                  label="Download Excel"
+                  icon="pi pi-file-excel"
+                  severity="success"
+                  :loading="isDownloadingAnswersExcel"
+                  :disabled="(downloadMode === 'selected' && selectedReports.length === 0) || (downloadMode === 'partner' && !downloadPartner)"
+                  @click="downloadAnswersExcel"
+                  class="!text-xs font-bold rounded-xl h-9 px-4 cursor-pointer" />
+          </div>
+      </template>
+  </Dialog>
+
   <!-- ── Print View (unchanged) ─────────────────────────────────────────────── -->
   <Teleport to="body">
     <div v-if="isPrinting" id="print-view" class="bg-white w-full p-8 text-black">
@@ -754,13 +1037,98 @@ onMounted(() => {
         </div>
     </div>
   </Teleport>
+
+  <!-- ── Answers Print View ─────────────────────────────────────────────────── -->
+  <Teleport to="body">
+    <div v-if="isPrintingAnswers" id="answers-print-view" class="bg-white w-full p-8 text-black">
+        <div class="mb-8 flex justify-between items-end border-b border-slate-200 pb-6">
+            <div>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Student Answers Report</h2>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Full answer breakdown per student</p>
+            </div>
+            <div class="text-xs font-bold text-slate-400">Generated: {{ new Date().toLocaleDateString('en-GB') }}</div>
+        </div>
+
+        <template v-for="attempt in answersForPrint" :key="'ap-'+attempt.id">
+            <!-- Student header -->
+            <div class="mb-4 mt-8 first:mt-0 flex items-center justify-between bg-slate-50 rounded-2xl px-6 py-4 border border-slate-100">
+                <div>
+                    <div class="text-base font-black text-slate-800 uppercase tracking-tight">
+                        {{ attempt.student?.user?.first_name || attempt.user?.first_name }}
+                        {{ attempt.student?.user?.last_name || attempt.user?.last_name }}
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                        {{ attempt.student?.student_code || '—' }}
+                        <span v-if="attempt.student?.user?.email" class="ml-3">{{ attempt.student.user.email }}</span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="font-bold text-sm text-slate-700">{{ attempt.exam?.title || '—' }}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">
+                        {{ attempt.started_at ? new Date(attempt.started_at).toLocaleDateString('en-GB') : '—' }}
+                        <span class="mx-2">→</span>
+                        {{ attempt.finished_at ? new Date(attempt.finished_at).toLocaleDateString('en-GB') : 'Pending' }}
+                    </div>
+                    <div class="text-[10px] font-black mt-1" :class="isFullyCompleted(attempt) ? 'text-emerald-600' : 'text-amber-500'">
+                        {{ getStatusLabel(attempt) }}
+                        <span class="ml-2 text-slate-500">| Score: {{ getOverallScore(attempt) }} / {{ getMaxOverallScore(attempt) }} ({{ getOverallPercent(attempt) }}%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answers table -->
+            <table v-if="attempt.answers && attempt.answers.length" class="w-full text-left mb-2 border border-slate-100 rounded-xl overflow-hidden text-xs">
+                <thead class="bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-2 w-8">#</th>
+                        <th class="px-4 py-2 w-24">Skill</th>
+                        <th class="px-4 py-2 w-20">Type</th>
+                        <th class="px-4 py-2">Question</th>
+                        <th class="px-4 py-2">Correct Answer</th>
+                        <th class="px-4 py-2">Student Answer</th>
+                        <th class="px-4 py-2 text-center w-16">Result</th>
+                        <th class="px-4 py-2 text-center w-16">Points</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <tr v-for="(answer, idx) in attempt.answers" :key="'aa-'+answer.id"
+                        :class="answer.is_correct ? 'bg-emerald-50/40' : 'bg-white'">
+                        <td class="px-4 py-2 text-slate-400 font-bold">{{ idx + 1 }}</td>
+                        <td class="px-4 py-2 font-bold text-indigo-600 uppercase text-[9px]">
+                            {{ getSkillDisplayName(answer.question?.skill?.name) }}
+                        </td>
+                        <td class="px-4 py-2 text-slate-400 text-[9px] uppercase">{{ answer.question?.type || '—' }}</td>
+                        <td class="px-4 py-2 text-slate-700 max-w-xs">
+                            <div class="line-clamp-3">{{ answer.question?.content ? answer.question.content.replace(/<[^>]*>/g,'').trim() : '—' }}</div>
+                        </td>
+                        <td class="px-4 py-2 text-emerald-700 font-bold">{{ renderCorrectAnswer(answer.question) }}</td>
+                        <td class="px-4 py-2 font-bold" :class="answer.is_correct ? 'text-emerald-700' : 'text-rose-600'">
+                            {{ renderAnswer(answer) }}
+                        </td>
+                        <td class="px-4 py-2 text-center">
+                            <span v-if="answer.is_correct" class="text-emerald-600 font-black text-base leading-none">✓</span>
+                            <span v-else class="text-rose-500 font-black text-base leading-none">✗</span>
+                        </td>
+                        <td class="px-4 py-2 text-center font-black text-slate-700">{{ answer.points_awarded ?? '—' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div v-else class="text-xs text-slate-400 italic mb-6 px-2">No answers recorded for this attempt.</div>
+
+            <!-- Page break between students -->
+            <div class="answers-page-break"></div>
+        </template>
+    </div>
+  </Teleport>
 </template>
 
 <style>
 @media print {
-    body > :not(#print-view) { display: none !important; }
-    #print-view { position: relative !important; display: block !important; margin: 0 !important; padding: 0 !important; }
+    body > :not(#print-view):not(#answers-print-view) { display: none !important; }
+    #print-view, #answers-print-view { position: relative !important; display: block !important; margin: 0 !important; padding: 0 !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    @page { margin: 0.5cm; size: landscape; }
+    @page { margin: 0.8cm; size: landscape; }
+    .answers-page-break { page-break-after: always; }
+    .line-clamp-3 { display: block !important; overflow: visible !important; -webkit-line-clamp: unset !important; }
 }
 </style>
