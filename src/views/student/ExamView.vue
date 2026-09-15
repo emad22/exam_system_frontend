@@ -438,10 +438,16 @@ const beginExam = async () => {
 
 const confirmExit = async () => {
     showExitModal.value = false;
-    isIntentionallyLeaving.value = true; // 
+    isIntentionallyLeaving.value = true;
     try {
         isLoading.value = true;
-        await api.post(`/attempts/${attemptId.value}/completion`);
+        await api.post(`/attempts/${attemptId.value}/completion`, {
+            question_id: currentQ.value?.id || null,
+            question_number: displayNumber.value || null,
+            skill_name: currentSkill.value?.name || null,
+            skill_id: currentSkill.value?.id || null,
+            level_number: currentLevel.value?.level_number || null,
+        });
         await navigateSafely('/skill-selection');
     } catch (err) {
         console.error('Error finishing attempt:', err);
@@ -456,6 +462,18 @@ const exitExam = async () => {
 const isNavigatingBack = ref(false);
 
 onBeforeRouteLeave((to, from) => {
+    if (!isIntentionallyLeaving.value && attemptId.value) {
+        try {
+            api.post(`/attempts/${attemptId.value}/log-movement`, {
+                event_type: 'exam_page_leave',
+                question_id: currentQ.value?.id || null,
+                question_number: displayNumber.value || null,
+                skill_name: currentSkill.value?.name || null,
+                skill_id: currentSkill.value?.id || null,
+                level_number: currentLevel.value?.level_number || null,
+            }).catch(() => {});
+        } catch (e) {}
+    }
     isIntentionallyLeaving.value = true;
     if (proctoringSessionId.value && skillId) {
         proctoringService.recordSkillExit(proctoringSessionId.value, skillId);
@@ -991,13 +1009,46 @@ const updateActivity = debounce(resetInactivityTimer, 500);
 
 
 const handleBeforeUnloadBeacon = () => {
-    // âœ… Ù„Ùˆ Ø§Ù„Ø·Ø§Ù„Ø¨ Ø®Ø±Ø¬ Ø¨Ø´ÙƒÙ„ Ø·Ø¨ÙŠØ¹ÙŠ (exit/finish)ØŒ Ù…Ø¨Ø¹ØªØ´ beacon
-    if (isIntentionallyLeaving.value) return
+    if (isIntentionallyLeaving.value) return;
 
-    isIntentionallyLeaving.value = true
-    const sessionId = proctoringSessionId.value
-    const token = proctoringSessionToken.value
-    if (!sessionId || !token) return
+    // Send student movement log (page leave / browser close)
+    if (attemptId.value) {
+        try {
+            const token = authStorage.getToken();
+            const movementPayload = JSON.stringify({
+                event_type: 'exam_page_leave',
+                question_id: currentQ.value?.id || null,
+                question_number: displayNumber.value || null,
+                skill_name: currentSkill.value?.name || null,
+                skill_id: currentSkill.value?.id || null,
+                level_number: currentLevel.value?.level_number || null,
+            });
+
+            const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+            const apiBase = import.meta.env.VITE_API_BASE_URL || (isLocal ? 'http://localhost:8000/api/v1' : `${window.location.origin}/api/v1`);
+            const endpoint = `${apiBase}/attempts/${attemptId.value}/log-movement`;
+
+            if (token) {
+                fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    },
+                    body: movementPayload,
+                    keepalive: true,
+                }).catch(() => {});
+            }
+        } catch (e) {
+            console.warn('Failed to send movement log on unload:', e);
+        }
+    }
+
+    isIntentionallyLeaving.value = true;
+    const sessionId = proctoringSessionId.value;
+    const token = proctoringSessionToken.value;
+    if (!sessionId || !token) return;
 
     const payload = JSON.stringify({
         close_reason: 'connection_lost',

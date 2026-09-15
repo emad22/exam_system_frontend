@@ -11,6 +11,7 @@ const skillId = route.params.skillId;
 const levelId = route.params.levelId;
 
 const skill = ref(null);
+const examTitle = ref('');
 const isLoading = ref(true);
 
 const fetchSkillData = async () => {
@@ -43,6 +44,7 @@ const fetchSkillData = async () => {
 
         const foundSkill = res.data.skills.find(s => String(s.id) === String(skillId));
         skill.value = foundSkill;
+        examTitle.value = res.data.title || '';
     } catch (err) {
         console.error('Failed to fetch skill instructions', err);
     } finally {
@@ -179,6 +181,26 @@ const SKILL_SPECIFIC_INSTRUCTIONS = {
             '<strong>Accepted file format:</strong><br>Images (PNG, JPG, JPEG...) or Documents (PDF, DOCX, DOC...)<br>Max size per file: 50 MB'
         ]
     },
+    writing_aero: {
+        title: 'Writing Composition',
+        subtitle: 'Get ready to assess your writing skills.',
+        isAdaptive: false,
+        icon: 'pi pi-file-edit',
+        overviewSubtitle: 'The Writing Test comprises writing and composition tasks:',
+        overviewCards: [
+            { title: 'Question answering', icon: 'pi pi-question-circle' },
+            { title: 'Topic selection', icon: 'pi pi-list' },
+            { title: 'Typing or handwriting', icon: 'pi pi-pencil' },
+            { title: 'Flexible submission', icon: 'pi pi-cloud-upload' }
+        ],
+        tips: [
+            '<strong>What measures this section?</strong><br>The Writing Part measures your ability to write in Modern Standard Arabic.',
+            '<strong>Delivery:</strong><br>This test is to be completed by hand. You will be given a number of questions to answer and a number of topics and asked to choose onetopic to write about.',
+            '<strong>Completion formats:</strong><br>You may complete the test in either of the following formats:<br><span style="display:inline-block;margin-top:4px">📝 <strong>Typing:</strong> Type your response directly into the test platform.</span><br><span style="display:inline-block;margin-top:4px">✍️ <strong>Handwriting:</strong> Print the document and write your response by hand and submit a photo as instructed.</span>',
+            '<strong>Test Activation:</strong><br>Click the <strong>Start the Test</strong> button only at the scheduled test time; otherwise, the test will be marked as <strong>Taken.</strong>',
+            '<strong>Accepted file format:</strong><br>Images (PNG, JPG, JPEG...) or Documents (PDF, DOCX, DOC...)<br>Max size per file: 50 MB'
+        ]
+    },
     'live speaking': {
         title: 'Live Speaking Interview',
         subtitle: 'Get ready for your live speaking session with an examiner.',
@@ -247,6 +269,8 @@ const SKILL_SPECIFIC_INSTRUCTIONS = {
     }
 };
 
+const isAeroExam = () => examTitle.value.toLowerCase().includes('aero');
+
 const getSkillSpecificInstructions = (name) => {
     if (!name) return SKILL_SPECIFIC_INSTRUCTIONS.default;
     // Normalize: lowercase, fix typos, collapse multiple spaces
@@ -255,9 +279,14 @@ const getSkillSpecificInstructions = (name) => {
         .replace(/[_-]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+    // AERO exam: use AERO-specific writing instructions
+    if (isAeroExam() && lowerName.includes('writing')) {
+        return SKILL_SPECIFIC_INSTRUCTIONS.writing_aero;
+    }
     // Sort keys by length descending so more-specific keys (e.g. 'live speaking') match before 'speaking'
+    // Exclude internal keys like 'writing_aero'
     const sortedKeys = Object.keys(SKILL_SPECIFIC_INSTRUCTIONS)
-        .filter(k => k !== 'default')
+        .filter(k => k !== 'default' && !k.includes('_'))
         .sort((a, b) => b.length - a.length);
     const matchedKey = sortedKeys.find(key => lowerName.includes(key));
     return matchedKey ? SKILL_SPECIFIC_INSTRUCTIONS[matchedKey] : SKILL_SPECIFIC_INSTRUCTIONS.default;

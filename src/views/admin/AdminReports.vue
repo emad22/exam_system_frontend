@@ -27,15 +27,23 @@ const _savedFilters = (() => {
     try { return JSON.parse(sessionStorage.getItem('reports_filters') || 'null'); } catch { return null; }
 })();
 const selectedPartner = ref(_savedFilters?.selectedPartner ?? null);
+const selectedStatus = ref(_savedFilters?.selectedStatus ?? null);
 const search = ref(_savedFilters?.search ?? '');
 const startDate = ref(_savedFilters?.startDate ? new Date(_savedFilters.startDate) : null);
 const endDate = ref(_savedFilters?.endDate ? new Date(_savedFilters.endDate) : null);
+
+const statusOptions = [
+    { label: 'Completed', value: 'completed' },
+    { label: 'Ongoing', value: 'ongoing' },
+    { label: 'Paused', value: 'paused' },
+];
 
 const clearDates = () => {
     startDate.value = null;
     endDate.value = null;
     sessionStorage.setItem('reports_filters', JSON.stringify({
         selectedPartner: selectedPartner.value,
+        selectedStatus: selectedStatus.value,
         search: search.value,
         startDate: null,
         endDate: null,
@@ -123,11 +131,43 @@ const currentPage = ref(1);
 const rowsPerPage = ref(15);
 const rowsPerPageOptions = [10, 15, 25, 50, 100];
 
+// ── Status helpers ────────────────────────────────────────────────────────────
+const isFullyCompleted = (attempt) => {
+    if (!attempt || attempt.status !== 'completed') return false;
+    if (attempt.skills_count && attempt.attempt_skills) {
+        return attempt.attempt_skills.length >= attempt.skills_count;
+    }
+    return true;
+};
+
+const getEffectiveStatus = (attempt) => {
+    if (!attempt) return 'ongoing';
+    if (attempt.status === 'completed' && !isFullyCompleted(attempt)) {
+        return 'ongoing';
+    }
+    return attempt.status || 'ongoing';
+};
+
+const getStatusLabel = (attempt) => {
+    return getEffectiveStatus(attempt).toUpperCase();
+};
+
+const getStatusSeverity = (attempt) => {
+    const status = getEffectiveStatus(attempt);
+    if (status === 'completed') return 'success';
+    if (status === 'paused') return 'secondary';
+    return 'warning';
+};
+
 const filteredAttempts = computed(() => {
     let result = attempts.value;
 
     if (selectedPartner.value) {
         result = result.filter(a => a.student?.partner_id === selectedPartner.value);
+    }
+
+    if (selectedStatus.value) {
+        result = result.filter(a => getEffectiveStatus(a) === selectedStatus.value);
     }
 
     if (search.value) {
@@ -180,7 +220,7 @@ const changePage = (page) => {
 
 const filtered = () => filteredAttempts.value;
 
-watch([search, selectedPartner, startDate, endDate], () => {
+watch([search, selectedPartner, selectedStatus, startDate, endDate], () => {
     currentPage.value = 1;
     const toISO = (val) => {
         if (!val) return null;
@@ -190,6 +230,7 @@ watch([search, selectedPartner, startDate, endDate], () => {
     };
     sessionStorage.setItem('reports_filters', JSON.stringify({
         selectedPartner: selectedPartner.value,
+        selectedStatus: selectedStatus.value,
         search: search.value,
         startDate: toISO(startDate.value),
         endDate: toISO(endDate.value),
@@ -269,7 +310,7 @@ const getOverallPercent = (attempt) => {
 
 // ── Summary stats ─────────────────────────────────────────────────────────────
 const summaryStats = computed(() => {
-    const completed = filteredAttempts.value.filter(a => a.status === 'completed');
+    const completed = filteredAttempts.value.filter(a => isFullyCompleted(a));
     const total = filteredAttempts.value.length;
 
     // Average score (percent)
@@ -313,21 +354,6 @@ const summaryStats = computed(() => {
         totalTimeStr,
     };
 });
-
-// ── Status helpers ────────────────────────────────────────────────────────────
-const isFullyCompleted = (attempt) => {
-    return attempt.status === 'completed';
-};
-
-const getStatusLabel = (attempt) => {
-    return (attempt.status || '').toUpperCase();
-};
-
-const getStatusSeverity = (attempt) => {
-    if (attempt.status === 'completed') return 'success';
-    if (attempt.status === 'paused') return 'secondary';
-    return 'warning';
-};
 
 // ── Score circle stroke calculation ──────────────────────────────────────────
 const getCircleStroke = (percent) => {
@@ -609,8 +635,8 @@ onMounted(() => {
             search-placeholder="Search by name, username, email, code..."
             v-model:dateFrom="startDate"
             v-model:dateTo="endDate"
-            :active-count="selectedPartner ? 1 : 0"
-            @reset="search = ''; startDate = null; endDate = null; selectedPartner = null; fetchReports()"
+            :active-count="(selectedPartner ? 1 : 0) + (selectedStatus ? 1 : 0)"
+            @reset="search = ''; startDate = null; endDate = null; selectedPartner = null; selectedStatus = null; fetchReports()"
             @apply="fetchReports"
         >
             <div class="w-full sm:w-48">
@@ -620,6 +646,15 @@ onMounted(() => {
                 </label>
                 <Select v-model="selectedPartner" :options="partners" optionLabel="partner_name" optionValue="id"
                     placeholder="All Partners" showClear
+                    class="w-full !h-11 !rounded-xl !border-slate-200/80 !bg-slate-50/70 !text-xs !font-semibold" />
+            </div>
+            <div class="w-full sm:w-48">
+                <label class="block text-[11px] font-bold text-slate-600 mb-1.5 tracking-tight flex items-center gap-1.5">
+                    <i class="pi pi-filter text-[10px] text-slate-400" />
+                    <span>Status</span>
+                </label>
+                <Select v-model="selectedStatus" :options="statusOptions" optionLabel="label" optionValue="value"
+                    placeholder="All Statuses" showClear
                     class="w-full !h-11 !rounded-xl !border-slate-200/80 !bg-slate-50/70 !text-xs !font-semibold" />
             </div>
         </FilterBar>
@@ -751,7 +786,7 @@ onMounted(() => {
                                 <Tag :value="getStatusLabel(attempt)"
                                      :severity="getStatusSeverity(attempt)"
                                      class="text-[9px] font-black uppercase tracking-wider px-3 rounded-lg" />
-                                <div v-if="attempt.status === 'completed'"
+                                <div v-if="isFullyCompleted(attempt)"
                                      class="text-[9px] font-bold text-emerald-500 flex items-center gap-1">
                                     <i class="pi pi-check-circle text-[9px]"></i> Validated outcome
                                 </div>
