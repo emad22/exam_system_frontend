@@ -10,7 +10,26 @@ import * as faceapi from '@vladmandic/face-api';
 
 const router = useRouter();
 
+// ─── Student name ─────────────────────────────────────────────────
+const studentUser = ref(null);
+const fullStudentName = computed(() => {
+    const u = studentUser.value;
+    if (!u) return '';
+    const firstName = u.first_name || '';
+    const lastName = u.last_name || '';
+    return [firstName, lastName].filter(Boolean).join(' ') || u.name || '';
+});
 
+const fetchStudentName = async () => {
+    try {
+        const { data } = await api.get('/user');
+        studentUser.value = data;
+    } catch (e) {
+        // fallback to authStorage
+        const stored = authStorage.getUser();
+        if (stored) studentUser.value = stored;
+    }
+};
 
 // ─── Steps ────────────────────────────────────────────────────────
 // 0: System Check  1: Camera & Mic  2: Identity  3: Review  4: Ready
@@ -486,6 +505,7 @@ onMounted(() => {
     runSystemChecks();
     loadFaceModels(); // ابدأ تحميل الـ models في الخلفية من أول ما الصفحة تفتح
     loadIdentityBypassState();
+    fetchStudentName();
 });
 onUnmounted(() => { stopCamMic(); stopFaceCamera(); });
 </script>
@@ -513,6 +533,9 @@ onUnmounted(() => { stopCamMic(); stopFaceCamera(); });
                                 System</p>
                             <h1 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Pre-Exam
                                 Verification</h1>
+                            <p v-if="fullStudentName" class="mt-1 text-xl font-black text-slate-700 tracking-tight">
+                                Welcome, <span class="text-violet-600">{{ fullStudentName }}</span>
+                            </p>
                         </div>
                         <span
                             class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200">Step

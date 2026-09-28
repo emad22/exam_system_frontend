@@ -8,6 +8,12 @@ import Button from 'primevue/button';
 import { PROCTORING_ENABLED } from '@/config/features';
 
 const router = useRouter();
+
+const fullStudentName = computed(() => {
+    const firstName = user.value?.first_name || '';
+    const lastName = user.value?.last_name || '';
+    return [firstName, lastName].filter(Boolean).join(' ') || user.value?.name || '';
+});
 const requirements = ref([]);
 const checkedRequirements = ref([]);
 const autoVerifiedIds = ref([]);
@@ -140,6 +146,9 @@ onMounted(() => {
                                 System</p>
                             <h1 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Pre-Exam
                                 Verification</h1>
+                            <p v-if="fullStudentName" class="mt-1 text-xl font-black text-slate-700 tracking-tight">
+                                Welcome, <span class="text-violet-600">{{ fullStudentName }}</span>
+                            </p>
                         </div>
                         <span
                             class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200">System
